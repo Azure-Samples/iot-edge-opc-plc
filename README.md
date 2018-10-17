@@ -27,9 +27,9 @@ There is no installation required.
 
 A docker container of the component is hosted in the Microsoft Container Registry and can be pulled by:
 
-docker pull mcr.microsoft.com/iotedge/iot-plc
+docker pull mcr.microsoft.com/iotedge/opc-plc
 
-The tags of the containers match the tags of this repository and the containers are available for Windows amd64, Linux amd64 and Linux ARM32.
+The tags of the container match the tags of this repository and the containers are available for Windows amd64, Linux amd64 and Linux ARM32.
 
 
 ## Demo
