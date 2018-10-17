@@ -1,0 +1,124 @@
+
+using Opc.Ua;
+using Opc.Ua.Server;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading;
+
+namespace OpcPlc
+{
+    public partial class PlcServer : StandardServer
+    {
+        public PlcNodeManager PlcNodeManager = null;
+
+        /// <summary>
+        /// Creates the node managers for the server.
+        /// </summary>
+        /// <remarks>
+        /// This method allows the sub-class create any additional node managers which it uses. The SDK
+        /// always creates a CoreNodeManager which handles the built-in nodes defined by the specification.
+        /// Any additional NodeManagers are expected to handle application specific nodes.
+        /// </remarks>
+        protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
+        {
+            PlcNodeManager = new PlcNodeManager(server, configuration);
+            List<INodeManager> nodeManagers = new List<INodeManager>
+            {
+                PlcNodeManager
+            };
+
+            return new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
+        }
+
+        /// <summary>
+        /// Loads the non-configurable properties for the application.
+        /// </summary>
+        /// <remarks>
+        /// These properties are exposed by the server but cannot be changed by administrators.
+        /// </remarks>
+        protected override ServerProperties LoadServerProperties()
+        {
+            ServerProperties properties = new ServerProperties
+            {
+                ManufacturerName = "Microsoft",
+                ProductName = "IoTEdge OPC UA PLC",
+                ProductUri = "https://github.com/Azure/iot-edge-opc-plc.git",
+                SoftwareVersion = Utils.GetAssemblySoftwareVersion(),
+                BuildNumber = Utils.GetAssemblyBuildNumber(),
+                BuildDate = Utils.GetAssemblyTimestamp()
+            };
+            return properties; 
+        }
+
+        /// <summary>
+        /// Creates the resource manager for the server.
+        /// </summary>
+        protected override ResourceManager CreateResourceManager(IServerInternal server, ApplicationConfiguration configuration)
+        {
+            ResourceManager resourceManager = new ResourceManager(server, configuration);
+
+            FieldInfo[] fields = typeof(StatusCodes).GetFields(BindingFlags.Public | BindingFlags.Static);
+
+            foreach (FieldInfo field in fields)
+            {
+                uint? id = field.GetValue(typeof(StatusCodes)) as uint?;
+
+                if (id != null)
+                {
+                    resourceManager.Add(id.Value, "en-US", field.Name);
+                }
+            }
+
+            return resourceManager;
+        }
+
+        protected override void OnServerStarted(IServerInternal server)
+        {
+            // start the simulation
+
+            base.OnServerStarted(server);
+        }
+
+        /// <summary>
+        /// Cleans up before the server shuts down.
+        /// </summary>
+        /// <remarks>
+        /// This method is called before any shutdown processing occurs.
+        /// </remarks>
+        protected override void OnServerStopping()
+        {
+            try
+            {
+                // check for connected clients
+                IList<Session> currentessions = ServerInternal.SessionManager.GetSessions();
+
+                if (currentessions.Count > 0)
+                {
+                    // provide some time for the connected clients to detect the shutdown state.
+                    ServerInternal.Status.Value.ShutdownReason = new LocalizedText("en-US", "Application closed.");
+                    ServerInternal.Status.Variable.ShutdownReason.Value = new LocalizedText("en-US", "Application closed.");
+                    ServerInternal.Status.Value.State = ServerState.Shutdown;
+                    ServerInternal.Status.Variable.State.Value = ServerState.Shutdown;
+                    ServerInternal.Status.Variable.ClearChangeMasks(ServerInternal.DefaultSystemContext, true);
+
+                    for (uint timeTillShutdown = _plcShutdownWaitPeriod; timeTillShutdown > 0; timeTillShutdown--)
+                    {
+                        ServerInternal.Status.Value.SecondsTillShutdown = timeTillShutdown;
+                        ServerInternal.Status.Variable.SecondsTillShutdown.Value = timeTillShutdown;
+                        ServerInternal.Status.Variable.ClearChangeMasks(ServerInternal.DefaultSystemContext, true);
+
+                        Thread.Sleep(1000);
+                    }
+                }
+            }
+            catch
+            {
+                // ignore error during shutdown procedure.
+            }
+
+            base.OnServerStopping();
+        }
+
+        private static uint _plcShutdownWaitPeriod = 10;
+    }
+}

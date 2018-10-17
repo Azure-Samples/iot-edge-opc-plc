@@ -1,57 +1,44 @@
-# Project Name
-
-(short, 1-3 sentenced, description of the project)
+# OPC PLC server
+Implements an OPC UA server with different nodes which generate random data and anomalies.
 
 ## Features
+The following nodes are part of the PLC simulation:
+- with alternating boolean
+- random signed 32-bit integer
+- random unsigend 32-bit integer
+- a sine wave with a spike anomaly
+- a sine wave with a dip anomaly
+- a value showing a positive trend
+- a value showing a negative trend
 
-This project framework provides the following features:
-
-* Feature 1
-* Feature 2
-* ...
+By default everything is enabled, please use command line options to disable certain anomaly or data generation features.
 
 ## Getting Started
 
 ### Prerequisites
 
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
+The implementation is based on .NET Core so it is cross-platform and recommended hosting environment is docker.
 
 ### Installation
 
-(ideally very short)
-
-- npm install [package name]
-- mvn install
-- ...
+There is no installation required.
 
 ### Quickstart
-(Add steps to get up and running quickly)
 
-1. git clone [repository clone url]
-2. cd [respository name]
-3. ...
+A docker container of the component is hosted in the Microsoft Container Registry and can be pulled by:
+
+docker pull mcr.microsoft.com/iotedge/iot-plc
+
+The tags of the containers match the tags of this repository and the containers are available for Windows amd64, Linux amd64 and Linux ARM32.
 
 
 ## Demo
 
-A demo app is included to show how to use the project.
+The [OpcClient](https://github.com/Azure-Samples/iot-edge-opc-client) is an OPC UA client, which can be used to work with this OPC UA server implementation.
 
-To run the demo, follow these steps:
+Please check out the github repository https://github.com/Azure-Samples/iot-edge-industrial-configs for sample configurations showing usage of this OPC UA server implementation.
 
-(Add steps to start up the demo)
-
-1.
-2.
-3.
 
 ## Resources
 
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
+- [The OPC Foundation OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard)
