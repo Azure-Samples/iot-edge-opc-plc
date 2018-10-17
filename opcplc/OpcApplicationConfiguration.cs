@@ -5,12 +5,20 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace OpcPlc
 {
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Net;
+    using System.Text;
     using System.Threading.Tasks;
     using static Opc.Ua.CertificateStoreType;
     using static Program;
 
-    public class OpcApplicationConfiguration
+    public partial class OpcApplicationConfiguration
     {
+        /// <summary>
+        /// configuration info for the application
+        /// </summary>
         public static ApplicationConfiguration ApplicationConfiguration { get; private set; }
         public static string PlcHostname
         {
@@ -19,48 +27,48 @@ namespace OpcPlc
         }
 
         public static string PlcHostnameLabel => (_plcHostname.Contains(".") ? _plcHostname.Substring(0, _plcHostname.IndexOf('.')) : _plcHostname);
-        public static string ApplicationName => $"{_plcHostname}";
-
-        public static string ApplicationUri => $"urn:{PlcHostnameLabel}{(string.IsNullOrEmpty(ServerPath) ? string.Empty : (ServerPath.StartsWith("/") ? string.Empty : ":"))}{ServerPath.Replace("/", ":")}";
-
-        public static string ProductUri => $"https://github.com/hansgschossmann/iot-edge-opc-plc.git";
-
+        public static string ApplicationName => ProgramName;
+        public static string ApplicationUri => $"urn:{ProgramName}:{PlcHostnameLabel}{(string.IsNullOrEmpty(ServerPath) ? string.Empty : (ServerPath.StartsWith("/") ? string.Empty : ":"))}{ServerPath.Replace("/", ":")}";
+        public static string ProductUri => $"https://github.com/azure/iot-edge-opc-plc.git";
         public static ushort ServerPort { get; set; } = 50000;
         public static string ServerPath { get; set; } = string.Empty;
-        public static bool TrustMyself { get; set; } = false;
 
-        // Enable Utils.TraceMasks.OperationDetail to get output for IoTHub telemetry operations. Current: 0x287 (647), with OperationDetail: 0x2C7 (711)
-        public static int OpcStackTraceMask { get; set; } = 0;
+        /// <summary>
+        /// default endpoint security of the application
+        /// </summary>
         public static string ServerSecurityPolicy { get; set; } = SecurityPolicies.Basic128Rsa15;
-        public static string OpcOwnCertStoreType { get; set; } = X509Store;
 
-        public static string OpcOwnCertDirectoryStorePathDefault => "CertificateStores/own";
-        public static string OpcOwnCertX509StorePathDefault => "CurrentUser\\UA_MachineDefault";
-        public static string OpcOwnCertStorePath { get; set; } = OpcOwnCertX509StorePathDefault;
-        public static string OpcTrustedCertStoreType { get; set; } = Directory;
+        /// <summary>
+        /// enables unsecure endpoint access to the application
+        /// </summary>
+        public static bool EnableUnsecureTransport { get; set; } = false;
 
-        public static string OpcTrustedCertDirectoryStorePathDefault => "CertificateStores/trusted";
-        public static string OpcTrustedCertX509StorePathDefault => "CurrentUser\\UA_MachineDefault";
-        public static string OpcTrustedCertStorePath { get; set; } = OpcTrustedCertDirectoryStorePathDefault;
-        public static string OpcRejectedCertStoreType { get; set; } = Directory;
-
-        public static string OpcRejectedCertDirectoryStorePathDefault => "CertificateStores/rejected";
-        public static string OpcRejectedCertX509StorePathDefault => "CurrentUser\\UA_MachineDefault";
-        public static string OpcRejectedCertStorePath { get; set; } = OpcRejectedCertDirectoryStorePathDefault;
-        public static string OpcIssuerCertStoreType { get; set; } = Directory;
-
-        public static string OpcIssuerCertDirectoryStorePathDefault => "CertificateStores/issuers";
-        public static string OpcIssuerCertX509StorePathDefault => "CurrentUser\\UA_MachineDefault";
-        public static string OpcIssuerCertStorePath { get; set; } = OpcIssuerCertDirectoryStorePathDefault;
+        /// <summary>
+        /// sets the LDS registration interval
+        /// </summary>
         public static int LdsRegistrationInterval { get; set; } = 0;
-        public static bool AutoAcceptCerts { get; set; } = false;
 
+        /// <summary>
+        /// mapping of the application logging levels to OPC stack logging levels
+        /// </summary>
         public static int OpcTraceToLoggerVerbose = 0;
         public static int OpcTraceToLoggerDebug = 0;
         public static int OpcTraceToLoggerInformation = 0;
         public static int OpcTraceToLoggerWarning = 0;
         public static int OpcTraceToLoggerError = 0;
         public static int OpcTraceToLoggerFatal = 0;
+
+        /// <summary>
+        /// set the OPC stack log level
+        /// </summary>
+        public static int OpcStackTraceMask { get; set; } = 0;
+
+        /// <summary>
+        /// Ctor
+        /// </summary>
+        public OpcApplicationConfiguration()
+        {
+        }
 
         /// <summary>
         /// Configures all OPC stack settings
@@ -89,151 +97,8 @@ namespace OpcPlc
             Utils.Tracing.TraceEventHandler += new EventHandler<TraceEventArgs>(LoggerOpcUaTraceHandler);
             Logger.Information($"opcstacktracemask set to: 0x{OpcStackTraceMask:X}");
 
-            //
-            // Security configuration
-            //
-            ApplicationConfiguration.SecurityConfiguration = new SecurityConfiguration();
-
-            // TrustedIssuerCertificates
-            ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates = new CertificateTrustList();
-            ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StoreType = OpcIssuerCertStoreType;
-            ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath = OpcIssuerCertStorePath;
-            Logger.Information($"Trusted Issuer store type is: {ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StoreType}");
-            Logger.Information($"Trusted Issuer Certificate store path is: {ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath}");
-
-            // TrustedPeerCertificates
-            ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates = new CertificateTrustList();
-            ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StoreType = OpcTrustedCertStoreType;
-            if (string.IsNullOrEmpty(OpcTrustedCertStorePath))
-            {
-                // Set default.
-                ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath = OpcTrustedCertStoreType == X509Store ? OpcTrustedCertX509StorePathDefault : OpcTrustedCertDirectoryStorePathDefault;
-                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("_TPC_SP")))
-                {
-                    // Use environment variable.
-                    ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath = Environment.GetEnvironmentVariable("_TPC_SP");
-                }
-            }
-            else
-            {
-                ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath = OpcTrustedCertStorePath;
-            }
-            Logger.Information($"Trusted Peer Certificate store type is: {ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StoreType}");
-            Logger.Information($"Trusted Peer Certificate store path is: {ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}");
-
-            // RejectedCertificateStore
-            ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore = new CertificateTrustList();
-            ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StoreType = OpcRejectedCertStoreType;
-            ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath = OpcRejectedCertStorePath;
-
-            Logger.Information($"Rejected certificate store type is: {ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StoreType}");
-            Logger.Information($"Rejected Certificate store path is: {ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath}");
-
-            // AutoAcceptUntrustedCertificates
-            // This is a security risk and should be set to true only for debugging purposes.
-            ApplicationConfiguration.SecurityConfiguration.AutoAcceptUntrustedCertificates = false;
-
-            // AddAppCertToTrustStore: this does only work on Application objects, here for completeness
-            ApplicationConfiguration.SecurityConfiguration.AddAppCertToTrustedStore = TrustMyself;
-
-            // RejectSHA1SignedCertificates
-            // We allow SHA1 certificates for now as many OPC Servers still use them
-            ApplicationConfiguration.SecurityConfiguration.RejectSHA1SignedCertificates = false;
-            Logger.Information($"Rejection of SHA1 signed certificates is {(ApplicationConfiguration.SecurityConfiguration.RejectSHA1SignedCertificates ? "enabled" : "disabled")}");
-
-            // MinimunCertificatesKeySize
-            // We allow a minimum key size of 1024 bit, as many OPC UA servers still use them
-            ApplicationConfiguration.SecurityConfiguration.MinimumCertificateKeySize = 1024;
-            Logger.Information($"Minimum certificate key size set to {ApplicationConfiguration.SecurityConfiguration.MinimumCertificateKeySize}");
-
-            // Application certificate
-            ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate = new CertificateIdentifier();
-            ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StoreType = OpcOwnCertStoreType;
-            ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath = OpcOwnCertStorePath;
-            ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.SubjectName = ApplicationConfiguration.ApplicationName;
-            Logger.Information($"Application Certificate store type is: {ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StoreType}");
-            Logger.Information($"Application Certificate store path is: {ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath}");
-            Logger.Information($"Application Certificate subject name is: {ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.SubjectName}");
-
-            // handle cert validation
-            if (AutoAcceptCerts)
-            {
-                Logger.Warning("WARNING: Automatically accepting certificates. This is a security risk.");
-                ApplicationConfiguration.SecurityConfiguration.AutoAcceptUntrustedCertificates = true;
-            }
-            ApplicationConfiguration.CertificateValidator = new Opc.Ua.CertificateValidator();
-            ApplicationConfiguration.CertificateValidator.CertificateValidation += new Opc.Ua.CertificateValidationEventHandler(CertificateValidator_CertificateValidation);
-
-            // update security information
-            await ApplicationConfiguration.CertificateValidator.Update(ApplicationConfiguration.SecurityConfiguration);
-
-            // Use existing certificate, if it is there.
-            X509Certificate2 certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Find(true);
-            if (certificate == null)
-            {
-                Logger.Information($"No existing Application certificate found. Create a self-signed Application certificate valid from yesterday for {CertificateFactory.defaultLifeTime} months,");
-                Logger.Information($"with a {CertificateFactory.defaultKeySize} bit key and {CertificateFactory.defaultHashSize} bit hash.");
-                certificate = CertificateFactory.CreateCertificate(
-                    ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StoreType,
-                    ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath,
-                    null,
-                    ApplicationConfiguration.ApplicationUri,
-                    ApplicationConfiguration.ApplicationName,
-                    ApplicationConfiguration.ApplicationName,
-                    null,
-                    CertificateFactory.defaultKeySize,
-                    DateTime.UtcNow - TimeSpan.FromDays(1),
-                    CertificateFactory.defaultLifeTime,
-                    CertificateFactory.defaultHashSize,
-                    false,
-                    null,
-                    null
-                    );
-                ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = certificate ?? throw new Exception("OPC UA application certificate can not be created! Cannot continue without it!");
-            }
-            else
-            {
-                Logger.Information("Application certificate found in Application Certificate Store");
-            }
-            ApplicationConfiguration.ApplicationUri = Utils.GetApplicationUriFromCertificate(certificate);
-            Logger.Information($"Application certificate is for Application URI '{ApplicationConfiguration.ApplicationUri}', Application '{ApplicationConfiguration.ApplicationName} and has Subject '{ApplicationConfiguration.ApplicationName}'");
-
-            // We make the default reference stack behavior configurable to put our own certificate into the trusted peer store.
-            // Note: SecurityConfiguration.AddAppCertToTrustedStore only works for Application instance objects, which we do not have.
-            if (TrustMyself)
-            {
-                // Ensure it is trusted
-                try
-                {
-                    ICertificateStore store = ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore();
-                    if (store == null)
-                    {
-                        Logger.Warning($"Can not open trusted peer store. StorePath={ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}");
-                    }
-                    else
-                    {
-                        try
-                        {
-                            Logger.Information($"Adding server certificate to trusted peer store. StorePath={ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}");
-                            X509Certificate2 publicKey = new X509Certificate2(certificate.RawData);
-                            await store.Add(publicKey);
-                        }
-                        finally
-                        {
-                            store.Close();
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    Logger.Fatal(e, $"Can not add server certificate to trusted peer store. StorePath={ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath})");
-                }
-            }
-            else
-            {
-                Logger.Warning("Server certificate is not added to trusted peer store.");
-            }
-
+            var applicationCertificate = await InitApplicationSecurityAsync();
+            
             //
             // TransportConfigurations
             //
@@ -256,7 +121,7 @@ namespace OpcPlc
             }
 
             // SecurityPolicies
-            // We do not allow security policy SecurityPolicies.None, but always high security
+            // Add high secure transport.
             ServerSecurityPolicy newPolicy = new ServerSecurityPolicy()
             {
                 SecurityMode = MessageSecurityMode.SignAndEncrypt,
@@ -265,30 +130,33 @@ namespace OpcPlc
             ApplicationConfiguration.ServerConfiguration.SecurityPolicies.Add(newPolicy);
             Logger.Information($"Security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
 
+            // Add none secure transport.
+            if (EnableUnsecureTransport)
+            {
+                newPolicy = new ServerSecurityPolicy()
+                {
+                    SecurityMode = MessageSecurityMode.None,
+                    SecurityPolicyUri = SecurityPolicies.None
+                };
+                ApplicationConfiguration.ServerConfiguration.SecurityPolicies.Add(newPolicy);
+                Logger.Information($"Unsecure security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
+                Logger.Warning($"Note: This is a security risk and needs to be disabled for production use");
+            }
+
             // MaxRegistrationInterval
             ApplicationConfiguration.ServerConfiguration.MaxRegistrationInterval = LdsRegistrationInterval;
             Logger.Information($"LDS(-ME) registration intervall set to {LdsRegistrationInterval} ms (0 means no registration)");
 
-            return ApplicationConfiguration;
-        }
-
-        /// <summary>
-        /// Event handler to validate certificates.
-        /// </summary>
-        private static void CertificateValidator_CertificateValidation(Opc.Ua.CertificateValidator validator, Opc.Ua.CertificateValidationEventArgs e)
-        {
-            if (e.Error.StatusCode == Opc.Ua.StatusCodes.BadCertificateUntrusted)
+            // show CreateSigningRequest data
+            if (ShowCreateSigningRequestInfo)
             {
-                e.Accept = AutoAcceptCerts;
-                if (AutoAcceptCerts)
-                {
-                    Logger.Information($"Accepting Certificate: {e.Certificate.Subject}");
-                }
-                else
-                {
-                    Logger.Information($"Rejecting Certificate: {e.Certificate.Subject}");
-                }
+                await ShowCreateSigningRequestInformationAsync(applicationCertificate);
             }
+
+            // show certificate store information
+            await ShowCertificateStoreInformationAsync();
+
+            return ApplicationConfiguration;
         }
 
         /// <summary>

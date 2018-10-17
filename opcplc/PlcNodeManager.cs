@@ -3,8 +3,6 @@ using Opc.Ua;
 using Opc.Ua.Server;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
 
 namespace OpcPlc
 {
@@ -161,7 +159,7 @@ namespace OpcPlc
                     externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
                 }
 
-                FolderState root = CreateFolder(null, "OpcPlc", "OpcPlc");
+                FolderState root = CreateFolder(null, ProgramName, ProgramName);
                 root.AddReference(ReferenceTypes.Organizes, true, ObjectIds.ObjectsFolder);
                 references.Add(new NodeStateReference(ReferenceTypes.Organizes, false, root.NodeId));
                 root.EventNotifier = EventNotifiers.SubscribeToEvents;

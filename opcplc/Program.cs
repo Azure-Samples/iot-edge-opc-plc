@@ -1,4 +1,5 @@
-﻿using Mono.Options;
+﻿
+using Mono.Options;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,15 +9,18 @@ namespace OpcPlc
     using Opc.Ua;
     using Serilog;
     using System.Collections.Generic;
-    using System.Globalization;
+    using System.IO;
+    using System.Linq;
     using System.Reflection;
     using System.Text;
+    using System.Text.RegularExpressions;
     using static OpcApplicationConfiguration;
-    using static PlcNodeManager;
     using static PlcSimulation;
 
     public class Program
     {
+        public const string ProgramName = "OpcPlc";
+
         public static Serilog.Core.Logger Logger = null;
 
         public static PlcServer PlcServer = null;
@@ -83,9 +87,27 @@ namespace OpcPlc
                 },
                 { "aa|autoaccept", $"all certs are trusted when a connection is established.\nDefault: {AutoAcceptCerts}", a => AutoAcceptCerts = a != null },
 
-                { "to|trustowncert", $"the opcplc certificate is put into the trusted certificate store automatically.\nDefault: {TrustMyself}", t => TrustMyself = t != null },
+                { "ut|unsecuretransport", $"enables the unsecured transport.\nDefault: {EnableUnsecureTransport}", u => EnableUnsecureTransport = u != null },
 
-                { "ap|appcertstorepath=", $"the path where the own application cert should be stored\nDefault '{OpcOwnCertX509StorePathDefault}'", (string s) => OpcOwnCertStorePath = s
+                { "to|trustowncert", $"the own certificate is put into the trusted certificate store automatically.\nDefault: {TrustMyself}", t => TrustMyself = t != null },
+
+                // cert store options
+                { "at|appcertstoretype=", $"the own application cert store type. \n(allowed values: Directory, X509Store)\nDefault: '{OpcOwnCertStoreType}'", (string s) => {
+                        if (s.Equals(CertificateStoreType.X509Store, StringComparison.OrdinalIgnoreCase) || s.Equals(CertificateStoreType.Directory, StringComparison.OrdinalIgnoreCase))
+                        {
+                            OpcOwnCertStoreType = s.Equals(CertificateStoreType.X509Store, StringComparison.OrdinalIgnoreCase) ? CertificateStoreType.X509Store : CertificateStoreType.Directory;
+                            OpcOwnCertStorePath = s.Equals(CertificateStoreType.X509Store, StringComparison.OrdinalIgnoreCase) ? OpcOwnCertX509StorePathDefault : OpcOwnCertDirectoryStorePathDefault;
+                        }
+                        else
+                        {
+                            throw new OptionException();
+                        }
+                    }
+                },
+
+                { "ap|appcertstorepath=", $"the path where the own application cert should be stored\nDefault (depends on store type):\n" +
+                        $"X509Store: '{OpcOwnCertX509StorePathDefault}'\n" +
+                        $"Directory: '{OpcOwnCertDirectoryStorePathDefault}'", (string s) => OpcOwnCertStorePath = s
                 },
 
                 { "tp|trustedcertstorepath=", $"the path of the trusted cert store\nDefault '{OpcTrustedCertDirectoryStorePathDefault}'", (string s) => OpcTrustedCertStorePath = s
@@ -95,6 +117,102 @@ namespace OpcPlc
                 },
 
                 { "ip|issuercertstorepath=", $"the path of the trusted issuer cert store\nDefault '{OpcIssuerCertDirectoryStorePathDefault}'", (string s) => OpcIssuerCertStorePath = s
+                },
+
+                { "csr", $"show data to create a certificate signing request\nDefault '{ShowCreateSigningRequestInfo}'", c => ShowCreateSigningRequestInfo = c != null
+                },
+
+                { "ab|applicationcertbase64=", $"update/set this applications certificate with the certificate passed in as bas64 string", (string s) =>
+                    {
+                        NewCertificateBase64String = s;
+                    }
+                },
+
+                { "af|applicationcertfile=", $"update/set this applications certificate with the certificate file specified", (string s) => 
+                    {
+                        if (File.Exists(s))
+                        {
+                            NewCertificateFileName = s;
+                        }
+                        else
+                        {
+                            throw new OptionException("The file '{s}' does not exist.", "applicationcertfile");
+                        }
+                    }
+                },
+
+                { "pb|privatekeybase64=", $"initial provisioning of the application certificate (with a PEM or PFX fomat) requires a private key passed in as base64 string", (string s) =>
+                    {
+                        PrivateKeyBase64String = s;
+                    }
+                },
+
+                { "pf|privatekeyfile=", $"initial provisioning of the application certificate (with a PEM or PFX fomat) requires a private key passed in as file", (string s) =>
+                    {
+                        if (File.Exists(s))
+                        {
+                            PrivateKeyFileName = s;
+                        }
+                        else
+                        {
+                            throw new OptionException("The file '{s}' does not exist.", "privatekeyfile");
+                        }
+                    }
+                },
+
+                { "cp|certpassword=", $"the optional password for the PEM or PFX or the installed application certificate", (string s) =>
+                    {
+                        CertificatePassword = s;
+                    }
+                },
+
+                { "tb|addtrustedcertbase64=", $"adds the certificate to the applications trusted cert store passed in as base64 string (multiple strings supported)", (string s) =>
+                    {
+                        TrustedCertificateBase64Strings = ParseListOfStrings(s);
+                    }
+                },
+
+                { "tf|addtrustedcertfile=", $"adds the certificate file(s) to the applications trusted cert store passed in as base64 string (multiple filenames supported)", (string s) =>
+                    {
+                        TrustedCertificateFileNames = ParseListOfFileNames(s, "addtrustedcertfile");
+                    }
+                },
+
+                { "ib|addissuercertbase64=", $"adds the specified issuer certificate to the applications trusted issuer cert store passed in as base64 string (multiple strings supported)", (string s) =>
+                    {
+                        IssuerCertificateBase64Strings = ParseListOfStrings(s);
+                    }
+                },
+
+                { "if|addissuercertfile=", $"adds the specified issuer certificate file(s) to the applications trusted issuer cert store (multiple filenames supported)", (string s) =>
+                    {
+                        IssuerCertificateFileNames = ParseListOfFileNames(s, "addissuercertfile");
+                    }
+                },
+
+                { "rb|updatecrlbase64=", $"update the CRL passed in as base64 string to the corresponding cert store (trusted or trusted issuer)", (string s) =>
+                    {
+                        CrlBase64String = s;
+                    }
+                },
+
+                { "rf|updatecrlfile=", $"update the CRL passed in as file to the corresponding cert store (trusted or trusted issuer)", (string s) =>
+                    {
+                        if (File.Exists(s))
+                        {
+                            CrlFileName = s;
+                        }
+                        else
+                        {
+                            throw new OptionException("The file '{s}' does not exist.", "updatecrlfile");
+                        }
+                    }
+                },
+
+                { "rc|removecert=", $"remove cert(s) with the given thumbprint(s) (multiple thumbprints supported)", (string s) =>
+                    {
+                        ThumbprintsToRemove = ParseListOfStrings(s);
+                    }
                 },
 
                 // misc
@@ -199,7 +317,12 @@ namespace OpcPlc
             Logger.Information("OPC UA PLC for different data simulation scenarios");
             Logger.Information("To exit the application, just press CTRL-C while it is running.");
             Logger.Information("");
-
+            Logger.Information("To specify a list of strings, please use the following format:");
+            Logger.Information("\"<string 1>,<string 2>,...,<string n>\"");
+            Logger.Information("or if one string contains commas:");
+            Logger.Information("\"\"<string 1>\",\"<string 2>\",...,\"<string n>\"\"");
+            Logger.Information("");
+            
             // output the options
             Logger.Information("Options:");
             StringBuilder stringBuilder = new StringBuilder();
@@ -271,6 +394,94 @@ namespace OpcPlc
             Logger.Information($"Log file is: {System.IO.Path.GetFullPath(_logFileName)}");
             Logger.Information($"Log level is: {_logLevel}");
             return;
+        }
+
+        /// <summary>
+        /// Helper to build a list of byte arrays out of a comma separated list of base64 strings (optional in double quotes).
+        /// </summary>
+        private static List<string> ParseListOfStrings(string s)
+        {
+            List<string> strings = new List<string>();
+            if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
+            {
+                while (s.Contains('"'))
+                {
+                    int first = 0;
+                    int next = 0;
+                    first = s.IndexOf('"', next);
+                    next = s.IndexOf('"', ++first);
+                    strings.Add(s.Substring(first, next - first));
+                    s = s.Substring(++next);
+                }
+            }
+            else if (s.Contains(','))
+            {
+                strings = s.Split(',').ToList();
+                strings.ForEach(st => st.Trim());
+                strings = strings.Select(st => st.Trim()).ToList();
+            }
+            else
+            {
+                strings.Add(s);
+            }
+            return strings;
+        }
+
+        /// <summary>
+        /// Helper to build a list of filenames out of a comma separated list of filenames (optional in double quotes).
+        /// </summary>
+        private static List<string> ParseListOfFileNames(string s, string option)
+        {
+            List<string> fileNames = new List<string>();
+            if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
+            {
+                while (s.Contains('"'))
+                {
+                    int first = 0;
+                    int next = 0;
+                    first = s.IndexOf('"', next);
+                    next = s.IndexOf('"', ++first);
+                    var fileName = s.Substring(first, next - first);
+                    if (File.Exists(fileName))
+                    {
+                        fileNames.Add(fileName);
+                    }
+                    else
+                    {
+                        throw new OptionException($"The file '{fileName}' does not exist.", option);
+                    }
+                    s = s.Substring(++next);
+                }
+            }
+            else if (s.Contains(','))
+            {
+                List<string> parsedFileNames = s.Split(',').ToList();
+                parsedFileNames = parsedFileNames.Select(st => st.Trim()).ToList();
+                foreach (var fileName in parsedFileNames)
+                {
+                    if (File.Exists(fileName))
+                    {
+                        fileNames.Add(fileName);
+                    }
+                    else
+                    {
+                        throw new OptionException($"The file '{fileName}' does not exist.", option);
+                    }
+
+                }
+            }
+            else
+            {
+                if (File.Exists(s))
+                {
+                    fileNames.Add(s);
+                }
+                else
+                {
+                    throw new OptionException($"The file '{s}' does not exist.", option);
+                }
+            }
+            return fileNames;
         }
 
         private static string _logFileName = $"{System.Net.Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
