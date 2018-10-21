@@ -19,14 +19,29 @@ namespace OpcPlc
 
     public class Program
     {
+        /// <summary>
+        /// Name of the application.
+        /// </summary>
         public const string ProgramName = "OpcPlc";
 
+        /// <summary>
+        /// Logging object.
+        /// </summary>
         public static Serilog.Core.Logger Logger = null;
 
+        /// <summary>
+        /// OPC UA server object.
+        /// </summary>
         public static PlcServer PlcServer = null;
 
+        /// <summary>
+        /// Simulation object.
+        /// </summary>
         public static PlcSimulation PlcSimulation = null;
 
+        /// <summary>
+        /// Shutdown token.
+        /// </summary>
         public static CancellationToken ShutdownToken;
 
         /// <summary>
@@ -47,7 +62,18 @@ namespace OpcPlc
             // command line options
             Mono.Options.OptionSet options = new Mono.Options.OptionSet {
                 // log configuration
-                { "lf|logfile=", $"the filename of the logfile to use.\nDefault: '{_logFileName}'", (string l) => _logFileName = l },
+                { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
+                { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {_logFileFlushTimeSpanSec} sec", (int s) => {
+                        if (s > 0)
+                        {
+                            _logFileFlushTimeSpanSec = TimeSpan.FromSeconds(s);
+                        }
+                        else
+                        {
+                            throw new Mono.Options.OptionException("The logflushtimespan must be a positive number.", "logflushtimespan");
+                        }
+                    }
+                },
                 { "ll|loglevel=", $"the loglevel to use (allowed: fatal, error, warn, info, debug, verbose).\nDefault: info", (string l) => {
                         List<string> logLevels = new List<string> {"fatal", "error", "warn", "info", "debug", "verbose"};
                         if (logLevels.Contains(l.ToLowerInvariant()))
@@ -70,10 +96,21 @@ namespace OpcPlc
                 { "nn|nonegtrend", $"do not generate negative trend data\nDefault: {!GenerateNegTrend}", a => GenerateNegTrend = a == null },
                 { "nv|nodatavalues", $"do not generate data values\nDefault: {!GenerateData}", a => GenerateData = a == null },
 
-                // opc server configuration
+                // opc configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
                 { "op|path=", $"the enpoint URL path part of the OPC server endpoint.\nDefault: '{ServerPath}'", (string a) => ServerPath = a },
-                { "ph|plchostname=", $"the fullqualified hostname of the plc.\nDefault: {PlcHostname}", (string a) => PlcHostname = a },
+                { "ph|plchostname=", $"the fullqualified hostname of the plc.\nDefault: {Hostname}", (string a) => Hostname = a },
+                        { "ol|opcmaxstringlen=", $"the max length of a string opc can transmit/receive.\nDefault: {OpcMaxStringLength}", (int i) => {
+                                if (i > 0)
+                                {
+                                    OpcMaxStringLength = i;
+                                }
+                                else
+                                {
+                                    throw new OptionException("The max opc string length must be larger than 0.", "opcmaxstringlen");
+                                }
+                            }
+                        },
                 { "lr|ldsreginterval=", $"the LDS(-ME) registration interval in ms. If 0, then the registration is disabled.\nDefault: {LdsRegistrationInterval}", (int i) => {
                         if (i >= 0)
                         {
@@ -127,7 +164,6 @@ namespace OpcPlc
                         NewCertificateBase64String = s;
                     }
                 },
-
                 { "af|applicationcertfile=", $"update/set this applications certificate with the certificate file specified", (string s) => 
                     {
                         if (File.Exists(s))
@@ -146,7 +182,6 @@ namespace OpcPlc
                         PrivateKeyBase64String = s;
                     }
                 },
-
                 { "pf|privatekeyfile=", $"initial provisioning of the application certificate (with a PEM or PFX fomat) requires a private key passed in as file", (string s) =>
                     {
                         if (File.Exists(s))
@@ -171,7 +206,6 @@ namespace OpcPlc
                         TrustedCertificateBase64Strings = ParseListOfStrings(s);
                     }
                 },
-
                 { "tf|addtrustedcertfile=", $"adds the certificate file(s) to the applications trusted cert store passed in as base64 string (multiple filenames supported)", (string s) =>
                     {
                         TrustedCertificateFileNames = ParseListOfFileNames(s, "addtrustedcertfile");
@@ -183,7 +217,6 @@ namespace OpcPlc
                         IssuerCertificateBase64Strings = ParseListOfStrings(s);
                     }
                 },
-
                 { "if|addissuercertfile=", $"adds the specified issuer certificate file(s) to the applications trusted issuer cert store (multiple filenames supported)", (string s) =>
                     {
                         IssuerCertificateFileNames = ParseListOfFileNames(s, "addissuercertfile");
@@ -195,7 +228,6 @@ namespace OpcPlc
                         CrlBase64String = s;
                     }
                 },
-
                 { "rf|updatecrlfile=", $"update the CRL passed in as file to the corresponding cert store (trusted or trusted issuer)", (string s) =>
                     {
                         if (File.Exists(s))
@@ -232,6 +264,7 @@ namespace OpcPlc
 
                 // show message
                 Logger.Fatal(e, "Error in command line options");
+                Logger.Error($"Command line arguments: {String.Join(" ", args)}");
                 // show usage
                 Usage(options);
                 return;
@@ -240,10 +273,18 @@ namespace OpcPlc
             // initialize logging
             InitLogging();
 
-            // check args
-            if (extraArgs.Count > 0 || shouldShowHelp)
+            // show usage if requested
+            if (shouldShowHelp)
             {
-                // show usage
+                Usage(options);
+                return;
+            }
+
+            // validate and parse extra arguments
+            if (extraArgs.Count > 0)
+            {
+                Logger.Error("Error in command line options");
+                Logger.Error($"Command line arguments: {String.Join(" ", args)}");
                 Usage(options);
                 return;
             }
@@ -259,6 +300,10 @@ namespace OpcPlc
             Logger.Information("OPC UA server exiting...");
         }
 
+        /// <summary>
+        /// Run the server.
+        /// </summary>
+        /// <returns></returns>
         private static async Task ConsoleServerAsync(string[] args)
         {
             var quitEvent = new ManualResetEvent(false);
@@ -386,7 +431,7 @@ namespace OpcPlc
                 // configure rolling file sink
                 const int MAX_LOGFILE_SIZE = 1024 * 1024;
                 const int MAX_RETAINED_LOGFILES = 2;
-                loggerConfiguration.WriteTo.File(_logFileName, fileSizeLimitBytes: MAX_LOGFILE_SIZE, rollOnFileSizeLimit: true, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
+                loggerConfiguration.WriteTo.File(_logFileName, fileSizeLimitBytes: MAX_LOGFILE_SIZE, flushToDiskInterval: _logFileFlushTimeSpanSec, rollOnFileSizeLimit: true, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
             }
 
             Logger = loggerConfiguration.CreateLogger();
@@ -486,5 +531,6 @@ namespace OpcPlc
 
         private static string _logFileName = $"{System.Net.Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
         private static string _logLevel = "info";
+        private static TimeSpan _logFileFlushTimeSpanSec = TimeSpan.FromSeconds(30);
     }
 }

@@ -8,17 +8,25 @@ namespace OpcPlc
 
     public class PlcSimulation
     {
-
+        /// <summary>
+        /// Flags for anomaly generation.
+        /// </summary>
         public static bool GenerateSpikes { get; set; } = true;
         public static bool GenerateDips { get; set; } = true;
         public static bool GeneratePosTrend { get; set; } = true;
         public static bool GenerateNegTrend { get; set; } = true;
         public static bool GenerateData { get; set; } = true;
 
+        /// <summary>
+        /// Simulation data.
+        /// </summary>
         public static int SimulationCycleCount { get; set; } = SIMULATION_CYCLECOUNT_DEFAULT;
         public static int SimulationCycleLength { get; set; } = SIMULATION_CYCLELENGTH_DEFAULT;
         public static double SimulationMaxAmplitude { get; set; } = SIMULATION_MAXAMPLITUDE_DEFAULT;
 
+        /// <summary>
+        /// Ctor for simulation server.
+        /// </summary>
         public PlcSimulation(PlcServer plcServer)
         {
             _plcServer = plcServer;
@@ -37,6 +45,10 @@ namespace OpcPlc
             _negTrendCycleInPhase = SimulationCycleCount;
             Logger.Verbose($"first neg trend anomaly phase: {_negTrendAnomalyPhase}");
         }
+
+        /// <summary>
+        /// Start the simulation.
+        /// </summary>
         public void Start()
         {
             _spikeGenerator = new Timer(SpikeGenerator, null, 0, SimulationCycleLength);
@@ -50,6 +62,9 @@ namespace OpcPlc
             }
         }
 
+        /// <summary>
+        /// Stop the simulation.
+        /// </summary>
         public void Stop()
         {
             if (_spikeGenerator != null)
@@ -207,6 +222,9 @@ namespace OpcPlc
             }
         }
 
+        /// <summary>
+        /// Method implementation to reset the trend data.
+        /// </summary>
         public void ResetTrendData()
         {
             _posTrendAnomalyPhase = _random.Next(10);

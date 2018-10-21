@@ -14,42 +14,51 @@ namespace OpcPlc
     using static Opc.Ua.CertificateStoreType;
     using static Program;
 
+    /// <summary>
+    /// Class for OPC Application configuration.
+    /// </summary>
     public partial class OpcApplicationConfiguration
     {
         /// <summary>
-        /// configuration info for the application
+        /// Configuration info for the OPC application.
         /// </summary>
         public static ApplicationConfiguration ApplicationConfiguration { get; private set; }
-        public static string PlcHostname
+        public static string Hostname
         {
-            get => _plcHostname;
-            set => _plcHostname = value.ToLowerInvariant();
+            get => _hostname;
+            set => _hostname = value.ToLowerInvariant();
         }
 
-        public static string PlcHostnameLabel => (_plcHostname.Contains(".") ? _plcHostname.Substring(0, _plcHostname.IndexOf('.')) : _plcHostname);
+        public static string HostnameLabel => (_hostname.Contains(".") ? _hostname.Substring(0, _hostname.IndexOf('.')) : _hostname);
         public static string ApplicationName => ProgramName;
-        public static string ApplicationUri => $"urn:{ProgramName}:{PlcHostnameLabel}{(string.IsNullOrEmpty(ServerPath) ? string.Empty : (ServerPath.StartsWith("/") ? string.Empty : ":"))}{ServerPath.Replace("/", ":")}";
-        public static string ProductUri => $"https://github.com/azure/iot-edge-opc-plc.git";
+        public static string ApplicationUri => $"urn:{ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath) ? string.Empty : (ServerPath.StartsWith("/") ? string.Empty : ":"))}{ServerPath.Replace("/", ":")}";
+        public static string ProductUri => $"https://github.com/azure-samples/iot-edge-opc-plc";
         public static ushort ServerPort { get; set; } = 50000;
         public static string ServerPath { get; set; } = string.Empty;
 
         /// <summary>
-        /// default endpoint security of the application
+        /// Default endpoint security of the application.
         /// </summary>
         public static string ServerSecurityPolicy { get; set; } = SecurityPolicies.Basic128Rsa15;
 
         /// <summary>
-        /// enables unsecure endpoint access to the application
+        /// Enables unsecure endpoint access to the application.
         /// </summary>
         public static bool EnableUnsecureTransport { get; set; } = false;
 
         /// <summary>
-        /// sets the LDS registration interval
+        /// Sets the LDS registration interval.
         /// </summary>
         public static int LdsRegistrationInterval { get; set; } = 0;
 
         /// <summary>
-        /// mapping of the application logging levels to OPC stack logging levels
+        /// Set the max string length the OPC stack supports.
+        /// </summary>
+        public static int OpcMaxStringLength { get; set; } = 4 * 1024 * 1024;
+
+        /// <summary>
+        /// <summary>
+        /// Mapping of the application logging levels to OPC stack logging levels.
         /// </summary>
         public static int OpcTraceToLoggerVerbose = 0;
         public static int OpcTraceToLoggerDebug = 0;
@@ -59,69 +68,58 @@ namespace OpcPlc
         public static int OpcTraceToLoggerFatal = 0;
 
         /// <summary>
-        /// set the OPC stack log level
+        /// Set the OPC stack log level.
         /// </summary>
         public static int OpcStackTraceMask { get; set; } = 0;
 
         /// <summary>
-        /// Ctor
+        /// Ctor of the OPC application configuration.
         /// </summary>
         public OpcApplicationConfiguration()
         {
         }
 
         /// <summary>
-        /// Configures all OPC stack settings
+        /// Configures all OPC stack settings.
         /// </summary>
         public async Task<ApplicationConfiguration> ConfigureAsync()
         {
-            // Instead of using a Config.xml we configure everything programmatically.
+            // instead of using a configuration XML file, we configure everything programmatically
 
-            //
-            // OPC UA Application configuration
-            //
+            // passed in as command line argument
             ApplicationConfiguration = new ApplicationConfiguration();
-
-            // Passed in as command line argument
             ApplicationConfiguration.ApplicationName = ApplicationName;
             ApplicationConfiguration.ApplicationUri = ApplicationUri;
             ApplicationConfiguration.ProductUri = ProductUri;
             ApplicationConfiguration.ApplicationType = ApplicationType.Server;
 
-            //
-            // TraceConfiguration
-            //
+            // configure OPC stack tracing
             ApplicationConfiguration.TraceConfiguration = new TraceConfiguration();
             ApplicationConfiguration.TraceConfiguration.TraceMasks = OpcStackTraceMask;
             ApplicationConfiguration.TraceConfiguration.ApplySettings();
             Utils.Tracing.TraceEventHandler += new EventHandler<TraceEventArgs>(LoggerOpcUaTraceHandler);
             Logger.Information($"opcstacktracemask set to: 0x{OpcStackTraceMask:X}");
 
-            var applicationCertificate = await InitApplicationSecurityAsync();
-            
-            //
-            // TransportConfigurations
-            //
+            // configure transport settings
             ApplicationConfiguration.TransportQuotas = new TransportQuotas();
+            ApplicationConfiguration.TransportQuotas.MaxStringLength = OpcMaxStringLength;
+            ApplicationConfiguration.TransportQuotas.MaxMessageSize = 4 * 1024 * 1024;
 
-            //
-            // ServerConfiguration
-            //
+            // configure OPC UA server
             ApplicationConfiguration.ServerConfiguration = new ServerConfiguration();
 
-            // BaseAddresses
+            // configure server base addresses
             if (ApplicationConfiguration.ServerConfiguration.BaseAddresses.Count == 0)
             {
-                // We do not use the localhost replacement mechanism of the configuration loading, to immediately show the base address here
-                ApplicationConfiguration.ServerConfiguration.BaseAddresses.Add($"opc.tcp://{PlcHostname}:{ServerPort}{ServerPath}");
+                // we do not use the localhost replacement mechanism of the configuration loading, to immediately show the base address here
+                ApplicationConfiguration.ServerConfiguration.BaseAddresses.Add($"opc.tcp://{Hostname}:{ServerPort}{ServerPath}");
             }
             foreach (var endpoint in ApplicationConfiguration.ServerConfiguration.BaseAddresses)
             {
                 Logger.Information($"OPC UA server base address: {endpoint}");
             }
 
-            // SecurityPolicies
-            // Add high secure transport.
+            // by default use high secure transport
             ServerSecurityPolicy newPolicy = new ServerSecurityPolicy()
             {
                 SecurityMode = MessageSecurityMode.SignAndEncrypt,
@@ -130,7 +128,7 @@ namespace OpcPlc
             ApplicationConfiguration.ServerConfiguration.SecurityPolicies.Add(newPolicy);
             Logger.Information($"Security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
 
-            // Add none secure transport.
+            // add none secure transport on request
             if (EnableUnsecureTransport)
             {
                 newPolicy = new ServerSecurityPolicy()
@@ -143,15 +141,12 @@ namespace OpcPlc
                 Logger.Warning($"Note: This is a security risk and needs to be disabled for production use");
             }
 
-            // MaxRegistrationInterval
+            // security configuration
+            await InitApplicationSecurityAsync();
+
+            // set LDS registration interval
             ApplicationConfiguration.ServerConfiguration.MaxRegistrationInterval = LdsRegistrationInterval;
             Logger.Information($"LDS(-ME) registration intervall set to {LdsRegistrationInterval} ms (0 means no registration)");
-
-            // show CreateSigningRequest data
-            if (ShowCreateSigningRequestInfo)
-            {
-                await ShowCreateSigningRequestInformationAsync(applicationCertificate);
-            }
 
             // show certificate store information
             await ShowCertificateStoreInformationAsync();
@@ -211,6 +206,6 @@ namespace OpcPlc
             return;
         }
 
-        private static string _plcHostname = $"{Utils.GetHostName().ToLowerInvariant()}";
+        private static string _hostname = $"{Utils.GetHostName().ToLowerInvariant()}";
     }
 }
