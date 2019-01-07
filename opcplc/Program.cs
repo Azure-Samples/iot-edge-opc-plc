@@ -9,6 +9,7 @@ namespace OpcPlc
     using Opc.Ua;
     using Serilog;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Reflection;
@@ -289,6 +290,10 @@ namespace OpcPlc
                 return;
             }
 
+            //show version
+            Logger.Information($"{ProgramName} V{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion} starting up...");
+            Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute).InformationalVersion}");
+
             try
             {
                 await ConsoleServerAsync(args);
@@ -354,8 +359,10 @@ namespace OpcPlc
         /// </summary>
         private static void Usage(Mono.Options.OptionSet options)
         {
-
             // show usage
+            Logger.Information("");
+            Logger.Information($"{ProgramName} V{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}");
+            Logger.Information($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute).InformationalVersion}");
             Logger.Information("");
             Logger.Information("Usage: {0}.exe [<options>]", Assembly.GetEntryAssembly().GetName().Name);
             Logger.Information("");
