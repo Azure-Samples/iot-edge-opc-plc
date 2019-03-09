@@ -1,8 +1,10 @@
 
 using Opc.Ua;
 using Opc.Ua.Server;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 
 namespace OpcPlc
@@ -24,10 +26,12 @@ namespace OpcPlc
             PlcNodeManager = new PlcNodeManager(server, configuration);
             List<INodeManager> nodeManagers = new List<INodeManager>
             {
-                PlcNodeManager
+                PlcNodeManager,
             };
 
-            return new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
+            MasterNodeManager masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
+
+            return masterNodeManager;
         }
 
         /// <summary>
@@ -72,11 +76,25 @@ namespace OpcPlc
             return resourceManager;
         }
 
+        /// <summary>
+        /// Initializes the server before it starts up.
+        /// </summary>
+        protected override void OnServerStarting(ApplicationConfiguration configuration)
+        {
+            base.OnServerStarting(configuration);
+
+            // it is up to the application to decide how to validate user identity tokens.
+            // this function creates validator for X509 identity tokens.
+            CreateUserIdentityValidators(configuration);
+        }
+
         protected override void OnServerStarted(IServerInternal server)
         {
             // start the simulation
-
             base.OnServerStarted(server);
+
+            // request notifications when the user identity is changed, all valid users are accepted by default.
+            server.SessionManager.ImpersonateUser += new ImpersonateEventHandler(SessionManager_ImpersonateUser);
         }
 
         /// <summary>
@@ -113,7 +131,7 @@ namespace OpcPlc
             }
             catch
             {
-                // ignore error during shutdown procedure.
+                // ignore error during shutdown procedure
             }
 
             base.OnServerStopping();

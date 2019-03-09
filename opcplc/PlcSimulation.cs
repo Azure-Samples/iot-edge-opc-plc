@@ -44,6 +44,8 @@ namespace OpcPlc
             _negTrendAnomalyPhase = _random.Next(10);
             _negTrendCycleInPhase = SimulationCycleCount;
             Logger.Verbose($"first neg trend anomaly phase: {_negTrendAnomalyPhase}");
+            _stepUp = 0;
+            _stepUpStarted = true;
         }
 
         /// <summary>
@@ -215,6 +217,12 @@ namespace OpcPlc
             _plcServer.PlcNodeManager.RandomSignedInt32 = _random.Next(Int32.MinValue, Int32.MaxValue);
             _plcServer.PlcNodeManager.RandomUnsignedInt32 = (UInt32)_random.Next();
 
+            // increase step up value
+            if (_stepUpStarted && (_cyclesInPhase % (SimulationCycleCount / 50) == 0))
+            {
+                _plcServer.PlcNodeManager.StepUp = _stepUp++;
+            }
+
             // end of cycle: reset cycle count
             if (--_cyclesInPhase == 0)
             {
@@ -233,6 +241,30 @@ namespace OpcPlc
             _negTrendAnomalyPhase = _random.Next(10);
             _negTrendCycleInPhase = SimulationCycleCount;
             _negTrendPhase = 0;
+        }
+
+        /// <summary>
+        /// Method implementation to reset the StepUp data.
+        /// </summary>
+        public void ResetStepUpData()
+        {
+            _plcServer.PlcNodeManager.StepUp = _stepUp = 0;
+        }
+
+        /// <summary>
+        /// Method implementation to start the StepUp.
+        /// </summary>
+        public void StartStepUp()
+        {
+            _stepUpStarted = true;
+        }
+
+        /// <summary>
+        /// Method implementation to stop the StepUp.
+        /// </summary>
+        public void StopStepUp()
+        {
+            _stepUpStarted = false;
         }
 
         private const int SIMULATION_CYCLECOUNT_DEFAULT = 50;           // in cycles
@@ -259,6 +291,7 @@ namespace OpcPlc
         private int _negTrendAnomalyPhase;
         private int _negTrendCycleInPhase;
         private int _negTrendPhase;
-
+        private uint _stepUp;
+        private bool _stepUpStarted;
     }
 }

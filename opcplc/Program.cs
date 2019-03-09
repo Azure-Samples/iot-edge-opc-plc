@@ -14,7 +14,6 @@ namespace OpcPlc
     using System.Linq;
     using System.Reflection;
     using System.Text;
-    using System.Text.RegularExpressions;
     using static OpcApplicationConfiguration;
     using static PlcSimulation;
 
@@ -46,6 +45,26 @@ namespace OpcPlc
         public static CancellationToken ShutdownToken;
 
         /// <summary>
+        /// Admin user.
+        /// </summary>
+        public static string AdminUser { get; set; } = "sysadmin";
+
+        /// <summary>
+        /// Admin password.
+        /// </summary>
+        public static string AdminPassword { get; set; } = "demo";
+
+        /// <summary>
+        /// Default user.
+        /// </summary>
+        public static string DefaultUser { get; set; } = "user1";
+
+        /// <summary>
+        /// Defualt password.
+        /// </summary>
+        public static string DefaultPassword { get; set; } = "password";
+
+        /// <summary>
         /// Synchronous main method of the app.
         /// </summary>
         public static void Main(string[] args)
@@ -56,7 +75,7 @@ namespace OpcPlc
         /// <summary>
         /// Asynchronous part of the main method of the app.
         /// </summary>
-        public async static Task MainAsync(string[] args)
+        public static async Task MainAsync(string[] args)
         {
             var shouldShowHelp = false;
 
@@ -165,7 +184,7 @@ namespace OpcPlc
                         NewCertificateBase64String = s;
                     }
                 },
-                { "af|applicationcertfile=", $"update/set this applications certificate with the certificate file specified", (string s) => 
+                { "af|applicationcertfile=", $"update/set this applications certificate with the certificate file specified", (string s) =>
                     {
                         if (File.Exists(s))
                         {
@@ -247,6 +266,12 @@ namespace OpcPlc
                         ThumbprintsToRemove = ParseListOfStrings(s);
                     }
                 },
+
+                // user management
+                { "au|adminuser=", $"the username of the admin user.\nDefault: {AdminUser}", (string p) => AdminUser = p ?? AdminUser},
+                { "ac|adminpassword=", $"the password of the administrator.\nDefault: {AdminPassword}", (string p) => AdminPassword = p ?? AdminPassword},
+                { "du|defaultuser=", $"the username of the default user.\nDefault: {DefaultUser}", (string p) => DefaultUser = p ?? DefaultUser},
+                { "dc|defaultpassword=", $"the password of the default user.\nDefault: {DefaultPassword}", (string p) => DefaultPassword = p ?? DefaultPassword},
 
                 // misc
                 { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
@@ -374,7 +399,7 @@ namespace OpcPlc
             Logger.Information("or if one string contains commas:");
             Logger.Information("\"\"<string 1>\",\"<string 2>\",...,\"<string n>\"\"");
             Logger.Information("");
-            
+
             // output the options
             Logger.Information("Options:");
             StringBuilder stringBuilder = new StringBuilder();

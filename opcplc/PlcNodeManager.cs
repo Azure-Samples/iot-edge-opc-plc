@@ -87,6 +87,17 @@ namespace OpcPlc
             }
         }
 
+        public uint StepUp
+        {
+            get => (uint)_stepUp.Value;
+            set
+            {
+                _stepUp.Value = value;
+                _stepUp.Timestamp = DateTime.Now;
+                _stepUp.ClearChangeMasks(SystemContext, false);
+            }
+        }
+
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         : base(server, configuration, Namespaces.OpcPlcApplications)
         {
@@ -171,18 +182,24 @@ namespace OpcPlc
                 {
                     FolderState dataFolder = CreateFolder(root, "Telemetry", "Telemetry");
 
-                    _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", BuiltInType.Boolean, ValueRanks.Scalar, AccessLevels.CurrentRead);
-                    _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", BuiltInType.Int32, ValueRanks.Scalar, AccessLevels.CurrentRead);
-                    _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", BuiltInType.UInt32, ValueRanks.Scalar, AccessLevels.CurrentRead);
-                    _spikeData = CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", BuiltInType.Double, ValueRanks.Scalar, AccessLevels.CurrentRead);
-                    _dipData = CreateBaseVariable(dataFolder, "DipData", "DipData", BuiltInType.Double, ValueRanks.Scalar, AccessLevels.CurrentRead);
-                    _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", BuiltInType.Float, ValueRanks.Scalar, AccessLevels.CurrentRead);
-                    _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", BuiltInType.Float, ValueRanks.Scalar, AccessLevels.CurrentRead);
+                    _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", BuiltInType.UInt32, ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
+                    _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", BuiltInType.Boolean, ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value");
+                    _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", BuiltInType.Int32, ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value");
+                    _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", BuiltInType.UInt32, ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value");
+                    _spikeData = CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", BuiltInType.Double, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes");
+                    _dipData = CreateBaseVariable(dataFolder, "DipData", "DipData", BuiltInType.Double, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips");
+                    _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", BuiltInType.Float, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend");
+                    _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", BuiltInType.Float, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend");
 
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods");
-
-                    MethodState resetMethod = CreateMethod(methodsFolder, "Reset", "Reset");
-                    SetResetMethodProperties(ref resetMethod);
+                    MethodState resetTrendMethod = CreateMethod(methodsFolder, "ResetTrend", "ResetTrend", "Reset the trend values to their baseline value");
+                    SetResetTrendMethodProperties(ref resetTrendMethod);
+                    MethodState resetStepUpMethod = CreateMethod(methodsFolder, "ResetStepUp", "ResetStepUp", "Resets the StepUp counter to 0");
+                    SetResetStepUpMethodProperties(ref resetStepUpMethod);
+                    MethodState startStepUpMethod = CreateMethod(methodsFolder, "StartStepUp", "StartStepUp", "Starts the StepUp counter");
+                    SetStartStepUpMethodProperties(ref startStepUpMethod);
+                    MethodState stopStepUpMethod = CreateMethod(methodsFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter");
+                    SetStopStepUpMethodProperties(ref stopStepUpMethod);
                 }
                 catch (Exception e)
                 {
@@ -194,25 +211,49 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Sets properies of the Reset method.
+        /// Sets properies of the ResetTrend method.
         /// </summary>
-        private void SetResetMethodProperties(ref MethodState method)
+        private void SetResetTrendMethodProperties(ref MethodState method)
         {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnResetCall);
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnResetTrendCall);
+        }
+
+        /// <summary>
+        /// Sets properies of the ResetStepUp method.
+        /// </summary>
+        private void SetResetStepUpMethodProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnResetStepUpCall);
+        }
+
+        /// <summary>
+        /// Sets properies of the StartStepUp method.
+        /// </summary>
+        private void SetStartStepUpMethodProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStartStepUpCall);
+        }
+
+        /// <summary>
+        /// Sets properies of the StopStepUp method.
+        /// </summary>
+        private void SetStopStepUpMethodProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStopStepUpCall);
         }
 
         /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, byte accessLevel)
+        private BaseDataVariableState CreateBaseVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, byte accessLevel, string description)
         {
-            return CreateBaseVariable(parent, path, name, (uint)dataType, valueRank, accessLevel);
+            return CreateBaseVariable(parent, path, name, (uint)dataType, valueRank, accessLevel, description);
         }
 
         /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank, byte accessLevel)
+        private BaseDataVariableState CreateBaseVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank, byte accessLevel, string description)
         {
             BaseDataVariableState variable = new BaseDataVariableState(parent);
 
@@ -227,11 +268,12 @@ namespace OpcPlc
             variable.DataType = dataType;
             variable.ValueRank = valueRank;
             variable.AccessLevel = accessLevel;
-            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
+            variable.UserAccessLevel = accessLevel;
             variable.Historizing = false;
             variable.Value = TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
             variable.StatusCode = StatusCodes.Good;
             variable.Timestamp = DateTime.UtcNow;
+            variable.Description = new LocalizedText(description);
 
             if (valueRank == ValueRanks.OneDimension)
             {
@@ -332,7 +374,7 @@ namespace OpcPlc
             variable.DataType = (uint)dataType;
             variable.ValueRank = valueRank;
             variable.AccessLevel = accessLevel;
-            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
+            variable.UserAccessLevel = accessLevel;
             variable.Historizing = false;
             variable.Value = Opc.Ua.TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
             variable.StatusCode = StatusCodes.Good;
@@ -406,7 +448,7 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new method.
         /// </summary>
-        private MethodState CreateMethod(NodeState parent, string path, string name)
+        private MethodState CreateMethod(NodeState parent, string path, string name, string description)
         {
             MethodState method = new MethodState(parent)
             {
@@ -418,7 +460,8 @@ namespace OpcPlc
                 WriteMask = AttributeWriteMask.None,
                 UserWriteMask = AttributeWriteMask.None,
                 Executable = true,
-                UserExecutable = true
+                UserExecutable = true,
+                Description = new LocalizedText(description)
             };
 
             if (parent != null)
@@ -458,13 +501,44 @@ namespace OpcPlc
         /// <summary>
         /// Method to reset the trend values. Executes synchronously.
         /// </summary>
-        private ServiceResult OnResetCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             Program.PlcSimulation.ResetTrendData();
-            Logger.Debug($"Reset method called");
+            Logger.Debug($"ResetTrend method called");
             return ServiceResult.Good;
         }
 
+        /// <summary>
+        /// Method to reset the stepup value. Executes synchronously.
+        /// </summary>
+        private ServiceResult OnResetStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            Program.PlcSimulation.ResetStepUpData();
+            Logger.Debug($"ResetStepUp method called");
+            return ServiceResult.Good;
+        }
+
+        /// <summary>
+        /// Method to start the stepup value. Executes synchronously.
+        /// </summary>
+        private ServiceResult OnStartStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            Program.PlcSimulation.StartStepUp();
+            Logger.Debug($"StartStepUp method called");
+            return ServiceResult.Good;
+        }
+
+        /// <summary>
+        /// Method to stop the stepup value. Executes synchronously.
+        /// </summary>
+        private ServiceResult OnStopStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            Program.PlcSimulation.StopStepUp();
+            Logger.Debug($"StopStepUp method called");
+            return ServiceResult.Good;
+        }
+
+        private BaseDataVariableState _stepUp = null;
         private BaseDataVariableState _alternatingBoolean = null;
         private BaseDataVariableState _randomUnsignedInt32 = null;
         private BaseDataVariableState _randomSignedInt32 = null;

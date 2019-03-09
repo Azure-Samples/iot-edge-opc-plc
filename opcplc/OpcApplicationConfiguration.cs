@@ -128,6 +128,13 @@ namespace OpcPlc
             ApplicationConfiguration.ServerConfiguration.SecurityPolicies.Add(newPolicy);
             Logger.Information($"Security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
 
+            // add user token policies
+            UserTokenPolicyCollection userTokenPolicies = new UserTokenPolicyCollection();
+            userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.Anonymous));
+            userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.UserName));
+            userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.Certificate));
+            ApplicationConfiguration.ServerConfiguration.UserTokenPolicies = userTokenPolicies;
+
             // add none secure transport on request
             if (EnableUnsecureTransport)
             {
