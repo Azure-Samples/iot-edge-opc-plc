@@ -65,6 +65,12 @@ namespace OpcPlc
         public static string DefaultPassword { get; set; } = "password";
 
         /// <summary>
+        /// Admin user.
+        /// </summary>
+        public static string NodesFile { get; set; } 
+
+
+        /// <summary>
         /// Synchronous main method of the app.
         /// </summary>
         public static void Main(string[] args)
@@ -82,6 +88,7 @@ namespace OpcPlc
             // command line options
             Mono.Options.OptionSet options = new Mono.Options.OptionSet {
                 // log configuration
+                { "nf|nodesfile=", $"the filename which contains the list of nodes to be published.\nDefault: './{NodesFile}'", (string l) => NodesFile = l },
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
                 { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {_logFileFlushTimeSpanSec} sec", (int s) => {
                         if (s > 0)

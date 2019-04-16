@@ -3,6 +3,7 @@ using Opc.Ua;
 using Opc.Ua.Server;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -23,7 +24,11 @@ namespace OpcPlc
         /// </remarks>
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            PlcNodeManager = new PlcNodeManager(server, configuration);
+            if(!String.IsNullOrEmpty(Program.NodesFile) && File.Exists(Program.NodesFile))
+                PlcNodeManager = new PlcNodeManagerFromFile(server, configuration, Program.NodesFile);            
+            else
+                PlcNodeManager = new PlcNodeManager(server, configuration);
+
             List<INodeManager> nodeManagers = new List<INodeManager>
             {
                 PlcNodeManager,
