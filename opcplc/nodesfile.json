@@ -10,7 +10,7 @@
         "NodeId": "7123",
         "Name": "Temperature",
         "DataType": "Float",
-        "ValueRank": 0,
+        "ValueRank": -1,
         "AccessLevel": "CurrentReadOrWrite",
         "Description": "My property 1"
       },
@@ -19,9 +19,18 @@
         "NodeId": "7124",
         "Name": "Oscilations",
         "DataType": "Float",
-        "ValueRank": 0,
+        "ValueRank": -1,
         "AccessLevel": "CurrentReadOrWrite",
         "Description": "My property 2"
+      },
+      {
+        "$type": "OpcPlc.ConfigNode, opcplc",
+        "NodeId": "7125",
+        "Name": "Voltage",
+        "DataType": "Float",
+        "ValueRank": -1,
+        "AccessLevel": "CurrentReadOrWrite",
+        "Description": "My property 3"
       }
     ]
   }
