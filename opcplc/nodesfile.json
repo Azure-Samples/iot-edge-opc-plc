@@ -31,6 +31,15 @@
         "ValueRank": -1,
         "AccessLevel": "CurrentReadOrWrite",
         "Description": "My property 3"
+      },
+      {
+        "$type": "OpcPlc.ConfigNode, opcplc",
+        "NodeId": "7126",
+        "Name": "Vibration",
+        "DataType": "Float",
+        "ValueRank": -1,
+        "AccessLevel": "CurrentReadOrWrite",
+        "Description": "My property 4"
       }
     ]
   }
