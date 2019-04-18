@@ -48,7 +48,7 @@ X.509 certificates releated:
 * Running as Linux docker container, you can map the certificate stores to the host file system by using the docker run option `-v <hostdirectory>:/appdata`. This will make the certificate persistent over starts.
 * Running as Linux docker container and want to use an X509Store for the application certificate, you need to use the docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
 
-## Node population from JSON configuraiton file
+## Node population from JSON configuration file
 If the module (application) is started with argument **--nodesfile** then specified JSON configuration file is loaded.
 Nodes defined in JSON file will not be exposed by server. This enables another OPCUA-client application to set the state/value of the node. Please note that nodes specified in JSON file are NOT a part of simulation. They remain visible in unchanged state as long some OPCUA-client application changes their status.
 Following command shows how to start the module (application):
