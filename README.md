@@ -14,6 +14,9 @@ The following nodes are part of the PLC simulation:
 By default everything is enabled, please use command line options to disable certain anomaly or data generation features.
 Additionally to simulation mode, a JSON configuration file, which defines nodes to be populated. 
 
+Following picure shows OPCUA Client connected to OPCPLC running on port 5000. Node *MyTelemetry* is loaded from JSON configuraton file. None of values under this node is simulated. Node *OpcPlc* contains several built-in values, which are included in simulation. 
+![OPCUA Client](opcplc/images/OpcUAClient.png)
+
 ## Getting Started
 
 ### Prerequisites
@@ -81,8 +84,7 @@ Configuration file looks as described below:
         "ValueRank": -1,
         "AccessLevel": "CurrentReadOrWrite",
         "Description": "My property 2"
-      
-        "Description": "My property 4"
+     
       }
     ]
   }
