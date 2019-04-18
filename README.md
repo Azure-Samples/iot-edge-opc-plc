@@ -12,6 +12,7 @@ The following nodes are part of the PLC simulation:
 - a value showing a negative trend
 
 By default everything is enabled, please use command line options to disable certain anomaly or data generation features.
+Additionally to simulation mode, a JSON configuration file, which defines nodes to be populated. 
 
 ## Getting Started
 
@@ -29,7 +30,7 @@ A docker container of the component is hosted in the Microsoft Container Registr
 
 docker pull mcr.microsoft.com/iotedge/opc-plc
 
-The tags of the container match the tags of this repository and the containers are available for Windows amd64, Linux amd64 and Linux ARM32.
+The tags of the container match the tags of this repository and the containers are available for Windows amd64, Linux amd64 and Linux ARM32. 
 
 
 ## Demo
@@ -47,6 +48,53 @@ X.509 certificates releated:
 * Running as Linux docker container, you can map the certificate stores to the host file system by using the docker run option `-v <hostdirectory>:/appdata`. This will make the certificate persistent over starts.
 * Running as Linux docker container and want to use an X509Store for the application certificate, you need to use the docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
 
+## Node population from JSON configuraiton file
+If the module (application) is started with argument **--nodesfile** then specified JSON configuration file is loaded.
+Nodes defined in JSON file will not be exposed by server. This enables another OPCUA-client application to set the state/value of the node. Please note that nodes specified in JSON file are NOT a part of simulation. They remain visible in unchanged state as long some OPCUA-client application changes their status.
+Following command shows how to start the module (application):
+~~~
+dotnet opcplc.dll --at X509Store --nodesfile nodesfile.json
+~~~
+Configuration file looks as described below:
+~~~
+{
+  "$type": "OpcPlc.ConfigFolder, opcplc",
+  "NamespaceId": 7,
+  "Name": "MyTelemetry",
+  "NodeList": {
+    "$type": "System.Collections.Generic.List`1[[OpcPlc.ConfigNode, opcplc]], System.Private.CoreLib",
+    "$values": [
+      {
+        "$type": "OpcPlc.ConfigNode, opcplc",
+        "NodeId": "7123",
+        "Name": "Temperature",
+        "DataType": "Float",
+        "ValueRank": -1,
+        "AccessLevel": "CurrentReadOrWrite",
+        "Description": "My property 1"
+      },
+      {
+        "$type": "OpcPlc.ConfigNode, opcplc",
+        "NodeId": "7124",
+        "Name": "Oscilations",
+        "DataType": "Float",
+        "ValueRank": -1,
+        "AccessLevel": "CurrentReadOrWrite",
+        "Description": "My property 2"
+      
+        "Description": "My property 4"
+      }
+    ]
+  }
+}
+~~~
+
+*NodeId*: Specifies the identifier of the node.
+*Name*: The name of the sensor.
+*DataType*: The OPC UA valid type. It specifies one of types defined by BuiltInType.
+*ValueRank*: As defined by type ValueRanks.
+*AccessLevel*: Specifies one of access levels defined by type AccessLevels.
+*Description*: Description of the node.
 
 ## Resources
 
