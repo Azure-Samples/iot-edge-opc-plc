@@ -33,7 +33,7 @@ namespace OpcPlc
         public static string ApplicationName => ProgramName;
         public static string ApplicationUri => $"urn:{ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath) ? string.Empty : (ServerPath.StartsWith("/") ? string.Empty : ":"))}{ServerPath.Replace("/", ":")}";
         public static string ProductUri => $"https://github.com/azure-samples/iot-edge-opc-plc";
-        public static ushort ServerPort { get; set; } = 50000;
+        public static ushort ServerPort { get; set; } = 50001;
         public static string ServerPath { get; set; } = string.Empty;
 
         /// <summary>

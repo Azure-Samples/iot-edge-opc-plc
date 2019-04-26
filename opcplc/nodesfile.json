@@ -7,35 +7,35 @@
     "$values": [
       {
         "$type": "OpcPlc.ConfigNode, opcplc",
-        "NodeId": "7123",
-        "Name": "Temperature",
+        "NodeId": "1",
+        "Name": "Displacement",
         "DataType": "Float",
         "ValueRank": -1,
         "AccessLevel": "CurrentReadOrWrite",
-        "Description": "My property 1"
+        "Description": "Vibration Sensor Displacement"
       },
       {
         "$type": "OpcPlc.ConfigNode, opcplc",
-        "NodeId": "7124",
-        "Name": "Oscilations",
+        "NodeId": "2",
+        "Name": "Velocity",
         "DataType": "Float",
         "ValueRank": -1,
         "AccessLevel": "CurrentReadOrWrite",
-        "Description": "My property 2"
+        "Description": "Vibration Sensor Velocity"
       },
       {
         "$type": "OpcPlc.ConfigNode, opcplc",
-        "NodeId": "7125",
-        "Name": "Voltage",
+        "NodeId": "3",
+        "Name": "Acceleration",
         "DataType": "Float",
         "ValueRank": -1,
         "AccessLevel": "CurrentReadOrWrite",
-        "Description": "My property 3"
+        "Description": "Vibration Sensor Acceleration"
       },
       {
         "$type": "OpcPlc.ConfigNode, opcplc",
         "NodeId": "7126",
-        "Name": "Vibration",
+        "Name": "Vibrat",
         "DataType": "Float",
         "ValueRank": -1,
         "AccessLevel": "CurrentReadOrWrite",
