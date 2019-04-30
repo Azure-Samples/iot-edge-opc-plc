@@ -34,12 +34,21 @@
       },
       {
         "$type": "OpcPlc.ConfigNode, opcplc",
-        "NodeId": "7126",
-        "Name": "Vibrat",
+        "NodeId": "4",
+        "Name": "Light on",
         "DataType": "Float",
         "ValueRank": -1,
         "AccessLevel": "CurrentReadOrWrite",
-        "Description": "My property 4"
+        "Description": "Photoelectric Sensor"
+      },
+      {
+        "$type": "OpcPlc.ConfigNode, opcplc",
+        "NodeId": "5",
+        "Name": "Light off",
+        "DataType": "Float",
+        "ValueRank": -1,
+        "AccessLevel": "CurrentReadOrWrite",
+        "Description": "Photoelectric Sensor"
       }
     ]
   }
