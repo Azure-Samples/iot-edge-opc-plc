@@ -130,9 +130,22 @@ namespace OpcPlc
 
             // add user token policies
             UserTokenPolicyCollection userTokenPolicies = new UserTokenPolicyCollection();
-            userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.Anonymous));
-            userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.UserName));
-            userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.Certificate));
+
+            if (!DisableAnonymousAuth)
+            {
+                userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.Anonymous));
+            }
+
+            if (!DisableUsernamePasswordAuth)
+            {
+                userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.UserName));
+            }
+
+            if (!DisableCertAuth)
+            {
+                userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.Certificate));
+            }
+
             ApplicationConfiguration.ServerConfiguration.UserTokenPolicies = userTokenPolicies;
 
             // add none secure transport on request
