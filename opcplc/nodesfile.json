@@ -7,7 +7,7 @@
     "$values": [
       {
         "$type": "OpcPlc.ConfigNode, opcplc",
-        "NodeId": "1",
+        "NodeId": "01",
         "Name": "Displacement",
         "DataType": "Float",
         "ValueRank": -1,
@@ -16,7 +16,7 @@
       },
       {
         "$type": "OpcPlc.ConfigNode, opcplc",
-        "NodeId": "2",
+        "NodeId": "02",
         "Name": "Velocity",
         "DataType": "Float",
         "ValueRank": -1,
@@ -25,7 +25,7 @@
       },
       {
         "$type": "OpcPlc.ConfigNode, opcplc",
-        "NodeId": "3",
+        "NodeId": "03",
         "Name": "Acceleration",
         "DataType": "Float",
         "ValueRank": -1,
@@ -34,7 +34,7 @@
       },
       {
         "$type": "OpcPlc.ConfigNode, opcplc",
-        "NodeId": "4",
+        "NodeId": "04",
         "Name": "Light on",
         "DataType": "Float",
         "ValueRank": -1,
@@ -43,7 +43,7 @@
       },
       {
         "$type": "OpcPlc.ConfigNode, opcplc",
-        "NodeId": "5",
+        "NodeId": "05",
         "Name": "Light off",
         "DataType": "Float",
         "ValueRank": -1,
