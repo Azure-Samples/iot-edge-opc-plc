@@ -12,6 +12,7 @@ namespace OpcPlc
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Net.Sockets;
     using System.Reflection;
     using System.Text;
     using static OpcApplicationConfiguration;
@@ -43,6 +44,12 @@ namespace OpcPlc
         /// Shutdown token.
         /// </summary>
         public static CancellationToken ShutdownToken;
+
+        public static bool DisableAnonymousAuth { get; set; } = false;
+
+        public static bool DisableUsernamePasswordAuth { get; set; } = false;
+
+        public static bool DisableCertAuth { get; set; } = false;
 
         /// <summary>
         /// Admin user.
@@ -267,6 +274,9 @@ namespace OpcPlc
                     }
                 },
 
+                {"daa|disableanonymousauth", $"flag to disable anonymous authentication. \nDefault: {DisableAnonymousAuth}", d => DisableAnonymousAuth = d != null },
+                {"dua|disableusernamepasswordauth", $"flag to disable username/password authentication. \nDefault: {DisableUsernamePasswordAuth}", d=> DisableUsernamePasswordAuth = d != null },
+                {"dca|disablecertauth", $"flag to disable certificate authentication. \nDefault: {DisableCertAuth}", d => DisableCertAuth = d != null },
                 // user management
                 { "au|adminuser=", $"the username of the admin user.\nDefault: {AdminUser}", (string p) => AdminUser = p ?? AdminUser},
                 { "ac|adminpassword=", $"the password of the administrator.\nDefault: {AdminPassword}", (string p) => AdminPassword = p ?? AdminPassword},
@@ -364,6 +374,10 @@ namespace OpcPlc
             Logger.Information($"One cycle takes {SimulationCycleLength} milliseconds");
             Logger.Information($"Spike generation is {(GenerateSpikes ? "enabled" : "disabled")}");
             Logger.Information($"Data generation is {(GenerateData ? "enabled" : "disabled")}");
+
+            Logger.Information($"Anonymous authentication: {(DisableAnonymousAuth ? "disabled" : "enabled")}");
+            Logger.Information($"Username/Password authentication: {(DisableUsernamePasswordAuth ? "disabled" : "enabled")}");
+            Logger.Information($"Certificate authentication: {(DisableCertAuth ? "disabled" : "enabled")}");
 
             PlcServer = new PlcServer();
             PlcServer.Start(plcApplicationConfiguration);
