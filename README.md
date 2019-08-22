@@ -1,3 +1,15 @@
+---
+page_type: sample
+description: "Sample OPC UA server with different nodes which generate random data and anomalies."
+languages:
+- csharp
+products:
+- azure
+- azure-iot-hub
+urlFragment: azure-iot-sample-opc-ua-server
+---
+
+
 # OPC PLC server
 Implements an OPC UA server with different nodes which generate random data and anomalies.
 
