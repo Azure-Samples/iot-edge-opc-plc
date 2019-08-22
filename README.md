@@ -1,6 +1,6 @@
 ---
 page_type: sample
-description: "Sample OPC UA server with different nodes which generate random data and anomalies."
+description: "Industrial IoT Sample OPC UA server with different nodes which generate random data and anomalies."
 languages:
 - csharp
 products:
