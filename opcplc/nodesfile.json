@@ -1,12 +1,9 @@
 {
-  "$type": "OpcPlc.ConfigFolder, opcplc",
   "NamespaceId": 7,
   "Name": "MyTelemetry",
   "NodeList": {
-    "$type": "System.Collections.Generic.List`1[[OpcPlc.ConfigNode, opcplc]], System.Private.CoreLib",
-    "$values": [
+     [
       {
-        "$type": "OpcPlc.ConfigNode, opcplc",
         "NodeId": "1023",
         "Name": "ActualSpeed",
         "DataType": "Float",
@@ -15,7 +12,6 @@
         "Description": "Rotational speed"
       },
       {
-        "$type": "OpcPlc.ConfigNode, opcplc",
         "NodeId": "1024",
         "Name": "aRMS",
         "DataType": "Float",
@@ -24,7 +20,6 @@
         "Description": "Mean of the vibration acceleration"
       },
       {
-        "$type": "OpcPlc.ConfigNode, opcplc",
         "NodeId": "1025",
         "Name": "DKW",
         "DataType": "Float",
@@ -33,7 +28,6 @@
         "Description": "Diagnostic characteristic value"
       },
       {
-        "$type": "OpcPlc.ConfigNode, opcplc",
         "NodeId": "1026",
         "Name": "Peak value",
         "DataType": "Float",
@@ -42,7 +36,6 @@
         "Description": "Peak value of vibration acceleration"
       },
       {
-        "$type": "OpcPlc.ConfigNode, opcplc",
         "NodeId": "1027",
         "Name": "Vibration Velocity",
         "DataType": "Float",
@@ -51,7 +44,6 @@
         "Description": "Mean of the vibration velocity"
       },
       {
-        "$type": "OpcPlc.ConfigNode, opcplc",
         "NodeId": "1029",
         "Name": "Active power",
         "DataType": "Float",
