@@ -53,7 +53,7 @@ X.509 certificates releated:
 
 ## Node population from JSON configuration file
 If the module (application) is started with argument **--nodesfile** then specified JSON configuration file is loaded.
-Nodes defined in JSON file will not be exposed by server. This enables another OPCUA-client application to set the state/value of the node. Please note that nodes specified in JSON file are NOT a part of simulation. They remain visible in unchanged state as long some OPCUA-client application changes their status.
+Nodes defined in JSON file will be published by the server. This enables another OPCUA-client application to set the state/value of the node. Please note that nodes specified in JSON file are NOT a part of simulation. They remain visible in unchanged state as long some OPCUA-client application changes their status.
 Following command shows how to start the module (application):
 ~~~
 dotnet opcplc.dll --at X509Store --nodesfile nodesfile.json
