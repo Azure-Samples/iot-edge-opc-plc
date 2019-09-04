@@ -6,7 +6,7 @@ using System.Text;
 namespace OpcPlc
 {
     /// <summary>
-    /// 
+    /// Defines the configuration folder, which holds the list of nodes.
     /// </summary>
     public class ConfigFolder
     {
