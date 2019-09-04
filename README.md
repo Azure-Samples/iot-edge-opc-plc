@@ -90,6 +90,7 @@ Configuration file looks as described below:
   }
 }
 ~~~
+*NodeList* defines the list of nodes, which will be published by emulated server. Nodes specified in the list can be browsed and changed by OPC-UA applications. This enables developers to easy implement and test OPC-UA client applications. 
 
 *NodeId*: Specifies the identifier of the node.
 *Name*: The name of the sensor.
