@@ -18,7 +18,7 @@ namespace OpcPlc
     }
 
     /// <summary>
-    /// Used to define the node, which will be exposed by server.
+    /// Used to define the node, which will be published by the server.
     /// </summary>
     public class ConfigNode
     {
