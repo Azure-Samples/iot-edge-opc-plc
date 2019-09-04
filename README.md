@@ -92,7 +92,7 @@ Configuration file looks as described below:
 ~~~
 *NodeList* defines the list of nodes, which will be published by emulated server. Nodes specified in the list can be browsed and changed by OPC-UA applications. This enables developers to easy implement and test OPC-UA client applications. 
 
-*NodeId*: Specifies the identifier of the node.
+*NodeId*: Specifies the identifier of the node. This is the NodeId in the NamespaceId.
 *Name*: The name of the sensor.
 *DataType*: The OPC UA valid type. It specifies one of types defined by BuiltInType.
 *ValueRank*: As defined by type ValueRanks.
