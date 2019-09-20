@@ -1,13 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2036
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.156
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{99F0F8B6-79F2-45FB-A5B7-5A3CD731A43D}"
 	ProjectSection(SolutionItems) = preProject
 		Dockerfile = Dockerfile
 		GitVersion.yml = GitVersion.yml
 		README.md = README.md
+		runpack.cmd = runpack.cmd
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "opcplc", "opcplc\opcplc.csproj", "{49BA517C-B1B5-4433-BD82-CA8216BCCCD4}"

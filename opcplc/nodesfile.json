@@ -1,7 +1,7 @@
 {
   "NamespaceId": 7,
   "Name": "MyTelemetry",
-  "NodeList": {
+  "NodeList": 
      [
       {
         "NodeId": "1023",
@@ -52,5 +52,4 @@
         "Description": "Active power"
       }
     ]
-  }
 }
