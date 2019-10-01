@@ -34,19 +34,5 @@ namespace OpcPlc
 
         public string Description { get; set; }
 
-    }
-
-    public enum AccessLevel
-    {
-        None = 0,
-        CurrentRead = 1,
-        CurrentWrite = 2,
-        CurrentReadOrWrite = 3,
-        HistoryRead = 4,
-        HistoryWrite = 8,
-        HistoryReadOrWrite = 12,
-        SemanticChange = 16,
-        StatusWrite = 32,
-        TimestampWrite = 64,
-    }
+    } 
 }
