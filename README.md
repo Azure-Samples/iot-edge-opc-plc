@@ -61,14 +61,11 @@ dotnet opcplc.dll --at X509Store --nodesfile nodesfile.json
 Configuration file looks as described below:
 ~~~
 {
-  "$type": "OpcPlc.ConfigFolder, opcplc",
   "NamespaceId": 7,
   "Name": "MyTelemetry",
   "NodeList": {
-    "$type": "System.Collections.Generic.List`1[[OpcPlc.ConfigNode, opcplc]], System.Private.CoreLib",
-    "$values": [
+   [
       {
-        "$type": "OpcPlc.ConfigNode, opcplc",
         "NodeId": "7123",
         "Name": "Temperature",
         "DataType": "Float",
@@ -77,14 +74,12 @@ Configuration file looks as described below:
         "Description": "My property 1"
       },
       {
-        "$type": "OpcPlc.ConfigNode, opcplc",
         "NodeId": "7124",
         "Name": "Oscilations",
         "DataType": "Float",
         "ValueRank": -1,
         "AccessLevel": "CurrentReadOrWrite",
-        "Description": "My property 2"
-     
+        "Description": "My property 2"     
       }
     ]
   }
