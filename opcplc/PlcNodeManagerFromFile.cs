@@ -1,141 +1,48 @@
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using Opc.Ua;
 using Opc.Ua.Server;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Linq;
 
 namespace OpcPlc
 {
     using static Program;
 
-    public class PlcNodeManager : CustomNodeManager2
+    /// <summary>
+    /// This class implements a custom node manager, which extends current PlcNodeManager, to load additional nodes
+    /// spevified in JSON configuration file.  To activate this node maneger start application with argument
+    /// opcplc --nodesfile nodesfile.json
+    /// </summary>
+    public class PlcNodeManagerFromFile : PlcNodeManager
     {
-        public UInt32 RandomUnsignedInt32
-        {
-            get => (UInt32)_randomUnsignedInt32.Value;
-            set
-            {
-                _randomUnsignedInt32.Value = value;
-                _randomUnsignedInt32.Timestamp = DateTime.Now;
-                _randomUnsignedInt32.ClearChangeMasks(SystemContext, false);
-            }
-        }
+        private string _nodeFile;
 
-        public Int32 RandomSignedInt32
+        public PlcNodeManagerFromFile(IServerInternal server, ApplicationConfiguration configuration, string nodeFile)
+        : base(server, configuration)
         {
-            get => (Int32)_randomSignedInt32.Value;
-            set
-            {
-                _randomSignedInt32.Value = value;
-                _randomSignedInt32.Timestamp = DateTime.Now;
-                _randomSignedInt32.ClearChangeMasks(SystemContext, false);
-            }
-        }
-
-        public double SpikeData
-        {
-            get => (double)_spikeData.Value;
-            set
-            {
-                _spikeData.Value = value;
-                _spikeData.Timestamp = DateTime.Now;
-                _spikeData.ClearChangeMasks(SystemContext, false);
-            }
-        }
-
-        public double DipData
-        {
-            get => (double)_dipData.Value;
-            set
-            {
-                _dipData.Value = value;
-                _dipData.Timestamp = DateTime.Now;
-                _dipData.ClearChangeMasks(SystemContext, false);
-            }
-        }
-
-        public double PosTrendData
-        {
-            get => (double)_posTrendData.Value;
-            set
-            {
-                _posTrendData.Value = value;
-                _posTrendData.Timestamp = DateTime.Now;
-                _posTrendData.ClearChangeMasks(SystemContext, false);
-            }
-        }
-
-        public double NegTrendData
-        {
-            get => (double)_negTrendData.Value;
-            set
-            {
-                _negTrendData.Value = value;
-                _negTrendData.Timestamp = DateTime.Now;
-                _negTrendData.ClearChangeMasks(SystemContext, false);
-            }
-        }
-
-        public bool AlternatingBoolean
-        {
-            get => (bool)_alternatingBoolean.Value;
-            set
-            {
-                _alternatingBoolean.Value = value;
-                _alternatingBoolean.Timestamp = DateTime.Now;
-                _alternatingBoolean.ClearChangeMasks(SystemContext, false);
-            }
-        }
-
-        public uint StepUp
-        {
-            get => (uint)_stepUp.Value;
-            set
-            {
-                _stepUp.Value = value;
-                _stepUp.Timestamp = DateTime.Now;
-                _stepUp.ClearChangeMasks(SystemContext, false);
-            }
-        }
-
-        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration)
-        : base(server, configuration, Namespaces.OpcPlcApplications)
-        {
+            this._nodeFile = nodeFile;
             SystemContext.NodeIdFactory = this;
-        }
-
-        /// <summary>
-        /// Creates the NodeId for the specified node.
-        /// </summary>
-        public override NodeId New(ISystemContext context, NodeState node)
-        {
-            BaseInstanceState instance = node as BaseInstanceState;
-
-            if (instance != null && instance.Parent != null)
-            {
-                string id = instance.Parent.NodeId.Identifier as string;
-
-                if (id != null)
-                {
-                    return new NodeId(id + "_" + instance.SymbolicName, instance.Parent.NodeId.NamespaceIndex);
-                }
-            }
-
-            return node.NodeId;
         }
 
         /// <summary>
         /// Creates a new folder.
         /// </summary>
-        private FolderState CreateFolder(NodeState parent, string path, string name)
+        /// <param name="namespaceIndex">Currentlly not used.</param>
+        private FolderState CreateFolder(NodeState parent, string path, string name, ushort? namespaceIndex = null)
         {
             FolderState folder = new FolderState(parent)
             {
                 SymbolicName = name,
                 ReferenceTypeId = ReferenceTypes.Organizes,
                 TypeDefinitionId = ObjectTypeIds.FolderType,
-                NodeId = new NodeId(path, NamespaceIndex),
-                BrowseName = new QualifiedName(path, NamespaceIndex),
+                NodeId = new NodeId(path, namespaceIndex.HasValue ? namespaceIndex.Value : NamespaceIndex),
+                BrowseName = new QualifiedName(path, namespaceIndex.HasValue ? namespaceIndex.Value : NamespaceIndex),
                 DisplayName = new LocalizedText("en", name),
                 WriteMask = AttributeWriteMask.None,
                 UserWriteMask = AttributeWriteMask.None,
@@ -150,15 +57,10 @@ namespace OpcPlc
             return folder;
         }
 
-
         /// <summary>
-        /// Does any initialization required before the address space can be used.
+        /// Creates address space from JSON config file.
         /// </summary>
-        /// <remarks>
-        /// The externalReferences is an out parameter that allows the node manager to link to nodes
-        /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
-        /// should have a reference to the root folder node(s) exposed by this node manager.  
-        /// </remarks>
+        /// <param name="externalReferences"></param>
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
         {
             lock (Lock)
@@ -169,46 +71,53 @@ namespace OpcPlc
                 {
                     externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
                 }
+                
+                string json;
 
+                using (StreamReader sw = new StreamReader(this._nodeFile))
+                {
+                    json = sw.ReadToEnd();
+                }
+
+                ConfigFolder cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
+                {
+                    TypeNameHandling = TypeNameHandling.All
+                });
+
+                FolderState folderFromConfigFile = CreateFolder(null, cfgFolder.Name, cfgFolder.Name);
+                folderFromConfigFile.AddReference(ReferenceTypes.Organizes, true, ObjectIds.ObjectsFolder);
+                references.Add(new NodeStateReference(ReferenceTypes.Organizes, false, folderFromConfigFile.NodeId));
+                folderFromConfigFile.EventNotifier = EventNotifiers.SubscribeToEvents;
+                AddRootNotifier(folderFromConfigFile);
+
+                Logger.Information($"");
+
+                Logger.Information($"{nameof(PlcNodeManagerFromFile)} bootstrap started.");
+
+                Logger.Information($"{nameof(PlcNodeManagerFromFile)} created folder {cfgFolder.Name} in namespace {cfgFolder.NamespaceId}.");
+
+                foreach (var node in cfgFolder.NodeList)
+                {
+                    CreateBaseVariable(folderFromConfigFile, node);
+                    Logger.Information($"{nameof(PlcNodeManagerFromFile)} created node {node.NodeId} - {node.Name}.");
+                }
+                
                 FolderState root = CreateFolder(null, ProgramName, ProgramName);
                 root.AddReference(ReferenceTypes.Organizes, true, ObjectIds.ObjectsFolder);
                 references.Add(new NodeStateReference(ReferenceTypes.Organizes, false, root.NodeId));
                 root.EventNotifier = EventNotifiers.SubscribeToEvents;
                 AddRootNotifier(root);
 
-                List<BaseDataVariableState> variables = new List<BaseDataVariableState>();
+                AddPredefinedNode(SystemContext, folderFromConfigFile);
 
-                try
-                {
-                    FolderState dataFolder = CreateFolder(root, "Telemetry", "Telemetry");
-
-                    _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", BuiltInType.UInt32, ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
-                    _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", BuiltInType.Boolean, ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value");
-                    _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", BuiltInType.Int32, ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value");
-                    _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", BuiltInType.UInt32, ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value");
-                    _spikeData = CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", BuiltInType.Double, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes");
-                    _dipData = CreateBaseVariable(dataFolder, "DipData", "DipData", BuiltInType.Double, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips");
-                    _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", BuiltInType.Float, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend");
-                    _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", BuiltInType.Float, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend");
-
-                    FolderState methodsFolder = CreateFolder(root, "Methods", "Methods");
-                    MethodState resetTrendMethod = CreateMethod(methodsFolder, "ResetTrend", "ResetTrend", "Reset the trend values to their baseline value");
-                    SetResetTrendMethodProperties(ref resetTrendMethod);
-                    MethodState resetStepUpMethod = CreateMethod(methodsFolder, "ResetStepUp", "ResetStepUp", "Resets the StepUp counter to 0");
-                    SetResetStepUpMethodProperties(ref resetStepUpMethod);
-                    MethodState startStepUpMethod = CreateMethod(methodsFolder, "StartStepUp", "StartStepUp", "Starts the StepUp counter");
-                    SetStartStepUpMethodProperties(ref startStepUpMethod);
-                    MethodState stopStepUpMethod = CreateMethod(methodsFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter");
-                    SetStopStepUpMethodProperties(ref stopStepUpMethod);
-                }
-                catch (Exception e)
-                {
-                    Utils.Trace(e, "Error creating the address space.");
-                }
-
-                AddPredefinedNode(SystemContext, root);
+                Logger.Information($"{nameof(PlcNodeManagerFromFile)} bootstrap completed.");
+                Logger.Information($"");
             }
+
+            base.CreateAddressSpace(externalReferences);
         }
+
+
 
         /// <summary>
         /// Sets properies of the ResetTrend method.
@@ -250,6 +159,64 @@ namespace OpcPlc
             return CreateBaseVariable(parent, path, name, (uint)dataType, valueRank, accessLevel, description);
         }
 
+        private void CreateBaseVariable(FolderState root, ConfigNode node)
+        {
+            BuiltInType tp;
+            if (Enum.TryParse<BuiltInType>(node.DataType, out tp) == false)
+                throw new ArgumentException($"Value {node.DataType} of node {node.NodeId} cannot be parsed.");
+
+            byte accessLevel = 0;
+
+            // We have to hard code conversion here, because AccessLevel is defined as byte in OPCUA lib.
+            switch (node.AccessLevel)
+            {
+                case "None":
+                    accessLevel = AccessLevels.None;
+                    break;
+
+                case "CurrentRead":
+                    accessLevel = AccessLevels.CurrentRead;
+                    break;
+
+                case "CurrentWrite":
+                    accessLevel = AccessLevels.CurrentWrite;
+                    break;
+
+                case "CurrentReadOrWrite":
+                    accessLevel = AccessLevels.CurrentReadOrWrite;
+                    break;
+
+                case "HistoryRead":
+                    accessLevel = AccessLevels.HistoryRead;
+                    break;
+
+                case "HistoryWrite":
+                    accessLevel = AccessLevels.HistoryWrite;
+                    break;
+
+                case "HistoryReadOrWrite":
+                    accessLevel = AccessLevels.HistoryReadOrWrite;
+                    break;
+
+                case "SemanticChange":
+                    accessLevel = AccessLevels.SemanticChange;
+                    break;
+
+                case "StatusWrite":
+                    accessLevel = AccessLevels.StatusWrite;
+                    break;
+
+                case "TimestampWrite":
+                    accessLevel = AccessLevels.TimestampWrite;
+                    break;
+
+                default:
+                    throw new ArgumentException($"Unsupported AccessLevel '{node.AccessLevel}'");
+            };
+
+            CreateBaseVariable(root, node.NodeId, node.Name, tp, node.ValueRank, accessLevel, node.Description.ToString());
+        }
+
         /// <summary>
         /// Creates a new variable.
         /// </summary>
@@ -270,7 +237,7 @@ namespace OpcPlc
             variable.AccessLevel = accessLevel;
             variable.UserAccessLevel = accessLevel;
             variable.Historizing = false;
-            variable.Value = TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
+            variable.Value = Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
             variable.StatusCode = StatusCodes.Good;
             variable.Timestamp = DateTime.UtcNow;
             variable.Description = new LocalizedText(description);
@@ -320,7 +287,7 @@ namespace OpcPlc
             variable.AccessLevel = accessLevel;
             variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
             variable.Historizing = false;
-            variable.Value = TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
+            variable.Value = Opc.Ua.TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
             variable.StatusCode = StatusCodes.Good;
             variable.Timestamp = DateTime.UtcNow;
 
@@ -538,21 +505,40 @@ namespace OpcPlc
             return ServiceResult.Good;
         }
 
-        /// <summary>
-        /// Following variables listed here are simulated.
-        /// </summary>
-        protected BaseDataVariableState _stepUp = null;
-        protected BaseDataVariableState _alternatingBoolean = null;
-        protected BaseDataVariableState _randomUnsignedInt32 = null;
-        protected BaseDataVariableState _randomSignedInt32 = null;
-        protected BaseDataVariableState _spikeData = null;
-        protected BaseDataVariableState _dipData = null;
-        protected BaseDataVariableState _posTrendData = null;
-        protected BaseDataVariableState _negTrendData = null;
 
         /// <summary>
-        /// This variable can be changed by OPCUA client.
+        /// Test method to create JSON sample configuration file.
         /// </summary>
-        protected BaseDataVariableState _daeTemp = null;
+        private void CreateJsonsampleFile()
+        {
+            //ConfigFolder fld = new ConfigFolder();
+            //fld.Name = "MyTelemetry";
+            //fld.NamespaceId = 7;
+            //fld.NodeList = new List<ConfigNode>();
+
+            //fld.NodeList.Add(new ConfigNode()
+            //{
+            //    AccessLevel = AccessLevel.CurrentReadOrWrite.ToString(),
+            //    DataType = BuiltInType.Float.ToString(),
+            //    Description = "My property",
+            //    Name = "7123",
+            //    NodeId = "7123"
+            //});
+
+            //var json = JsonConvert.SerializeObject(fld, Formatting.Indented, new JsonSerializerSettings
+            //{
+            //    ContractResolver = new OpcContractResolver(),
+            //    Error =(se, ev) => 
+            //    {
+            //        ev.ErrorContext.Handled = true;
+            //    },
+            //    TypeNameHandling = TypeNameHandling.All
+            //});
+
+            //using (StreamWriter sw = new StreamWriter("nodesfile.json"))
+            //{
+            //    sw.Write(json);
+            //}
+        }
     }
 }
