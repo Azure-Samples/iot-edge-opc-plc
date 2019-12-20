@@ -11,6 +11,7 @@ $version = & (Join-Path $PSScriptRoot "get-version.ps1")
 
 # Set build environment version numbers in pipeline context
 Write-Host "Setting version build variables:"
-
+Write-Host "Version (Full): $($version.Full)"
+Write-Host "Version (Prefix): $($version.Prefix)"
 Write-Host "##vso[task.setvariable variable=Version_Full;isOutput=true]$($version.Full)"
 Write-Host "##vso[task.setvariable variable=Version_Prefix;isOutput=true]$($version.Prefix)"
