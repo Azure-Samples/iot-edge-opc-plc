@@ -57,7 +57,7 @@ namespace OpcPlc
         public static string AdminUser { get; set; } = "sysadmin";
 
         /// <summary>
-        /// Admin password.
+        /// Admin user password.
         /// </summary>
         public static string AdminPassword { get; set; } = "demo";
 
@@ -67,12 +67,12 @@ namespace OpcPlc
         public static string DefaultUser { get; set; } = "user1";
 
         /// <summary>
-        /// Defualt password.
+        /// Default user password.
         /// </summary>
         public static string DefaultPassword { get; set; } = "password";
 
         /// <summary>
-        /// Admin user.
+        /// Nodefile config name.
         /// </summary>
         public static string NodesFile { get; set; } 
 
@@ -95,7 +95,7 @@ namespace OpcPlc
             // command line options
             Mono.Options.OptionSet options = new Mono.Options.OptionSet {
                 // log configuration
-                { "nf|nodesfile=", $"the filename which contains the list of nodes to be published.\nDefault: './{NodesFile}'", (string l) => NodesFile = l },
+                { "nf|nodesfile=", $"the filename which contains the list of nodes to be published.", (string l) => NodesFile = l },
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
                 { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {_logFileFlushTimeSpanSec} sec", (int s) => {
                         if (s > 0)
