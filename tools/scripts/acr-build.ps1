@@ -113,7 +113,7 @@ if ([string]::IsNullOrEmpty($branchName) -or ($branchName -eq "HEAD")) {
 # Check and set registry
 $namespacePrefix = ""
 if ([string]::IsNullOrEmpty($Registry)) {
-    $Registry = $env.BUILD_REGISTRY
+    $Registry = $env:BUILD_REGISTRY
     if ([string]::IsNullOrEmpty($Registry)) {
         $Registry = "industrialiot"
         if ($isDeveloperBuild -eq $true) {
@@ -123,6 +123,7 @@ if ([string]::IsNullOrEmpty($Registry)) {
         Write-Warning "No registry specified - using $($Registry).azurecr.io."
     }
 }
+Write-Debug "Using registry $($Registry)"
 
 # set default subscription
 if (![string]::IsNullOrEmpty($Subscription)) {
