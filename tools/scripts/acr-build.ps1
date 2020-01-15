@@ -250,9 +250,9 @@ $definitions | ForEach-Object {
     # BUGBUG : ACR fails with arm but it is likely 
     # BUGBUG : that win-arm does not work now either.
     # BUGBUG
-    # if ($platform -eq "windows/arm") {
-    #     $platform = "windows/amd64"
-    # }
+    if ($platform -eq "windows/arm") {
+        $platform = "windows/amd64"
+    }
     # BUGBUG
     # BUGBUG
 
