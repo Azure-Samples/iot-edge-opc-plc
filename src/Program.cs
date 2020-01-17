@@ -333,7 +333,8 @@ namespace OpcPlc
             }
 
             //show version
-            Logger.Information($"{ProgramName} V{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion} starting up...");
+            var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
+            Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up...");
             Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute).InformationalVersion}");
 
             try
@@ -426,7 +427,7 @@ namespace OpcPlc
             StringBuilder stringBuilder = new StringBuilder();
             System.IO.StringWriter stringWriter = new System.IO.StringWriter(stringBuilder);
             options.WriteOptionDescriptions(stringWriter);
-            string[] helpLines = stringBuilder.ToString().Split("\r\n");
+            string[] helpLines = stringBuilder.ToString().Split("\n");
             foreach (var line in helpLines)
             {
                 Logger.Information(line);

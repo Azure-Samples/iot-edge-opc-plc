@@ -16,8 +16,8 @@ namespace OpcPlc
 
     /// <summary>
     /// This class implements a custom node manager, which extends current PlcNodeManager, to load additional nodes
-    /// spevified in JSON configuration file.  To activate this node maneger start application with argument
-    /// opcplc --nodesfile nodesfile.json
+    /// specified in a JSON configuration file. To activate this node manager the application must be started with a node configuration
+    /// file specified.
     /// </summary>
     public class PlcNodeManagerFromFile : PlcNodeManager
     {

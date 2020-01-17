@@ -7,7 +7,6 @@
     <PackageId>OpcPlc</PackageId>
     <RuntimeFrameworkVersion>2.1</RuntimeFrameworkVersion>
     <DebugType>portable</DebugType>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Authors>Microsoft</Authors>
     <RootNamespace>OpcPlc</RootNamespace>
   </PropertyGroup>
@@ -26,9 +25,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="gitversion $(SolutionDir)  /updateassemblyinfo /ensureassemblyinfo &gt;nul 2&gt;nul&#xD;&#xA;set ERRORLEVEL=0" />
-  </Target>
 
 </Project>

@@ -24,16 +24,14 @@ namespace OpcPlc
         /// </remarks>
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
+            List<INodeManager> nodeManagers = new List<INodeManager>();
+
             if(!String.IsNullOrEmpty(Program.NodesFile) && File.Exists(Program.NodesFile))
-                PlcNodeManager = new PlcNodeManagerFromFile(server, configuration, Program.NodesFile);            
-            else
-                PlcNodeManager = new PlcNodeManager(server, configuration);
-
-            List<INodeManager> nodeManagers = new List<INodeManager>
             {
-                PlcNodeManager,
-            };
-
+                nodeManagers.Add(new PlcNodeManagerFromFile(server, configuration, Program.NodesFile));            
+            }
+            PlcNodeManager = new PlcNodeManager(server, configuration);
+            nodeManagers.Add(PlcNodeManager);
             MasterNodeManager masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
 
             return masterNodeManager;
