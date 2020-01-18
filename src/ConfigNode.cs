@@ -1,6 +1,8 @@
-﻿using Opc.Ua;
+﻿using Newtonsoft.Json;
+using Opc.Ua;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
 
 namespace OpcPlc
@@ -10,9 +12,7 @@ namespace OpcPlc
     /// </summary>
     public class ConfigFolder
     {
-        public ushort NamespaceId { get; set; }
-
-        public string Name { get; set; }
+        public string Folder { get; set; }
 
         public List<ConfigNode> NodeList { get; set; }
     }
@@ -22,14 +22,21 @@ namespace OpcPlc
     /// </summary>
     public class ConfigNode
     {
-        public string NodeId { get; set; }
+        [JsonProperty(Required=Required.Always)]
+        public dynamic NodeId { get; set; }
 
         public string Name { get; set; }
 
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+        [DefaultValue("Int32")]
         public string DataType { get; set; }
 
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+        [DefaultValue(-1)]
         public int ValueRank { get; set; }
 
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+        [DefaultValue("CurrentReadOrWrite")]
         public string AccessLevel { get; set; }
 
         public string Description { get; set; }

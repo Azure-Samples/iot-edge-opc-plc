@@ -1,8 +1,9 @@
-
+using Newtonsoft.Json;
 using Opc.Ua;
 using Opc.Ua.Server;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace OpcPlc
 {
@@ -98,9 +99,10 @@ namespace OpcPlc
             }
         }
 
-        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration)
+        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
         : base(server, configuration, Namespaces.OpcPlcApplications)
         {
+            _nodeFileName = nodeFileName;
             SystemContext.NodeIdFactory = this;
         }
 
@@ -109,13 +111,9 @@ namespace OpcPlc
         /// </summary>
         public override NodeId New(ISystemContext context, NodeState node)
         {
-            BaseInstanceState instance = node as BaseInstanceState;
-
-            if (instance != null && instance.Parent != null)
+            if (node is BaseInstanceState instance && instance.Parent != null)
             {
-                string id = instance.Parent.NodeId.Identifier as string;
-
-                if (id != null)
+                if (instance.Parent.NodeId.Identifier is string id)
                 {
                     return new NodeId(id + "_" + instance.SymbolicName, instance.Parent.NodeId.NamespaceIndex);
                 }
@@ -182,14 +180,14 @@ namespace OpcPlc
                 {
                     FolderState dataFolder = CreateFolder(root, "Telemetry", "Telemetry");
 
-                    _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", BuiltInType.UInt32, ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
-                    _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", BuiltInType.Boolean, ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value");
-                    _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", BuiltInType.Int32, ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value");
-                    _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", BuiltInType.UInt32, ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value");
-                    _spikeData = CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", BuiltInType.Double, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes");
-                    _dipData = CreateBaseVariable(dataFolder, "DipData", "DipData", BuiltInType.Double, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips");
-                    _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", BuiltInType.Float, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend");
-                    _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", BuiltInType.Float, ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend");
+                    _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
+                    _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value");
+                    _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value");
+                    _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value");
+                    _spikeData = CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes");
+                    _dipData = CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips");
+                    _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend");
+                    _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend");
 
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods");
                     MethodState resetTrendMethod = CreateMethod(methodsFolder, "ResetTrend", "ResetTrend", "Reset the trend values to their baseline value");
@@ -200,6 +198,45 @@ namespace OpcPlc
                     SetStartStepUpMethodProperties(ref startStepUpMethod);
                     MethodState stopStepUpMethod = CreateMethod(methodsFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter");
                     SetStopStepUpMethodProperties(ref stopStepUpMethod);
+
+                    // process user configurable nodes
+                    if (!String.IsNullOrEmpty(_nodeFileName))
+                    {
+                        string json;
+                        using (StreamReader reader = new StreamReader(_nodeFileName))
+                        {
+                            json = reader.ReadToEnd();
+                        }
+                        ConfigFolder cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
+                        {
+                            TypeNameHandling = TypeNameHandling.All
+                        });
+
+                        Logger.Information($"Processing node information configured in {_nodeFileName}");
+                        Logger.Debug($"Create folder {cfgFolder.Folder}");
+                        FolderState userNodesFolder = CreateFolder(root, cfgFolder.Folder, cfgFolder.Folder);
+
+                        foreach (var node in cfgFolder.NodeList)
+                        {
+                            if (node.NodeId.GetType() != Type.GetType("System.Int64") && node.NodeId.GetType() != Type.GetType("System.String"))
+                            {
+                                Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal and string are supported. Default to string.");
+                                node.NodeId = node.NodeId.ToString();
+                            }
+                            var typedNodeId = $"{(node.NodeId.GetType() == Type.GetType("System.Int64") ? "i=" : "s=")}{node.NodeId.ToString()}";
+                            if (String.IsNullOrEmpty(node.Name))
+                            {
+                                node.Name = typedNodeId;
+                            }
+                            if (String.IsNullOrEmpty(node.Description))
+                            {
+                                node.Description = node.Name;
+                            }
+                            Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{NamespaceIndex}'");
+                            CreateBaseVariable(userNodesFolder, node);
+                        }
+                        Logger.Information($"Processing node information completed.");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -245,23 +282,23 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, byte accessLevel, string description)
-        {
-            return CreateBaseVariable(parent, path, name, (uint)dataType, valueRank, accessLevel, description);
-        }
-
-        /// <summary>
-        /// Creates a new variable.
-        /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank, byte accessLevel, string description)
+        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description)
         {
             BaseDataVariableState variable = new BaseDataVariableState(parent);
 
             variable.SymbolicName = name;
             variable.ReferenceTypeId = ReferenceTypes.Organizes;
             variable.TypeDefinitionId = VariableTypeIds.BaseDataVariableType;
-            variable.NodeId = new NodeId(path, NamespaceIndex);
-            variable.BrowseName = new QualifiedName(path, NamespaceIndex);
+            if (path.GetType() == Type.GetType("System.Int64"))
+            {
+                variable.NodeId = new NodeId((uint)path, NamespaceIndex);
+                variable.BrowseName = new QualifiedName(((uint)path).ToString(), NamespaceIndex);
+            }
+            else
+            {
+                variable.NodeId = new NodeId(path, NamespaceIndex);
+                variable.BrowseName = new QualifiedName(path, NamespaceIndex);
+            }
             variable.DisplayName = new LocalizedText("en", name);
             variable.WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
             variable.UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
@@ -295,155 +332,182 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private DataItemState CreateDataItemVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, byte accessLevel)
+        private void CreateBaseVariable(NodeState parent, ConfigNode node)
         {
-            DataItemState variable = new DataItemState(parent);
-            variable.ValuePrecision = new PropertyState<double>(variable);
-            variable.Definition = new PropertyState<string>(variable);
-
-            variable.Create(
-                SystemContext,
-                null,
-                variable.BrowseName,
-                null,
-                true);
-
-            variable.SymbolicName = name;
-            variable.ReferenceTypeId = ReferenceTypes.Organizes;
-            variable.NodeId = new NodeId(path, NamespaceIndex);
-            variable.BrowseName = new QualifiedName(path, NamespaceIndex);
-            variable.DisplayName = new LocalizedText("en", name);
-            variable.WriteMask = AttributeWriteMask.None;
-            variable.UserWriteMask = AttributeWriteMask.None;
-            variable.DataType = (uint)dataType;
-            variable.ValueRank = valueRank;
-            variable.AccessLevel = accessLevel;
-            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Historizing = false;
-            variable.Value = TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
-            variable.StatusCode = StatusCodes.Good;
-            variable.Timestamp = DateTime.UtcNow;
-
-            if (valueRank == ValueRanks.OneDimension)
+            BuiltInType nodeDataType;
+            if (Enum.TryParse(node.DataType, out nodeDataType) == false)
             {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
-            }
-            else if (valueRank == ValueRanks.TwoDimensions)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
+                Logger.Error($"Value '{node.DataType}' of node '{node.NodeId}' cannot be parsed. Defaulting to 'Int32'");
+                node.DataType = "Int32";
             }
 
-            variable.ValuePrecision.Value = 2;
-            variable.ValuePrecision.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.ValuePrecision.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Definition.Value = String.Empty;
-            variable.Definition.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Definition.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-
-            if (parent != null)
+            // We have to hard code conversion here, because AccessLevel is defined as byte in OPCUA lib.
+            byte accessLevel;
+            try
             {
-                parent.AddChild(variable);
+                accessLevel = (byte)(typeof(AccessLevels).GetField(node.AccessLevel).GetValue(null));
             }
-
-            return variable;
+            catch
+            {
+                Logger.Error($"AccessLevel '{node.AccessLevel}' of node '{node.Name}' is not supported. Defaulting to 'CurrentReadOrWrite'");
+                node.AccessLevel = "CurrentRead";
+                accessLevel = AccessLevels.CurrentReadOrWrite;
+            }
+            CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description.ToString());
         }
 
-        /// <summary>
-        /// Creates a new variable using type Numeric as NodeId.
-        /// </summary>
-        private DataItemState CreateDataItemVariable(NodeState parent, uint id, string name, BuiltInType dataType, int valueRank, byte accessLevel)
-        {
-            DataItemState variable = new DataItemState(parent);
-            variable.ValuePrecision = new PropertyState<double>(variable);
-            variable.Definition = new PropertyState<string>(variable);
+        ///// <summary>
+        ///// Creates a new variable.
+        ///// </summary>
+        //private DataItemState CreateDataItemVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, byte accessLevel)
+        //{
+        //    DataItemState variable = new DataItemState(parent);
+        //    variable.ValuePrecision = new PropertyState<double>(variable);
+        //    variable.Definition = new PropertyState<string>(variable);
 
-            variable.Create(
-                SystemContext,
-                null,
-                variable.BrowseName,
-                null,
-                true);
+        //    variable.Create(
+        //        SystemContext,
+        //        null,
+        //        variable.BrowseName,
+        //        null,
+        //        true);
 
-            variable.SymbolicName = name;
-            variable.ReferenceTypeId = ReferenceTypes.Organizes;
-            variable.NodeId = new NodeId(id, NamespaceIndex);
-            variable.BrowseName = new QualifiedName(name, NamespaceIndex);
-            variable.DisplayName = new LocalizedText("en", name);
-            variable.WriteMask = AttributeWriteMask.None;
-            variable.UserWriteMask = AttributeWriteMask.None;
-            variable.DataType = (uint)dataType;
-            variable.ValueRank = valueRank;
-            variable.AccessLevel = accessLevel;
-            variable.UserAccessLevel = accessLevel;
-            variable.Historizing = false;
-            variable.Value = Opc.Ua.TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
-            variable.StatusCode = StatusCodes.Good;
-            variable.Timestamp = DateTime.UtcNow;
+        //    variable.SymbolicName = name;
+        //    variable.ReferenceTypeId = ReferenceTypes.Organizes;
+        //    variable.NodeId = new NodeId(path, NamespaceIndex);
+        //    variable.BrowseName = new QualifiedName(path, NamespaceIndex);
+        //    variable.DisplayName = new LocalizedText("en", name);
+        //    variable.WriteMask = AttributeWriteMask.None;
+        //    variable.UserWriteMask = AttributeWriteMask.None;
+        //    variable.DataType = (uint)dataType;
+        //    variable.ValueRank = valueRank;
+        //    variable.AccessLevel = accessLevel;
+        //    variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
+        //    variable.Historizing = false;
+        //    variable.Value = TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
+        //    variable.StatusCode = StatusCodes.Good;
+        //    variable.Timestamp = DateTime.UtcNow;
 
-            if (valueRank == ValueRanks.OneDimension)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
-            }
-            else if (valueRank == ValueRanks.TwoDimensions)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
-            }
+        //    if (valueRank == ValueRanks.OneDimension)
+        //    {
+        //        variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
+        //    }
+        //    else if (valueRank == ValueRanks.TwoDimensions)
+        //    {
+        //        variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
+        //    }
 
-            variable.ValuePrecision.Value = 2;
-            variable.ValuePrecision.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.ValuePrecision.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Definition.Value = String.Empty;
-            variable.Definition.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Definition.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
+        //    variable.ValuePrecision.Value = 2;
+        //    variable.ValuePrecision.AccessLevel = AccessLevels.CurrentReadOrWrite;
+        //    variable.ValuePrecision.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
+        //    variable.Definition.Value = String.Empty;
+        //    variable.Definition.AccessLevel = AccessLevels.CurrentReadOrWrite;
+        //    variable.Definition.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
 
-            if (parent != null)
-            {
-                parent.AddChild(variable);
-            }
+        //    if (parent != null)
+        //    {
+        //        parent.AddChild(variable);
+        //    }
 
-            return variable;
-        }
+        //    return variable;
+        //}
 
-        /// <summary>
-        /// Creates a new variable.
-        /// </summary>
-        private BaseDataVariableState CreateVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank)
-        {
-            BaseDataVariableState variable = new BaseDataVariableState(parent)
-            {
-                SymbolicName = name,
-                ReferenceTypeId = ReferenceTypes.Organizes,
-                TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
-                NodeId = new NodeId(path, NamespaceIndex),
-                BrowseName = new QualifiedName(path, NamespaceIndex),
-                DisplayName = new LocalizedText("en", name),
-                WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description,
-                UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description,
-                DataType = dataType,
-                ValueRank = valueRank,
-                AccessLevel = AccessLevels.CurrentReadOrWrite,
-                UserAccessLevel = AccessLevels.CurrentReadOrWrite,
-                Historizing = false,
-                StatusCode = StatusCodes.Good,
-                Timestamp = DateTime.UtcNow
-            };
+        ///// <summary>
+        ///// Creates a new variable using type Numeric as NodeId.
+        ///// </summary>
+        //private DataItemState CreateDataItemVariable(NodeState parent, uint id, string name, BuiltInType dataType, int valueRank, byte accessLevel)
+        //{
+        //    DataItemState variable = new DataItemState(parent);
+        //    variable.ValuePrecision = new PropertyState<double>(variable);
+        //    variable.Definition = new PropertyState<string>(variable);
 
-            if (valueRank == ValueRanks.OneDimension)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
-            }
-            else if (valueRank == ValueRanks.TwoDimensions)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
-            }
+        //    variable.Create(
+        //        SystemContext,
+        //        null,
+        //        variable.BrowseName,
+        //        null,
+        //        true);
 
-            if (parent != null)
-            {
-                parent.AddChild(variable);
-            }
+        //    variable.SymbolicName = name;
+        //    variable.ReferenceTypeId = ReferenceTypes.Organizes;
+        //    variable.NodeId = new NodeId(id, NamespaceIndex);
+        //    variable.BrowseName = new QualifiedName(name, NamespaceIndex);
+        //    variable.DisplayName = new LocalizedText("en", name);
+        //    variable.WriteMask = AttributeWriteMask.None;
+        //    variable.UserWriteMask = AttributeWriteMask.None;
+        //    variable.DataType = (uint)dataType;
+        //    variable.ValueRank = valueRank;
+        //    variable.AccessLevel = accessLevel;
+        //    variable.UserAccessLevel = accessLevel;
+        //    variable.Historizing = false;
+        //    variable.Value = Opc.Ua.TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
+        //    variable.StatusCode = StatusCodes.Good;
+        //    variable.Timestamp = DateTime.UtcNow;
 
-            return variable;
-        }
+        //    if (valueRank == ValueRanks.OneDimension)
+        //    {
+        //        variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
+        //    }
+        //    else if (valueRank == ValueRanks.TwoDimensions)
+        //    {
+        //        variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
+        //    }
+
+        //    variable.ValuePrecision.Value = 2;
+        //    variable.ValuePrecision.AccessLevel = AccessLevels.CurrentReadOrWrite;
+        //    variable.ValuePrecision.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
+        //    variable.Definition.Value = String.Empty;
+        //    variable.Definition.AccessLevel = AccessLevels.CurrentReadOrWrite;
+        //    variable.Definition.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
+
+        //    if (parent != null)
+        //    {
+        //        parent.AddChild(variable);
+        //    }
+
+        //    return variable;
+        //}
+
+        ///// <summary>
+        ///// Creates a new variable.
+        ///// </summary>
+        //private BaseDataVariableState CreateVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank)
+        //{
+        //    BaseDataVariableState variable = new BaseDataVariableState(parent)
+        //    {
+        //        SymbolicName = name,
+        //        ReferenceTypeId = ReferenceTypes.Organizes,
+        //        TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+        //        NodeId = new NodeId(path, NamespaceIndex),
+        //        BrowseName = new QualifiedName(path, NamespaceIndex),
+        //        DisplayName = new LocalizedText("en", name),
+        //        WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description,
+        //        UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description,
+        //        DataType = dataType,
+        //        ValueRank = valueRank,
+        //        AccessLevel = AccessLevels.CurrentReadOrWrite,
+        //        UserAccessLevel = AccessLevels.CurrentReadOrWrite,
+        //        Historizing = false,
+        //        StatusCode = StatusCodes.Good,
+        //        Timestamp = DateTime.UtcNow
+        //    };
+
+        //    if (valueRank == ValueRanks.OneDimension)
+        //    {
+        //        variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
+        //    }
+        //    else if (valueRank == ValueRanks.TwoDimensions)
+        //    {
+        //        variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
+        //    }
+
+        //    if (parent != null)
+        //    {
+        //        parent.AddChild(variable);
+        //    }
+
+        //    return variable;
+        //}
 
         /// <summary>
         /// Creates a new method.
@@ -551,8 +615,8 @@ namespace OpcPlc
         protected BaseDataVariableState _negTrendData = null;
 
         /// <summary>
-        /// This variable can be changed by OPCUA client.
+        /// File name for user configurable nodes.
         /// </summary>
-        protected BaseDataVariableState _daeTemp = null;
+        protected string _nodeFileName = null;
     }
 }

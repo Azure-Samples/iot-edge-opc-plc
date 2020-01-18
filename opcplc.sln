@@ -5,36 +5,29 @@ VisualStudioVersion = 16.0.28803.156
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{99F0F8B6-79F2-45FB-A5B7-5A3CD731A43D}"
 	ProjectSection(SolutionItems) = preProject
-		Dockerfile = Dockerfile
-		GitVersion.yml = GitVersion.yml
 		README.md = README.md
-		runpack.cmd = runpack.cmd
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{690F65D8-25E4-48CF-8E15-2A393D142A97}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "linux", "linux", "{B9D64D0B-B7DD-4006-B4B3-F04C92E0D95C}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "windows", "windows", "{5C878AD2-B8AF-4FE5-BA2A-3652D95B829D}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "amd64", "amd64", "{983295C8-35B4-4A0F-A717-4FFE1D69BF91}"
-	ProjectSection(SolutionItems) = preProject
-		Dockerfile = Dockerfile
-		docker\linux\amd64\Dockerfile.debug = docker\linux\amd64\Dockerfile.debug
-		docker\linux\amd64\Dockerfile.ssh = docker\linux\amd64\Dockerfile.ssh
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "arm32v7", "arm32v7", "{6E535AF6-7915-41E6-A898-276AC55E23E8}"
-	ProjectSection(SolutionItems) = preProject
-		docker\linux\arm32v7\Dockerfile = docker\linux\arm32v7\Dockerfile
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "amd64", "amd64", "{D08E6B12-FC44-41F6-B0A3-3C41A789CC30}"
-	ProjectSection(SolutionItems) = preProject
-		docker\windows\amd64\Dockerfile = docker\windows\amd64\Dockerfile
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "opc-plc", "src\opc-plc.csproj", "{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{5DD19E36-0601-491E-932A-E6AB807AD85C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{5C55721F-4E2A-4DEF-864F-17D68BEBC3DB}"
+	ProjectSection(SolutionItems) = preProject
+		tools\scripts\acr-build.ps1 = tools\scripts\acr-build.ps1
+		tools\scripts\acr-matrix.ps1 = tools\scripts\acr-matrix.ps1
+		tools\scripts\docker-source.ps1 = tools\scripts\docker-source.ps1
+		tools\scripts\get-matrix.ps1 = tools\scripts\get-matrix.ps1
+		tools\scripts\get-root.ps1 = tools\scripts\get-root.ps1
+		tools\scripts\get-version.ps1 = tools\scripts\get-version.ps1
+		tools\scripts\set-version.ps1 = tools\scripts\set-version.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{E32C2238-5380-471E-B15E-4B11A8C27528}"
+	ProjectSection(SolutionItems) = preProject
+		tools\templates\acrbuild.yml = tools\templates\acrbuild.yml
+		tools\templates\ci.yml = tools\templates\ci.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,13 +44,10 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{690F65D8-25E4-48CF-8E15-2A393D142A97} = {99F0F8B6-79F2-45FB-A5B7-5A3CD731A43D}
-		{B9D64D0B-B7DD-4006-B4B3-F04C92E0D95C} = {690F65D8-25E4-48CF-8E15-2A393D142A97}
-		{5C878AD2-B8AF-4FE5-BA2A-3652D95B829D} = {690F65D8-25E4-48CF-8E15-2A393D142A97}
-		{983295C8-35B4-4A0F-A717-4FFE1D69BF91} = {B9D64D0B-B7DD-4006-B4B3-F04C92E0D95C}
-		{6E535AF6-7915-41E6-A898-276AC55E23E8} = {B9D64D0B-B7DD-4006-B4B3-F04C92E0D95C}
-		{D08E6B12-FC44-41F6-B0A3-3C41A789CC30} = {5C878AD2-B8AF-4FE5-BA2A-3652D95B829D}
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D} = {99F0F8B6-79F2-45FB-A5B7-5A3CD731A43D}
+		{5DD19E36-0601-491E-932A-E6AB807AD85C} = {99F0F8B6-79F2-45FB-A5B7-5A3CD731A43D}
+		{5C55721F-4E2A-4DEF-864F-17D68BEBC3DB} = {5DD19E36-0601-491E-932A-E6AB807AD85C}
+		{E32C2238-5380-471E-B15E-4B11A8C27528} = {5DD19E36-0601-491E-932A-E6AB807AD85C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {90B4B490-DDDE-4BB2-A111-E5DAE5000248}

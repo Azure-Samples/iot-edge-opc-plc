@@ -72,9 +72,9 @@ namespace OpcPlc
         public static string DefaultPassword { get; set; } = "password";
 
         /// <summary>
-        /// Nodefile config name.
+        /// User node configuration file name.
         /// </summary>
-        public static string NodesFile { get; set; } 
+        public static string NodesFileName { get; set; } 
 
 
         /// <summary>
@@ -95,7 +95,7 @@ namespace OpcPlc
             // command line options
             Mono.Options.OptionSet options = new Mono.Options.OptionSet {
                 // log configuration
-                { "nf|nodesfile=", $"the filename which contains the list of nodes to be published.", (string l) => NodesFile = l },
+                { "nf|nodesfile=", $"the filename which contains the list of nodes to be published.", (string l) => NodesFileName = l },
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
                 { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {_logFileFlushTimeSpanSec} sec", (int s) => {
                         if (s > 0)
@@ -463,7 +463,7 @@ namespace OpcPlc
                     break;
                 case "debug":
                     loggerConfiguration.MinimumLevel.Debug();
-                    OpcStackTraceMask = OpcTraceToLoggerDebug = Utils.TraceMasks.StackTrace | Utils.TraceMasks.Operation | Utils.TraceMasks.Information |
+                    OpcStackTraceMask = OpcTraceToLoggerDebug = Utils.TraceMasks.StackTrace | Utils.TraceMasks.Operation | 
                         Utils.TraceMasks.StartStop | Utils.TraceMasks.ExternalSystem | Utils.TraceMasks.Security;
                     break;
                 case "verbose":
