@@ -1,6 +1,7 @@
 
 using Opc.Ua;
 using Opc.Ua.Server;
+using Serilog.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,6 +11,8 @@ using System.Threading;
 
 namespace OpcPlc
 {
+    using static Program;
+
     public partial class PlcServer : StandardServer
     {
         public PlcNodeManager PlcNodeManager = null;
@@ -19,21 +22,21 @@ namespace OpcPlc
         /// </summary>
         /// <remarks>
         /// This method allows the sub-class create any additional node managers which it uses. The SDK
-        /// always creates a CoreNodeManager which handles the built-in nodes defined by the specification.
+        /// always creates a CoreNodesManager which handles the built-in nodes defined by the specification.
         /// Any additional NodeManagers are expected to handle application specific nodes.
         /// </remarks>
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            if(!String.IsNullOrEmpty(Program.NodesFile) && File.Exists(Program.NodesFile))
-                PlcNodeManager = new PlcNodeManagerFromFile(server, configuration, Program.NodesFile);            
-            else
-                PlcNodeManager = new PlcNodeManager(server, configuration);
+            List<INodeManager> nodeManagers = new List<INodeManager>();
 
-            List<INodeManager> nodeManagers = new List<INodeManager>
+            if(!String.IsNullOrEmpty(NodesFileName) && !File.Exists(NodesFileName))
             {
-                PlcNodeManager,
-            };
-
+                string errorMessage = $"The user node configuration file {NodesFileName} does not exist.";
+                Logger.Error(errorMessage);
+                throw new Exception(errorMessage);
+            }
+            PlcNodeManager = new PlcNodeManager(server, configuration, NodesFileName);
+            nodeManagers.Add(PlcNodeManager);
             MasterNodeManager masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
 
             return masterNodeManager;
