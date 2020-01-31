@@ -37,14 +37,14 @@ jobs:
     name: acrbuildr
     displayName: Build Release Images
     inputs:
-      azureSubscription: $[coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')]
+      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder)
   - task: AzureCLI@1
     name: acrbuildd
     displayName: Build Debug Images
     inputs:
-      azureSubscription: $[coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')]
+      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -debug
       
