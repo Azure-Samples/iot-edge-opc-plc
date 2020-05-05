@@ -15,13 +15,13 @@ Implements an OPC UA server with different nodes generating random data, anomali
 
 ## Features
 The following nodes are part of the PLC simulation:
-- with alternating boolean
+- alternating boolean
 - random signed 32-bit integer
 - random unsigend 32-bit integer
-- a sine wave with a spike anomaly
-- a sine wave with a dip anomaly
-- a value showing a positive trend
-- a value showing a negative trend
+- sine wave with a spike anomaly
+- sine wave with a dip anomaly
+- value showing a positive trend
+- value showing a negative trend
 
 By default everything is enabled, please use command line options to disable certain anomaly or data generation features.
 Additionally to those nodes with simulated data, a JSON configuration file allows nodes to be created as specified.
@@ -55,26 +55,24 @@ Here a sample for the node configuration file:
 ~~~
 {
   "Folder": "MyTelemetry",
-  "NodeList": {
-   [
-      {
-        "NodeId": 1023,
-        "Name": "ActualSpeed",
-        "Description": "Rotational speed"
-      },
-      {
-        "NodeId": "aRMS",
-      },
-      {
-        "NodeId": "1025",
-        "Name": "DKW",
-        "DataType": "Float",
-        "ValueRank": -1,
-        "AccessLevel": "CurrentReadOrWrite",
-        "Description": "Diagnostic characteristic value"
-      }
-    ]
-  }
+  "NodeList": [
+    {
+      "NodeId": 1023,
+      "Name": "ActualSpeed",
+      "Description": "Rotational speed"
+    },
+    {
+      "NodeId": "aRMS"
+    },
+    {
+      "NodeId": "1025",
+      "Name": "DKW",
+      "DataType": "Float",
+      "ValueRank": -1,
+      "AccessLevel": "CurrentReadOrWrite",
+      "Description": "Diagnostic characteristic value"
+    }
+  ]
 }
 ~~~
 *Folder* defines the name of the folder under which the user specified nodes should be created. This folder is created below the root of the OPC UA server.
@@ -90,7 +88,7 @@ Here a sample for the node configuration file:
 
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR, set the following pipeline variables:
 
-- **AZURE_SÚBSCRIPTION** - should be set to the name of your subsription. Ensure you grant Azure DevOps access to it.
+- **AZURE_SUBSCRIPTION** - should be set to the name of your subsription. Ensure you grant Azure DevOps access to it.
 - **BUILD_REGISTRY** - the name of your Azure Container Registry resource in the subscription.
 
 ## Notes
