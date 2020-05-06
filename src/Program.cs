@@ -74,7 +74,7 @@ namespace OpcPlc
         /// <summary>
         /// User node configuration file name.
         /// </summary>
-        public static string NodesFileName { get; set; } 
+        public static string NodesFileName { get; set; }
 
 
         /// <summary>
@@ -90,10 +90,11 @@ namespace OpcPlc
         /// </summary>
         public static async Task MainAsync(string[] args)
         {
-            var shouldShowHelp = false;
+            bool shouldShowHelp = false;
+            bool showPnJson = false;
 
             // command line options
-            Mono.Options.OptionSet options = new Mono.Options.OptionSet {
+            var options = new Mono.Options.OptionSet {
                 // log configuration
                 { "nf|nodesfile=", $"the filename which contains the list of nodes to be published.", (string l) => NodesFileName = l },
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
@@ -292,6 +293,7 @@ namespace OpcPlc
 
                 // misc
                 { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
+                { "sp|showpnjson", "show pn.json for this configuration", h => showPnJson = h != null },
             };
 
             List<string> extraArgs = new List<string>();
@@ -323,6 +325,11 @@ namespace OpcPlc
                 return;
             }
 
+            if (showPnJson)
+            {
+                ShowPnJson();
+            }
+
             // validate and parse extra arguments
             if (extraArgs.Count > 0)
             {
@@ -346,6 +353,32 @@ namespace OpcPlc
                 Logger.Fatal(ex, "OPC UA server failed unexpectedly.");
             }
             Logger.Information("OPC UA server exiting...");
+        }
+
+        /// <summary>
+        /// Show pn.json
+        /// </summary>
+        private static void ShowPnJson()
+        {
+            var sb = new StringBuilder();
+            sb.Append("pn.json\n[\n");
+            sb.Append("  {\n");
+            sb.Append("    \"EndpointUrl\": \"opc.tcp://<SERVER>:<PORT>/\",\n");
+            sb.Append("    \"UseSecurity\": false,\n");
+            sb.Append("    \"OpcNodes\": [\n");
+            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=AlternatingBoolean\" },\n");
+            if (GenerateDips) sb.Append("      { \"Id\": \"ns=2;s=DipData\" },\n");
+            if (GenerateNegTrend) sb.Append("      { \"Id\": \"ns=2;s=NegativeTrendData\" },\n");
+            if (GeneratePosTrend) sb.Append("      { \"Id\": \"ns=2;s=PositiveTrendData\" },\n");
+            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomSignedInt32\" },\n");
+            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomUnsignedInt32\" },\n");
+            if (GenerateSpikes) sb.Append("      { \"Id\": \"ns=2;s=SpikeData\" },\n");
+            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=StepUp\" }\n");
+            sb.Append("    ]\n");
+            sb.Append("  }\n");
+            sb.Append("]");
+
+            Logger.Information(sb.ToString());
         }
 
         /// <summary>
@@ -463,7 +496,7 @@ namespace OpcPlc
                     break;
                 case "debug":
                     loggerConfiguration.MinimumLevel.Debug();
-                    OpcStackTraceMask = OpcTraceToLoggerDebug = Utils.TraceMasks.StackTrace | Utils.TraceMasks.Operation | 
+                    OpcStackTraceMask = OpcTraceToLoggerDebug = Utils.TraceMasks.StackTrace | Utils.TraceMasks.Operation |
                         Utils.TraceMasks.StartStop | Utils.TraceMasks.ExternalSystem | Utils.TraceMasks.Security;
                     break;
                 case "verbose":
