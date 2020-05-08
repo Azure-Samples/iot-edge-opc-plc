@@ -85,7 +85,7 @@ namespace OpcPlc
         {
             Int,
             Double,
-            Boolean,
+            Bool,
             IntArray,
         }
 
@@ -143,9 +143,9 @@ namespace OpcPlc
                 { "nv|nodatavalues", $"do not generate data values\nDefault: {!GenerateData}", a => GenerateData = a == null },
                 { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodes}", (int i) => SlowNodes = i },
                 { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (int i) => SlowNodeRate = i },
-                { "st|slowtype=", $"data type of slow nodes (int|intarray)\nDefault: {SlowNodeType}", a => SlowNodeType = a },
+                { "st|slowtype=", $"data type of slow nodes (Int|Double|Bool|IntArray)\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
                 { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodes}", (int i) => FastNodes = i },
-                { "ft|fasttype=", $"data type of slow nodes (int|intarray)\nDefault: {FastNodeType}", a => FastNodeType = a },
+                { "ft|fasttype=", $"data type of slow nodes (Int|Double|Bool|IntArray)\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
 
                 // opc configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
@@ -388,18 +388,16 @@ namespace OpcPlc
             if (GenerateSpikes) sb.Append("      { \"Id\": \"ns=2;s=SpikeData\" },\n");
             if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=StepUp\" }\n");
 
-            NodeType slowNodeType = ParseNodeType(SlowNodeType);
             for (int i = 0; i < SlowNodes; i++)
             {
                 string id = (i + 1).ToString("D" + SlowNodes.ToString().Length); // Padded int.
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{slowNodeType}{id}\" }}\n");
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{SlowNodeType}{id}\" }}\n");
             }
 
-            NodeType fastNodeType = ParseNodeType(FastNodeType);
             for (int i = 0; i < FastNodes; i++)
             {
                 string id = (i + 1).ToString("D" + FastNodes.ToString().Length); // Padded int.
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{fastNodeType}{id}\" }}\n");
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{FastNodeType}{id}\" }}\n");
             }
 
             sb.Append("    ]\n");
@@ -415,12 +413,13 @@ namespace OpcPlc
         /// <summary>
         /// Parse node data type.
         /// </summary>
-        public static NodeType ParseNodeType(string type)
+        private static NodeType ParseNodeType(string type)
         {
             switch (type.ToLowerInvariant())
             {
+                case "bool":
                 case "boolean":
-                    return NodeType.Boolean;
+                    return NodeType.Bool;
                 case "double":
                     return NodeType.Double;
                 case "intarray":

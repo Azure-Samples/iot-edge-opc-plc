@@ -2,7 +2,7 @@
   "profiles": {
     "opc-plc": {
       "commandName": "Project",
-      "commandLineArgs": "--pn=50000 --at X509Store --autoaccept --sp --sn=25 --fn=5 --nospikes --nodips --nopostrend --nonegtrend --nodatavalues"
+      "commandLineArgs": "--pn=50000 --at X509Store --autoaccept --sp --sn=25 --fn=5 --nospikes --nodips --nopostrend --nonegtrend --nodatavalues --st=bool"
     }
   }
 }

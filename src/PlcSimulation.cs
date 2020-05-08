@@ -19,10 +19,10 @@ namespace OpcPlc
         public static bool GenerateData { get; set; } = true;
         public static int SlowNodes { get; set; } = 0;
         public static int SlowNodeRate { get; set; } = 10; // s.
-        public static string SlowNodeType { get; set; } = "int"; // int|intarray|double|boolean
+        public static NodeType SlowNodeType { get; set; } = NodeType.Int;
         public static int FastNodes { get; set; } = 0;
         public static int FastNodeRate { get; set; } = 1; // s.
-        public static string FastNodeType { get; set; } = "int"; // int|intarray|double|boolean
+        public static NodeType FastNodeType { get; set; } = NodeType.Int;
 
         /// <summary>
         /// Simulation data.

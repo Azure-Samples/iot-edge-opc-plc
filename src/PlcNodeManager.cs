@@ -101,20 +101,36 @@ namespace OpcPlc
 
         public void IncreaseSlowNodes(object state)
         {
-            IncreaseNodes(_slowNodes);
+            IncreaseNodes(_slowNodes, PlcSimulation.SlowNodeType);
         }
 
         public void IncreaseFastNodes(object state)
         {
-            IncreaseNodes(_fastNodes);
+            IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType);
         }
 
-        private void IncreaseNodes(BaseVariableState[] nodes)
+        private void IncreaseNodes(BaseVariableState[] nodes, NodeType type)
         {
             for (int i = 0; i < nodes.Length; i++)
             {
-                uint value = (uint)nodes[i].Value;
-                nodes[i].Value = ++value;
+                object value;
+
+                switch (type)
+                {
+                    case NodeType.Double:
+                        value = (double)nodes[i].Value + 0.1;
+                        break;
+                    case NodeType.Bool:
+                        value = !(bool)nodes[i].Value;
+                        break;
+                    //case NodeType.IntArray:
+                    //    break;
+                    default:
+                        value = (uint)nodes[i].Value + 1;
+                        break;
+                }
+
+                nodes[i].Value = value;
                 nodes[i].Timestamp = DateTime.Now;
                 nodes[i].ClearChangeMasks(SystemContext, false);
             }
@@ -201,7 +217,7 @@ namespace OpcPlc
                 {
                     FolderState dataFolder = CreateFolder(root, "Telemetry", "Telemetry");
 
-                    if(PlcSimulation.GenerateData) _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
+                    if (PlcSimulation.GenerateData) _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
                     if (PlcSimulation.GenerateData) _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value");
                     if (PlcSimulation.GenerateData) _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value");
                     if (PlcSimulation.GenerateData) _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value");
@@ -279,20 +295,35 @@ namespace OpcPlc
             }
         }
 
-        private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, int count, string type)
+        private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, int count, NodeType type)
         {
             var nodes = new BaseDataVariableState[count];
 
             for (int i = 0; i < count; i++)
             {
-                string id = (i + 1).ToString("D" + count.ToString().Length); // Padded int.
-                nodes[i] = CreateBaseVariable(dataFolder, $"{name}{id}", $"{name}{id}", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
+                var (dataType, valueRank) = GetNodeType(type);
 
-                // TODO: PlcSimulation.SlowNodeType, BuiltInType, ValueRanks.OneDimension
-                //PlcSimulation.SlowNodeRate
+                string id = (i + 1).ToString("D" + count.ToString().Length); // Padded int.
+                nodes[i] = CreateBaseVariable(dataFolder, $"{name}{id}", $"{name}{id}", dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)");
             }
 
             return nodes;
+        }
+
+        private static (NodeId dataType, int valueRank) GetNodeType(NodeType nodeType)
+        {
+            // TODO: Convert to switch expression in C# 8 (.NET Core 3.x, .NET Standard 2.1).
+            switch (nodeType)
+            {
+                case NodeType.Bool:
+                    return (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar);
+                case NodeType.Double:
+                    return (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar);
+                case NodeType.IntArray:
+                    return (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension);
+                default:
+                    return (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar);
+            }
         }
 
         /// <summary>
