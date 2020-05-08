@@ -111,28 +111,34 @@ namespace OpcPlc
 
         private void IncreaseNodes(BaseVariableState[] nodes, NodeType type)
         {
-            for (int i = 0; i < nodes.Length; i++)
+            for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
             {
                 object value;
 
                 switch (type)
                 {
                     case NodeType.Double:
-                        value = (double)nodes[i].Value + 0.1;
+                        value = (double)nodes[nodeIndex].Value + 0.1;
                         break;
                     case NodeType.Bool:
-                        value = !(bool)nodes[i].Value;
+                        value = !(bool)nodes[nodeIndex].Value;
                         break;
-                    //case NodeType.IntArray:
-                    //    break;
+                    case NodeType.IntArray:
+                        uint[] arrayValue = (uint[])nodes[nodeIndex].Value;
+                        for (int arrayIndex = 0; arrayIndex < arrayValue?.Length; arrayIndex++)
+                        {
+                            arrayValue[arrayIndex]++;
+                        }
+                        value = arrayValue;
+                        break;
                     default:
-                        value = (uint)nodes[i].Value + 1;
+                        value = (uint)nodes[nodeIndex].Value + 1;
                         break;
                 }
 
-                nodes[i].Value = value;
-                nodes[i].Timestamp = DateTime.Now;
-                nodes[i].ClearChangeMasks(SystemContext, false);
+                nodes[nodeIndex].Value = value;
+                nodes[nodeIndex].Timestamp = DateTime.Now;
+                nodes[nodeIndex].ClearChangeMasks(SystemContext, false);
             }
         }
 
@@ -301,28 +307,28 @@ namespace OpcPlc
 
             for (int i = 0; i < count; i++)
             {
-                var (dataType, valueRank) = GetNodeType(type);
+                var (dataType, valueRank, defaultValue) = GetNodeType(type);
 
                 string id = (i + 1).ToString("D" + count.ToString().Length); // Padded int.
-                nodes[i] = CreateBaseVariable(dataFolder, $"{name}{id}", $"{name}{id}", dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)");
+                nodes[i] = CreateBaseVariable(dataFolder, $"{name}{id}", $"{name}{id}", dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)", defaultValue);
             }
 
             return nodes;
         }
 
-        private static (NodeId dataType, int valueRank) GetNodeType(NodeType nodeType)
+        private static (NodeId dataType, int valueRank, object defaultValue) GetNodeType(NodeType nodeType)
         {
             // TODO: Convert to switch expression in C# 8 (.NET Core 3.x, .NET Standard 2.1).
             switch (nodeType)
             {
                 case NodeType.Bool:
-                    return (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar);
+                    return (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, null);
                 case NodeType.Double:
-                    return (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar);
+                    return (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, null);
                 case NodeType.IntArray:
-                    return (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension);
+                    return (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32]);
                 default:
-                    return (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar);
+                    return (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, null);
             }
         }
 
@@ -361,7 +367,7 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description)
+        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, object defaultValue = null)
         {
             BaseDataVariableState variable = new BaseDataVariableState(parent);
 
@@ -386,7 +392,7 @@ namespace OpcPlc
             variable.AccessLevel = accessLevel;
             variable.UserAccessLevel = accessLevel;
             variable.Historizing = false;
-            variable.Value = TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
+            variable.Value = defaultValue ?? TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
             variable.StatusCode = StatusCodes.Good;
             variable.Timestamp = DateTime.UtcNow;
             variable.Description = new LocalizedText(description);
