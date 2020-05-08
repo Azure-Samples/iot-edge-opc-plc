@@ -1,4 +1,5 @@
 
+using Opc.Ua;
 using System;
 using System.Threading;
 
@@ -16,6 +17,12 @@ namespace OpcPlc
         public static bool GeneratePosTrend { get; set; } = true;
         public static bool GenerateNegTrend { get; set; } = true;
         public static bool GenerateData { get; set; } = true;
+        public static int SlowNodes { get; set; } = 0;
+        public static int SlowNodeRate { get; set; } = 10; // s.
+        public static string SlowNodeType { get; set; } = "int"; // int|intarray|double|boolean
+        public static int FastNodes { get; set; } = 0;
+        public static int FastNodeRate { get; set; } = 1; // s.
+        public static string FastNodeType { get; set; } = "int"; // int|intarray|double|boolean
 
         /// <summary>
         /// Simulation data.
@@ -53,15 +60,33 @@ namespace OpcPlc
         /// </summary>
         public void Start()
         {
-            _spikeGenerator = new Timer(SpikeGenerator, null, 0, SimulationCycleLength);
-            _dipGenerator = new Timer(DipGenerator, null, 0, SimulationCycleLength);
-            _posTrendGenerator = new Timer(PosTrendGenerator, null, 0, SimulationCycleLength);
-            _negTrendGenerator = new Timer(NegTrendGenerator, null, 0, SimulationCycleLength);
+            if (GenerateSpikes) _spikeGenerator = new Timer(SpikeGenerator, null, 0, SimulationCycleLength);
+            if (GenerateDips) _dipGenerator = new Timer(DipGenerator, null, 0, SimulationCycleLength);
+            if (GeneratePosTrend) _posTrendGenerator = new Timer(PosTrendGenerator, null, 0, SimulationCycleLength);
+            if (GenerateNegTrend) _negTrendGenerator = new Timer(NegTrendGenerator, null, 0, SimulationCycleLength);
 
             if (GenerateData)
             {
                 _dataGenerator = new Timer(ValueGenerator, null, 0, SimulationCycleLength);
             }
+
+            _slowNodeGenerator = GetGenerators(o => _plcServer.PlcNodeManager.IncreaseSlowNodes(), SlowNodes, SlowNodeRate);
+            _fastNodeGenerator = GetGenerators(o => _plcServer.PlcNodeManager.IncreaseFastNodes(), FastNodes, FastNodeRate);
+        }
+
+        /// <summary>
+        /// Generator for slow/fast nodes.
+        /// </summary>
+        private Timer[] GetGenerators(TimerCallback callback, int count, int rate)
+        {
+            var generators = new Timer[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                generators[i] = new Timer(callback, null, 0, rate * 1000);
+            }
+
+            return generators;
         }
 
         /// <summary>
@@ -88,6 +113,22 @@ namespace OpcPlc
             if (_dataGenerator != null)
             {
                 _dataGenerator.Change(Timeout.Infinite, Timeout.Infinite);
+            }
+
+            for (int i = 0; i < SlowNodes; i++)
+            {
+                if (_slowNodeGenerator[i] != null)
+                {
+                    _slowNodeGenerator[i].Change(Timeout.Infinite, Timeout.Infinite);
+                }
+            }
+
+            for (int i = 0; i < FastNodes; i++)
+            {
+                if (_fastNodeGenerator[i] != null)
+                {
+                    _fastNodeGenerator[i].Change(Timeout.Infinite, Timeout.Infinite);
+                }
             }
         }
 
@@ -231,6 +272,15 @@ namespace OpcPlc
         }
 
         /// <summary>
+        /// Updates simulation values. Called at SlowNodeRate.
+        /// </summary>
+        private void SlowGenerator(object state)
+        {
+            // increase step up value
+            _plcServer.PlcNodeManager.IncreaseSlowNodes();
+        }
+
+        /// <summary>
         /// Method implementation to reset the trend data.
         /// </summary>
         public void ResetTrendData()
@@ -293,5 +343,8 @@ namespace OpcPlc
         private int _negTrendPhase;
         private uint _stepUp;
         private bool _stepUpStarted;
+
+        private Timer[] _slowNodeGenerator;
+        private Timer[] _fastNodeGenerator;
     }
 }

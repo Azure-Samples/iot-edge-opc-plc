@@ -99,6 +99,27 @@ namespace OpcPlc
             }
         }
 
+        public void IncreaseSlowNodes()
+        {
+            IncreaseNodes(_slowNodes);
+        }
+
+        public void IncreaseFastNodes()
+        {
+            IncreaseNodes(_fastNodes);
+        }
+
+        private void IncreaseNodes(BaseVariableState[] nodes)
+        {
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                uint value = (uint)nodes[i].Value;
+                nodes[i].Value = ++value;
+                nodes[i].Timestamp = DateTime.Now;
+                nodes[i].ClearChangeMasks(SystemContext, false);
+            }
+        }
+
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
         : base(server, configuration, Namespaces.OpcPlcApplications)
         {
@@ -155,7 +176,7 @@ namespace OpcPlc
         /// <remarks>
         /// The externalReferences is an out parameter that allows the node manager to link to nodes
         /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
-        /// should have a reference to the root folder node(s) exposed by this node manager.  
+        /// should have a reference to the root folder node(s) exposed by this node manager.
         /// </remarks>
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
         {
@@ -180,24 +201,35 @@ namespace OpcPlc
                 {
                     FolderState dataFolder = CreateFolder(root, "Telemetry", "Telemetry");
 
-                    _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
-                    _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value");
-                    _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value");
-                    _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value");
-                    _spikeData = CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes");
-                    _dipData = CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips");
-                    _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend");
-                    _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend");
+                    if(PlcSimulation.GenerateData) _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
+                    if (PlcSimulation.GenerateData) _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value");
+                    if (PlcSimulation.GenerateData) _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value");
+                    if (PlcSimulation.GenerateData) _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value");
+                    if (PlcSimulation.GenerateSpikes) _spikeData = CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes");
+                    if (PlcSimulation.GenerateDips) _dipData = CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips");
+                    if (PlcSimulation.GeneratePosTrend) _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend");
+                    if (PlcSimulation.GenerateNegTrend) _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend");
 
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods");
-                    MethodState resetTrendMethod = CreateMethod(methodsFolder, "ResetTrend", "ResetTrend", "Reset the trend values to their baseline value");
-                    SetResetTrendMethodProperties(ref resetTrendMethod);
-                    MethodState resetStepUpMethod = CreateMethod(methodsFolder, "ResetStepUp", "ResetStepUp", "Resets the StepUp counter to 0");
-                    SetResetStepUpMethodProperties(ref resetStepUpMethod);
-                    MethodState startStepUpMethod = CreateMethod(methodsFolder, "StartStepUp", "StartStepUp", "Starts the StepUp counter");
-                    SetStartStepUpMethodProperties(ref startStepUpMethod);
-                    MethodState stopStepUpMethod = CreateMethod(methodsFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter");
-                    SetStopStepUpMethodProperties(ref stopStepUpMethod);
+                    if (PlcSimulation.GeneratePosTrend || PlcSimulation.GenerateNegTrend)
+                    {
+                        MethodState resetTrendMethod = CreateMethod(methodsFolder, "ResetTrend", "ResetTrend", "Reset the trend values to their baseline value");
+                        SetResetTrendMethodProperties(ref resetTrendMethod);
+                    }
+
+                    if (PlcSimulation.GenerateData)
+                    {
+                        MethodState resetStepUpMethod = CreateMethod(methodsFolder, "ResetStepUp", "ResetStepUp", "Resets the StepUp counter to 0");
+                        SetResetStepUpMethodProperties(ref resetStepUpMethod);
+                        MethodState startStepUpMethod = CreateMethod(methodsFolder, "StartStepUp", "StartStepUp", "Starts the StepUp counter");
+                        SetStartStepUpMethodProperties(ref startStepUpMethod);
+                        MethodState stopStepUpMethod = CreateMethod(methodsFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter");
+                        SetStopStepUpMethodProperties(ref stopStepUpMethod);
+                    }
+
+                    // Process slow/fast nodes
+                    _slowNodes = GetNodes(dataFolder, "Slow", PlcSimulation.SlowNodes, PlcSimulation.SlowNodeType);
+                    _fastNodes = GetNodes(dataFolder, "Fast", PlcSimulation.FastNodes, PlcSimulation.FastNodeType);
 
                     // process user configurable nodes
                     if (!String.IsNullOrEmpty(_nodeFileName))
@@ -245,6 +277,22 @@ namespace OpcPlc
 
                 AddPredefinedNode(SystemContext, root);
             }
+        }
+
+        private BaseDataVariableState[] GetNodes(FolderState dataFolder, string name, int count, string type)
+        {
+            var nodes = new BaseDataVariableState[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                string id = (i + 1).ToString("D" + count.ToString().Length); // Padded int.
+                nodes[i] = CreateBaseVariable(dataFolder, $"{name}{id}", $"{name}{id}", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
+
+                // TODO: PlcSimulation.SlowNodeType, BuiltInType, ValueRanks.OneDimension
+                //PlcSimulation.SlowNodeRate
+            }
+
+            return nodes;
         }
 
         /// <summary>
@@ -613,6 +661,8 @@ namespace OpcPlc
         protected BaseDataVariableState _dipData = null;
         protected BaseDataVariableState _posTrendData = null;
         protected BaseDataVariableState _negTrendData = null;
+        protected BaseDataVariableState[] _slowNodes = null;
+        protected BaseDataVariableState[] _fastNodes = null;
 
         /// <summary>
         /// File name for user configurable nodes.

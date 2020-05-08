@@ -130,6 +130,11 @@ namespace OpcPlc
                 { "np|nopostrend", $"do not generate positive trend data\nDefault: {!GeneratePosTrend}", a => GeneratePosTrend = a == null },
                 { "nn|nonegtrend", $"do not generate negative trend data\nDefault: {!GenerateNegTrend}", a => GenerateNegTrend = a == null },
                 { "nv|nodatavalues", $"do not generate data values\nDefault: {!GenerateData}", a => GenerateData = a == null },
+                { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodes}", (int i) => SlowNodes = i },
+                { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (int i) => SlowNodeRate = i },
+                { "st|slowtype=", $"data type of slow nodes (int|intarray)\nDefault: {SlowNodeType}", a => SlowNodeType = a },
+                { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodes}", (int i) => FastNodes = i },
+                { "ft|fasttype=", $"data type of slow nodes (int|intarray)\nDefault: {FastNodeType}", a => FastNodeType = a },
 
                 // opc configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
@@ -327,7 +332,7 @@ namespace OpcPlc
 
             if (showPnJson)
             {
-                ShowPnJson();
+                await ShowPnJson();
             }
 
             // validate and parse extra arguments
@@ -358,10 +363,10 @@ namespace OpcPlc
         /// <summary>
         /// Show pn.json
         /// </summary>
-        private static void ShowPnJson()
+        private static async Task ShowPnJson()
         {
             var sb = new StringBuilder();
-            sb.Append("pn.json\n[\n");
+            sb.Append("\n[\n");
             sb.Append("  {\n");
             sb.Append("    \"EndpointUrl\": \"opc.tcp://<SERVER>:<PORT>/\",\n");
             sb.Append("    \"UseSecurity\": false,\n");
@@ -374,11 +379,23 @@ namespace OpcPlc
             if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomUnsignedInt32\" },\n");
             if (GenerateSpikes) sb.Append("      { \"Id\": \"ns=2;s=SpikeData\" },\n");
             if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=StepUp\" }\n");
+            for (int i = 0; i < SlowNodes; i++)
+            {
+                string id = (i + 1).ToString("D" + SlowNodes.ToString().Length); // Padded int.
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{id}\" }}\n");
+            }
+            for (int i = 0; i < FastNodes; i++)
+            {
+                string id = (i + 1).ToString("D" + SlowNodes.ToString().Length); // Padded int.
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{id}\" }}\n");
+            }
             sb.Append("    ]\n");
             sb.Append("  }\n");
             sb.Append("]");
 
-            Logger.Information(sb.ToString());
+            string pnJson = sb.Replace("\n", Environment.NewLine).ToString();
+            Logger.Information("pn.json" + pnJson);
+            await File.WriteAllTextAsync("pn.json", pnJson.Trim());
         }
 
         /// <summary>
