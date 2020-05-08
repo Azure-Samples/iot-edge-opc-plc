@@ -76,6 +76,10 @@ namespace OpcPlc
         /// </summary>
         public static string NodesFileName { get; set; }
 
+        /// <summary>
+        /// Show configuration file for OPC Publisher.
+        /// </summary>
+        public static bool ShowPublisherConfigJson { get; set; }
 
         /// <summary>
         /// Synchronous main method of the app.
@@ -91,7 +95,6 @@ namespace OpcPlc
         public static async Task MainAsync(string[] args)
         {
             bool shouldShowHelp = false;
-            bool showPnJson = false;
 
             // command line options
             var options = new Mono.Options.OptionSet {
@@ -298,7 +301,7 @@ namespace OpcPlc
 
                 // misc
                 { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
-                { "sp|showpnjson", "show pn.json for this configuration", h => showPnJson = h != null },
+                { "sp|showpnjson", "show OPC Publisher configuration file", h => ShowPublisherConfigJson = h != null },
             };
 
             List<string> extraArgs = new List<string>();
@@ -330,11 +333,6 @@ namespace OpcPlc
                 return;
             }
 
-            if (showPnJson)
-            {
-                await ShowPnJson();
-            }
-
             // validate and parse extra arguments
             if (extraArgs.Count > 0)
             {
@@ -363,12 +361,12 @@ namespace OpcPlc
         /// <summary>
         /// Show pn.json
         /// </summary>
-        private static async Task ShowPnJson()
+        private static async Task DumpPublisherConfigJson()
         {
             var sb = new StringBuilder();
             sb.Append("\n[\n");
             sb.Append("  {\n");
-            sb.Append("    \"EndpointUrl\": \"opc.tcp://<SERVER>:<PORT>/\",\n");
+            sb.Append($"    \"EndpointUrl\": \"opc.tcp://{Hostname}:{ServerPort}{ServerPath}\",\n");
             sb.Append("    \"UseSecurity\": false,\n");
             sb.Append("    \"OpcNodes\": [\n");
             if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=AlternatingBoolean\" },\n");
@@ -443,6 +441,12 @@ namespace OpcPlc
 
             PlcSimulation = new PlcSimulation(PlcServer);
             PlcSimulation.Start();
+
+            if (ShowPublisherConfigJson)
+            {
+                await DumpPublisherConfigJson();
+            }
+
             Logger.Information("PLC Simulation started. Press CTRL-C to exit.");
 
             // wait for Ctrl-C

@@ -99,12 +99,12 @@ namespace OpcPlc
             }
         }
 
-        public void IncreaseSlowNodes()
+        public void IncreaseSlowNodes(object state)
         {
             IncreaseNodes(_slowNodes);
         }
 
-        public void IncreaseFastNodes()
+        public void IncreaseFastNodes(object state)
         {
             IncreaseNodes(_fastNodes);
         }
@@ -228,8 +228,8 @@ namespace OpcPlc
                     }
 
                     // Process slow/fast nodes
-                    _slowNodes = GetNodes(dataFolder, "Slow", PlcSimulation.SlowNodes, PlcSimulation.SlowNodeType);
-                    _fastNodes = GetNodes(dataFolder, "Fast", PlcSimulation.FastNodes, PlcSimulation.FastNodeType);
+                    _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodes, PlcSimulation.SlowNodeType);
+                    _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodes, PlcSimulation.FastNodeType);
 
                     // process user configurable nodes
                     if (!String.IsNullOrEmpty(_nodeFileName))
@@ -279,7 +279,7 @@ namespace OpcPlc
             }
         }
 
-        private BaseDataVariableState[] GetNodes(FolderState dataFolder, string name, int count, string type)
+        private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, int count, string type)
         {
             var nodes = new BaseDataVariableState[count];
 

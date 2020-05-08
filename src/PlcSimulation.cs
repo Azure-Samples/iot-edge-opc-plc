@@ -70,23 +70,8 @@ namespace OpcPlc
                 _dataGenerator = new Timer(ValueGenerator, null, 0, SimulationCycleLength);
             }
 
-            _slowNodeGenerator = GetGenerators(o => _plcServer.PlcNodeManager.IncreaseSlowNodes(), SlowNodes, SlowNodeRate);
-            _fastNodeGenerator = GetGenerators(o => _plcServer.PlcNodeManager.IncreaseFastNodes(), FastNodes, FastNodeRate);
-        }
-
-        /// <summary>
-        /// Generator for slow/fast nodes.
-        /// </summary>
-        private Timer[] GetGenerators(TimerCallback callback, int count, int rate)
-        {
-            var generators = new Timer[count];
-
-            for (int i = 0; i < count; i++)
-            {
-                generators[i] = new Timer(callback, null, 0, rate * 1000);
-            }
-
-            return generators;
+            _slowNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseSlowNodes, null, 0, SlowNodeRate * 1000);
+            _fastNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseFastNodes, null, 0, FastNodeRate * 1000);
         }
 
         /// <summary>
@@ -114,21 +99,13 @@ namespace OpcPlc
             {
                 _dataGenerator.Change(Timeout.Infinite, Timeout.Infinite);
             }
-
-            for (int i = 0; i < SlowNodes; i++)
+            if (_slowNodeGenerator != null)
             {
-                if (_slowNodeGenerator[i] != null)
-                {
-                    _slowNodeGenerator[i].Change(Timeout.Infinite, Timeout.Infinite);
-                }
+                _slowNodeGenerator.Change(Timeout.Infinite, Timeout.Infinite);
             }
-
-            for (int i = 0; i < FastNodes; i++)
+            if (_fastNodeGenerator != null)
             {
-                if (_fastNodeGenerator[i] != null)
-                {
-                    _fastNodeGenerator[i].Change(Timeout.Infinite, Timeout.Infinite);
-                }
+                _fastNodeGenerator.Change(Timeout.Infinite, Timeout.Infinite);
             }
         }
 
@@ -272,15 +249,6 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Updates simulation values. Called at SlowNodeRate.
-        /// </summary>
-        private void SlowGenerator(object state)
-        {
-            // increase step up value
-            _plcServer.PlcNodeManager.IncreaseSlowNodes();
-        }
-
-        /// <summary>
         /// Method implementation to reset the trend data.
         /// </summary>
         public void ResetTrendData()
@@ -344,7 +312,7 @@ namespace OpcPlc
         private uint _stepUp;
         private bool _stepUpStarted;
 
-        private Timer[] _slowNodeGenerator;
-        private Timer[] _fastNodeGenerator;
+        private Timer _slowNodeGenerator;
+        private Timer _fastNodeGenerator;
     }
 }
