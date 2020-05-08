@@ -81,6 +81,14 @@ namespace OpcPlc
         /// </summary>
         public static bool ShowPublisherConfigJson { get; set; }
 
+        public enum NodeType
+        {
+            Int,
+            Double,
+            Boolean,
+            IntArray,
+        }
+
         /// <summary>
         /// Synchronous main method of the app.
         /// </summary>
@@ -359,16 +367,18 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Show pn.json
+        /// Show and save pn.json
         /// </summary>
         private static async Task DumpPublisherConfigJson()
         {
             var sb = new StringBuilder();
+
             sb.Append("\n[\n");
             sb.Append("  {\n");
             sb.Append($"    \"EndpointUrl\": \"opc.tcp://{Hostname}:{ServerPort}{ServerPath}\",\n");
             sb.Append("    \"UseSecurity\": false,\n");
             sb.Append("    \"OpcNodes\": [\n");
+
             if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=AlternatingBoolean\" },\n");
             if (GenerateDips) sb.Append("      { \"Id\": \"ns=2;s=DipData\" },\n");
             if (GenerateNegTrend) sb.Append("      { \"Id\": \"ns=2;s=NegativeTrendData\" },\n");
@@ -377,29 +387,52 @@ namespace OpcPlc
             if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomUnsignedInt32\" },\n");
             if (GenerateSpikes) sb.Append("      { \"Id\": \"ns=2;s=SpikeData\" },\n");
             if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=StepUp\" }\n");
+
+            NodeType slowNodeType = ParseNodeType(SlowNodeType);
             for (int i = 0; i < SlowNodes; i++)
             {
                 string id = (i + 1).ToString("D" + SlowNodes.ToString().Length); // Padded int.
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{id}\" }}\n");
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{slowNodeType}{id}\" }}\n");
             }
+
+            NodeType fastNodeType = ParseNodeType(FastNodeType);
             for (int i = 0; i < FastNodes; i++)
             {
-                string id = (i + 1).ToString("D" + SlowNodes.ToString().Length); // Padded int.
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{id}\" }}\n");
+                string id = (i + 1).ToString("D" + FastNodes.ToString().Length); // Padded int.
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{fastNodeType}{id}\" }}\n");
             }
+
             sb.Append("    ]\n");
             sb.Append("  }\n");
             sb.Append("]");
 
             string pnJson = sb.Replace("\n", Environment.NewLine).ToString();
             Logger.Information("pn.json" + pnJson);
+
             await File.WriteAllTextAsync("pn.json", pnJson.Trim());
+        }
+
+        /// <summary>
+        /// Parse node data type.
+        /// </summary>
+        public static NodeType ParseNodeType(string type)
+        {
+            switch (type.ToLowerInvariant())
+            {
+                case "boolean":
+                    return NodeType.Boolean;
+                case "double":
+                    return NodeType.Double;
+                case "intarray":
+                    return NodeType.IntArray;
+                default:
+                    return NodeType.Int;
+            }
         }
 
         /// <summary>
         /// Run the server.
         /// </summary>
-        /// <returns></returns>
         private static async Task ConsoleServerAsync(string[] args)
         {
             var quitEvent = new ManualResetEvent(false);
