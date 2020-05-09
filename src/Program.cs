@@ -411,21 +411,17 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Parse node data type.
+        /// Parse node data type, default to Int.
         /// </summary>
         private static NodeType ParseNodeType(string type)
         {
-            switch (type.ToLowerInvariant())
+            if(Enum.TryParse(type, ignoreCase: true, out NodeType nodeType))
             {
-                case "bool":
-                case "boolean":
-                    return NodeType.Bool;
-                case "double":
-                    return NodeType.Double;
-                case "intarray":
-                    return NodeType.IntArray;
-                default:
-                    return NodeType.Int;
+                return nodeType;
+            }
+            else
+            {
+                return NodeType.Int;
             }
         }
 
