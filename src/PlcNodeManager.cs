@@ -131,7 +131,7 @@ namespace OpcPlc
                         }
                         value = arrayValue;
                         break;
-                    default:
+                    default: // Int.
                         value = (uint)nodes[nodeIndex].Value + 1;
                         break;
                 }
