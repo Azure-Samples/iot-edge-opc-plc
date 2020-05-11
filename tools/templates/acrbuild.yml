@@ -16,7 +16,7 @@ jobs:
     inputs:
 #      targetType: filePath
 #      filePath: ./tools/scripts/acr-matrix.ps1
-      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
+      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'IOT_GERMANY')}}
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-matrix.ps1 $(dockerFolder) -Registry=$env:BUILD_REGISTRY -Subscription=$env:AZURE_SUBSCRIPTION
 - job: imagesall
@@ -45,14 +45,14 @@ jobs:
     name: acrbuildr
     displayName: Build Release Images
     inputs:
-      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
+      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'IOT_GERMANY')}}
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -Registry= -Registry=$env:BUILD_REGISTRY -Subscription=$env:AZURE_SUBSCRIPTION
   - task: AzureCLI@1
     name: acrbuildd
     displayName: Build Debug Images
     inputs:
-      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
+      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'IOT_GERMANY')}}
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -Registry=$env:BUILD_REGISTRY -Subscription=$env:AZURE_SUBSCRIPTION -debug
       
