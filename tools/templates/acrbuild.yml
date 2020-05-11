@@ -13,8 +13,11 @@ jobs:
     name: acrmatrix
     displayName: Prepare Builds
     inputs:
-      targetType: filePath
-      filePath: ./tools/scripts/acr-matrix.ps1
+#      targetType: filePath
+#      filePath: ./tools/scripts/acr-matrix.ps1
+      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
+      scriptLocation: inlineScript
+      inlineScript: powershell ./tools/scripts/acr-matrix.ps1 $(dockerFolder) -Registry="$env:BUILD_REGISTRY" -Subscription="${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}"
 - job: imagesall
   displayName: Build Images for
   pool:
@@ -43,7 +46,7 @@ jobs:
     inputs:
       azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
       scriptLocation: inlineScript
-      inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) Registry="$env:BUILD_REGISTRY" Subscription="${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}"
+      inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -Registry="$env:BUILD_REGISTRY" -Subscription="${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}"
   - task: AzureCLI@1
     name: acrbuildd
     displayName: Build Debug Images
