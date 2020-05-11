@@ -90,7 +90,7 @@ Here a sample for the node configuration file:
 
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR, set the following pipeline variables:
 
-- **AZURE_SÚBSCRIPTION** - should be set to the name of your subsription. Ensure you grant Azure DevOps access to it.
+- **AZURE_SUBSCRIPTION** - should be set to the name of your subsription. Ensure you grant Azure DevOps access to it.
 - **BUILD_REGISTRY** - the name of your Azure Container Registry resource in the subscription.
 
 ## Notes
