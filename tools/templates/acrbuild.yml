@@ -16,7 +16,7 @@ jobs:
     inputs:
 #      targetType: filePath
 #      filePath: ./tools/scripts/acr-matrix.ps1
-      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
+#      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-matrix.ps1 $(dockerFolder) -Registry="$env:BUILD_REGISTRY" -Subscription="${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}"
 - job: imagesall
