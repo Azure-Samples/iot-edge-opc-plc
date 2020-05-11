@@ -54,5 +54,5 @@ jobs:
     inputs:
 #      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
       scriptLocation: inlineScript
-      inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -debug  -Registry="$env:BUILD_REGISTRY" -Subscription="${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}"
+      inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -Registry="$env:BUILD_REGISTRY" -Subscription="${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}" -debug
       
