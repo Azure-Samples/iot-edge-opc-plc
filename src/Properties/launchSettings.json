@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "opcplc": {
+      "commandName": "Project",
+      "commandLineArgs": "--at X509Store --ll debug --aa --daa --ns --nd --np --nn --ct 1 --sc 1"
+    }
+  }
+}
