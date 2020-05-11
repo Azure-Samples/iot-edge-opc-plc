@@ -9,7 +9,8 @@ jobs:
   variables:
     skipComponentGovernanceDetection: true
   steps:
-  - task: PowerShell@2
+  - task: AzureCLI@1
+#  - task: PowerShell@2
     name: acrmatrix
     displayName: Prepare Builds
     inputs:
