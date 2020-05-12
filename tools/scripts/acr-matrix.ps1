@@ -35,6 +35,7 @@ Param(
 )
 
         Write-Host "parameters in matrix BuildRoot: $BuildRoot; Debug: $Debug; Build: $Build; Fast: $Fast Registry: $Registry, Subscription: $Subscription"
+        Write-Host "parameters1 in matrix Registry: $env:BUILD_REGISTRY, Subscription: $env:AZURE_SUBSCRIPTION"
 
 if ([string]::IsNullOrEmpty($BuildRoot)) {
     $BuildRoot = & (Join-Path $PSScriptRoot "get-root.ps1") -fileName "*.sln"
