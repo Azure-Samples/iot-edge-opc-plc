@@ -9,17 +9,17 @@ jobs:
   variables:
     skipComponentGovernanceDetection: true
   steps:
-#  - task: AzureCLI@1
-  - task: PowerShell@2
+  - task: AzureCLI@1
+#  - task: PowerShell@2
     name: acrmatrix
     displayName: Prepare Builds
     inputs:
-      targetType: filePath
-      filePath: ./tools/scripts/acr-matrix.ps1
-#      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
-#      scriptLocation: inlineScript
-#      inlineScript: powershell ./tools/scripts/acr-matrix.ps1 $(dockerFolder) -Registry=$env:BUILD_REGISTRY -Subscription=$env:AZURE_SUBSCRIPTION
-      arguments: -Registry=$[variable.BUILD_REGISTRY] -Subscription=$[variable.AZURE_SUBSCRIPTION] -Build
+#      targetType: filePath
+#      filePath: ./tools/scripts/acr-matrix.ps1
+      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
+      scriptLocation: inlineScript
+      inlineScript: powershell ./tools/scripts/acr-matrix.ps1 $(dockerFolder) -Registry=$env:BUILD_REGISTRY -Subscription=$env:AZURE_SUBSCRIPTION -Build
+#      arguments: -Registry=$[variable.BUILD_REGISTRY] -Subscription=$[variable.AZURE_SUBSCRIPTION] -Build
 - job: imagesall
   displayName: Build Images for
   pool:
