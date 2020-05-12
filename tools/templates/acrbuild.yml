@@ -9,17 +9,17 @@ jobs:
   variables:
     skipComponentGovernanceDetection: true
   steps:
-  - task: AzureCLI@1
-#  - task: PowerShell@2
+#  - task: AzureCLI@1
+  - task: PowerShell@2
     name: acrmatrix
     displayName: Prepare Builds
     inputs: 
-#      targetType: filePath
-#      filePath: ./tools/scripts/acr-matrix.ps1
-      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
-      scriptLocation: inlineScript
-      inlineScript: powershell ./tools/scripts/acr-matrix.ps1 -Registry=${{coalesce(variables.BUILD_REGISTRY, 'johanngdevacr')}} -Subscription=${{coalesce(variables.AZURE_SUBSCRIPTION, 'IOT-OPC-WALLS')}} -Build
-#      arguments: -Registry=$[variables.BUILD_REGISTRY] -Subscription=$[variables.AZURE_SUBSCRIPTION] -Build
+      targetType: filePath
+      filePath: ./tools/scripts/acr-matrix.ps1
+#      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
+#      scriptLocation: inlineScript
+#      inlineScript: powershell ./tools/scripts/acr-matrix.ps1 -Registry=${{coalesce(variables.BUILD_REGISTRY, 'johanngdevacr')}} -Subscription=${{coalesce(variables.AZURE_SUBSCRIPTION, 'IOT-OPC-WALLS')}} -Build
+      arguments: -Registry=$[variables.BUILD_REGISTRY] -Subscription=$[variables.AZURE_SUBSCRIPTION] -Build
 - job: imagesall
   displayName: Build Images for
   pool:

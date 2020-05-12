@@ -34,6 +34,8 @@ Param(
     [switch] $Debug
 )
 
+        Write-Host "parameters in matrix BuildRoot: $BuildRoot; Debug: $Debug; Build: $Build; Fast: $Fast Registry: $Registry, Subscription: $Subscription"
+
 if ([string]::IsNullOrEmpty($BuildRoot)) {
     $BuildRoot = & (Join-Path $PSScriptRoot "get-root.ps1") -fileName "*.sln"
 }
