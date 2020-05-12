@@ -19,7 +19,7 @@ jobs:
 #      azureSubscription: ${{coalesce(variables.AZURE_SUBSCRIPTION, 'azureiiot')}}
 #      scriptLocation: inlineScript
 #      inlineScript: powershell ./tools/scripts/acr-matrix.ps1 $(dockerFolder) -Registry=$env:BUILD_REGISTRY -Subscription=$env:AZURE_SUBSCRIPTION
-      arguments: -Registry=$[variable.BUILD_REGISTRY] -Subscription=$[variable.AZURE_SUBSCRIPTION]
+      arguments: -Registry=$[variable.BUILD_REGISTRY] -Subscription=$[variable.AZURE_SUBSCRIPTION] -Build
 - job: imagesall
   displayName: Build Images for
   pool:
