@@ -72,16 +72,10 @@ Get-ChildItem $BuildRoot -Recurse -Include "container.json" `
     }
 }
 
-if ($Build.IsPresent) {
+if ($Build) {
     $acrMatrix.Values | ForEach-Object {
-        if ($Debug.IsPresent) {
-            & (Join-Path $PSScriptRoot "acr-build.ps1") -Path $_.dockerFolder `
-           -Registry $Registry -Subscription $Subscription -Debug
-        }
-        else {
-            & (Join-Path $PSScriptRoot "acr-build.ps1") -Path $_.dockerFolder `
-           -Registry $Registry -Subscription $Subscription
-        }
+        & (Join-Path $PSScriptRoot "acr-build.ps1") -Path $_.dockerFolder `
+            -Debug:$Debug -Registry $Registry -Subscription $Subscription
     }
 }
 else {

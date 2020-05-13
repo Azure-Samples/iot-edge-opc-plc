@@ -37,5 +37,21 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
     <PackageReference Include="Nerdbank.GitVersioning" Version="3.1.74" PrivateAssets="All"/>
   </ItemGroup>
-
+  <ItemGroup Condition="'$(FX_COP)' != ''">
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.3" />
+  </ItemGroup>
+  <PropertyGroup>
+    <IncludeOpenAPIAnalyzers>true</IncludeOpenAPIAnalyzers>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(FX_COP)' != ''">
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PrereleaseSuffix>$(PrereleaseVersionNoLeadingHyphen)-$(GitCommitIdShort)</PrereleaseSuffix>
+    <PrereleaseVersion Condition="'$(BUILD_SOURCEVERSION)' != ''">[$(NuGetPackageVersion)]</PrereleaseVersion>
+    <PrereleaseVersion Condition="'$(BUILD_SOURCEVERSION)' == ''">$(VersionPrefix)-$(PrereleaseVersion)*</PrereleaseVersion>
+    <PrereleaseVersion Condition="'$(PublicRelease)' == 'True'">$(VersionPrefix)-*</PrereleaseVersion>
+    <ReleaseVersion Condition="'$(PublicRelease)' == 'True'">$(VersionPrefix)</ReleaseVersion>
+    <ReleaseVersion Condition="'$(PublicRelease)' == 'False'">$(NuGetPackageVersion)</ReleaseVersion>
+  </PropertyGroup>
 </Project>

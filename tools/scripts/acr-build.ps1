@@ -27,7 +27,7 @@ Param(
     [switch] $Debug
 )
 
-if ($Debug.IsPresent) {
+if ($Debug) {
     $DebugPreference = "Continue"
 }
 
@@ -43,7 +43,7 @@ $Path = Resolve-Path -LiteralPath $Path
 
 # Try to build all code and create dockerfile definitions to build using docker.
 $definitions = & (Join-Path $PSScriptRoot "docker-source.ps1") `
-    -Path $Path -Debug $Debug
+    -Path $Path -Debug:$Debug
 if ($definitions.Count -eq 0) {
     Write-Host "Nothing to build."
     return
@@ -102,11 +102,9 @@ if (![string]::IsNullOrEmpty($Registry) -and ($Registry -ne "industrialiot")) {
 # get and set build information from gitversion, git or version content
 $latestTag = "latest"
 $sourceTag = $env:Version_Prefix
-Write-Debug "Source tag: $sourceTag"
 if ([string]::IsNullOrEmpty($sourceTag)) {
     try {
         $version = & (Join-Path $PSScriptRoot "get-version.ps1")
-        Write-Debug "version $version"
         $sourceTag = $version.Prefix
     }
     catch {
@@ -141,7 +139,7 @@ else {
 if (![string]::IsNullOrEmpty($Subscription)) {
     Write-Debug "Setting subscription to $($Subscription)"
     $argumentList = @("account", "set", "--subscription", $Subscription)
-    & "az" $argumentList 2>&1 | Out-Null
+    & "az" $argumentList 2>&1 | ForEach-Object { Write-Host "$_" }
     if ($LastExitCode -ne 0) {
         throw "az $($argumentList) failed with $($LastExitCode)."
     }
@@ -164,9 +162,7 @@ if ([string]::IsNullOrEmpty($Registry)) {
 
 # get registry information
 $argumentList = @("acr", "show", "--name", $Registry)
-& "az" $argumentList 2>&1 | ForEach-Object { "$_" }
-$RegistryInfoRaw = (& "az" $argumentList 2>&1 | ForEach-Object { "$_" })
-$RegistryInfo = $RegistryInfoRaw | ConvertFrom-Json
+$RegistryInfo = (& "az" $argumentList 2>&1 | ForEach-Object { "$_" }) | ConvertFrom-Json
 if ($LastExitCode -ne 0) {
     throw "az $($argumentList) failed with $($LastExitCode)."
 }
@@ -179,8 +175,7 @@ if ($LastExitCode -ne 0) {
     throw "az $($argumentList) failed with $($LastExitCode)."
 }
 $argumentList = @("acr", "credential", "show", "--name", $Registry)
-$credentialsRaw = (& "az" $argumentList 2>&1 | ForEach-Object { "$_" })
-$credentials = $credentialsRaw | ConvertFrom-Json
+$credentials = (& "az" $argumentList 2>&1 | ForEach-Object { "$_" }) | ConvertFrom-Json
 if ($LastExitCode -ne 0) {
     throw "az $($argumentList) failed with $($LastExitCode)."
 }
@@ -193,6 +188,7 @@ $buildRoot = & $getroot -startDir $Path -fileName ".dockerignore"
 # Get meta data
 $metadata = Get-Content -Raw -Path (join-path $Path "container.json") `
 | ConvertFrom-Json
+
 
 # Set image name and namespace in acr based on branch and source tag
 $imageName = $metadata.name
