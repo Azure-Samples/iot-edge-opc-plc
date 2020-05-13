@@ -10,7 +10,12 @@
 try {
     # Try install tool
     Write-Host "install nbgv"
-    & dotnet @("tool", "install", "-g", "nbgv") 2>&1 | Out-Null
+    try {
+        & dotnet @("tool", "install", "-g", "nbgv") 2>&1 | Out-Null    
+    }
+    catch {
+        Write-Error "Cannot install nbgv. Already installed?"
+    }
     Write-Host "install nbgv done"
 
     $props = (& nbgv  @("get-version", "-f", "json")) | ConvertFrom-Json
