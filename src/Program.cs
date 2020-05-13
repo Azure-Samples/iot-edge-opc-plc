@@ -379,13 +379,17 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Get IP address of first interface
+        /// Get IP address of first interface, otherwise host name.
         /// </summary>
         private static string GetIpAddress()
         {
+            string ipV4 = Dns.GetHostName();
+
             var hostEntry = Dns.GetHostEntry(Dns.GetHostName());
-            //string ipV6 = addlist.AddressList[0].ToString();
-            string ipV4 = hostEntry.AddressList[1].ToString();
+            if (hostEntry.AddressList.Length > 0)
+            {
+                ipV4 = hostEntry.AddressList[0].ToString();
+            }
 
             return ipV4;
         }
