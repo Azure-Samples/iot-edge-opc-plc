@@ -155,6 +155,7 @@ namespace OpcPlc
                 { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (int i) => SlowNodeRate = i },
                 { "st|slowtype=", $"data type of slow nodes (Int|Double|Bool|IntArray)\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
                 { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodes}", (int i) => FastNodes = i },
+                { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (int i) => FastNodeRate = i },
                 { "ft|fasttype=", $"data type of slow nodes (Int|Double|Bool|IntArray)\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
 
                 // opc configuration
