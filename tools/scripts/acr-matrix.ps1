@@ -38,6 +38,12 @@ if ($Debug) {
     $DebugPreference = "Continue"
 }
 
+Write-Host "BuildRoot $BuildRoot"
+Write-Host "Registry $Registry"
+Write-Host "Subscription $Subscription"
+Write-Host "Build $Build"
+Write-Host "Fast $Fast"
+Write-Host "Debug $Debug"
 if ([string]::IsNullOrEmpty($BuildRoot)) {
     $BuildRoot = & (Join-Path $PSScriptRoot "get-root.ps1") -fileName "*.sln"
 }
