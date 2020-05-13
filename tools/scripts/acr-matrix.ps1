@@ -34,8 +34,9 @@ Param(
     [switch] $Debug
 )
 
-        Write-Host "parameters in matrix BuildRoot: $BuildRoot; Debug: $Debug; Build: $Build; Fast: $Fast Registry: $Registry, Subscription: $Subscription"
-        Write-Host "parameters1 in matrix Registry: $env:BUILD_REGISTRY, Subscription: $env:AZURE_SUBSCRIPTION"
+if ($Debug) {
+    $DebugPreference = "Continue"
+}
 
 if ([string]::IsNullOrEmpty($BuildRoot)) {
     $BuildRoot = & (Join-Path $PSScriptRoot "get-root.ps1") -fileName "*.sln"
@@ -73,9 +74,14 @@ Get-ChildItem $BuildRoot -Recurse -Include "container.json" `
 
 if ($Build.IsPresent) {
     $acrMatrix.Values | ForEach-Object {
-        Write-Host "build in matrix dockerFolder: $_.dockerFolder; Debug: $Debug; Build: $Build.IsPresent; Registry: $env:Registry, Subscription: $env:Subscription"
-        & (Join-Path $PSScriptRoot "acr-build.ps1") -Path $_.dockerFolder `
-            -Debug:$Debug -Registry $env:Registry -Subscription $env:Subscription
+        if ($Debug.IsPresent) {
+            & (Join-Path $PSScriptRoot "acr-build.ps1") -Path $_.dockerFolder `
+           -Registry $Registry -Subscription $Subscription -Debug
+        }
+        else {
+            & (Join-Path $PSScriptRoot "acr-build.ps1") -Path $_.dockerFolder `
+           -Registry $Registry -Subscription $Subscription
+        }
     }
 }
 else {
