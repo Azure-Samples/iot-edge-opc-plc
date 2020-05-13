@@ -1,8 +1,8 @@
 stages:
-- stage: build
-  displayName: 'Build and Test Code'
-  jobs:
-  - template: tools/templates/ci.yml
+#- stage: build
+#  displayName: 'Build and Test Code'
+#  jobs:
+#  - template: tools/templates/ci.yml
 - stage: images
   displayName: 'Build Images'
   dependsOn:

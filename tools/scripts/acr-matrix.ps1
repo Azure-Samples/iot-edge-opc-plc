@@ -73,9 +73,9 @@ Get-ChildItem $BuildRoot -Recurse -Include "container.json" `
 
 if ($Build.IsPresent) {
     $acrMatrix.Values | ForEach-Object {
-        Write-Host "build in matrix dockerFolder: $_.Values.dockerFolder; Debug: $Debug; Build: $Build.IsPresent; Registry: $env.Registry, Subscription: $env.Subscription"
-        & (Join-Path $PSScriptRoot "acr-build.ps1") -Path $_.Values.dockerFolder `
-            -Debug:$Debug -Registry $env.Registry -Subscription $env.Subscription
+        Write-Host "build in matrix dockerFolder: $_.dockerFolder; Debug: $Debug; Build: $Build.IsPresent; Registry: $env:Registry, Subscription: $env:Subscription"
+        & (Join-Path $PSScriptRoot "acr-build.ps1") -Path $_.dockerFolder `
+            -Debug:$Debug -Registry $env:Registry -Subscription $env:Subscription
     }
 }
 else {
