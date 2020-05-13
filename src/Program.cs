@@ -3,21 +3,22 @@ using Mono.Options;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Opc.Ua;
+using Serilog;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using static OpcPlc.OpcApplicationConfiguration;
+using static OpcPlc.PlcSimulation;
 
 namespace OpcPlc
 {
-    using Opc.Ua;
-    using Serilog;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.IO;
-    using System.Linq;
-    using System.Net.Sockets;
-    using System.Reflection;
-    using System.Text;
-    using static OpcApplicationConfiguration;
-    using static PlcSimulation;
-
     public class Program
     {
         /// <summary>
@@ -81,6 +82,8 @@ namespace OpcPlc
         /// </summary>
         public static bool ShowPublisherConfigJson { get; set; }
 
+        public static string PnJson = "pn.json";
+
         public enum NodeType
         {
             Int,
@@ -94,7 +97,14 @@ namespace OpcPlc
         /// </summary>
         public static void Main(string[] args)
         {
-            MainAsync(args).Wait();
+            using (var host = BuildWebHost(args))
+            {
+                // Start Web server for pn.json.
+                host.Start();
+
+                // Start OPC UA server
+                MainAsync(args).Wait();
+            }
         }
 
         /// <summary>
@@ -405,9 +415,9 @@ namespace OpcPlc
             sb.Append("]");
 
             string pnJson = sb.Replace("\n", Environment.NewLine).ToString();
-            Logger.Information("pn.json" + pnJson);
+            Logger.Information(PnJson + pnJson);
 
-            await File.WriteAllTextAsync("pn.json", pnJson.Trim());
+            await File.WriteAllTextAsync(PnJson, pnJson.Trim());
         }
 
         /// <summary>
@@ -658,6 +668,27 @@ namespace OpcPlc
                 }
             }
             return fileNames;
+        }
+
+        /// <summary>
+        /// Configure web server.
+        /// </summary>
+        public static IWebHost BuildWebHost(string[] args)
+        {
+            string exePath = Process.GetCurrentProcess().MainModule.FileName;
+            string directoryPath = Path.GetDirectoryName(exePath);
+
+            var config = new ConfigurationBuilder()
+               .AddJsonFile("hosting.json", optional: false)
+               .Build();
+
+            var host = WebHost.CreateDefaultBuilder(args)
+                .UseConfiguration(config)
+                .UseContentRoot(directoryPath) // Avoid System.InvalidOperationException.
+                .UseStartup<Startup>()
+                .Build();
+
+            return host;
         }
 
         private static string _logFileName = $"{System.Net.Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
