@@ -16,6 +16,7 @@ using System.Reflection;
 using System.Text;
 using static OpcPlc.OpcApplicationConfiguration;
 using static OpcPlc.PlcSimulation;
+using System.Net;
 
 namespace OpcPlc
 {
@@ -378,6 +379,18 @@ namespace OpcPlc
         }
 
         /// <summary>
+        /// Get IP address of first interface
+        /// </summary>
+        private static string GetIpAddress()
+        {
+            var hostEntry = Dns.GetHostEntry(Dns.GetHostName());
+            //string ipV6 = addlist.AddressList[0].ToString();
+            string ipV4 = hostEntry.AddressList[1].ToString();
+
+            return ipV4;
+        }
+
+        /// <summary>
         /// Show and save pn.json
         /// </summary>
         private static async Task DumpPublisherConfigJson()
@@ -386,7 +399,7 @@ namespace OpcPlc
 
             sb.Append("\n[\n");
             sb.Append("  {\n");
-            sb.Append($"    \"EndpointUrl\": \"opc.tcp://{Hostname}:{ServerPort}{ServerPath}\",\n");
+            sb.Append($"    \"EndpointUrl\": \"opc.tcp://{GetIpAddress()}:{ServerPort}{ServerPath}\",\n");
             sb.Append("    \"UseSecurity\": false,\n");
             sb.Append("    \"OpcNodes\": [\n");
 
@@ -692,7 +705,7 @@ namespace OpcPlc
             return host;
         }
 
-        private static string _logFileName = $"{System.Net.Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
+        private static string _logFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
         private static string _logLevel = "info";
         private static TimeSpan _logFileFlushTimeSpanSec = TimeSpan.FromSeconds(30);
     }
