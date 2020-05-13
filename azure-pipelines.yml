@@ -5,7 +5,7 @@ stages:
 #  - template: tools/templates/ci.yml
 - stage: images
   displayName: 'Build Images'
-  dependsOn:
-  - build
+#  dependsOn:
+#  - build
   jobs:
   - template: tools/templates/acrbuild.yml
