@@ -1,10 +1,10 @@
 parameters:
 - name: azureServiceConnection
   type: string
-  default: iiot
+  default: azureiiot
 - name: azureContainerRegistry
   type: string
-  default: johanngdevacr
+  default: industrialiot
 
 stages:
 #- stage: build
