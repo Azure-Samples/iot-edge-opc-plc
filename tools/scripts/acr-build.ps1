@@ -31,6 +31,11 @@ if ($Debug) {
     $DebugPreference = "Continue"
 }
 
+# use registry from environment if not passed in
+if ((![string]::IsNullOrEmpty($Registry) -and ![string]::IsNullOrEmpty($env:azureContainerRegistry)) {
+    $Registry = $env:azureContainerRegistry
+}
+
 # Check path argument and resolve to full existing path
 if ([string]::IsNullOrEmpty($Path)) {
     throw "No docker folder specified."
@@ -147,17 +152,15 @@ if (![string]::IsNullOrEmpty($Subscription)) {
 
 # Check and set registry
 if ([string]::IsNullOrEmpty($Registry)) {
-    if ([string]::IsNullOrEmpty($Registry)) {
-        if ($releaseBuild) {
-            # Make sure we do not override latest in release builds - this is done manually later.
-            $latestTag = "preview"
-            $Registry = "industrialiot"
-        }
-        else {
-            $Registry = "industrialiotdev"
-        }
-        Write-Warning "No registry specified - using $($Registry).azurecr.io."
+    if ($releaseBuild) {
+        # Make sure we do not override latest in release builds - this is done manually later.
+        $latestTag = "preview"
+        $Registry = "industrialiot"
     }
+    else {
+        $Registry = "industrialiotdev"
+    }
+    Write-Warning "No registry specified - using $($Registry).azurecr.io."
 }
 
 # get registry information
