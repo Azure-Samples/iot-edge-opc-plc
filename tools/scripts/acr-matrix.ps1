@@ -34,10 +34,6 @@ Param(
     [switch] $Debug
 )
 
-if ($Debug) {
-    $DebugPreference = "Continue"
-}
-
 if ([string]::IsNullOrEmpty($BuildRoot)) {
     $BuildRoot = & (Join-Path $PSScriptRoot "get-root.ps1") -fileName "*.sln"
 }

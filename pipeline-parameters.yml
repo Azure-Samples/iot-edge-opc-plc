@@ -1,7 +1,0 @@
-parameters:
-- name: azureServiceConnection
-  type: string
-  default: iiot
-- name: azureContainerRegistry
-  type: string
-  default: johanngdevacr
