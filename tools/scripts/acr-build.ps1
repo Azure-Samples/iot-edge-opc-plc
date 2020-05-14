@@ -32,7 +32,7 @@ if ($Debug) {
 }
 
 # use registry from environment if not passed in
-if (![string]::IsNullOrEmpty($Registry) -and ![string]::IsNullOrEmpty($env:azureContainerRegistry)) {
+if ([string]::IsNullOrEmpty($Registry) -and ![string]::IsNullOrEmpty($env:azureContainerRegistry)) {
     $Registry = $env:azureContainerRegistry
 }
 
@@ -164,6 +164,7 @@ if ([string]::IsNullOrEmpty($Registry)) {
 }
 
 # get registry information
+Write-Host "Using container registry $Registry"
 $argumentList = @("acr", "show", "--name", $Registry)
 $RegistryInfo = (& "az" $argumentList 2>&1 | ForEach-Object { "$_" }) | ConvertFrom-Json
 if ($LastExitCode -ne 0) {
