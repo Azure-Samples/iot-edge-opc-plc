@@ -1,8 +1,6 @@
-extends:
-    template: pipeline-parameters.yml
-    parameters:
-        azureServiceConnection: iiot
-        azureContainerRegistry: johanngdevacr
+parameters:
+    azureServiceConnection: iiot
+    azureContainerRegistry: johanngdevacr
 
 stages:
 #- stage: build
