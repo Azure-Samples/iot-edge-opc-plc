@@ -1,5 +1,5 @@
 variables:
-    azureServiceConnection: azureiiot
+    azureServiceConnection: opcplc
 
 stages:
 #- stage: build
