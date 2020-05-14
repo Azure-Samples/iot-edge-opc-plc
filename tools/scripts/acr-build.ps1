@@ -165,6 +165,7 @@ if ([string]::IsNullOrEmpty($Registry)) {
 
 # get registry information
 Write-Host "Using container registry $Registry"
+Write-Output "1Using container registry $Registry"
 $argumentList = @("acr", "show", "--name", $Registry)
 $RegistryInfo = (& "az" $argumentList 2>&1 | ForEach-Object { "$_" }) | ConvertFrom-Json
 if ($LastExitCode -ne 0) {
