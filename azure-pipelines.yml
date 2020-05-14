@@ -1,6 +1,10 @@
 parameters:
-    azureServiceConnection: iiot
-    azureContainerRegistry: johanngdevacr
+- name: azureServiceConnection
+  type: string
+  default: iiot
+- name: azureContainerRegistry
+  type: string
+  default: johanngdevacr
 
 stages:
 #- stage: build
