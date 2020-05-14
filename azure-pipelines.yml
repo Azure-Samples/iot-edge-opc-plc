@@ -1,10 +1,14 @@
+parameters:
+- name: azureServiceConnectionx
+  type: string
+  default: azureiiot
+- name: azureContainerRegistryx
+  type: string
+  default: industrialiot
+
 variables:
-- name: azureServiceConnection
-  type: string
-  default: iotopcwalls_service_connection
-- name: azureContainerRegistry
-  type: string
-  default: johanngdevacr
+    azureServiceConnection: iotopcwalls_service_connection
+    azureContainerRegistry: johanngdevacr
 
 stages:
 #- stage: build
