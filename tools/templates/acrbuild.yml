@@ -49,7 +49,7 @@ jobs:
     name: acrbuildd
     displayName: Build Debug Images
     inputs:
-      azureSubscription: $(parameters.azureServiceConnection)
+      azureSubscription: ${{parameters.azureServiceConnection}}
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -debug
 
