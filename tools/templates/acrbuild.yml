@@ -41,7 +41,8 @@ jobs:
     name: acrbuildr
     displayName: Build Release Images
     inputs:
-      azureSubscription: ${{parameters.azureServiceConnection}}
+      azureSubscription: iotopcwalls_service_connection
+#      azureSubscription: ${{parameters.azureServiceConnection}}
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder)
   - task: AzureCLI@1
