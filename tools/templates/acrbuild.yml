@@ -41,11 +41,11 @@ jobs:
     name: acrbuildr
     displayName: Build Release Images
     inputs:
-      azureSubscription: ${{parameter.azureServiceConnection}}
+      azureSubscription: ${{parameters.azureServiceConnection}}
 #      targetType: filePath
 #      filePath: ./tools/scripts/acr-build.ps1
       scriptLocation: inlineScript
-      inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -Registry=${{parameter.azureContainerRegistry}} -Subscription=${{parameter.azureServiceConnection}}
+      inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -Registry=${{parameters.azureContainerRegistry}} -Subscription=${{parameters.azureServiceConnection}}
 #      arguments: $(dockerFolder) -Registry "$[variables.BUILD_REGISTRY]" -Subscription "$[variables.AZURE_SUBSCRIPTION]"
 #  - task: AzureCLI@1
   - task: PowerShell@2
@@ -58,4 +58,4 @@ jobs:
 #      scriptLocation: inlineScript
 #      inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -Registry=$env:BUILD_REGISTRY -Subscription=$env:AZURE_SUBSCRIPTION -debug
 #      inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -Registry=${{coalesce(variables.BUILD_REGISTRY, 'johanngdevacr')}} -Subscription=${{coalesce(variables.AZURE_SUBSCRIPTION, 'IOT-OPC-WALLS')}} -debug
-      arguments: $(dockerFolder) -Registry "${{parameter.azureContainerRegistry}}" -Subscription "${{parameter.azureServiceConnection}}" -debug
+      arguments: $(dockerFolder) -Registry "${{parameters.azureContainerRegistry}}" -Subscription "${{parameters.azureServiceConnection}}" -debug
