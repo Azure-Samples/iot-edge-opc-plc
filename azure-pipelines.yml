@@ -1,6 +1,5 @@
 variables:
     azureServiceConnection: azureiiot
-    azureContainerRegistry: johanngdevacr
 
 stages:
 #- stage: build
