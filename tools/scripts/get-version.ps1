@@ -10,7 +10,7 @@
 try {
     # Try install tool
 #    try {
-        Get-Command nbgv
+#        Get-Command nbgv
 #    }
 #    catch {
         & dotnet @("tool", "install", "-g", "nbgv") 2>&1 | Out-Null    
