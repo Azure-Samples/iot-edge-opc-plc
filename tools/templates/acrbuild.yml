@@ -41,13 +41,13 @@ jobs:
     name: acrbuildr
     displayName: Build Release Images
     inputs:
-      azureSubscription: $(azureServiceConnectionx)
+      azureSubscription: $(azureServiceConnection)
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder)
   - task: AzureCLI@1
     name: acrbuildd
     displayName: Build Debug Images
     inputs:
-      azureSubscription: $(azureServiceConnectionx)
+      azureSubscription: $(azureServiceConnection)
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -debug
