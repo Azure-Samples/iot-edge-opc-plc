@@ -1,3 +1,6 @@
+parameters:
+    azureServiceConnection: iiot
+    azureContainerRegistry: johanngdevacr
 stages:
 #- stage: build
 #  displayName: 'Build and Test Code'
