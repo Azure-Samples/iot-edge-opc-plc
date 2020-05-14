@@ -32,7 +32,7 @@ if ($Debug) {
 }
 
 # use registry from environment if not passed in
-if ((![string]::IsNullOrEmpty($Registry) -and ![string]::IsNullOrEmpty($env:azureContainerRegistry)) {
+if (![string]::IsNullOrEmpty($Registry) -and ![string]::IsNullOrEmpty($env:azureContainerRegistry)) {
     $Registry = $env:azureContainerRegistry
 }
 
