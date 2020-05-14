@@ -414,21 +414,23 @@ namespace OpcPlc
             if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomSignedInt32\" },\n");
             if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomUnsignedInt32\" },\n");
             if (GenerateSpikes) sb.Append("      { \"Id\": \"ns=2;s=SpikeData\" },\n");
-            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=StepUp\" }\n");
+            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=StepUp\" },\n");
 
             for (int i = 0; i < SlowNodes; i++)
             {
                 string id = (i + 1).ToString("D" + SlowNodes.ToString().Length); // Padded int.
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{SlowNodeType}{id}\" }}\n");
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{SlowNodeType}{id}\" }},\n");
             }
 
             for (int i = 0; i < FastNodes; i++)
             {
                 string id = (i + 1).ToString("D" + FastNodes.ToString().Length); // Padded int.
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{FastNodeType}{id}\" }}\n");
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{FastNodeType}{id}\" }},\n");
             }
 
-            sb.Append("    ]\n");
+            sb.Remove(sb.Length - 2, 2); // Trim trailing ,\n.
+
+            sb.Append("\n    ]\n");
             sb.Append("  }\n");
             sb.Append("]");
 
