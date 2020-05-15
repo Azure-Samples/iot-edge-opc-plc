@@ -90,7 +90,7 @@ Here a sample for the node configuration file:
 
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR you need to:
 
-- create a **service connection to the subscription/resource group** your ACR is located with the name opcplc
+- create a **service connection to the subscription/resource group** your ACR is located named azureiiot
 - set a variable with name **azureContainerRegistry** to the name of your Azure Container Registry resource in the subscription
 
 ## Notes
