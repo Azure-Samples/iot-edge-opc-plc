@@ -1,6 +1,3 @@
-variables:
-    azureServiceConnection: azureiiot
-
 stages:
 #- stage: build
 #  displayName: 'Build and Test Code'
