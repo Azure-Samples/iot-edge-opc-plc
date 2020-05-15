@@ -5,9 +5,11 @@ jobs:
 - job: buildprep
   displayName: Prepare Build Jobs
   pool:
-    name: Hosted Windows 2019 with VS2019
+    vmImage: 'windows-2019'
   variables:
     skipComponentGovernanceDetection: true
+    DOTNET_CLI_TELEMETRY_OPTOUT: true
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   steps:
   - task: PowerShell@2
     name: buildmatrix
@@ -22,13 +24,13 @@ jobs:
   strategy:
     matrix: $[dependencies.buildprep.outputs['buildmatrix.jobMatrix'] ]
   pool:
-    name: $(poolName)
+    vmImage: $(poolImage)
   steps:
   - task: UseDotNet@2
     displayName: 'Install .NET Core SDK'
     inputs:
       packageType: sdk
-      version: 3.0.100
+      version: 3.1.101
       includePreviewVersions: false
       installationPath: $(Agent.ToolsDirectory)/dotnet
   - task: PowerShell@2
@@ -51,9 +53,11 @@ jobs:
 - job: testprep
   displayName: Prepare Test Jobs
   pool:
-    name: Hosted Windows 2019 with VS2019
+    vmImage: 'windows-2019'
   variables:
     skipComponentGovernanceDetection: true
+    DOTNET_CLI_TELEMETRY_OPTOUT: true
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   steps:
   - task: PowerShell@2
     name: testmatrix
@@ -61,7 +65,6 @@ jobs:
     inputs:
       targetType: filePath
       filePath: ./tools/scripts/get-matrix.ps1
-      # arguments: -FileName Directory.Build.props
       arguments: -FileName azure-pipelines.yml
 - job: testall
   displayName: Run Tests for
@@ -69,24 +72,29 @@ jobs:
   strategy:
     matrix: $[dependencies.testprep.outputs['testmatrix.jobMatrix'] ]
   variables:
-    NO_GIT: 'true'
     skipComponentGovernanceDetection: true
+    DOTNET_CLI_TELEMETRY_OPTOUT: true
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+    runCodesignValidationInjection: false
   pool:
-    name: $(poolName)
+    vmImage: $(poolImage)
   steps:
-  # # This step will rely on existing setup of .Net Core for now.
-  # # Once we move all projects to .Net Core 3, we will uncomment this.
-  # - task: UseDotNet@2
-  #   displayName: 'Install .NET Core SDK'
-  #   inputs:
-  #     packageType: sdk
-  #     version: 3.0.x
-  #     includePreviewVersions: false
-  #     installationPath: $(Agent.ToolsDirectory)/dotnet
+  - task: UseDotNet@2
+    displayName: 'Install .NET Core SDK'
+    inputs:
+      packageType: sdk
+      version: 3.1.101
+      includePreviewVersions: false
+      installationPath: $(Agent.ToolsDirectory)/dotnet
+  - task: PowerShell@2
+    displayName: Versioning
+    inputs:
+      targetType: filePath
+      filePath: ./tools/scripts/set-version.ps1
   - task: DotNetCoreCLI@2
     displayName: Test
+    timeoutInMinutes: 30
     inputs:
       command: test
       projects: '**/tests/*.csproj'
-      # projects: '$(folder)/**/tests/*.csproj'
       arguments: '--configuration Release'
