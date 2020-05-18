@@ -383,15 +383,22 @@ namespace OpcPlc
         /// </summary>
         private static string GetIpAddress()
         {
-            string ipV4 = Dns.GetHostName();
+            string ip = Dns.GetHostName();
 
-            var hostEntry = Dns.GetHostEntry(Dns.GetHostName());
-            if (hostEntry.AddressList.Length > 0)
+            try
             {
-                ipV4 = hostEntry.AddressList[0].ToString();
+                // Ignore System.Net.Internals.SocketExceptionFactory+ExtendedSocketException
+                var hostEntry = Dns.GetHostEntry(ip);
+                if (hostEntry.AddressList.Length > 0)
+                {
+                    ip = hostEntry.AddressList[0].ToString();
+                }
+            }
+            catch
+            {
             }
 
-            return ipV4;
+            return ip;
         }
 
         /// <summary>
