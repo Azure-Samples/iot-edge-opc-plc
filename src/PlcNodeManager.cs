@@ -309,7 +309,7 @@ namespace OpcPlc
             {
                 var (dataType, valueRank, defaultValue) = GetNodeType(type);
 
-                string id = (i + 1).ToString("D" + count.ToString().Length); // Padded int.
+                string id = (i + 1).ToString();
                 nodes[i] = CreateBaseVariable(dataFolder, $"{name}{type}{id}", $"{name}{type}{id}", dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)", defaultValue);
             }
 

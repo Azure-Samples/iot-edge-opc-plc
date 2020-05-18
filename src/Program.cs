@@ -418,14 +418,12 @@ namespace OpcPlc
 
             for (int i = 0; i < SlowNodes; i++)
             {
-                string id = (i + 1).ToString("D" + SlowNodes.ToString().Length); // Padded int.
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{SlowNodeType}{id}\" }},\n");
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{SlowNodeType}{i + 1}\" }},\n");
             }
 
             for (int i = 0; i < FastNodes; i++)
             {
-                string id = (i + 1).ToString("D" + FastNodes.ToString().Length); // Padded int.
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{FastNodeType}{id}\" }},\n");
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{FastNodeType}{i + 1}\" }},\n");
             }
 
             sb.Remove(sb.Length - 2, 2); // Trim trailing ,\n.
