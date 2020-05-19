@@ -4,12 +4,8 @@ stages:
   jobs:
   - template: tools/templates/ci.yml
 - stage: images
-  displayName: 'Create and Push Images'
+  displayName: 'Build Images'
   dependsOn:
   - build
   jobs:
   - template: tools/templates/acrbuild.yml
-    parameters:
-      useNugets: ${{ startsWith(variables['Build.SourceBranch'], 'refs/heads/') }}
-
-

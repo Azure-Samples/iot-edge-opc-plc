@@ -163,17 +163,17 @@ namespace OpcPlc
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
                 { "op|path=", $"the enpoint URL path part of the OPC server endpoint.\nDefault: '{ServerPath}'", (string a) => ServerPath = a },
                 { "ph|plchostname=", $"the fullqualified hostname of the plc.\nDefault: {Hostname}", (string a) => Hostname = a },
-                        { "ol|opcmaxstringlen=", $"the max length of a string opc can transmit/receive.\nDefault: {OpcMaxStringLength}", (int i) => {
-                                if (i > 0)
-                                {
-                                    OpcMaxStringLength = i;
-                                }
-                                else
-                                {
-                                    throw new OptionException("The max opc string length must be larger than 0.", "opcmaxstringlen");
-                                }
-                            }
-                        },
+                { "ol|opcmaxstringlen=", $"the max length of a string opc can transmit/receive.\nDefault: {OpcMaxStringLength}", (int i) => {
+                        if (i > 0)
+                        {
+                            OpcMaxStringLength = i;
+                        }
+                        else
+                        {
+                            throw new OptionException("The max opc string length must be larger than 0.", "opcmaxstringlen");
+                        }
+                    }
+                },
                 { "lr|ldsreginterval=", $"the LDS(-ME) registration interval in ms. If 0, then the registration is disabled.\nDefault: {LdsRegistrationInterval}", (int i) => {
                         if (i >= 0)
                         {
@@ -365,11 +365,11 @@ namespace OpcPlc
             //show version
             var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
             Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up...");
-            Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute).InformationalVersion}");
+            Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
 
             try
             {
-                await ConsoleServerAsync(args);
+                await ConsoleServerAsync(args).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -466,7 +466,7 @@ namespace OpcPlc
 
             // init OPC configuration and tracing
             OpcApplicationConfiguration plcOpcApplicationConfiguration = new OpcApplicationConfiguration();
-            ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync();
+            ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync().ConfigureAwait(false);
 
             // allow canceling the connection process
             try
@@ -482,7 +482,7 @@ namespace OpcPlc
             }
 
             // start the server.
-            Logger.Information($"Starting server on endpoint {plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0].ToString()} ...");
+            Logger.Information($"Starting server on endpoint {plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]} ...");
             Logger.Information($"Simulation settings are:");
             Logger.Information($"One simulation phase consists of {SimulationCycleCount} cycles");
             Logger.Information($"One cycle takes {SimulationCycleLength} milliseconds");
@@ -521,7 +521,7 @@ namespace OpcPlc
             // show usage
             Logger.Information("");
             Logger.Information($"{ProgramName} V{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}");
-            Logger.Information($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute).InformationalVersion}");
+            Logger.Information($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
             Logger.Information("");
             Logger.Information("Usage: {0}.exe [<options>]", Assembly.GetEntryAssembly().GetName().Name);
             Logger.Information("");
@@ -678,7 +678,6 @@ namespace OpcPlc
                     {
                         throw new OptionException($"The file '{fileName}' does not exist.", option);
                     }
-
                 }
             }
             else
