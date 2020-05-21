@@ -318,18 +318,13 @@ namespace OpcPlc
 
         private static (NodeId dataType, int valueRank, object defaultValue) GetNodeType(NodeType nodeType)
         {
-            // TODO: Convert to switch expression in C# 8 (.NET Core 3.x, .NET Standard 2.1).
-            switch (nodeType)
+            return nodeType switch
             {
-                case NodeType.Bool:
-                    return (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, null);
-                case NodeType.Double:
-                    return (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, null);
-                case NodeType.IntArray:
-                    return (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32]);
-                default:
-                    return (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, null);
-            }
+                NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, null),
+                NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, null),
+                NodeType.IntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32]),
+                _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, null),
+            };
         }
 
         /// <summary>

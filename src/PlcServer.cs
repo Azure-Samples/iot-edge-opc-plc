@@ -59,7 +59,7 @@ namespace OpcPlc
                 BuildNumber = Utils.GetAssemblyBuildNumber(),
                 BuildDate = Utils.GetAssemblyTimestamp()
             };
-            return properties; 
+            return properties;
         }
 
         /// <summary>
