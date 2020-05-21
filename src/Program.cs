@@ -98,14 +98,8 @@ namespace OpcPlc
         /// </summary>
         public static void Main(string[] args)
         {
-            using (var host = BuildWebHost(args))
-            {
-                // Start Web server for pn.json.
-                host.Start();
-
-                // Start OPC UA server
-                MainAsync(args).Wait();
-            }
+            // Start OPC UA server
+            MainAsync(args).Wait();
         }
 
         /// <summary>
@@ -367,6 +361,9 @@ namespace OpcPlc
             Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up...");
             Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
 
+            using var host = BuildWebHost(args);
+            StartWebServer(host, args);
+
             try
             {
                 await ConsoleServerAsync(args).ConfigureAwait(false);
@@ -376,6 +373,22 @@ namespace OpcPlc
                 Logger.Fatal(ex, "OPC UA server failed unexpectedly.");
             }
             Logger.Information("OPC UA server exiting...");
+        }
+
+        /// <summary>
+        /// Start web server to host pn.json.
+        /// </summary>
+        private static void StartWebServer(IWebHost host, string[] args)
+        {
+            try
+            {
+                // Start Web server for pn.json.
+                host.Start();
+            }
+            catch (Exception)
+            {
+                Logger.Error("Could not start web server to host pn.json, check used ports");
+            }
         }
 
         /// <summary>
