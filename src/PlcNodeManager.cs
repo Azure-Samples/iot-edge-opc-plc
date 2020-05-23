@@ -301,7 +301,7 @@ namespace OpcPlc
             }
         }
 
-        private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, int count, NodeType type)
+        private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, uint count, NodeType type)
         {
             var nodes = new BaseDataVariableState[count];
 

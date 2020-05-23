@@ -83,6 +83,11 @@ namespace OpcPlc
         /// </summary>
         public static bool ShowPublisherConfigJson { get; set; }
 
+        /// <summary>
+        /// Web server port for hosting OPC Publisher file.
+        /// </summary>
+        public static uint WebServerPort { get; set; } = 8080;
+
         public static string PnJson = "pn.json";
 
         public enum NodeType
@@ -146,11 +151,11 @@ namespace OpcPlc
                 { "np|nopostrend", $"do not generate positive trend data\nDefault: {!GeneratePosTrend}", a => GeneratePosTrend = a == null },
                 { "nn|nonegtrend", $"do not generate negative trend data\nDefault: {!GenerateNegTrend}", a => GenerateNegTrend = a == null },
                 { "nv|nodatavalues", $"do not generate data values\nDefault: {!GenerateData}", a => GenerateData = a == null },
-                { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodes}", (int i) => SlowNodes = i },
-                { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (int i) => SlowNodeRate = i },
+                { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodes}", (uint i) => SlowNodes = i },
+                { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (uint i) => SlowNodeRate = i },
                 { "st|slowtype=", $"data type of slow nodes (Int|Double|Bool|IntArray)\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
-                { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodes}", (int i) => FastNodes = i },
-                { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (int i) => FastNodeRate = i },
+                { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodes}", (uint i) => FastNodes = i },
+                { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
                 { "ft|fasttype=", $"data type of slow nodes (Int|Double|Bool|IntArray)\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
 
                 // opc configuration
@@ -315,7 +320,8 @@ namespace OpcPlc
 
                 // misc
                 { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
-                { "sp|showpnjson", "show OPC Publisher configuration file", h => ShowPublisherConfigJson = h != null },
+                { "sp|showpnjson", $"show OPC Publisher configuration file.\nDefault: {ShowPublisherConfigJson}", h => ShowPublisherConfigJson = h != null },
+                { "wb|webport", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint h) => WebServerPort = h },
             };
 
             List<string> extraArgs = new List<string>();
@@ -362,7 +368,7 @@ namespace OpcPlc
             Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
 
             using var host = BuildWebHost(args);
-            StartWebServer(host, args);
+            StartWebServer(host);
 
             try
             {
@@ -378,16 +384,15 @@ namespace OpcPlc
         /// <summary>
         /// Start web server to host pn.json.
         /// </summary>
-        private static void StartWebServer(IWebHost host, string[] args)
+        private static void StartWebServer(IWebHost host)
         {
             try
             {
-                // Start Web server for pn.json.
                 host.Start();
             }
             catch (Exception)
             {
-                Logger.Error("Could not start web server to host pn.json, check used ports");
+                Logger.Error("Could not start web server to host pn.json, check port configuration");
             }
         }
 
@@ -715,13 +720,9 @@ namespace OpcPlc
             string exePath = Process.GetCurrentProcess().MainModule.FileName;
             string directoryPath = Path.GetDirectoryName(exePath);
 
-            var config = new ConfigurationBuilder()
-               .AddJsonFile("hosting.json", optional: false)
-               .Build();
-
             var host = WebHost.CreateDefaultBuilder(args)
-                .UseConfiguration(config)
                 .UseContentRoot(directoryPath) // Avoid System.InvalidOperationException.
+                .UseUrls($"http://*:{WebServerPort}")
                 .UseStartup<Startup>()
                 .Build();
 
