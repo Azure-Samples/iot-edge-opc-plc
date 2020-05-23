@@ -123,7 +123,7 @@ namespace OpcPlc
                     case NodeType.Bool:
                         value = !(bool)nodes[nodeIndex].Value;
                         break;
-                    case NodeType.IntArray:
+                    case NodeType.UIntArray:
                         uint[] arrayValue = (uint[])nodes[nodeIndex].Value;
                         for (int arrayIndex = 0; arrayIndex < arrayValue?.Length; arrayIndex++)
                         {
@@ -301,7 +301,7 @@ namespace OpcPlc
             }
         }
 
-        private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, int count, NodeType type)
+        private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, uint count, NodeType type)
         {
             var nodes = new BaseDataVariableState[count];
 
@@ -322,7 +322,7 @@ namespace OpcPlc
             {
                 NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, null),
                 NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, null),
-                NodeType.IntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32]),
+                NodeType.UIntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32]),
                 _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, null),
             };
         }
