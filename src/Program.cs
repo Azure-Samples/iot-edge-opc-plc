@@ -366,8 +366,11 @@ namespace OpcPlc
             Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up...");
             Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
 
-            using var host = BuildWebHost(args);
-            StartWebServer(host);
+            if (ShowPublisherConfigJson)
+            {
+                using var host = BuildWebHost(args);
+                StartWebServer(host);
+            }
 
             try
             {
@@ -388,6 +391,7 @@ namespace OpcPlc
             try
             {
                 host.Start();
+                Logger.Information($"Web server started on port {WebServerPort}");
             }
             catch (Exception)
             {
@@ -421,13 +425,13 @@ namespace OpcPlc
         /// <summary>
         /// Show and save pn.json
         /// </summary>
-        private static async Task DumpPublisherConfigJson()
+        private static async Task DumpPublisherConfigJson(string endpointUrl)
         {
             var sb = new StringBuilder();
 
             sb.Append("\n[\n");
             sb.Append("  {\n");
-            sb.Append($"    \"EndpointUrl\": \"opc.tcp://{GetIpAddress()}:{ServerPort}{ServerPath}\",\n");
+            sb.Append($"    \"EndpointUrl\": \"{endpointUrl}\",\n");
             sb.Append("    \"UseSecurity\": false,\n");
             sb.Append("    \"OpcNodes\": [\n");
 
@@ -478,11 +482,11 @@ namespace OpcPlc
         private static async Task ConsoleServerAsync(string[] args)
         {
             var quitEvent = new ManualResetEvent(false);
-            CancellationTokenSource shutdownTokenSource = new CancellationTokenSource();
+            var shutdownTokenSource = new CancellationTokenSource();
             ShutdownToken = shutdownTokenSource.Token;
 
             // init OPC configuration and tracing
-            OpcApplicationConfiguration plcOpcApplicationConfiguration = new OpcApplicationConfiguration();
+            var plcOpcApplicationConfiguration = new OpcApplicationConfiguration();
             ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync().ConfigureAwait(false);
 
             // allow canceling the connection process
@@ -519,7 +523,7 @@ namespace OpcPlc
 
             if (ShowPublisherConfigJson)
             {
-                await DumpPublisherConfigJson();
+                await DumpPublisherConfigJson($"opc.tcp://{GetIpAddress()}:{ServerPort}{ServerPath}");
             }
 
             Logger.Information("PLC Simulation started. Press CTRL-C to exit.");
@@ -569,7 +573,7 @@ namespace OpcPlc
         /// </summary>
         private static void InitLogging()
         {
-            LoggerConfiguration loggerConfiguration = new LoggerConfiguration();
+            var loggerConfiguration = new LoggerConfiguration();
 
             // set the log level
             switch (_logLevel)
@@ -629,7 +633,7 @@ namespace OpcPlc
         /// </summary>
         private static List<string> ParseListOfStrings(string s)
         {
-            List<string> strings = new List<string>();
+            var strings = new List<string>();
             if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
             {
                 while (s.Contains('"'))
@@ -660,7 +664,7 @@ namespace OpcPlc
         /// </summary>
         private static List<string> ParseListOfFileNames(string s, string option)
         {
-            List<string> fileNames = new List<string>();
+            var fileNames = new List<string>();
             if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
             {
                 while (s.Contains('"'))
