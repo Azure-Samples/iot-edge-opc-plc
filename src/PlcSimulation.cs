@@ -1,5 +1,3 @@
-
-using Opc.Ua;
 using System;
 using System.Threading;
 
@@ -19,10 +17,10 @@ namespace OpcPlc
         public static bool GenerateData { get; set; } = true;
         public static uint SlowNodes { get; set; } = 0;
         public static uint SlowNodeRate { get; set; } = 10; // s.
-        public static NodeType SlowNodeType { get; set; } = NodeType.Int;
+        public static NodeType SlowNodeType { get; set; } = NodeType.UInt;
         public static uint FastNodes { get; set; } = 0;
         public static uint FastNodeRate { get; set; } = 1; // s.
-        public static NodeType FastNodeType { get; set; } = NodeType.Int;
+        public static NodeType FastNodeType { get; set; } = NodeType.UInt;
 
         /// <summary>
         /// Simulation data.
