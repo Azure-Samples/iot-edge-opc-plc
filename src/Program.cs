@@ -1,5 +1,4 @@
-﻿
-using Mono.Options;
+﻿using Mono.Options;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -366,9 +365,9 @@ namespace OpcPlc
             Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up...");
             Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
 
+            using var host = BuildWebHost(args);
             if (ShowPublisherConfigJson)
             {
-                using var host = BuildWebHost(args);
                 StartWebServer(host);
             }
 
@@ -425,33 +424,34 @@ namespace OpcPlc
         /// <summary>
         /// Show and save pn.json
         /// </summary>
-        private static async Task DumpPublisherConfigJson(string endpointUrl)
+        private static async Task DumpPublisherConfigJson(string serverPath)
         {
+            const string NSS = "ns=2;s=";
             var sb = new StringBuilder();
 
             sb.Append("\n[\n");
             sb.Append("  {\n");
-            sb.Append($"    \"EndpointUrl\": \"{endpointUrl}\",\n");
+            sb.Append($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",\n");
             sb.Append("    \"UseSecurity\": false,\n");
             sb.Append("    \"OpcNodes\": [\n");
 
-            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=AlternatingBoolean\" },\n");
-            if (GenerateDips) sb.Append("      { \"Id\": \"ns=2;s=DipData\" },\n");
-            if (GenerateNegTrend) sb.Append("      { \"Id\": \"ns=2;s=NegativeTrendData\" },\n");
-            if (GeneratePosTrend) sb.Append("      { \"Id\": \"ns=2;s=PositiveTrendData\" },\n");
-            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomSignedInt32\" },\n");
-            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomUnsignedInt32\" },\n");
-            if (GenerateSpikes) sb.Append("      { \"Id\": \"ns=2;s=SpikeData\" },\n");
-            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=StepUp\" },\n");
+            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}AlternatingBoolean\" }},\n");
+            if (GenerateDips) sb.Append($"      {{ \"Id\": \"{NSS}DipData\" }},\n");
+            if (GenerateNegTrend) sb.Append($"      {{ \"Id\": \"{NSS}NegativeTrendData\" }},\n");
+            if (GeneratePosTrend) sb.Append($"      {{ \"Id\": \"{NSS}PositiveTrendData\" }},\n");
+            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}RandomSignedInt32\" }},\n");
+            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}RandomUnsignedInt32\" }},\n");
+            if (GenerateSpikes) sb.Append($"      {{ \"Id\": \"{NSS}SpikeData\" }},\n");
+            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}StepUp\" }},\n");
 
             for (int i = 0; i < SlowNodes; i++)
             {
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{SlowNodeType}{i + 1}\" }},\n");
+                sb.Append($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\" }},\n");
             }
 
             for (int i = 0; i < FastNodes; i++)
             {
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{FastNodeType}{i + 1}\" }},\n");
+                sb.Append($"      {{ \"Id\": \"{NSS}Fast{FastNodeType}{i + 1}\" }},\n");
             }
 
             sb.Remove(sb.Length - 2, 2); // Trim trailing ,\n.
@@ -523,7 +523,7 @@ namespace OpcPlc
 
             if (ShowPublisherConfigJson)
             {
-                await DumpPublisherConfigJson($"opc.tcp://{GetIpAddress()}:{ServerPort}{ServerPath}");
+                await DumpPublisherConfigJson($"{GetIpAddress()}:{ServerPort}{ServerPath}");
             }
 
             Logger.Information("PLC Simulation started. Press CTRL-C to exit.");
@@ -673,7 +673,7 @@ namespace OpcPlc
                     int next = 0;
                     first = s.IndexOf('"', next);
                     next = s.IndexOf('"', ++first);
-                    var fileName = s.Substring(first, next - first);
+                    string fileName = s[first..next];
                     if (File.Exists(fileName))
                     {
                         fileNames.Add(fileName);

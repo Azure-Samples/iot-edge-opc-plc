@@ -32,7 +32,7 @@ namespace OpcPlc
             // Serve pn.json
             app.Run(async context =>
             {
-                if (context.Request.Path == "/pn.json" &&
+                if (context.Request.Path == $"/{Program.PnJson}" &&
                     File.Exists(Program.PnJson))
                 {
                     context.Response.ContentType = "application/json";
