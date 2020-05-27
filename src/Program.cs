@@ -3,22 +3,23 @@ using Mono.Options;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Hosting;
+using Opc.Ua;
+using Serilog;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using static OpcPlc.OpcApplicationConfiguration;
+using static OpcPlc.PlcSimulation;
+using System.Net;
 
 namespace OpcPlc
 {
-    using Opc.Ua;
-    using Serilog;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.IO;
-    using System.Linq;
-    using System.Net.Sockets;
-    using System.Reflection;
-    using System.Text;
-    using static OpcApplicationConfiguration;
-    using static PlcSimulation;
-
-    public static class Program
+    public class Program
     {
         /// <summary>
         /// Name of the application.
@@ -77,10 +78,31 @@ namespace OpcPlc
         public static string NodesFileName { get; set; }
 
         /// <summary>
+        /// Show configuration file for OPC Publisher.
+        /// </summary>
+        public static bool ShowPublisherConfigJson { get; set; }
+
+        /// <summary>
+        /// Web server port for hosting OPC Publisher file.
+        /// </summary>
+        public static uint WebServerPort { get; set; } = 8080;
+
+        public static string PnJson = "pn.json";
+
+        public enum NodeType
+        {
+            UInt,
+            Double,
+            Bool,
+            UIntArray,
+        }
+
+        /// <summary>
         /// Synchronous main method of the app.
         /// </summary>
         public static void Main(string[] args)
         {
+            // Start OPC UA server
             MainAsync(args).Wait();
         }
 
@@ -89,10 +111,10 @@ namespace OpcPlc
         /// </summary>
         public static async Task MainAsync(string[] args)
         {
-            var shouldShowHelp = false;
+            bool shouldShowHelp = false;
 
             // command line options
-            Mono.Options.OptionSet options = new Mono.Options.OptionSet {
+            var options = new Mono.Options.OptionSet {
                 // log configuration
                 { "nf|nodesfile=", $"the filename which contains the list of nodes to be published.", (string l) => NodesFileName = l },
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
@@ -128,6 +150,12 @@ namespace OpcPlc
                 { "np|nopostrend", $"do not generate positive trend data\nDefault: {!GeneratePosTrend}", a => GeneratePosTrend = a == null },
                 { "nn|nonegtrend", $"do not generate negative trend data\nDefault: {!GenerateNegTrend}", a => GenerateNegTrend = a == null },
                 { "nv|nodatavalues", $"do not generate data values\nDefault: {!GenerateData}", a => GenerateData = a == null },
+                { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodes}", (uint i) => SlowNodes = i },
+                { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (uint i) => SlowNodeRate = i },
+                { "st|slowtype=", $"data type of slow nodes (UInt|Double|Bool|UIntArray)\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
+                { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodes}", (uint i) => FastNodes = i },
+                { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
+                { "ft|fasttype=", $"data type of slow nodes (UInt|Double|Bool|UIntArray)\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
 
                 // opc configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
@@ -291,9 +319,11 @@ namespace OpcPlc
 
                 // misc
                 { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
+                { "sp|showpnjson", $"show OPC Publisher configuration file.\nDefault: {ShowPublisherConfigJson}", h => ShowPublisherConfigJson = h != null },
+                { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint i) => WebServerPort = i },
             };
 
-            List<string> extraArgs = new List<string>();
+            var extraArgs = new List<string>();
             try
             {
                 // parse the command line
@@ -336,6 +366,12 @@ namespace OpcPlc
             Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up...");
             Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
 
+            if (ShowPublisherConfigJson)
+            {
+                using var host = BuildWebHost(args);
+                StartWebServer(host);
+            }
+
             try
             {
                 await ConsoleServerAsync(args).ConfigureAwait(false);
@@ -348,17 +384,109 @@ namespace OpcPlc
         }
 
         /// <summary>
+        /// Start web server to host pn.json.
+        /// </summary>
+        private static void StartWebServer(IWebHost host)
+        {
+            try
+            {
+                host.Start();
+                Logger.Information($"Web server started on port {WebServerPort}");
+            }
+            catch (Exception)
+            {
+                Logger.Error($"Could not start web server on port {WebServerPort}");
+            }
+        }
+
+        /// <summary>
+        /// Get IP address of first interface, otherwise host name.
+        /// </summary>
+        private static string GetIpAddress()
+        {
+            string ip = Dns.GetHostName();
+
+            try
+            {
+                // Ignore System.Net.Internals.SocketExceptionFactory+ExtendedSocketException
+                var hostEntry = Dns.GetHostEntry(ip);
+                if (hostEntry.AddressList.Length > 0)
+                {
+                    ip = hostEntry.AddressList[0].ToString();
+                }
+            }
+            catch
+            {
+            }
+
+            return ip;
+        }
+
+        /// <summary>
+        /// Show and save pn.json
+        /// </summary>
+        private static async Task DumpPublisherConfigJson(string endpointUrl)
+        {
+            var sb = new StringBuilder();
+
+            sb.Append("\n[\n");
+            sb.Append("  {\n");
+            sb.Append($"    \"EndpointUrl\": \"{endpointUrl}\",\n");
+            sb.Append("    \"UseSecurity\": false,\n");
+            sb.Append("    \"OpcNodes\": [\n");
+
+            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=AlternatingBoolean\" },\n");
+            if (GenerateDips) sb.Append("      { \"Id\": \"ns=2;s=DipData\" },\n");
+            if (GenerateNegTrend) sb.Append("      { \"Id\": \"ns=2;s=NegativeTrendData\" },\n");
+            if (GeneratePosTrend) sb.Append("      { \"Id\": \"ns=2;s=PositiveTrendData\" },\n");
+            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomSignedInt32\" },\n");
+            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomUnsignedInt32\" },\n");
+            if (GenerateSpikes) sb.Append("      { \"Id\": \"ns=2;s=SpikeData\" },\n");
+            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=StepUp\" },\n");
+
+            for (int i = 0; i < SlowNodes; i++)
+            {
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{SlowNodeType}{i + 1}\" }},\n");
+            }
+
+            for (int i = 0; i < FastNodes; i++)
+            {
+                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{FastNodeType}{i + 1}\" }},\n");
+            }
+
+            sb.Remove(sb.Length - 2, 2); // Trim trailing ,\n.
+
+            sb.Append("\n    ]\n");
+            sb.Append("  }\n");
+            sb.Append("]");
+
+            string pnJson = sb.Replace("\n", Environment.NewLine).ToString();
+            Logger.Information(PnJson + pnJson);
+
+            await File.WriteAllTextAsync(PnJson, pnJson.Trim());
+        }
+
+        /// <summary>
+        /// Parse node data type, default to Int.
+        /// </summary>
+        private static NodeType ParseNodeType(string type)
+        {
+            return Enum.TryParse(type, ignoreCase: true, out NodeType nodeType)
+                ? nodeType
+                : NodeType.UInt;
+        }
+
+        /// <summary>
         /// Run the server.
         /// </summary>
-        /// <returns></returns>
         private static async Task ConsoleServerAsync(string[] args)
         {
             var quitEvent = new ManualResetEvent(false);
-            CancellationTokenSource shutdownTokenSource = new CancellationTokenSource();
+            var shutdownTokenSource = new CancellationTokenSource();
             ShutdownToken = shutdownTokenSource.Token;
 
             // init OPC configuration and tracing
-            OpcApplicationConfiguration plcOpcApplicationConfiguration = new OpcApplicationConfiguration();
+            var plcOpcApplicationConfiguration = new OpcApplicationConfiguration();
             ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync().ConfigureAwait(false);
 
             // allow canceling the connection process
@@ -392,6 +520,12 @@ namespace OpcPlc
 
             PlcSimulation = new PlcSimulation(PlcServer);
             PlcSimulation.Start();
+
+            if (ShowPublisherConfigJson)
+            {
+                await DumpPublisherConfigJson($"opc.tcp://{GetIpAddress()}:{ServerPort}{ServerPath}");
+            }
+
             Logger.Information("PLC Simulation started. Press CTRL-C to exit.");
 
             // wait for Ctrl-C
@@ -439,7 +573,7 @@ namespace OpcPlc
         /// </summary>
         private static void InitLogging()
         {
-            LoggerConfiguration loggerConfiguration = new LoggerConfiguration();
+            var loggerConfiguration = new LoggerConfiguration();
 
             // set the log level
             switch (_logLevel)
@@ -499,7 +633,7 @@ namespace OpcPlc
         /// </summary>
         private static List<string> ParseListOfStrings(string s)
         {
-            List<string> strings = new List<string>();
+            var strings = new List<string>();
             if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
             {
                 while (s.Contains('"'))
@@ -530,7 +664,7 @@ namespace OpcPlc
         /// </summary>
         private static List<string> ParseListOfFileNames(string s, string option)
         {
-            List<string> fileNames = new List<string>();
+            var fileNames = new List<string>();
             if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
             {
                 while (s.Contains('"'))
@@ -581,7 +715,24 @@ namespace OpcPlc
             return fileNames;
         }
 
-        private static string _logFileName = $"{System.Net.Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
+        /// <summary>
+        /// Configure web server.
+        /// </summary>
+        public static IWebHost BuildWebHost(string[] args)
+        {
+            string exePath = Process.GetCurrentProcess().MainModule.FileName;
+            string directoryPath = Path.GetDirectoryName(exePath);
+
+            var host = WebHost.CreateDefaultBuilder(args)
+                .UseContentRoot(directoryPath) // Avoid System.InvalidOperationException.
+                .UseUrls($"http://*:{WebServerPort}")
+                .UseStartup<Startup>()
+                .Build();
+
+            return host;
+        }
+
+        private static string _logFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
         private static string _logLevel = "info";
         private static TimeSpan _logFileFlushTimeSpanSec = TimeSpan.FromSeconds(30);
     }
