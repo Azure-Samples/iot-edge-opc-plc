@@ -371,6 +371,12 @@ namespace OpcPlc
                 StartWebServer(host);
             }
 
+            if (ShowPublisherConfigJson)
+            {
+                using var host = BuildWebHost(args);
+                StartWebServer(host);
+            }
+
             try
             {
                 await ConsoleServerAsync(args).ConfigureAwait(false);
