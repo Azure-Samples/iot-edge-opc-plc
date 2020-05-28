@@ -110,22 +110,22 @@ docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/
 ~~~
 
 ## OPC Publisher file (pn.json)
-The option `sp` shows and dumps a pn.json file that matches the configuration. In addition, a web server hosts the file on a configurable port (`wp`, default 8080).
+The option `sp` shows and dumps a pn.json file that matches the configuration. In addition, a web server hosts the file on a configurable port (`wp`, default 8080): e.g. http://localhost:8080/pn.json
 
 ## Build
 
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR you need to:
 
-- Create a **service connection to the subscription/resource group** your ACR is located named azureiiot
-- Set a variable with name **azureContainerRegistry** to the name of your Azure Container Registry resource in the subscription
+- Create a **service connection** called azureiiot to the subscription/resource group in which your ACR is located
+- Set a variable called **azureContainerRegistry** with the name of your Azure Container Registry
 
 ## Notes
 
-X.509 certificates releated:
+X.509 certificates:
 
-* Running on Windows natively, you cannot use an application certificate store of type `Directory`, since the access to the private key fails. Please use the option `--at X509Store` in this case.
+* Running on Windows natively, you cannot use an application certificate store of type `Directory`, since the access to the private key will fail. Use the option `--at X509Store` in this case.
 * Running as Linux Docker container, you can map the certificate stores to the host file system by using the Docker run option `-v <hostdirectory>:/appdata`. This will make the certificate persistent over starts.
-* Running as Linux Docker container and want to use an X509Store for the application certificate, you need to use the Docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
+* Running as Linux Docker container using an X509Store for the application certificate, you need to use the Docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
 
 ## Resources
 
