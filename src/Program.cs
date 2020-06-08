@@ -1,9 +1,7 @@
-﻿
-using Mono.Options;
+﻿using Mono.Options;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Opc.Ua;
 using Serilog;
@@ -16,6 +14,7 @@ using System.Text;
 using static OpcPlc.OpcApplicationConfiguration;
 using static OpcPlc.PlcSimulation;
 using System.Net;
+using Microsoft.Extensions.Hosting;
 
 namespace OpcPlc
 {
@@ -323,6 +322,12 @@ namespace OpcPlc
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint i) => WebServerPort = i },
             };
 
+            // Init app location
+            InitAppFolder();
+
+            // Init logging
+            InitLogging();
+
             var extraArgs = new List<string>();
             try
             {
@@ -331,9 +336,6 @@ namespace OpcPlc
             }
             catch (OptionException e)
             {
-                // initialize logging
-                InitLogging();
-
                 // show message
                 Logger.Fatal(e, "Error in command line options");
                 Logger.Error($"Command line arguments: {String.Join(" ", args)}");
@@ -341,9 +343,6 @@ namespace OpcPlc
                 Usage(options);
                 return;
             }
-
-            // initialize logging
-            InitLogging();
 
             // show usage if requested
             if (shouldShowHelp)
@@ -366,9 +365,9 @@ namespace OpcPlc
             Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up...");
             Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
 
+            using var host = CreateHostBuilder(args);
             if (ShowPublisherConfigJson)
             {
-                using var host = BuildWebHost(args);
                 StartWebServer(host);
             }
 
@@ -386,7 +385,7 @@ namespace OpcPlc
         /// <summary>
         /// Start web server to host pn.json.
         /// </summary>
-        private static void StartWebServer(IWebHost host)
+        private static void StartWebServer(IHost host)
         {
             try
             {
@@ -425,33 +424,34 @@ namespace OpcPlc
         /// <summary>
         /// Show and save pn.json
         /// </summary>
-        private static async Task DumpPublisherConfigJson(string endpointUrl)
+        private static async Task DumpPublisherConfigJson(string serverPath)
         {
+            const string NSS = "ns=2;s=";
             var sb = new StringBuilder();
 
             sb.Append("\n[\n");
             sb.Append("  {\n");
-            sb.Append($"    \"EndpointUrl\": \"{endpointUrl}\",\n");
+            sb.Append($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",\n");
             sb.Append("    \"UseSecurity\": false,\n");
             sb.Append("    \"OpcNodes\": [\n");
 
-            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=AlternatingBoolean\" },\n");
-            if (GenerateDips) sb.Append("      { \"Id\": \"ns=2;s=DipData\" },\n");
-            if (GenerateNegTrend) sb.Append("      { \"Id\": \"ns=2;s=NegativeTrendData\" },\n");
-            if (GeneratePosTrend) sb.Append("      { \"Id\": \"ns=2;s=PositiveTrendData\" },\n");
-            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomSignedInt32\" },\n");
-            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=RandomUnsignedInt32\" },\n");
-            if (GenerateSpikes) sb.Append("      { \"Id\": \"ns=2;s=SpikeData\" },\n");
-            if (GenerateData) sb.Append("      { \"Id\": \"ns=2;s=StepUp\" },\n");
+            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}AlternatingBoolean\" }},\n");
+            if (GenerateDips) sb.Append($"      {{ \"Id\": \"{NSS}DipData\" }},\n");
+            if (GenerateNegTrend) sb.Append($"      {{ \"Id\": \"{NSS}NegativeTrendData\" }},\n");
+            if (GeneratePosTrend) sb.Append($"      {{ \"Id\": \"{NSS}PositiveTrendData\" }},\n");
+            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}RandomSignedInt32\" }},\n");
+            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}RandomUnsignedInt32\" }},\n");
+            if (GenerateSpikes) sb.Append($"      {{ \"Id\": \"{NSS}SpikeData\" }},\n");
+            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}StepUp\" }},\n");
 
             for (int i = 0; i < SlowNodes; i++)
             {
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Slow{SlowNodeType}{i + 1}\" }},\n");
+                sb.Append($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\" }},\n");
             }
 
             for (int i = 0; i < FastNodes; i++)
             {
-                sb.Append($"      {{ \"Id\": \"ns=2;s=Fast{FastNodeType}{i + 1}\" }},\n");
+                sb.Append($"      {{ \"Id\": \"{NSS}Fast{FastNodeType}{i + 1}\" }},\n");
             }
 
             sb.Remove(sb.Length - 2, 2); // Trim trailing ,\n.
@@ -523,7 +523,7 @@ namespace OpcPlc
 
             if (ShowPublisherConfigJson)
             {
-                await DumpPublisherConfigJson($"opc.tcp://{GetIpAddress()}:{ServerPort}{ServerPath}");
+                await DumpPublisherConfigJson($"{GetIpAddress()}:{ServerPort}{ServerPath}");
             }
 
             Logger.Information("PLC Simulation started. Press CTRL-C to exit.");
@@ -622,8 +622,8 @@ namespace OpcPlc
             }
 
             Logger = loggerConfiguration.CreateLogger();
-            Logger.Information($"Current directory is: {System.IO.Directory.GetCurrentDirectory()}");
-            Logger.Information($"Log file is: {System.IO.Path.GetFullPath(_logFileName)}");
+            Logger.Information($"Current directory is: {Directory.GetCurrentDirectory()}");
+            Logger.Information($"Log file is: {Path.GetFullPath(_logFileName)}");
             Logger.Information($"Log level is: {_logLevel}");
             return;
         }
@@ -673,7 +673,7 @@ namespace OpcPlc
                     int next = 0;
                     first = s.IndexOf('"', next);
                     next = s.IndexOf('"', ++first);
-                    var fileName = s.Substring(first, next - first);
+                    string fileName = s[first..next];
                     if (File.Exists(fileName))
                     {
                         fileNames.Add(fileName);
@@ -718,18 +718,29 @@ namespace OpcPlc
         /// <summary>
         /// Configure web server.
         /// </summary>
-        public static IWebHost BuildWebHost(string[] args)
+        public static IHost CreateHostBuilder(string[] args)
         {
-            string exePath = Process.GetCurrentProcess().MainModule.FileName;
-            string directoryPath = Path.GetDirectoryName(exePath);
-
-            var host = WebHost.CreateDefaultBuilder(args)
-                .UseContentRoot(directoryPath) // Avoid System.InvalidOperationException.
-                .UseUrls($"http://*:{WebServerPort}")
-                .UseStartup<Startup>()
-                .Build();
+            var host = Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseContentRoot(Directory.GetCurrentDirectory()); // Avoid System.InvalidOperationException.
+                    webBuilder.UseUrls($"http://*:{WebServerPort}");
+                    webBuilder.UseStartup<Startup>();
+                }).Build();
 
             return host;
+        }
+
+        /// <summary>
+        /// Set app folder.
+        /// </summary>
+        private static void InitAppFolder()
+        {
+            string exePath = Process.GetCurrentProcess().MainModule.FileName;
+            string appFolder = Path.GetDirectoryName(exePath);
+
+            // ASP.NET Core 3.1 uses src as default current directory.
+            Directory.SetCurrentDirectory(appFolder);
         }
 
         private static string _logFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
