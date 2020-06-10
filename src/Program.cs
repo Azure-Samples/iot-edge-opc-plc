@@ -77,9 +77,14 @@ namespace OpcPlc
         public static string NodesFileName { get; set; }
 
         /// <summary>
-        /// Show configuration file for OPC Publisher.
+        /// Show OPC Publisher configuration file using IP address as EndpointUrl.
         /// </summary>
-        public static bool ShowPublisherConfigJson { get; set; }
+        public static bool ShowPublisherConfigJsonIp { get; set; }
+
+        /// <summary>
+        /// Show OPC Publisher configuration file using plchostname as EndpointUrl.
+        /// </summary>
+        public static bool ShowPublisherConfigJsonPh { get; set; }
 
         /// <summary>
         /// Web server port for hosting OPC Publisher file.
@@ -318,7 +323,8 @@ namespace OpcPlc
 
                 // misc
                 { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
-                { "sp|showpnjson", $"show OPC Publisher configuration file.\nDefault: {ShowPublisherConfigJson}", h => ShowPublisherConfigJson = h != null },
+                { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
+                { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {ShowPublisherConfigJsonPh}", h => ShowPublisherConfigJsonPh = h != null },
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint i) => WebServerPort = i },
             };
 
@@ -366,7 +372,7 @@ namespace OpcPlc
             Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
 
             using var host = CreateHostBuilder(args);
-            if (ShowPublisherConfigJson)
+            if (ShowPublisherConfigJsonIp || ShowPublisherConfigJsonPh)
             {
                 StartWebServer(host);
             }
@@ -521,9 +527,12 @@ namespace OpcPlc
             PlcSimulation = new PlcSimulation(PlcServer);
             PlcSimulation.Start();
 
-            if (ShowPublisherConfigJson)
+            if (ShowPublisherConfigJsonIp)
             {
                 await DumpPublisherConfigJson($"{GetIpAddress()}:{ServerPort}{ServerPath}");
+            }
+            else if (ShowPublisherConfigJsonPh) {
+                await DumpPublisherConfigJson($"{Hostname}:{ServerPort}{ServerPath}");
             }
 
             Logger.Information("PLC Simulation started. Press CTRL-C to exit.");
