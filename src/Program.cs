@@ -156,10 +156,10 @@ namespace OpcPlc
                 { "nv|nodatavalues", $"do not generate data values\nDefault: {!GenerateData}", a => GenerateData = a == null },
                 { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodes}", (uint i) => SlowNodes = i },
                 { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (uint i) => SlowNodeRate = i },
-                { "st|slowtype=", $"data type of slow nodes (UInt|Double|Bool|UIntArray)\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
+                { "st|slowtype=", $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
                 { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodes}", (uint i) => FastNodes = i },
                 { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
-                { "ft|fasttype=", $"data type of slow nodes (UInt|Double|Bool|UIntArray)\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
+                { "ft|fasttype=", $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
 
                 // opc configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
