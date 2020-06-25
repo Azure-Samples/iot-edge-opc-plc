@@ -1,17 +1,8 @@
-﻿
-using Opc.Ua;
-using System;
-using System.Security.Cryptography.X509Certificates;
-
-namespace OpcPlc
+﻿namespace OpcPlc
 {
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Net;
-    using System.Text;
+    using Opc.Ua;
+    using System;
     using System.Threading.Tasks;
-    using static Opc.Ua.CertificateStoreType;
     using static Program;
 
     /// <summary>
