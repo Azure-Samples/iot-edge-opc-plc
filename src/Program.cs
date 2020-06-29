@@ -450,20 +450,20 @@ namespace OpcPlc
             if (GenerateSpikes) sb.Append($"      {{ \"Id\": \"{NSS}SpikeData\" }},\n");
             if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}StepUp\" }},\n");
 
-            string slowSamplinInterval = SlowNodeRate > 1
-                ? $", \"OpcSamplingInterval\": {SlowNodeRate * 1000}"
+            string slowPublishingInterval = SlowNodeRate > 1
+                ? $", \"OpcPublishingInterval\": {SlowNodeRate * 1000}"
                 : "";
             for (int i = 0; i < SlowNodes; i++)
             {
-                sb.Append($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\"{slowSamplinInterval} }},\n");
+                sb.Append($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\"{slowPublishingInterval} }},\n");
             }
 
-            string fastSamplinInterval = FastNodeRate > 1
-               ? $", \"OpcSamplingInterval\": {FastNodeRate * 1000}"
+            string fastPublishingInterval = FastNodeRate > 1
+               ? $", \"OpcPublishingInterval\": {FastNodeRate * 1000}"
                : "";
             for (int i = 0; i < FastNodes; i++)
             {
-                sb.Append($"      {{ \"Id\": \"{NSS}Fast{FastNodeType}{i + 1}\"{fastSamplinInterval} }},\n");
+                sb.Append($"      {{ \"Id\": \"{NSS}Fast{FastNodeType}{i + 1}\"{fastPublishingInterval} }},\n");
             }
 
             sb.Remove(sb.Length - 2, 2); // Trim trailing ,\n.
