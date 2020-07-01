@@ -1,13 +1,11 @@
-﻿
-using Opc.Ua;
-using System;
-using System.Security.Cryptography.X509Certificates;
-
-namespace OpcPlc
+﻿namespace OpcPlc
 {
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
+    using Opc.Ua;
+    using System;
+    using System.Security.Cryptography.X509Certificates;
     using static Program;
 
     /// <summary>
@@ -89,26 +87,31 @@ namespace OpcPlc
         public async Task InitApplicationSecurityAsync()
         {
             // security configuration
-            ApplicationConfiguration.SecurityConfiguration = new SecurityConfiguration();
-
-            // configure trusted issuer certificates store
-            ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates = new CertificateTrustList();
+            ApplicationConfiguration.SecurityConfiguration = new SecurityConfiguration
+            {
+                // configure trusted issuer certificates store
+                TrustedIssuerCertificates = new CertificateTrustList()
+            };
             ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StoreType = CertificateStoreType.Directory;
             ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath = OpcIssuerCertStorePath;
             Logger.Information($"Trusted Issuer store type is: {ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StoreType}");
             Logger.Information($"Trusted Issuer Certificate store path is: {ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath}");
 
             // configure trusted peer certificates store
-            ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates = new CertificateTrustList();
-            ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StoreType = CertificateStoreType.Directory;
-            ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath = OpcTrustedCertStorePath;
+            ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates = new CertificateTrustList
+            {
+                StoreType = CertificateStoreType.Directory,
+                StorePath = OpcTrustedCertStorePath
+            };
             Logger.Information($"Trusted Peer Certificate store type is: {ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StoreType}");
             Logger.Information($"Trusted Peer Certificate store path is: {ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}");
 
             // configure rejected certificates store
-            ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore = new CertificateTrustList();
-            ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StoreType = CertificateStoreType.Directory;
-            ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath = OpcRejectedCertStorePath;
+            ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore = new CertificateTrustList
+            {
+                StoreType = CertificateStoreType.Directory,
+                StorePath = OpcRejectedCertStorePath
+            };
 
             Logger.Information($"Rejected certificate store type is: {ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StoreType}");
             Logger.Information($"Rejected Certificate store path is: {ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath}");
@@ -125,10 +128,12 @@ namespace OpcPlc
             Logger.Information($"Minimum certificate key size set to {ApplicationConfiguration.SecurityConfiguration.MinimumCertificateKeySize}");
 
             // configure application certificate store
-            ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate = new CertificateIdentifier();
-            ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StoreType = OpcOwnCertStoreType;
-            ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath = OpcOwnCertStorePath;
-            ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.SubjectName = ApplicationConfiguration.ApplicationName;
+            ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate = new CertificateIdentifier
+            {
+                StoreType = OpcOwnCertStoreType,
+                StorePath = OpcOwnCertStorePath,
+                SubjectName = ApplicationConfiguration.ApplicationName
+            };
             Logger.Information($"Application Certificate store type is: {ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StoreType}");
             Logger.Information($"Application Certificate store path is: {ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath}");
             Logger.Information($"Application Certificate subject name is: {ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.SubjectName}");
@@ -139,8 +144,8 @@ namespace OpcPlc
                 Logger.Warning("WARNING: Automatically accepting certificates. This is a security risk.");
                 ApplicationConfiguration.SecurityConfiguration.AutoAcceptUntrustedCertificates = true;
             }
-            ApplicationConfiguration.CertificateValidator = new Opc.Ua.CertificateValidator();
-            ApplicationConfiguration.CertificateValidator.CertificateValidation += new Opc.Ua.CertificateValidationEventHandler(CertificateValidator_CertificateValidation);
+            ApplicationConfiguration.CertificateValidator = new CertificateValidator();
+            ApplicationConfiguration.CertificateValidator.CertificateValidation += new CertificateValidationEventHandler(CertificateValidator_CertificateValidation);
 
             // update security information
             await ApplicationConfiguration.CertificateValidator.Update(ApplicationConfiguration.SecurityConfiguration);
@@ -235,11 +240,9 @@ namespace OpcPlc
                 // ensure it is trusted
                 try
                 {
-                    using (ICertificateStore trustedStore = ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore())
-                    {
-                        Logger.Information($"Adding server certificate to trusted peer store. StorePath={ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}");
-                        await trustedStore.Add(certificate);
-                    }
+                    using ICertificateStore trustedStore = ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore();
+                    Logger.Information($"Adding server certificate to trusted peer store. StorePath={ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}");
+                    await trustedStore.Add(certificate);
                 }
                 catch (Exception e)
                 {
@@ -332,24 +335,22 @@ namespace OpcPlc
             // show trusted issuer certs
             try
             {
-                using (ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.OpenStore())
+                using ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.OpenStore();
+                var certs = await certStore.Enumerate();
+                int certNum = 1;
+                Logger.Information($"Trusted issuer store contains {certs.Count} certs");
+                foreach (var cert in certs)
                 {
-                    var certs = await certStore.Enumerate();
-                    int certNum = 1;
-                    Logger.Information($"Trusted issuer store contains {certs.Count} certs");
-                    foreach (var cert in certs)
+                    Logger.Information($"{certNum++:D2}: Subject '{cert.Subject}' (thumbprint: {cert.GetCertHashString()})");
+                }
+                if (certStore.SupportsCRLs)
+                {
+                    var crls = certStore.EnumerateCRLs();
+                    int crlNum = 1;
+                    Logger.Information($"Trusted issuer store has {crls.Count} CRLs.");
+                    foreach (var crl in certStore.EnumerateCRLs())
                     {
-                        Logger.Information($"{certNum++:D2}: Subject '{cert.Subject}' (thumbprint: {cert.GetCertHashString()})");
-                    }
-                    if (certStore.SupportsCRLs)
-                    {
-                        var crls = certStore.EnumerateCRLs();
-                        int crlNum = 1;
-                        Logger.Information($"Trusted issuer store has {crls.Count} CRLs.");
-                        foreach (var crl in certStore.EnumerateCRLs())
-                        {
-                            Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdateTime}'");
-                        }
+                        Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdateTime}'");
                     }
                 }
             }
@@ -361,24 +362,22 @@ namespace OpcPlc
             // show trusted peer certs
             try
             {
-                using (ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore())
+                using ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore();
+                var certs = await certStore.Enumerate();
+                int certNum = 1;
+                Logger.Information($"Trusted peer store contains {certs.Count} certs");
+                foreach (var cert in certs)
                 {
-                    var certs = await certStore.Enumerate();
-                    int certNum = 1;
-                    Logger.Information($"Trusted peer store contains {certs.Count} certs");
-                    foreach (var cert in certs)
+                    Logger.Information($"{certNum++:D2}: Subject '{cert.Subject}' (thumbprint: {cert.GetCertHashString()})");
+                }
+                if (certStore.SupportsCRLs)
+                {
+                    var crls = certStore.EnumerateCRLs();
+                    int crlNum = 1;
+                    Logger.Information($"Trusted peer store has {crls.Count} CRLs.");
+                    foreach (var crl in certStore.EnumerateCRLs())
                     {
-                        Logger.Information($"{certNum++:D2}: Subject '{cert.Subject}' (thumbprint: {cert.GetCertHashString()})");
-                    }
-                    if (certStore.SupportsCRLs)
-                    {
-                        var crls = certStore.EnumerateCRLs();
-                        int crlNum = 1;
-                        Logger.Information($"Trusted peer store has {crls.Count} CRLs.");
-                        foreach (var crl in certStore.EnumerateCRLs())
-                        {
-                            Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdateTime}'");
-                        }
+                        Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdateTime}'");
                     }
                 }
             }
@@ -390,15 +389,13 @@ namespace OpcPlc
             // show rejected peer certs
             try
             {
-                using (ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.OpenStore())
+                using ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.OpenStore();
+                var certs = await certStore.Enumerate();
+                int certNum = 1;
+                Logger.Information($"Rejected certificate store contains {certs.Count} certs");
+                foreach (var cert in certs)
                 {
-                    var certs = await certStore.Enumerate();
-                    int certNum = 1;
-                    Logger.Information($"Rejected certificate store contains {certs.Count} certs");
-                    foreach (var cert in certs)
-                    {
-                        Logger.Information($"{certNum++:D2}: Subject '{cert.Subject}' (thumbprint: {cert.GetCertHashString()})");
-                    }
+                    Logger.Information($"{certNum++:D2}: Subject '{cert.Subject}' (thumbprint: {cert.GetCertHashString()})");
                 }
             }
             catch (Exception e)
@@ -410,7 +407,7 @@ namespace OpcPlc
         /// <summary>
         /// Event handler to validate certificates.
         /// </summary>
-        private static void CertificateValidator_CertificateValidation(Opc.Ua.CertificateValidator validator, Opc.Ua.CertificateValidationEventArgs e)
+        private static void CertificateValidator_CertificateValidation(CertificateValidator validator, CertificateValidationEventArgs e)
        {
             if (e.Error.StatusCode == Opc.Ua.StatusCodes.BadCertificateUntrusted)
             {
@@ -448,21 +445,19 @@ namespace OpcPlc
             try
             {
                 Logger.Information($"Starting to remove certificate(s) from trusted peer and trusted issuer store.");
-                using (ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath))
+                using ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath);
+                foreach (var thumbprint in thumbprintsToRemove)
                 {
-                    foreach (var thumbprint in thumbprintsToRemove)
+                    var certToRemove = await trustedStore.FindByThumbprint(thumbprint);
+                    if (certToRemove != null && certToRemove.Count > 0)
                     {
-                        var certToRemove = await trustedStore.FindByThumbprint(thumbprint);
-                        if (certToRemove != null && certToRemove.Count > 0)
+                        if (await trustedStore.Delete(thumbprint) == false)
                         {
-                            if (await trustedStore.Delete(thumbprint) == false)
-                            {
-                                Logger.Warning($"Failed to remove certificate with thumbprint '{thumbprint}' from the trusted peer store.");
-                            }
-                            else
-                            {
-                                Logger.Information($"Removed certificate with thumbprint '{thumbprint}' from the trusted peer store.");
-                            }
+                            Logger.Warning($"Failed to remove certificate with thumbprint '{thumbprint}' from the trusted peer store.");
+                        }
+                        else
+                        {
+                            Logger.Information($"Removed certificate with thumbprint '{thumbprint}' from the trusted peer store.");
                         }
                     }
                 }
@@ -476,21 +471,19 @@ namespace OpcPlc
             // search the trusted issuer store and remove certificates with a specified thumbprint
             try
             {
-                using (ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath))
+                using ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath);
+                foreach (var thumbprint in thumbprintsToRemove)
                 {
-                    foreach (var thumbprint in thumbprintsToRemove)
+                    var certToRemove = await issuerStore.FindByThumbprint(thumbprint);
+                    if (certToRemove != null && certToRemove.Count > 0)
                     {
-                        var certToRemove = await issuerStore.FindByThumbprint(thumbprint);
-                        if (certToRemove != null && certToRemove.Count > 0)
+                        if (await issuerStore.Delete(thumbprint) == false)
                         {
-                            if (await issuerStore.Delete(thumbprint) == false)
-                            {
-                                Logger.Warning($"Failed to delete certificate with thumbprint '{thumbprint}' from the trusted issuer store.");
-                            }
-                            else
-                            {
-                                Logger.Information($"Removed certificate with thumbprint '{thumbprint}' from the trusted issuer store.");
-                            }
+                            Logger.Warning($"Failed to delete certificate with thumbprint '{thumbprint}' from the trusted issuer store.");
+                        }
+                        else
+                        {
+                            Logger.Information($"Removed certificate with thumbprint '{thumbprint}' from the trusted issuer store.");
                         }
                     }
                 }
@@ -520,7 +513,7 @@ namespace OpcPlc
             }
 
             Logger.Information($"Starting to add certificate(s) to the {(issuerCertificate ? "trusted issuer" : "trusted peer")} store.");
-            X509Certificate2Collection certificatesToAdd = new X509Certificate2Collection();
+            var certificatesToAdd = new X509Certificate2Collection();
             try
             {
                 // validate the input and build issuer cert collection
@@ -561,20 +554,18 @@ namespace OpcPlc
             {
                 try
                 {
-                    using (ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath))
+                    using ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath);
+                    foreach (var certificateToAdd in certificatesToAdd)
                     {
-                        foreach (var certificateToAdd in certificatesToAdd)
+                        try
                         {
-                            try
-                            {
-                                await issuerStore.Add(certificateToAdd);
-                                Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted issuer store.");
-                            }
-                            catch (ArgumentException)
-                            {
-                                // ignore error if cert already exists in store
-                                Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' already exists in trusted issuer store.");
-                            }
+                            await issuerStore.Add(certificateToAdd);
+                            Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted issuer store.");
+                        }
+                        catch (ArgumentException)
+                        {
+                            // ignore error if cert already exists in store
+                            Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' already exists in trusted issuer store.");
                         }
                     }
                 }
@@ -588,20 +579,18 @@ namespace OpcPlc
             {
                 try
                 {
-                    using (ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath))
+                    using ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath);
+                    foreach (var certificateToAdd in certificatesToAdd)
                     {
-                        foreach (var certificateToAdd in certificatesToAdd)
+                        try
                         {
-                            try
-                            {
-                                await trustedStore.Add(certificateToAdd);
-                                Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted peer store.");
-                            }
-                            catch (ArgumentException)
-                            {
-                                // ignore error if cert already exists in store
-                                Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' already exists in trusted peer store.");
-                            }
+                            await trustedStore.Add(certificateToAdd);
+                            Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted peer store.");
+                        }
+                        catch (ArgumentException)
+                        {
+                            // ignore error if cert already exists in store
+                            Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' already exists in trusted peer store.");
                         }
                     }
                 }
@@ -865,9 +854,9 @@ namespace OpcPlc
                 if (!Utils.CompareDistinguishedName(newCertificate.Subject, newCertificate.Issuer))
                 {
                     // verify the new certificate was signed by a trusted issuer or trusted peer
-                    CertificateValidator certValidator = new CertificateValidator();
-                    CertificateTrustList verificationTrustList = new CertificateTrustList();
-                    CertificateIdentifierCollection verificationCollection = new CertificateIdentifierCollection();
+                    var certValidator = new CertificateValidator();
+                    var verificationTrustList = new CertificateTrustList();
+                    var verificationCollection = new CertificateIdentifierCollection();
                     using (ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath))
                     {
                         var certs = await issuerStore.Enumerate();

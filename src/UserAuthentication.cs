@@ -1,12 +1,10 @@
-using Opc.Ua;
-using Opc.Ua.Server;
-using System;
-using System.IdentityModel.Selectors;
-using System.Security.Cryptography.X509Certificates;
-using System.Xml;
-
 namespace OpcPlc
 {
+    using Opc.Ua;
+    using Opc.Ua.Server;
+    using System;
+    using System.IdentityModel.Selectors;
+    using System.Security.Cryptography.X509Certificates;
     using static Program;
 
     public partial class PlcServer
@@ -15,7 +13,7 @@ namespace OpcPlc
         /// Creates the objects used to validate the user identity tokens supported by the server.
         /// </summary>
         private void CreateUserIdentityValidators(ApplicationConfiguration configuration)
-        { 
+        {
             for (int ii = 0; ii < configuration.ServerConfiguration.UserTokenPolicies.Count; ii++)
             {
                 UserTokenPolicy policy = configuration.ServerConfiguration.UserTokenPolicies[ii];
@@ -27,7 +25,7 @@ namespace OpcPlc
                     if (configuration.SecurityConfiguration.TrustedUserCertificates != null &&
                         configuration.SecurityConfiguration.UserIssuerCertificates != null)
                     {
-                        CertificateValidator certificateValidator = new CertificateValidator();
+                        var certificateValidator = new CertificateValidator();
                         certificateValidator.Update(configuration.SecurityConfiguration).Wait();
                         certificateValidator.Update(configuration.SecurityConfiguration.UserIssuerCertificates,
                             configuration.SecurityConfiguration.TrustedUserCertificates,
@@ -71,7 +69,7 @@ namespace OpcPlc
             if (!((userName == DefaultUser && password == DefaultPassword)))
             {
                 // construct translation object with default text.
-                TranslationInfo info = new TranslationInfo(
+                var info = new TranslationInfo(
                     "InvalidPassword",
                     "en-US",
                     "Invalid username or password.",
@@ -94,12 +92,10 @@ namespace OpcPlc
         private void SessionManager_ImpersonateUser(Session session, ImpersonateEventArgs args)
         {
             // check for a WSS token.
-            IssuedIdentityToken wssToken = args.NewIdentity as IssuedIdentityToken;
+            //var wssToken = args.NewIdentity as IssuedIdentityToken;
 
             // check for a user name token.
-            UserNameIdentityToken userNameToken = args.NewIdentity as UserNameIdentityToken;
-
-            if (userNameToken != null)
+            if (args.NewIdentity is UserNameIdentityToken userNameToken)
             {
                 args.Identity = VerifyPassword(userNameToken);
                 Logger.Information($"UserName Token Accepted: {args.Identity.DisplayName}");
@@ -107,9 +103,7 @@ namespace OpcPlc
             }
 
             // check for x509 user token.
-            X509IdentityToken x509Token = args.NewIdentity as X509IdentityToken;
-
-            if (x509Token != null)
+            if (args.NewIdentity is X509IdentityToken x509Token)
             {
                 VerifyCertificate(x509Token.Certificate);
                 args.Identity = new UserIdentity(x509Token);
@@ -138,8 +132,8 @@ namespace OpcPlc
             {
                 TranslationInfo info;
                 StatusCode result = StatusCodes.BadIdentityTokenRejected;
-                ServiceResultException se = e as ServiceResultException;
-                if (se != null && se.StatusCode == StatusCodes.BadCertificateUseNotAllowed)
+                if (e is ServiceResultException se &&
+                    se.StatusCode == StatusCodes.BadCertificateUseNotAllowed)
                 {
                     info = new TranslationInfo(
                         "InvalidCertificate",

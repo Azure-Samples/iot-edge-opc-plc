@@ -1,8 +1,7 @@
-using System;
-using System.Threading;
-
 namespace OpcPlc
 {
+    using System;
+    using System.Threading;
     using static Program;
 
     public class PlcSimulation
@@ -114,7 +113,7 @@ namespace OpcPlc
         private void SpikeGenerator(object state)
         {
             // calculate next value
-            double nextValue = 0;
+            double nextValue;
             if (GenerateSpikes && _spikeCycleInPhase == _spikeAnomalyCycle)
             {
                 // todo calculate
@@ -144,7 +143,7 @@ namespace OpcPlc
         private void DipGenerator(object state)
         {
             // calculate next value
-            double nextValue = 0;
+            double nextValue;
             if (GenerateDips && _dipCycleInPhase == _dipAnomalyCycle)
             {
                 nextValue = SimulationMaxAmplitude * -10;
@@ -230,8 +229,8 @@ namespace OpcPlc
             _plcServer.PlcNodeManager.AlternatingBoolean = nextAlternatingBoolean;
 
             // calculate next Int values
-            _plcServer.PlcNodeManager.RandomSignedInt32 = _random.Next(Int32.MinValue, Int32.MaxValue);
-            _plcServer.PlcNodeManager.RandomUnsignedInt32 = (UInt32)_random.Next();
+            _plcServer.PlcNodeManager.RandomSignedInt32 = _random.Next(int.MinValue, int.MaxValue);
+            _plcServer.PlcNodeManager.RandomUnsignedInt32 = (uint)_random.Next();
 
             // increase step up value
             if (_stepUpStarted && (_cyclesInPhase % (SimulationCycleCount / 50) == 0))
@@ -288,8 +287,8 @@ namespace OpcPlc
         private const double SIMULATION_MAXAMPLITUDE_DEFAULT = 100.0;
         private const double TREND_BASEVALUE = 100.0;
 
-        private PlcServer _plcServer;
-        private Random _random;
+        private readonly PlcServer _plcServer;
+        private readonly Random _random;
         private int _cyclesInPhase;
         private Timer _dataGenerator;
         private bool _currentAlternatingBoolean;

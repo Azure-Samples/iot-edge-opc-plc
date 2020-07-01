@@ -1,23 +1,23 @@
-﻿using Mono.Options;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using Opc.Ua;
-using Serilog;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using static OpcPlc.OpcApplicationConfiguration;
-using static OpcPlc.PlcSimulation;
-using System.Net;
-using Microsoft.Extensions.Hosting;
-
-namespace OpcPlc
+﻿namespace OpcPlc
 {
+    using Mono.Options;
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Hosting;
+    using Opc.Ua;
+    using Serilog;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Linq;
+    using System.Reflection;
+    using System.Text;
+    using static OpcPlc.OpcApplicationConfiguration;
+    using static OpcPlc.PlcSimulation;
+    using System.Net;
+    using Microsoft.Extensions.Hosting;
+
     public class Program
     {
         /// <summary>
@@ -129,12 +129,12 @@ namespace OpcPlc
                         }
                         else
                         {
-                            throw new Mono.Options.OptionException("The logflushtimespan must be a positive number.", "logflushtimespan");
+                            throw new OptionException("The logflushtimespan must be a positive number.", "logflushtimespan");
                         }
                     }
                 },
                 { "ll|loglevel=", $"the loglevel to use (allowed: fatal, error, warn, info, debug, verbose).\nDefault: info", (string l) => {
-                        List<string> logLevels = new List<string> {"fatal", "error", "warn", "info", "debug", "verbose"};
+                        var logLevels = new List<string> {"fatal", "error", "warn", "info", "debug", "verbose"};
                         if (logLevels.Contains(l.ToLowerInvariant()))
                         {
                             _logLevel = l.ToLowerInvariant();
@@ -344,7 +344,7 @@ namespace OpcPlc
             {
                 // show message
                 Logger.Fatal(e, "Error in command line options");
-                Logger.Error($"Command line arguments: {String.Join(" ", args)}");
+                Logger.Error($"Command line arguments: {string.Join(" ", args)}");
                 // show usage
                 Usage(options);
                 return;
@@ -361,7 +361,7 @@ namespace OpcPlc
             if (extraArgs.Count > 0)
             {
                 Logger.Error("Error in command line options");
-                Logger.Error($"Command line arguments: {String.Join(" ", args)}");
+                Logger.Error($"Command line arguments: {string.Join(" ", args)}");
                 Usage(options);
                 return;
             }
@@ -435,27 +435,27 @@ namespace OpcPlc
             const string NSS = "ns=2;s=";
             var sb = new StringBuilder();
 
-            sb.Append("\n[\n");
-            sb.Append("  {\n");
-            sb.Append($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",\n");
-            sb.Append("    \"UseSecurity\": false,\n");
-            sb.Append("    \"OpcNodes\": [\n");
+            sb.AppendLine(Environment.NewLine + "[");
+            sb.AppendLine("  {");
+            sb.AppendLine($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",");
+            sb.AppendLine("    \"UseSecurity\": false,");
+            sb.AppendLine("    \"OpcNodes\": [");
 
-            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}AlternatingBoolean\" }},\n");
-            if (GenerateDips) sb.Append($"      {{ \"Id\": \"{NSS}DipData\" }},\n");
-            if (GenerateNegTrend) sb.Append($"      {{ \"Id\": \"{NSS}NegativeTrendData\" }},\n");
-            if (GeneratePosTrend) sb.Append($"      {{ \"Id\": \"{NSS}PositiveTrendData\" }},\n");
-            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}RandomSignedInt32\" }},\n");
-            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}RandomUnsignedInt32\" }},\n");
-            if (GenerateSpikes) sb.Append($"      {{ \"Id\": \"{NSS}SpikeData\" }},\n");
-            if (GenerateData) sb.Append($"      {{ \"Id\": \"{NSS}StepUp\" }},\n");
+            if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}AlternatingBoolean\" }},");
+            if (GenerateDips) sb.AppendLine($"      {{ \"Id\": \"{NSS}DipData\" }},");
+            if (GenerateNegTrend) sb.AppendLine($"      {{ \"Id\": \"{NSS}NegativeTrendData\" }},");
+            if (GeneratePosTrend) sb.AppendLine($"      {{ \"Id\": \"{NSS}PositiveTrendData\" }},");
+            if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}RandomSignedInt32\" }},");
+            if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}RandomUnsignedInt32\" }},");
+            if (GenerateSpikes) sb.AppendLine($"      {{ \"Id\": \"{NSS}SpikeData\" }},");
+            if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}StepUp\" }},");
 
             string slowPublishingInterval = SlowNodeRate > 1
                 ? $", \"OpcPublishingInterval\": {SlowNodeRate * 1000}"
                 : "";
             for (int i = 0; i < SlowNodes; i++)
             {
-                sb.Append($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\"{slowPublishingInterval} }},\n");
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\"{slowPublishingInterval} }},");
             }
 
             string fastPublishingInterval = FastNodeRate > 1
@@ -463,16 +463,17 @@ namespace OpcPlc
                : "";
             for (int i = 0; i < FastNodes; i++)
             {
-                sb.Append($"      {{ \"Id\": \"{NSS}Fast{FastNodeType}{i + 1}\"{fastPublishingInterval} }},\n");
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}Fast{FastNodeType}{i + 1}\"{fastPublishingInterval} }},");
             }
 
-            sb.Remove(sb.Length - 2, 2); // Trim trailing ,\n.
+            int newLineLen = Environment.NewLine.Length;
+            sb.Remove(sb.Length - newLineLen, newLineLen); // Trim trailing ,\n.
 
-            sb.Append("\n    ]\n");
-            sb.Append("  }\n");
-            sb.Append("]");
+            sb.AppendLine(Environment.NewLine + "    ]");
+            sb.AppendLine("  }");
+            sb.AppendLine("]");
 
-            string pnJson = sb.Replace("\n", Environment.NewLine).ToString();
+            string pnJson = sb.ToString();
             Logger.Information(PnJson + pnJson);
 
             await File.WriteAllTextAsync(PnJson, pnJson.Trim());
@@ -572,8 +573,8 @@ namespace OpcPlc
 
             // output the options
             Logger.Information("Options:");
-            StringBuilder stringBuilder = new StringBuilder();
-            System.IO.StringWriter stringWriter = new System.IO.StringWriter(stringBuilder);
+            var stringBuilder = new StringBuilder();
+            var stringWriter = new StringWriter(stringBuilder);
             options.WriteOptionDescriptions(stringWriter);
             string[] helpLines = stringBuilder.ToString().Split("\n");
             foreach (var line in helpLines)
@@ -657,7 +658,7 @@ namespace OpcPlc
                     int next = 0;
                     first = s.IndexOf('"', next);
                     next = s.IndexOf('"', ++first);
-                    strings.Add(s.Substring(first, next - first));
+                    strings.Add(s[first..next]);
                     s = s.Substring(++next);
                 }
             }

@@ -1,16 +1,12 @@
-
-using Opc.Ua;
-using Opc.Ua.Server;
-using Serilog.Core;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading;
-
 namespace OpcPlc
 {
+    using Opc.Ua;
+    using Opc.Ua.Server;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Reflection;
+    using System.Threading;
     using static Program;
 
     public partial class PlcServer : StandardServer
@@ -27,9 +23,9 @@ namespace OpcPlc
         /// </remarks>
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            List<INodeManager> nodeManagers = new List<INodeManager>();
+            var nodeManagers = new List<INodeManager>();
 
-            if(!String.IsNullOrEmpty(NodesFileName) && !File.Exists(NodesFileName))
+            if(!string.IsNullOrEmpty(NodesFileName) && !File.Exists(NodesFileName))
             {
                 string errorMessage = $"The user node configuration file {NodesFileName} does not exist.";
                 Logger.Error(errorMessage);
@@ -37,7 +33,7 @@ namespace OpcPlc
             }
             PlcNodeManager = new PlcNodeManager(server, configuration, NodesFileName);
             nodeManagers.Add(PlcNodeManager);
-            MasterNodeManager masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
+            var masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
 
             return masterNodeManager;
         }
@@ -50,7 +46,7 @@ namespace OpcPlc
         /// </remarks>
         protected override ServerProperties LoadServerProperties()
         {
-            ServerProperties properties = new ServerProperties
+            var properties = new ServerProperties
             {
                 ManufacturerName = "Microsoft",
                 ProductName = "IoTEdge OPC UA PLC",
@@ -67,7 +63,7 @@ namespace OpcPlc
         /// </summary>
         protected override ResourceManager CreateResourceManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            ResourceManager resourceManager = new ResourceManager(server, configuration);
+            var resourceManager = new ResourceManager(server, configuration);
 
             FieldInfo[] fields = typeof(StatusCodes).GetFields(BindingFlags.Public | BindingFlags.Static);
 
@@ -145,6 +141,6 @@ namespace OpcPlc
             base.OnServerStopping();
         }
 
-        private static uint _plcShutdownWaitPeriod = 10;
+        private static readonly uint _plcShutdownWaitPeriod = 10;
     }
 }
