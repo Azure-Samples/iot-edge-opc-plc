@@ -248,8 +248,8 @@ namespace OpcPlc
                     }
 
                     // Process slow/fast nodes
-                    _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodes, PlcSimulation.SlowNodeType);
-                    _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodes, PlcSimulation.FastNodeType);
+                    _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodeCount, PlcSimulation.SlowNodeType);
+                    _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodeCount, PlcSimulation.FastNodeType);
 
                     // process user configurable nodes
                     if (!string.IsNullOrEmpty(_nodeFileName))
@@ -326,7 +326,7 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Sets properies of the ResetTrend method.
+        /// Sets properties of the ResetTrend method.
         /// </summary>
         private void SetResetTrendMethodProperties(ref MethodState method)
         {
@@ -334,7 +334,7 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Sets properies of the ResetStepUp method.
+        /// Sets properties of the ResetStepUp method.
         /// </summary>
         private void SetResetStepUpMethodProperties(ref MethodState method)
         {
@@ -342,7 +342,7 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Sets properies of the StartStepUp method.
+        /// Sets properties of the StartStepUp method.
         /// </summary>
         private void SetStartStepUpMethodProperties(ref MethodState method)
         {
@@ -350,7 +350,7 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Sets properies of the StopStepUp method.
+        /// Sets properties of the StopStepUp method.
         /// </summary>
         private void SetStopStepUpMethodProperties(ref MethodState method)
         {

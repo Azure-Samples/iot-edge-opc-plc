@@ -154,12 +154,14 @@
                 { "np|nopostrend", $"do not generate positive trend data\nDefault: {!GeneratePosTrend}", a => GeneratePosTrend = a == null },
                 { "nn|nonegtrend", $"do not generate negative trend data\nDefault: {!GenerateNegTrend}", a => GenerateNegTrend = a == null },
                 { "nv|nodatavalues", $"do not generate data values\nDefault: {!GenerateData}", a => GenerateData = a == null },
-                { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodes}", (uint i) => SlowNodes = i },
+                { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodeCount}", (uint i) => SlowNodeCount = i },
                 { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (uint i) => SlowNodeRate = i },
                 { "st|slowtype=", $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
-                { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodes}", (uint i) => FastNodes = i },
+                { "ssi|slownodesamplinginterval=", $"rate in milliseconds to sample slow nodes\nDefault: {SlowNodeSamplingInterval}", (uint i) => SlowNodeSamplingInterval = i },
+                { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodeCount}", (uint i) => FastNodeCount = i },
                 { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
                 { "ft|fasttype=", $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
+                { "fsi|fastnodesamplinginterval=", $"rate in milliseconds to sample fast nodes\nDefault: {FastNodeSamplingInterval}", (uint i) => FastNodeSamplingInterval = i },
 
                 // opc configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
@@ -451,23 +453,29 @@
             if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}StepUp\" }},");
 
             string slowPublishingInterval = SlowNodeRate > 1
-                ? $", \"OpcPublishingInterval\": {SlowNodeRate * 1000}"
+                ? $", \"OpcPublishingInterval\": {SlowNodeRate * 1000}" // ms
                 : "";
-            for (int i = 0; i < SlowNodes; i++)
+            string slowSamplingInterval = SlowNodeSamplingInterval > 0
+                ? $", \"OpcSamplingInterval\": {SlowNodeSamplingInterval}" // ms
+                : "";
+            for (int i = 0; i < SlowNodeCount; i++)
             {
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\"{slowPublishingInterval} }},");
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\"{slowPublishingInterval}{slowSamplingInterval} }},");
             }
 
             string fastPublishingInterval = FastNodeRate > 1
-               ? $", \"OpcPublishingInterval\": {FastNodeRate * 1000}"
+               ? $", \"OpcPublishingInterval\": {FastNodeRate * 1000}" // ms
                : "";
-            for (int i = 0; i < FastNodes; i++)
+            string fastSamplingInterval = FastNodeSamplingInterval > 0
+                ? $", \"OpcSamplingInterval\": {FastNodeSamplingInterval}" // ms
+                : "";
+            for (int i = 0; i < FastNodeCount; i++)
             {
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}Fast{FastNodeType}{i + 1}\"{fastPublishingInterval} }},");
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}Fast{FastNodeType}{i + 1}\"{fastPublishingInterval}{fastSamplingInterval} }},");
             }
 
-            int newLineLen = Environment.NewLine.Length;
-            sb.Remove(sb.Length - newLineLen, newLineLen); // Trim trailing ,\n.
+            int trimLen = Environment.NewLine.Length + 1;
+            sb.Remove(sb.Length - trimLen, trimLen); // Trim trailing ,\n.
 
             sb.AppendLine(Environment.NewLine + "    ]");
             sb.AppendLine("  }");
