@@ -148,12 +148,12 @@
             ApplicationConfiguration.CertificateValidator.CertificateValidation += new CertificateValidationEventHandler(CertificateValidator_CertificateValidation);
 
             // update security information
-            await ApplicationConfiguration.CertificateValidator.Update(ApplicationConfiguration.SecurityConfiguration);
+            await ApplicationConfiguration.CertificateValidator.Update(ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
 
             // remove issuer and trusted certificates with the given thumbprints
             if (ThumbprintsToRemove?.Count > 0)
             {
-                if (!await RemoveCertificatesAsync(ThumbprintsToRemove))
+                if (!await RemoveCertificatesAsync(ThumbprintsToRemove).ConfigureAwait(false))
                 {
                     throw new Exception("Removing certificates failed.");
                 }
@@ -162,7 +162,7 @@
             // add trusted issuer certificates
             if (IssuerCertificateBase64Strings?.Count > 0 || IssuerCertificateFileNames?.Count > 0)
             {
-                if (!await AddCertificatesAsync(IssuerCertificateBase64Strings, IssuerCertificateFileNames, true))
+                if (!await AddCertificatesAsync(IssuerCertificateBase64Strings, IssuerCertificateFileNames, true).ConfigureAwait(false))
                 {
                     throw new Exception("Adding trusted issuer certificate(s) failed.");
                 }
@@ -171,7 +171,7 @@
             // add trusted peer certificates
             if (TrustedCertificateBase64Strings?.Count > 0 || TrustedCertificateFileNames?.Count > 0)
             {
-                if (!await AddCertificatesAsync(TrustedCertificateBase64Strings, TrustedCertificateFileNames, false))
+                if (!await AddCertificatesAsync(TrustedCertificateBase64Strings, TrustedCertificateFileNames, false).ConfigureAwait(false))
                 {
                     throw new Exception("Adding trusted peer certificate(s) failed.");
                 }
@@ -180,7 +180,7 @@
             // update CRL if requested
             if (!string.IsNullOrEmpty(CrlBase64String) || !string.IsNullOrEmpty(CrlFileName))
             {
-                if (!await UpdateCrlAsync(CrlBase64String, CrlFileName))
+                if (!await UpdateCrlAsync(CrlBase64String, CrlFileName).ConfigureAwait(false))
                 {
                     throw new Exception("CRL update failed.");
                 }
@@ -190,14 +190,14 @@
             X509Certificate2 certificate = null;
             if (!string.IsNullOrEmpty(NewCertificateBase64String) || !string.IsNullOrEmpty(NewCertificateFileName))
             {
-                if (!await UpdateApplicationCertificateAsync(NewCertificateBase64String, NewCertificateFileName, CertificatePassword, PrivateKeyBase64String, PrivateKeyFileName))
+                if (!await UpdateApplicationCertificateAsync(NewCertificateBase64String, NewCertificateFileName, CertificatePassword, PrivateKeyBase64String, PrivateKeyFileName).ConfigureAwait(false))
                 {
                         throw new Exception("Update/Setting of the application certificate failed.");
                 }
             }
 
             // use existing certificate, if it is there
-            certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Find(true);
+            certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Find(true).ConfigureAwait(false);
 
             // create a self signed certificate if there is none
             if (certificate == null)
@@ -224,7 +224,7 @@
 
                 // update security information
                 ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = certificate ?? throw new Exception("OPC UA application certificate can not be created! Cannot continue without it!");
-                await ApplicationConfiguration.CertificateValidator.UpdateCertificate(ApplicationConfiguration.SecurityConfiguration);
+                await ApplicationConfiguration.CertificateValidator.UpdateCertificate(ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
             }
             else
             {
@@ -242,7 +242,7 @@
                 {
                     using ICertificateStore trustedStore = ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore();
                     Logger.Information($"Adding server certificate to trusted peer store. StorePath={ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}");
-                    await trustedStore.Add(certificate);
+                    await trustedStore.Add(certificate).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -253,7 +253,7 @@
             // show CreateSigningRequest data
             if (ShowCreateSigningRequestInfo)
             {
-                await ShowCreateSigningRequestInformationAsync(certificate);
+                await ShowCreateSigningRequestInformationAsync(certificate).ConfigureAwait(false);
             }
         }
 
@@ -270,7 +270,7 @@
                     // fetch the certificate with the private key
                     try
                     {
-                        certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.LoadPrivateKey(null);
+                        certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.LoadPrivateKey(null).ConfigureAwait(false);
                     }
                     catch (Exception e)
                     {
@@ -312,7 +312,7 @@
                 Logger.Information($"---------------------------------------------------------------------------");
                 try
                 {
-                    await File.WriteAllBytesAsync($"{ApplicationConfiguration.ApplicationName}.csr", certificateSigningRequest);
+                    await File.WriteAllBytesAsync($"{ApplicationConfiguration.ApplicationName}.csr", certificateSigningRequest).ConfigureAwait(false);
                     Logger.Information($"Binary CSR written to '{ApplicationConfiguration.ApplicationName}.csr'");
                 }
                 catch (Exception e)
@@ -336,7 +336,7 @@
             try
             {
                 using ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.OpenStore();
-                var certs = await certStore.Enumerate();
+                var certs = await certStore.Enumerate().ConfigureAwait(false);
                 int certNum = 1;
                 Logger.Information($"Trusted issuer store contains {certs.Count} certs");
                 foreach (var cert in certs)
@@ -363,7 +363,7 @@
             try
             {
                 using ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore();
-                var certs = await certStore.Enumerate();
+                var certs = await certStore.Enumerate().ConfigureAwait(false);
                 int certNum = 1;
                 Logger.Information($"Trusted peer store contains {certs.Count} certs");
                 foreach (var cert in certs)
@@ -390,7 +390,7 @@
             try
             {
                 using ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.OpenStore();
-                var certs = await certStore.Enumerate();
+                var certs = await certStore.Enumerate().ConfigureAwait(false);
                 int certNum = 1;
                 Logger.Information($"Rejected certificate store contains {certs.Count} certs");
                 foreach (var cert in certs)
@@ -448,10 +448,10 @@
                 using ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath);
                 foreach (var thumbprint in thumbprintsToRemove)
                 {
-                    var certToRemove = await trustedStore.FindByThumbprint(thumbprint);
+                    var certToRemove = await trustedStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
                     if (certToRemove != null && certToRemove.Count > 0)
                     {
-                        if (await trustedStore.Delete(thumbprint) == false)
+                        if (await trustedStore.Delete(thumbprint).ConfigureAwait(false) == false)
                         {
                             Logger.Warning($"Failed to remove certificate with thumbprint '{thumbprint}' from the trusted peer store.");
                         }
@@ -474,10 +474,10 @@
                 using ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath);
                 foreach (var thumbprint in thumbprintsToRemove)
                 {
-                    var certToRemove = await issuerStore.FindByThumbprint(thumbprint);
+                    var certToRemove = await issuerStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
                     if (certToRemove != null && certToRemove.Count > 0)
                     {
-                        if (await issuerStore.Delete(thumbprint) == false)
+                        if (await issuerStore.Delete(thumbprint).ConfigureAwait(false) == false)
                         {
                             Logger.Warning($"Failed to delete certificate with thumbprint '{thumbprint}' from the trusted issuer store.");
                         }
@@ -559,7 +559,7 @@
                     {
                         try
                         {
-                            await issuerStore.Add(certificateToAdd);
+                            await issuerStore.Add(certificateToAdd).ConfigureAwait(false);
                             Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted issuer store.");
                         }
                         catch (ArgumentException)
@@ -584,7 +584,7 @@
                     {
                         try
                         {
-                            await trustedStore.Add(certificateToAdd);
+                            await trustedStore.Add(certificateToAdd).ConfigureAwait(false);
                             Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted peer store.");
                         }
                         catch (ArgumentException)
@@ -649,7 +649,7 @@
             using (ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath))
             {
                 bool trustedCrlIssuer = false;
-                var trustedCertificates = await trustedStore.Enumerate();
+                var trustedCertificates = await trustedStore.Enumerate().ConfigureAwait(false);
                 foreach (var trustedCertificate in trustedCertificates)
                 {
                     try
@@ -703,7 +703,7 @@
             using (ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath))
             {
                 bool trustedCrlIssuer = false;
-                var issuerCertificates = await issuerStore.Enumerate();
+                var issuerCertificates = await issuerStore.Enumerate().ConfigureAwait(false);
                 foreach (var issuerCertificate in issuerCertificates)
                 {
                     try
@@ -816,7 +816,7 @@
                 }
                 if (!string.IsNullOrEmpty(privateKeyFileName))
                 {
-                    privateKey = await File.ReadAllBytesAsync(privateKeyFileName);
+                    privateKey = await File.ReadAllBytesAsync(privateKeyFileName).ConfigureAwait(false);
                 }
             }
             catch (Exception e)
@@ -859,7 +859,7 @@
                     var verificationCollection = new CertificateIdentifierCollection();
                     using (ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath))
                     {
-                        var certs = await issuerStore.Enumerate();
+                        var certs = await issuerStore.Enumerate().ConfigureAwait(false);
                         foreach (var cert in certs)
                         {
                             verificationCollection.Add(new CertificateIdentifier(cert));
@@ -867,7 +867,7 @@
                     }
                     using (ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath))
                     {
-                        var certs = await trustedStore.Enumerate();
+                        var certs = await trustedStore.Enumerate().ConfigureAwait(false);
                         foreach (var cert in certs)
                         {
                             verificationCollection.Add(new CertificateIdentifier(cert));
@@ -923,7 +923,7 @@
                 {
                     if (hasApplicationCertificate)
                     {
-                        X509Certificate2 certWithPrivateKey = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.LoadPrivateKey(certificatePassword);
+                        X509Certificate2 certWithPrivateKey = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.LoadPrivateKey(certificatePassword).ConfigureAwait(false);
                         newCertificateWithPrivateKey = CertificateFactory.CreateCertificateWithPrivateKey(newCertificate, certWithPrivateKey);
                         newCertFormat = "DER";
                     }
@@ -962,7 +962,7 @@
                 Logger.Information($"Remove the existing application certificate.");
                 try
                 {
-                    if (hasApplicationCertificate && !await appStore.Delete(currentApplicationCertificate.Thumbprint))
+                    if (hasApplicationCertificate && !await appStore.Delete(currentApplicationCertificate.Thumbprint).ConfigureAwait(false))
                     {
                         Logger.Warning($"Removing the existing application certificate with thumbprint '{currentApplicationCertificate.Thumbprint}' failed.");
                     }
@@ -973,7 +973,7 @@
                 }
                 try
                 {
-                    await appStore.Add(newCertificateWithPrivateKey);
+                    await appStore.Add(newCertificateWithPrivateKey).ConfigureAwait(false);
                     Logger.Information($"The new application certificate '{newCertificateWithPrivateKey.SubjectName.Name}' and thumbprint '{newCertificateWithPrivateKey.Thumbprint}' was added to the application certificate store.");
                 }
                 catch (Exception e)
@@ -988,7 +988,7 @@
             {
                 Logger.Information($"Activating the new application certificate with thumbprint '{newCertificateWithPrivateKey.Thumbprint}'.");
                 ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = newCertificate;
-                await ApplicationConfiguration.CertificateValidator.UpdateCertificate(ApplicationConfiguration.SecurityConfiguration);
+                await ApplicationConfiguration.CertificateValidator.UpdateCertificate(ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
             }
             catch (Exception e)
             {

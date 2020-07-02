@@ -157,14 +157,14 @@
             }
 
             // security configuration
-            await InitApplicationSecurityAsync();
+            await InitApplicationSecurityAsync().ConfigureAwait(false);
 
             // set LDS registration interval
             ApplicationConfiguration.ServerConfiguration.MaxRegistrationInterval = LdsRegistrationInterval;
             Logger.Information($"LDS(-ME) registration intervall set to {LdsRegistrationInterval} ms (0 means no registration)");
 
             // show certificate store information
-            await ShowCertificateStoreInformationAsync();
+            await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
 
             return ApplicationConfiguration;
         }

@@ -432,7 +432,7 @@
         /// <summary>
         /// Show and save pn.json
         /// </summary>
-        private static async Task DumpPublisherConfigJson(string serverPath)
+        private static async Task DumpPublisherConfigJsonAsync(string serverPath)
         {
             const string NSS = "ns=2;s=";
             var sb = new StringBuilder();
@@ -484,7 +484,7 @@
             string pnJson = sb.ToString();
             Logger.Information(PnJson + pnJson);
 
-            await File.WriteAllTextAsync(PnJson, pnJson.Trim());
+            await File.WriteAllTextAsync(PnJson, pnJson.Trim()).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -544,10 +544,10 @@
 
             if (ShowPublisherConfigJsonIp)
             {
-                await DumpPublisherConfigJson($"{GetIpAddress()}:{ServerPort}{ServerPath}");
+                await DumpPublisherConfigJsonAsync($"{GetIpAddress()}:{ServerPort}{ServerPath}").ConfigureAwait(false);
             }
             else if (ShowPublisherConfigJsonPh) {
-                await DumpPublisherConfigJson($"{Hostname}:{ServerPort}{ServerPath}");
+                await DumpPublisherConfigJsonAsync($"{Hostname}:{ServerPort}{ServerPath}").ConfigureAwait(false);
             }
 
             Logger.Information("PLC Simulation started. Press CTRL-C to exit.");

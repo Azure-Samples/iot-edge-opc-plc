@@ -37,7 +37,7 @@ namespace OpcPlc
                     File.Exists(Program.PnJson))
                 {
                     context.Response.ContentType = "application/json";
-                    await context.Response.WriteAsync(await File.ReadAllTextAsync(Program.PnJson));
+                    await context.Response.WriteAsync(await File.ReadAllTextAsync(Program.PnJson).ConfigureAwait(false)).ConfigureAwait(false);
                 } else
                 {
                     context.Response.StatusCode = 404;
