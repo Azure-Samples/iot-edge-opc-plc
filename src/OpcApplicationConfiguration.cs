@@ -78,23 +78,27 @@
             // instead of using a configuration XML file, we configure everything programmatically
 
             // passed in as command line argument
-            ApplicationConfiguration = new ApplicationConfiguration();
-            ApplicationConfiguration.ApplicationName = ApplicationName;
-            ApplicationConfiguration.ApplicationUri = ApplicationUri;
-            ApplicationConfiguration.ProductUri = ProductUri;
-            ApplicationConfiguration.ApplicationType = ApplicationType.Server;
+            ApplicationConfiguration = new ApplicationConfiguration
+            {
+                ApplicationName = ApplicationName,
+                ApplicationUri = ApplicationUri,
+                ProductUri = ProductUri,
+                ApplicationType = ApplicationType.Server,
 
-            // configure OPC stack tracing
-            ApplicationConfiguration.TraceConfiguration = new TraceConfiguration();
+                // configure OPC stack tracing
+                TraceConfiguration = new TraceConfiguration()
+            };
             ApplicationConfiguration.TraceConfiguration.TraceMasks = OpcStackTraceMask;
             ApplicationConfiguration.TraceConfiguration.ApplySettings();
             Utils.Tracing.TraceEventHandler += new EventHandler<TraceEventArgs>(LoggerOpcUaTraceHandler);
             Logger.Information($"opcstacktracemask set to: 0x{OpcStackTraceMask:X}");
 
             // configure transport settings
-            ApplicationConfiguration.TransportQuotas = new TransportQuotas();
-            ApplicationConfiguration.TransportQuotas.MaxStringLength = OpcMaxStringLength;
-            ApplicationConfiguration.TransportQuotas.MaxMessageSize = 4 * 1024 * 1024;
+            ApplicationConfiguration.TransportQuotas = new TransportQuotas
+            {
+                MaxStringLength = OpcMaxStringLength,
+                MaxMessageSize = 4 * 1024 * 1024
+            };
 
             // configure OPC UA server
             ApplicationConfiguration.ServerConfiguration = new ServerConfiguration();
@@ -111,7 +115,7 @@
             }
 
             // by default use high secure transport
-            ServerSecurityPolicy newPolicy = new ServerSecurityPolicy()
+            var newPolicy = new ServerSecurityPolicy()
             {
                 SecurityMode = MessageSecurityMode.SignAndEncrypt,
                 SecurityPolicyUri = SecurityPolicies.Basic256Sha256
@@ -120,7 +124,7 @@
             Logger.Information($"Security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
 
             // add user token policies
-            UserTokenPolicyCollection userTokenPolicies = new UserTokenPolicyCollection();
+            var userTokenPolicies = new UserTokenPolicyCollection();
 
             if (!DisableAnonymousAuth)
             {
@@ -153,14 +157,14 @@
             }
 
             // security configuration
-            await InitApplicationSecurityAsync();
+            await InitApplicationSecurityAsync().ConfigureAwait(false);
 
             // set LDS registration interval
             ApplicationConfiguration.ServerConfiguration.MaxRegistrationInterval = LdsRegistrationInterval;
             Logger.Information($"LDS(-ME) registration intervall set to {LdsRegistrationInterval} ms (0 means no registration)");
 
             // show certificate store information
-            await ShowCertificateStoreInformationAsync();
+            await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
 
             return ApplicationConfiguration;
         }
@@ -175,12 +179,10 @@
             {
                 return;
             }
-
             // e.Exception and e.Message are always null
 
             // format the trace message
-            string message = string.Empty;
-            message = string.Format(e.Format, e.Arguments).Trim();
+            string message = string.Format(e.Format, e.Arguments).Trim();
             message = "OPC: " + message;
 
             // map logging level

@@ -1,13 +1,13 @@
-using System.IO;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-
 namespace OpcPlc
 {
+    using System.IO;
+    using Microsoft.AspNetCore.Builder;
+    using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Http;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
+
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -37,7 +37,7 @@ namespace OpcPlc
                     File.Exists(Program.PnJson))
                 {
                     context.Response.ContentType = "application/json";
-                    await context.Response.WriteAsync(await File.ReadAllTextAsync(Program.PnJson));
+                    await context.Response.WriteAsync(await File.ReadAllTextAsync(Program.PnJson).ConfigureAwait(false)).ConfigureAwait(false);
                 } else
                 {
                     context.Response.StatusCode = 404;

@@ -1,19 +1,18 @@
-using Newtonsoft.Json;
-using Opc.Ua;
-using Opc.Ua.Server;
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace OpcPlc
 {
+    using Newtonsoft.Json;
+    using Opc.Ua;
+    using Opc.Ua.Server;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
     using static Program;
 
     public class PlcNodeManager : CustomNodeManager2
     {
-        public UInt32 RandomUnsignedInt32
+        public uint RandomUnsignedInt32
         {
-            get => (UInt32)_randomUnsignedInt32.Value;
+            get => (uint)_randomUnsignedInt32.Value;
             set
             {
                 _randomUnsignedInt32.Value = value;
@@ -22,9 +21,9 @@ namespace OpcPlc
             }
         }
 
-        public Int32 RandomSignedInt32
+        public int RandomSignedInt32
         {
-            get => (Int32)_randomSignedInt32.Value;
+            get => (int)_randomSignedInt32.Value;
             set
             {
                 _randomSignedInt32.Value = value;
@@ -171,7 +170,7 @@ namespace OpcPlc
         /// </summary>
         private FolderState CreateFolder(NodeState parent, string path, string name)
         {
-            FolderState folder = new FolderState(parent)
+            var folder = new FolderState(parent)
             {
                 SymbolicName = name,
                 ReferenceTypeId = ReferenceTypes.Organizes,
@@ -205,9 +204,7 @@ namespace OpcPlc
         {
             lock (Lock)
             {
-                IList<IReference> references = null;
-
-                if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out references))
+                if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
                 {
                     externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
                 }
@@ -218,7 +215,7 @@ namespace OpcPlc
                 root.EventNotifier = EventNotifiers.SubscribeToEvents;
                 AddRootNotifier(root);
 
-                List<BaseDataVariableState> variables = new List<BaseDataVariableState>();
+                var variables = new List<BaseDataVariableState>();
 
                 try
                 {
@@ -251,14 +248,14 @@ namespace OpcPlc
                     }
 
                     // Process slow/fast nodes
-                    _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodes, PlcSimulation.SlowNodeType);
-                    _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodes, PlcSimulation.FastNodeType);
+                    _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodeCount, PlcSimulation.SlowNodeType);
+                    _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodeCount, PlcSimulation.FastNodeType);
 
                     // process user configurable nodes
-                    if (!String.IsNullOrEmpty(_nodeFileName))
+                    if (!string.IsNullOrEmpty(_nodeFileName))
                     {
                         string json;
-                        using (StreamReader reader = new StreamReader(_nodeFileName))
+                        using (var reader = new StreamReader(_nodeFileName))
                         {
                             json = reader.ReadToEnd();
                         }
@@ -278,12 +275,12 @@ namespace OpcPlc
                                 Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal and string are supported. Default to string.");
                                 node.NodeId = node.NodeId.ToString();
                             }
-                            var typedNodeId = $"{(node.NodeId.GetType() == Type.GetType("System.Int64") ? "i=" : "s=")}{node.NodeId.ToString()}";
-                            if (String.IsNullOrEmpty(node.Name))
+                            string typedNodeId = $"{(node.NodeId.GetType() == Type.GetType("System.Int64") ? "i=" : "s=")}{node.NodeId.ToString()}";
+                            if (string.IsNullOrEmpty(node.Name))
                             {
                                 node.Name = typedNodeId;
                             }
-                            if (String.IsNullOrEmpty(node.Description))
+                            if (string.IsNullOrEmpty(node.Description))
                             {
                                 node.Description = node.Name;
                             }
@@ -329,7 +326,7 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Sets properies of the ResetTrend method.
+        /// Sets properties of the ResetTrend method.
         /// </summary>
         private void SetResetTrendMethodProperties(ref MethodState method)
         {
@@ -337,7 +334,7 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Sets properies of the ResetStepUp method.
+        /// Sets properties of the ResetStepUp method.
         /// </summary>
         private void SetResetStepUpMethodProperties(ref MethodState method)
         {
@@ -345,7 +342,7 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Sets properies of the StartStepUp method.
+        /// Sets properties of the StartStepUp method.
         /// </summary>
         private void SetStartStepUpMethodProperties(ref MethodState method)
         {
@@ -353,7 +350,7 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Sets properies of the StopStepUp method.
+        /// Sets properties of the StopStepUp method.
         /// </summary>
         private void SetStopStepUpMethodProperties(ref MethodState method)
         {
@@ -365,11 +362,13 @@ namespace OpcPlc
         /// </summary>
         private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, object defaultValue = null)
         {
-            BaseDataVariableState variable = new BaseDataVariableState(parent);
+            var variable = new BaseDataVariableState(parent)
+            {
+                SymbolicName = name,
+                ReferenceTypeId = ReferenceTypes.Organizes,
+                TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+            };
 
-            variable.SymbolicName = name;
-            variable.ReferenceTypeId = ReferenceTypes.Organizes;
-            variable.TypeDefinitionId = VariableTypeIds.BaseDataVariableType;
             if (path.GetType() == Type.GetType("System.Int64"))
             {
                 variable.NodeId = new NodeId((uint)path, NamespaceIndex);
@@ -415,8 +414,7 @@ namespace OpcPlc
         /// </summary>
         private void CreateBaseVariable(NodeState parent, ConfigNode node)
         {
-            BuiltInType nodeDataType;
-            if (Enum.TryParse(node.DataType, out nodeDataType) == false)
+            if (Enum.TryParse(node.DataType, out BuiltInType nodeDataType) == false)
             {
                 Logger.Error($"Value '{node.DataType}' of node '{node.NodeId}' cannot be parsed. Defaulting to 'Int32'");
                 node.DataType = "Int32";
@@ -595,7 +593,7 @@ namespace OpcPlc
         /// </summary>
         private MethodState CreateMethod(NodeState parent, string path, string name, string description)
         {
-            MethodState method = new MethodState(parent)
+            var method = new MethodState(parent)
             {
                 SymbolicName = name,
                 ReferenceTypeId = ReferenceTypeIds.HasComponent,
@@ -622,7 +620,7 @@ namespace OpcPlc
         /// </summary>
         private MethodState CreateMethod(NodeState parent, uint id, string name)
         {
-            MethodState method = new MethodState(parent)
+            var method = new MethodState(parent)
             {
                 SymbolicName = name,
                 ReferenceTypeId = ReferenceTypeIds.HasComponent,

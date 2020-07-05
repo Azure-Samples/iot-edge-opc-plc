@@ -1,12 +1,9 @@
-﻿using Newtonsoft.Json;
-using Opc.Ua;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Text;
-
-namespace OpcPlc
+﻿namespace OpcPlc
 {
+    using Newtonsoft.Json;
+    using System.Collections.Generic;
+    using System.ComponentModel;
+
     /// <summary>
     /// Defines the configuration folder, which holds the list of nodes.
     /// </summary>
@@ -41,5 +38,5 @@ namespace OpcPlc
 
         public string Description { get; set; }
 
-    } 
+    }
 }
