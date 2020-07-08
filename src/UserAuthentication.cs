@@ -3,7 +3,6 @@ namespace OpcPlc
     using Opc.Ua;
     using Opc.Ua.Server;
     using System;
-    using System.IdentityModel.Selectors;
     using System.Security.Cryptography.X509Certificates;
     using static Program;
 
@@ -162,6 +161,6 @@ namespace OpcPlc
             }
         }
 
-        private X509CertificateValidator m_certificateValidator;
+        private ICertificateValidator m_certificateValidator;
     }
 }

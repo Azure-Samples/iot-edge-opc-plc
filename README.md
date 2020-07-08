@@ -40,7 +40,7 @@ There is no installation required.
 
 A Docker container of the component is hosted in the Microsoft Container Registry and can be pulled by:
 ~~~
-docker pull mcr.microsoft.com/iotedge/opc-plc
+docker pull mcr.microsoft.com/iotedge/opc-plc:1.1.6
 ~~~
 The tags of the container match the tags of this repository and the containers are available for Windows and Linux. 
 

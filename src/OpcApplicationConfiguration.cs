@@ -161,10 +161,13 @@
 
             // set LDS registration interval
             ApplicationConfiguration.ServerConfiguration.MaxRegistrationInterval = LdsRegistrationInterval;
-            Logger.Information($"LDS(-ME) registration intervall set to {LdsRegistrationInterval} ms (0 means no registration)");
+            Logger.Information($"LDS(-ME) registration interval set to {LdsRegistrationInterval} ms (0 means no registration)");
 
             // show certificate store information
             await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
+
+            // Support larger number of nodes per subscription (tested with 50k).
+            ApplicationConfiguration.ServerConfiguration.MaxMessageQueueSize = 1000;
 
             return ApplicationConfiguration;
         }
