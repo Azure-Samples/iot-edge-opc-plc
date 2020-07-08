@@ -108,7 +108,7 @@ namespace OpcPlc
             IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType);
         }
 
-        private void IncreaseNodes(BaseVariableState[] nodes, NodeType type)
+        private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type)
         {
             for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
             {

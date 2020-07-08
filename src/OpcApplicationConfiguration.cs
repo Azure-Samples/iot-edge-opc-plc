@@ -166,8 +166,10 @@
             // show certificate store information
             await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
 
-            // Support larger number of nodes per subscription (tested with 50k).
-            ApplicationConfiguration.ServerConfiguration.MaxMessageQueueSize = 1000;
+            // Support larger number of nodes.
+            ApplicationConfiguration.ServerConfiguration.MaxMessageQueueSize = MAX_MESSAGE_QUEUE_SIZE;
+            ApplicationConfiguration.ServerConfiguration.MaxNotificationsPerPublish = MAX_NOTIFICATIONS_PER_PUBLISH;
+            ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount = MAX_SUBSCRIPTION_COUNT;
 
             return ApplicationConfiguration;
         }
@@ -221,6 +223,10 @@
             }
             return;
         }
+
+        private const int MAX_MESSAGE_QUEUE_SIZE = 200000;
+        private const int MAX_NOTIFICATIONS_PER_PUBLISH = 200000;
+        private const int MAX_SUBSCRIPTION_COUNT = 200;
 
         private static string _hostname = $"{Utils.GetHostName().ToLowerInvariant()}";
     }
