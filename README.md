@@ -40,7 +40,7 @@ There is no installation required.
 
 A Docker container of the component is hosted in the Microsoft Container Registry and can be pulled by:
 ~~~
-docker pull mcr.microsoft.com/iotedge/opc-plc
+docker pull mcr.microsoft.com/iotedge/opc-plc:<See version.json>
 ~~~
 The tags of the container match the tags of this repository and the containers are available for Windows and Linux. 
 
@@ -101,16 +101,16 @@ A number of changing nodes can be simulated with the following options. The node
 
 Sample start command on a Windows host:
 ~~~
-opcplc.exe --pn=50000 --at X509Store --autoaccept --nospikes --nodips --nopostrend --nonegtrend --nodatavalues --sp --sn=25 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint
+opcplc.exe --pn=50000 --at X509Store --autoaccept --nospikes --nodips --nopostrend --nonegtrend --nodatavalues --sph --sn=25 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint
 ~~~
 
 Sample start command for Docker:
 ~~~
-docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/iotedge/opc-plc:latest --pn=50000 --autoaccept --nospikes --nodips --nopostrend --nonegtrend --nodatavalues --sp --sn=25 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint
+docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/iotedge/opc-plc:latest --pn=50000 --autoaccept --nospikes --nodips --nopostrend --nonegtrend --nodatavalues --sph --sn=25 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint
 ~~~
 
 ## OPC Publisher file (pn.json)
-The option `sp` shows and dumps a pn.json file that matches the configuration. In addition, a web server hosts the file on a configurable port (`wp`, default 8080): e.g. http://localhost:8080/pn.json
+The option `sph` shows and dumps a pn.json file that matches the configuration. In addition, a web server hosts the file on a configurable port (`wp`, default 8080): e.g. http://localhost:8080/pn.json
 
 ## Build
 

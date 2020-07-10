@@ -108,7 +108,7 @@ namespace OpcPlc
             IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType);
         }
 
-        private void IncreaseNodes(BaseVariableState[] nodes, NodeType type)
+        private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type)
         {
             for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
             {
@@ -191,7 +191,6 @@ namespace OpcPlc
             return folder;
         }
 
-
         /// <summary>
         /// Does any initialization required before the address space can be used.
         /// </summary>
@@ -230,6 +229,10 @@ namespace OpcPlc
                     if (PlcSimulation.GeneratePosTrend) _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend");
                     if (PlcSimulation.GenerateNegTrend) _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend");
 
+                    // Process slow/fast nodes
+                    _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodeCount, PlcSimulation.SlowNodeType);
+                    _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodeCount, PlcSimulation.FastNodeType);
+
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods");
                     if (PlcSimulation.GeneratePosTrend || PlcSimulation.GenerateNegTrend)
                     {
@@ -246,10 +249,6 @@ namespace OpcPlc
                         MethodState stopStepUpMethod = CreateMethod(methodsFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter");
                         SetStopStepUpMethodProperties(ref stopStepUpMethod);
                     }
-
-                    // Process slow/fast nodes
-                    _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodeCount, PlcSimulation.SlowNodeType);
-                    _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodeCount, PlcSimulation.FastNodeType);
 
                     // process user configurable nodes
                     if (!string.IsNullOrEmpty(_nodeFileName))
