@@ -117,7 +117,9 @@ The option `sph` shows and dumps a pn.json file that matches the configuration. 
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR you need to:
 
 - Create a **service connection** called azureiiot to the subscription/resource group in which your ACR is located
-- Set a variable called **azureContainerRegistry** with the name of your Azure Container Registry
+- Set a variable called **BUILD_REGISTRY** with the name of your Azure Container Registry
+
+Using `tools/scripts/build.ps1` you can also build with Docker Desktop locally.
 
 ## Notes
 
