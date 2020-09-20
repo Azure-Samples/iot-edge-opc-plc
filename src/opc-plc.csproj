@@ -7,6 +7,7 @@
     <PackageId>OpcPlc</PackageId>
     <Authors>Microsoft</Authors>
     <RootNamespace>OpcPlc</RootNamespace>
+    <UserSecretsId>bdf7b209-fef3-44d4-9aba-17035fda5efd</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,7 +19,7 @@
   <ItemGroup>
     <PackageReference Include="Mono.Options" Version="6.6.0.161" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Symbols" Version="1.4.362.42" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Symbols" Version="1.4.363.49" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.1" />
     <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
@@ -31,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="Nerdbank.GitVersioning" Version="3.1.91" />
+    <PackageReference Update="Nerdbank.GitVersioning" Version="3.2.31" />
   </ItemGroup>
 
 </Project>

@@ -20,7 +20,7 @@ Param(
 )
 
 if ([string]::IsNullOrEmpty($ImageName)) {
-    throw "Must specifiy an image name"
+    throw "Must specify an image name"
 }
 
 Write-Host "Building $($ImageName)"
