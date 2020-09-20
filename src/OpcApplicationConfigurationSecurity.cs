@@ -202,8 +202,8 @@
             // create a self signed certificate if there is none
             if (certificate == null)
             {
-                Logger.Information($"No existing Application certificate found. Create a self-signed Application certificate valid from yesterday for {CertificateFactory.defaultLifeTime} months,");
-                Logger.Information($"with a {CertificateFactory.defaultKeySize} bit key and {CertificateFactory.defaultHashSize} bit hash.");
+                Logger.Information($"No existing Application certificate found. Create a self-signed Application certificate valid from yesterday for {CertificateFactory.DefaultLifeTime} months,");
+                Logger.Information($"with a {CertificateFactory.DefaultKeySize} bit key and {CertificateFactory.DefaultHashSize} bit hash.");
                 certificate = CertificateFactory.CreateCertificate(
                     ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StoreType,
                     ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath,
@@ -212,10 +212,10 @@
                     ApplicationConfiguration.ApplicationName,
                     ApplicationConfiguration.ApplicationName,
                     null,
-                    CertificateFactory.defaultKeySize,
+                    CertificateFactory.DefaultKeySize,
                     DateTime.UtcNow - TimeSpan.FromDays(1),
-                    CertificateFactory.defaultLifeTime,
-                    CertificateFactory.defaultHashSize,
+                    CertificateFactory.DefaultLifeTime,
+                    CertificateFactory.DefaultHashSize,
                     false,
                     null,
                     null
@@ -246,7 +246,7 @@
                 }
                 catch (Exception e)
                 {
-                    Logger.Warning(e, $"Can not add server certificate to trusted peer store. Maybe it is already there.");
+                    Logger.Warning(e, "Can not add server certificate to trusted peer store. Maybe it is already there.");
                 }
             }
 
@@ -274,7 +274,7 @@
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e, $"Error while loading private key.");
+                        Logger.Error(e, "Error while loading private key.");
                         return;
                     }
                 }
@@ -285,10 +285,10 @@
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, $"Error while creating signing request.");
+                    Logger.Error(e, "Error while creating signing request.");
                     return;
                 }
-                Logger.Information($"----------------------- CreateSigningRequest information ------------------");
+                Logger.Information("----------------------- CreateSigningRequest information ------------------");
                 Logger.Information($"ApplicationUri: {ApplicationConfiguration.ApplicationUri}");
                 Logger.Information($"ApplicationName: {ApplicationConfiguration.ApplicationName}");
                 Logger.Information($"ApplicationType: {ApplicationConfiguration.ApplicationType}");
@@ -307,9 +307,9 @@
                     string[] serverCapabilities = ApplicationConfiguration.ServerConfiguration.ServerCapabilities.ToArray();
                     Logger.Information($"ServerCapabilities: {string.Join(", ", serverCapabilities)}");
                 }
-                Logger.Information($"CSR (base64 encoded):");
+                Logger.Information("CSR (base64 encoded):");
                 Console.WriteLine($"{ Convert.ToBase64String(certificateSigningRequest)}");
-                Logger.Information($"---------------------------------------------------------------------------");
+                Logger.Information("---------------------------------------------------------------------------");
                 try
                 {
                     await File.WriteAllBytesAsync($"{ApplicationConfiguration.ApplicationName}.csr", certificateSigningRequest).ConfigureAwait(false);
@@ -317,7 +317,7 @@
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, $"Error while writing .csr file.");
+                    Logger.Error(e, "Error while writing .csr file.");
                 }
             }
             catch (Exception e)
@@ -325,7 +325,6 @@
                 Logger.Error(e, "Error in CSR creation");
             }
         }
-
 
         /// <summary>
         /// Show all certificates in the certificate stores.
@@ -423,7 +422,7 @@
                     Logger.Information($"{OpcApplicationConfiguration.ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath}/certs");
                     Logger.Information("to the directory:");
                     Logger.Information($"{OpcApplicationConfiguration.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}/certs");
-                    Logger.Information($"Rejecting certificate for now.");
+                    Logger.Information("Rejecting certificate for now.");
                 }
             }
         }
@@ -437,21 +436,21 @@
 
             if (thumbprintsToRemove.Count == 0)
             {
-                Logger.Error($"There is no thumbprint specified for certificates to remove. Please check your command line options.");
+                Logger.Error("There is no thumbprint specified for certificates to remove. Please check your command line options.");
                 return false;
             }
 
             // search the trusted peer store and remove certificates with a specified thumbprint
             try
             {
-                Logger.Information($"Starting to remove certificate(s) from trusted peer and trusted issuer store.");
+                Logger.Information("Starting to remove certificate(s) from trusted peer and trusted issuer store.");
                 using ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath);
                 foreach (var thumbprint in thumbprintsToRemove)
                 {
                     var certToRemove = await trustedStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
-                    if (certToRemove != null && certToRemove.Count > 0)
+                    if (certToRemove?.Count > 0)
                     {
-                        if (await trustedStore.Delete(thumbprint).ConfigureAwait(false) == false)
+                        if (!await trustedStore.Delete(thumbprint).ConfigureAwait(false))
                         {
                             Logger.Warning($"Failed to remove certificate with thumbprint '{thumbprint}' from the trusted peer store.");
                         }
@@ -475,9 +474,9 @@
                 foreach (var thumbprint in thumbprintsToRemove)
                 {
                     var certToRemove = await issuerStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
-                    if (certToRemove != null && certToRemove.Count > 0)
+                    if (certToRemove?.Count > 0)
                     {
-                        if (await issuerStore.Delete(thumbprint).ConfigureAwait(false) == false)
+                        if (!await issuerStore.Delete(thumbprint).ConfigureAwait(false))
                         {
                             Logger.Warning($"Failed to delete certificate with thumbprint '{thumbprint}' from the trusted issuer store.");
                         }
@@ -508,7 +507,7 @@
 
             if (certificateBase64Strings?.Count == 0 && certificateFileNames?.Count == 0)
             {
-                Logger.Error($"There is no certificate provided. Please check your command line options.");
+                Logger.Error("There is no certificate provided. Please check your command line options.");
                 return false;
             }
 
@@ -545,7 +544,7 @@
             }
             catch (Exception e)
             {
-                Logger.Error(e, $"The issuer certificate data is invalid. Please check your command line options.");
+                Logger.Error(e, "The issuer certificate data is invalid. Please check your command line options.");
                 return false;
             }
 
@@ -612,12 +611,12 @@
 
             if (string.IsNullOrEmpty(newCrlBase64String) && string.IsNullOrEmpty(newCrlFileName))
             {
-                Logger.Error($"There is no CRL specified. Please check your command line options.");
+                Logger.Error("There is no CRL specified. Please check your command line options.");
                 return false;
             }
 
             // validate input and create the new CRL
-            Logger.Information($"Starting to update the current CRL.");
+            Logger.Information("Starting to update the current CRL.");
             X509CRL newCrl;
             try
             {
@@ -641,7 +640,7 @@
             }
             catch (Exception e)
             {
-                Logger.Error(e, $"The new CRL data is invalid.");
+                Logger.Error(e, "The new CRL data is invalid.");
                 return false;
             }
 
@@ -657,14 +656,14 @@
                         if (Utils.CompareDistinguishedName(newCrl.Issuer, trustedCertificate.Subject) && newCrl.VerifySignature(trustedCertificate, false))
                         {
                             // the issuer of the new CRL is trusted. delete the crls of the issuer in the trusted store
-                            Logger.Information($"Remove the current CRL from the trusted peer store.");
+                            Logger.Information("Remove the current CRL from the trusted peer store.");
                             trustedCrlIssuer = true;
                             var crlsToRemove = trustedStore.EnumerateCRLs(trustedCertificate);
                             foreach (var crlToRemove in crlsToRemove)
                             {
                                 try
                                 {
-                                    if (trustedStore.DeleteCRL(crlToRemove) == false)
+                                    if (!trustedStore.DeleteCRL(crlToRemove))
                                     {
                                         Logger.Warning($"Failed to remove CRL issued by '{crlToRemove.Issuer}' from the trusted peer store.");
                                     }
@@ -679,7 +678,7 @@
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e, $"Error while removing the cureent CRL from the trusted peer store.");
+                        Logger.Error(e, "Error while removing the cureent CRL from the trusted peer store.");
                         result = false;
                     }
                 }
@@ -693,7 +692,7 @@
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e, $"Error while adding the new CRL to the trusted peer store.");
+                        Logger.Error(e, "Error while adding the new CRL to the trusted peer store.");
                         result = false;
                     }
                 }
@@ -711,14 +710,14 @@
                         if (Utils.CompareDistinguishedName(newCrl.Issuer, issuerCertificate.Subject) && newCrl.VerifySignature(issuerCertificate, false))
                         {
                             // the issuer of the new CRL is trusted. delete the crls of the issuer in the trusted store
-                            Logger.Information($"Remove the current CRL from the trusted issuer store.");
+                            Logger.Information("Remove the current CRL from the trusted issuer store.");
                             trustedCrlIssuer = true;
                             var crlsToRemove = issuerStore.EnumerateCRLs(issuerCertificate);
                             foreach (var crlToRemove in crlsToRemove)
                             {
                                 try
                                 {
-                                    if (issuerStore.DeleteCRL(crlToRemove) == false)
+                                    if (!issuerStore.DeleteCRL(crlToRemove))
                                     {
                                         Logger.Warning($"Failed to remove the current CRL issued by '{crlToRemove.Issuer}' from the trusted issuer store.");
                                     }
@@ -733,7 +732,7 @@
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e, $"Error while removing the current CRL from the trusted issuer store.");
+                        Logger.Error(e, "Error while removing the current CRL from the trusted issuer store.");
                         result = false;
                     }
                 }
@@ -768,7 +767,7 @@
         {
             if (string.IsNullOrEmpty(newCertificateFileName) && string.IsNullOrEmpty(newCertificateBase64String))
             {
-                Logger.Error($"There is no new application certificate data provided. Please check your command line options.");
+                Logger.Error("There is no new application certificate data provided. Please check your command line options.");
                 return false;
             }
 
@@ -796,12 +795,12 @@
             }
             catch (Exception e)
             {
-                Logger.Error(e, $"The new application certificate data is invalid.");
+                Logger.Error(e, "The new application certificate data is invalid.");
                 return false;
             }
 
             // validate input and create the private key
-            Logger.Information($"Start updating the current application certificate.");
+            Logger.Information("Start updating the current application certificate.");
             byte[] privateKey = null;
             try
             {
@@ -821,7 +820,7 @@
             }
             catch (Exception e)
             {
-                Logger.Error(e, $"The private key data is invalid.");
+                Logger.Error(e, "The private key data is invalid.");
                 return false;
             }
 
@@ -838,7 +837,7 @@
             }
             else
             {
-                Logger.Information($"There is no existing application certificate.");
+                Logger.Information("There is no existing application certificate.");
             }
 
             // for a cert update subject names of current and new certificate must match
@@ -880,7 +879,7 @@
             }
             catch (Exception e)
             {
-                Logger.Error(e, $"Failed to verify integrity of the new certificate and the trusted issuer list.");
+                Logger.Error(e, "Failed to verify integrity of the new certificate and the trusted issuer list.");
                 return false;
             }
 
@@ -895,11 +894,11 @@
                     X509Certificate2 certWithPrivateKey = CertificateFactory.CreateCertificateFromPKCS12(privateKey, certificatePassword);
                     newCertificateWithPrivateKey = CertificateFactory.CreateCertificateWithPrivateKey(newCertificate, certWithPrivateKey);
                     newCertFormat = "PFX";
-                    Logger.Information($"The private key for the new certificate was passed in using PFX format.");
+                    Logger.Information("The private key for the new certificate was passed in using PFX format.");
                 }
                 catch
                 {
-                    Logger.Debug($"Certificate file is not PFX");
+                    Logger.Debug("Certificate file is not PFX");
                 }
             }
             // check if new cert is PEM
@@ -909,11 +908,11 @@
                 {
                     newCertificateWithPrivateKey = CertificateFactory.CreateCertificateWithPEMPrivateKey(newCertificate, privateKey, certificatePassword);
                     newCertFormat = "PEM";
-                    Logger.Information($"The private key for the new certificate was passed in using PEM format.");
+                    Logger.Information("The private key for the new certificate was passed in using PEM format.");
                 }
                 catch
                 {
-                    Logger.Debug($"Certificate file is not PEM");
+                    Logger.Debug("Certificate file is not PEM");
                 }
             }
             if (string.IsNullOrEmpty(newCertFormat))
@@ -929,12 +928,12 @@
                     }
                     else
                     {
-                        Logger.Error($"There is no existing application certificate we can use to extract the private key. You need to pass in a private key using PFX or PEM format.");
+                        Logger.Error("There is no existing application certificate we can use to extract the private key. You need to pass in a private key using PFX or PEM format.");
                     }
                 }
                 catch
                 {
-                    Logger.Debug($"Application certificate format is not DER");
+                    Logger.Debug("Application certificate format is not DER");
                 }
             }
 
@@ -943,7 +942,7 @@
             {
                 if (string.IsNullOrEmpty(newCertFormat))
                 {
-                    Logger.Error($"The provided format of the private key is not supported (must be PEM or PFX) or the provided cert password is wrong.");
+                    Logger.Error("The provided format of the private key is not supported (must be PEM or PFX) or the provided cert password is wrong.");
                     return false;
                 }
             }
@@ -951,7 +950,7 @@
             {
                 if (string.IsNullOrEmpty(newCertFormat))
                 {
-                    Logger.Error($"There is no application certificate we can update and for the new application certificate there was not usable private key (must be PEM or PFX format) provided or the provided cert password is wrong.");
+                    Logger.Error("There is no application certificate we can update and for the new application certificate there was not usable private key (must be PEM or PFX format) provided or the provided cert password is wrong.");
                     return false;
                 }
             }
@@ -959,7 +958,7 @@
             // remove the existing and add the new application cert
             using (ICertificateStore appStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath))
             {
-                Logger.Information($"Remove the existing application certificate.");
+                Logger.Information("Remove the existing application certificate.");
                 try
                 {
                     if (hasApplicationCertificate && !await appStore.Delete(currentApplicationCertificate.Thumbprint).ConfigureAwait(false))
@@ -969,7 +968,7 @@
                 }
                 catch
                 {
-                    Logger.Warning($"Failed to remove the existing application certificate from the ApplicationCertificate store.");
+                    Logger.Warning("Failed to remove the existing application certificate from the ApplicationCertificate store.");
                 }
                 try
                 {
@@ -978,7 +977,7 @@
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, $"Failed to add the new application certificate to the application certificate store.");
+                    Logger.Error(e, "Failed to add the new application certificate to the application certificate store.");
                     return false;
                 }
             }
@@ -992,7 +991,7 @@
             }
             catch (Exception e)
             {
-                Logger.Error(e, $"Failed to activate the new application certificate.");
+                Logger.Error(e, "Failed to activate the new application certificate.");
                 return false;
             }
 

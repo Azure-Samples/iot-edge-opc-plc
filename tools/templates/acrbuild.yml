@@ -51,3 +51,4 @@ jobs:
       azureSubscription: azureiiot
       scriptLocation: inlineScript
       inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -debug
+
