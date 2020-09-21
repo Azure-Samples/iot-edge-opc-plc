@@ -129,6 +129,12 @@ So first run the `build.ps1 script` as above, then locate under `<reporoot>/src/
 Next make your modifications and publish the opc-plc project of the solution in Visual Studio. Ensure that you have chosen "Self-Contained" as "Deployment Mode" and the 
 correct "Target runtime" in the Visual Studio Publish configuration. Next run `docker build` command in the folder you published to using the dockerfile of your configuration and target runtime. 
 
+Doing it pure command line based in powershell is even simpler. Here an example for an linux-amd64 build:
+~~~
+.\tools\scripts\docker-source.ps1 .\src
+docker build -f .\src\bin\publish\Release\linux-x64\Dockerfile.linux-amd64 -t iotedge/opc-plc .\src\bin\publish\Release\linux-x64
+~~~
+
 ## Notes
 
 X.509 certificates:
