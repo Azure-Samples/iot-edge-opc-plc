@@ -15,6 +15,7 @@
 /**/*.opendb
 /**/*.opensdf
 /**/*.vc.db
+/**/launchsettings.json
 /.vscode/**
 /build/**
 *.dll

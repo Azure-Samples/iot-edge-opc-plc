@@ -120,7 +120,6 @@
             // command line options
             var options = new Mono.Options.OptionSet {
                 // log configuration
-                { "nf|nodesfile=", $"the filename which contains the list of nodes to be published.", (string l) => NodesFileName = l },
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
                 { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {_logFileFlushTimeSpanSec} sec", (int s) => {
                         if (s > 0)
@@ -162,6 +161,9 @@
                 { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
                 { "ft|fasttype=", $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
                 { "fsi|fastnodesamplinginterval=", $"rate in milliseconds to sample fast nodes\nDefault: {FastNodeSamplingInterval}", (uint i) => FastNodeSamplingInterval = i },
+
+                // user defined nodes configuration
+                { "nf|nodesfile=", $"the filename which contains the list of nodes to be created in the OPC UA address space.", (string l) => NodesFileName = l },
 
                 // opc configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
@@ -324,10 +326,11 @@
                 { "dc|defaultpassword=", $"the password of the default user.\nDefault: {DefaultPassword}", (string p) => DefaultPassword = p ?? DefaultPassword},
 
                 // misc
-                { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
                 { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {ShowPublisherConfigJsonPh}", h => ShowPublisherConfigJsonPh = h != null },
+                { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write using hostname (sph) by default.\nDefault: {PnJson}", (string f) => PnJson = f },
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint i) => WebServerPort = i },
+                { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
             };
 
             // Init app location
@@ -482,7 +485,7 @@
             sb.AppendLine("]");
 
             string pnJson = sb.ToString();
-            Logger.Information(PnJson + pnJson);
+            Logger.Information($"OPC Publisher configuration file: {PnJson}" + pnJson);
 
             await File.WriteAllTextAsync(PnJson, pnJson.Trim()).ConfigureAwait(false);
         }
