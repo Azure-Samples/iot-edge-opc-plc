@@ -1,7 +1,8 @@
 {
   "profiles": {
     "opc-plc": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "--aa --sph"
     }
   }
 }
