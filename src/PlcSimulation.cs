@@ -99,7 +99,7 @@ namespace OpcPlc
             {
                 // todo calculate
                 nextValue = SimulationMaxAmplitude * 10;
-                Logger.Verbose("generate spike anomaly");
+                Logger.Verbose("Generate spike anomaly");
             }
             else
             {
@@ -128,7 +128,7 @@ namespace OpcPlc
             if (GenerateDips && _dipCycleInPhase == _dipAnomalyCycle)
             {
                 nextValue = SimulationMaxAmplitude * -10;
-                Logger.Verbose("generate dip anomaly");
+                Logger.Verbose("Generate dip anomaly");
             }
             else
             {
@@ -157,7 +157,7 @@ namespace OpcPlc
             if (GeneratePosTrend && _posTrendPhase >= _posTrendAnomalyPhase)
             {
                 nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10);
-                Logger.Verbose("generate postrend anomaly");
+                Logger.Verbose("Generate postrend anomaly");
             }
             _plcServer.PlcNodeManager.PosTrendData = nextValue;
 
@@ -181,7 +181,7 @@ namespace OpcPlc
             if (GenerateNegTrend && _negTrendPhase >= _negTrendAnomalyPhase)
             {
                 nextValue = TREND_BASEVALUE - ((_negTrendPhase - _negTrendAnomalyPhase) / 10);
-                Logger.Verbose("generate negtrend anomaly");
+                Logger.Verbose("Generate negtrend anomaly");
             }
             _plcServer.PlcNodeManager.NegTrendData = nextValue;
 

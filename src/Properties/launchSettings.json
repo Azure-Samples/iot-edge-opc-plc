@@ -2,7 +2,7 @@
   "profiles": {
     "opc-plc": {
       "commandName": "Project",
-      "commandLineArgs": "--aa --sph"
+      "commandLineArgs": "--aa --sph --fn 10 "
     }
   }
 }

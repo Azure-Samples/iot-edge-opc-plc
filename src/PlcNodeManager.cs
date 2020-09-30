@@ -308,9 +308,13 @@ namespace OpcPlc
         {
             var nodes = new BaseDataVariableState[count];
 
-            Logger.Information($"Creating {count} {name} nodes of type '{type}");
-            Logger.Information("Node values will change each '" + (name == "Fast" ? FastNodeRate : SlowNodeRate));
-            Logger.Information("Node values sampling rate '" + (name == "Fast" ? FastNodeSamplingInterval : SlowNodeSamplingInterval));
+            if (count > 0)
+            {
+                Logger.Information($"Creating {count} {name} nodes of type: {type}");
+                Logger.Information("Node values will change each " + (name == "Fast" ? FastNodeRate : SlowNodeRate) + " sec");
+                Logger.Information("Node values sampling rate is " + (name == "Fast" ? FastNodeSamplingInterval : SlowNodeSamplingInterval) + " msec");
+            }
+
             for (int i = 0; i < count; i++)
             {
                 var (dataType, valueRank, defaultValue) = GetNodeType(type);
