@@ -18,7 +18,7 @@
     using System.Net;
     using Microsoft.Extensions.Hosting;
 
-    public class Program
+    public static class Program
     {
         /// <summary>
         /// Name of the application.
@@ -120,7 +120,6 @@
             // command line options
             var options = new Mono.Options.OptionSet {
                 // log configuration
-                { "nf|nodesfile=", $"the filename which contains the list of nodes to be published.", (string l) => NodesFileName = l },
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
                 { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {_logFileFlushTimeSpanSec} sec", (int s) => {
                         if (s > 0)
@@ -133,7 +132,7 @@
                         }
                     }
                 },
-                { "ll|loglevel=", $"the loglevel to use (allowed: fatal, error, warn, info, debug, verbose).\nDefault: info", (string l) => {
+                { "ll|loglevel=", "the loglevel to use (allowed: fatal, error, warn, info, debug, verbose).\nDefault: info", (string l) => {
                         var logLevels = new List<string> {"fatal", "error", "warn", "info", "debug", "verbose"};
                         if (logLevels.Contains(l.ToLowerInvariant()))
                         {
@@ -162,6 +161,9 @@
                 { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
                 { "ft|fasttype=", $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
                 { "fsi|fastnodesamplinginterval=", $"rate in milliseconds to sample fast nodes\nDefault: {FastNodeSamplingInterval}", (uint i) => FastNodeSamplingInterval = i },
+
+                // user defined nodes configuration
+                { "nf|nodesfile=", "the filename which contains the list of nodes to be created in the OPC UA address space.", (string l) => NodesFileName = l },
 
                 // opc configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
@@ -209,7 +211,7 @@
                     }
                 },
 
-                { "ap|appcertstorepath=", $"the path where the own application cert should be stored\nDefault (depends on store type):\n" +
+                { "ap|appcertstorepath=", "the path where the own application cert should be stored\nDefault (depends on store type):\n" +
                         $"X509Store: '{OpcOwnCertX509StorePathDefault}'\n" +
                         $"Directory: '{OpcOwnCertDirectoryStorePathDefault}'", (string s) => OpcOwnCertStorePath = s
                 },
@@ -226,12 +228,9 @@
                 { "csr", $"show data to create a certificate signing request\nDefault '{ShowCreateSigningRequestInfo}'", c => ShowCreateSigningRequestInfo = c != null
                 },
 
-                { "ab|applicationcertbase64=", $"update/set this applications certificate with the certificate passed in as bas64 string", (string s) =>
-                    {
-                        NewCertificateBase64String = s;
-                    }
+                { "ab|applicationcertbase64=", "update/set this applications certificate with the certificate passed in as bas64 string", (string s) => NewCertificateBase64String = s
                 },
-                { "af|applicationcertfile=", $"update/set this applications certificate with the certificate file specified", (string s) =>
+                { "af|applicationcertfile=", "update/set this applications certificate with the certificate file specified", (string s) =>
                     {
                         if (File.Exists(s))
                         {
@@ -244,12 +243,9 @@
                     }
                 },
 
-                { "pb|privatekeybase64=", $"initial provisioning of the application certificate (with a PEM or PFX fomat) requires a private key passed in as base64 string", (string s) =>
-                    {
-                        PrivateKeyBase64String = s;
-                    }
+                { "pb|privatekeybase64=", "initial provisioning of the application certificate (with a PEM or PFX fomat) requires a private key passed in as base64 string", (string s) => PrivateKeyBase64String = s
                 },
-                { "pk|privatekeyfile=", $"initial provisioning of the application certificate (with a PEM or PFX fomat) requires a private key passed in as file", (string s) =>
+                { "pk|privatekeyfile=", "initial provisioning of the application certificate (with a PEM or PFX fomat) requires a private key passed in as file", (string s) =>
                     {
                         if (File.Exists(s))
                         {
@@ -262,40 +258,22 @@
                     }
                 },
 
-                { "cp|certpassword=", $"the optional password for the PEM or PFX or the installed application certificate", (string s) =>
-                    {
-                        CertificatePassword = s;
-                    }
+                { "cp|certpassword=", "the optional password for the PEM or PFX or the installed application certificate", (string s) => CertificatePassword = s
                 },
 
-                { "tb|addtrustedcertbase64=", $"adds the certificate to the applications trusted cert store passed in as base64 string (multiple strings supported)", (string s) =>
-                    {
-                        TrustedCertificateBase64Strings = ParseListOfStrings(s);
-                    }
+                { "tb|addtrustedcertbase64=", "adds the certificate to the applications trusted cert store passed in as base64 string (multiple strings supported)", (string s) => TrustedCertificateBase64Strings = ParseListOfStrings(s)
                 },
-                { "tf|addtrustedcertfile=", $"adds the certificate file(s) to the applications trusted cert store passed in as base64 string (multiple filenames supported)", (string s) =>
-                    {
-                        TrustedCertificateFileNames = ParseListOfFileNames(s, "addtrustedcertfile");
-                    }
+                { "tf|addtrustedcertfile=", "adds the certificate file(s) to the applications trusted cert store passed in as base64 string (multiple filenames supported)", (string s) => TrustedCertificateFileNames = ParseListOfFileNames(s, "addtrustedcertfile")
                 },
 
-                { "ib|addissuercertbase64=", $"adds the specified issuer certificate to the applications trusted issuer cert store passed in as base64 string (multiple strings supported)", (string s) =>
-                    {
-                        IssuerCertificateBase64Strings = ParseListOfStrings(s);
-                    }
+                { "ib|addissuercertbase64=", "adds the specified issuer certificate to the applications trusted issuer cert store passed in as base64 string (multiple strings supported)", (string s) => IssuerCertificateBase64Strings = ParseListOfStrings(s)
                 },
-                { "if|addissuercertfile=", $"adds the specified issuer certificate file(s) to the applications trusted issuer cert store (multiple filenames supported)", (string s) =>
-                    {
-                        IssuerCertificateFileNames = ParseListOfFileNames(s, "addissuercertfile");
-                    }
+                { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the applications trusted issuer cert store (multiple filenames supported)", (string s) => IssuerCertificateFileNames = ParseListOfFileNames(s, "addissuercertfile")
                 },
 
-                { "rb|updatecrlbase64=", $"update the CRL passed in as base64 string to the corresponding cert store (trusted or trusted issuer)", (string s) =>
-                    {
-                        CrlBase64String = s;
-                    }
+                { "rb|updatecrlbase64=", "update the CRL passed in as base64 string to the corresponding cert store (trusted or trusted issuer)", (string s) => CrlBase64String = s
                 },
-                { "uc|updatecrlfile=", $"update the CRL passed in as file to the corresponding cert store (trusted or trusted issuer)", (string s) =>
+                { "uc|updatecrlfile=", "update the CRL passed in as file to the corresponding cert store (trusted or trusted issuer)", (string s) =>
                     {
                         if (File.Exists(s))
                         {
@@ -308,10 +286,7 @@
                     }
                 },
 
-                { "rc|removecert=", $"remove cert(s) with the given thumbprint(s) (multiple thumbprints supported)", (string s) =>
-                    {
-                        ThumbprintsToRemove = ParseListOfStrings(s);
-                    }
+                { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (multiple thumbprints supported)", (string s) => ThumbprintsToRemove = ParseListOfStrings(s)
                 },
 
                 {"daa|disableanonymousauth", $"flag to disable anonymous authentication. \nDefault: {DisableAnonymousAuth}", d => DisableAnonymousAuth = d != null },
@@ -324,10 +299,11 @@
                 { "dc|defaultpassword=", $"the password of the default user.\nDefault: {DefaultPassword}", (string p) => DefaultPassword = p ?? DefaultPassword},
 
                 // misc
-                { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
                 { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {ShowPublisherConfigJsonPh}", h => ShowPublisherConfigJsonPh = h != null },
+                { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write using hostname (sph) by default.\nDefault: {PnJson}", (string f) => PnJson = f },
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint i) => WebServerPort = i },
+                { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
             };
 
             // Init app location
@@ -437,6 +413,7 @@
             const string NSS = "ns=2;s=";
             var sb = new StringBuilder();
 
+#pragma warning disable RCS1197 // Optimize StringBuilder.Append/AppendLine call.
             sb.AppendLine(Environment.NewLine + "[");
             sb.AppendLine("  {");
             sb.AppendLine($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",");
@@ -480,9 +457,10 @@
             sb.AppendLine(Environment.NewLine + "    ]");
             sb.AppendLine("  }");
             sb.AppendLine("]");
+#pragma warning restore RCS1197 // Optimize StringBuilder.Append/AppendLine call.
 
             string pnJson = sb.ToString();
-            Logger.Information(PnJson + pnJson);
+            Logger.Information($"OPC Publisher configuration file: {PnJson}" + pnJson);
 
             await File.WriteAllTextAsync(PnJson, pnJson.Trim()).ConfigureAwait(false);
         }
@@ -500,7 +478,9 @@
         /// <summary>
         /// Run the server.
         /// </summary>
+#pragma warning disable IDE0060 // Remove unused parameter
         private static async Task ConsoleServerAsync(string[] args)
+#pragma warning restore IDE0060 // Remove unused parameter
         {
             var quitEvent = new ManualResetEvent(false);
             var shutdownTokenSource = new CancellationTokenSource();
@@ -525,7 +505,7 @@
 
             // start the server.
             Logger.Information($"Starting server on endpoint {plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]} ...");
-            Logger.Information($"Simulation settings are:");
+            Logger.Information("Simulation settings are:");
             Logger.Information($"One simulation phase consists of {SimulationCycleCount} cycles");
             Logger.Information($"One cycle takes {SimulationCycleLength} milliseconds");
             Logger.Information($"Spike generation is {(GenerateSpikes ? "enabled" : "disabled")}");
@@ -747,6 +727,7 @@
             var host = Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
+                    var x = Directory.GetCurrentDirectory();
                     webBuilder.UseContentRoot(Directory.GetCurrentDirectory()); // Avoid System.InvalidOperationException.
                     webBuilder.UseUrls($"http://*:{WebServerPort}");
                     webBuilder.UseStartup<Startup>();

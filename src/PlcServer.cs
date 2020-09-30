@@ -141,6 +141,6 @@ namespace OpcPlc
             base.OnServerStopping();
         }
 
-        private static readonly uint _plcShutdownWaitPeriod = 10;
+        private const uint _plcShutdownWaitPeriod = 10;
     }
 }

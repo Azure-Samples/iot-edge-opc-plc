@@ -6,6 +6,7 @@ namespace OpcPlc
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using static PlcSimulation;
     using static Program;
 
     public class PlcNodeManager : CustomNodeManager2
@@ -98,12 +99,20 @@ namespace OpcPlc
             }
         }
 
+#pragma warning disable RCS1163 // Unused parameter.
+#pragma warning disable IDE0060 // Remove unused parameter
         public void IncreaseSlowNodes(object state)
+#pragma warning restore IDE0060 // Remove unused parameter
+#pragma warning restore RCS1163 // Unused parameter.
         {
             IncreaseNodes(_slowNodes, PlcSimulation.SlowNodeType);
         }
 
+#pragma warning disable RCS1163 // Unused parameter.
+#pragma warning disable IDE0060 // Remove unused parameter
         public void IncreaseFastNodes(object state)
+#pragma warning restore IDE0060 // Remove unused parameter
+#pragma warning restore RCS1163 // Unused parameter.
         {
             IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType);
         }
@@ -183,10 +192,7 @@ namespace OpcPlc
                 EventNotifier = EventNotifiers.None
             };
 
-            if (parent != null)
-            {
-                parent.AddChild(folder);
-            }
+            parent?.AddChild(folder);
 
             return folder;
         }
@@ -286,7 +292,7 @@ namespace OpcPlc
                             Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{NamespaceIndex}'");
                             CreateBaseVariable(userNodesFolder, node);
                         }
-                        Logger.Information($"Processing node information completed.");
+                        Logger.Information("Processing node information completed.");
                     }
                 }
                 catch (Exception e)
@@ -301,6 +307,13 @@ namespace OpcPlc
         private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, uint count, NodeType type)
         {
             var nodes = new BaseDataVariableState[count];
+
+            if (count > 0)
+            {
+                Logger.Information($"Creating {count} {name} nodes of type: {type}");
+                Logger.Information("Node values will change each " + (name == "Fast" ? FastNodeRate : SlowNodeRate) + " sec");
+                Logger.Information("Node values sampling rate is " + (name == "Fast" ? FastNodeSamplingInterval : SlowNodeSamplingInterval) + " msec");
+            }
 
             for (int i = 0; i < count; i++)
             {
@@ -400,10 +413,7 @@ namespace OpcPlc
                 variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
             }
 
-            if (parent != null)
-            {
-                parent.AddChild(variable);
-            }
+            parent?.AddChild(variable);
 
             return variable;
         }
@@ -413,7 +423,7 @@ namespace OpcPlc
         /// </summary>
         private void CreateBaseVariable(NodeState parent, ConfigNode node)
         {
-            if (Enum.TryParse(node.DataType, out BuiltInType nodeDataType) == false)
+            if (!Enum.TryParse(node.DataType, out BuiltInType nodeDataType))
             {
                 Logger.Error($"Value '{node.DataType}' of node '{node.NodeId}' cannot be parsed. Defaulting to 'Int32'");
                 node.DataType = "Int32";
@@ -431,7 +441,7 @@ namespace OpcPlc
                 node.AccessLevel = "CurrentRead";
                 accessLevel = AccessLevels.CurrentReadOrWrite;
             }
-            CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description.ToString());
+            CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description);
         }
 
         ///// <summary>
@@ -606,10 +616,7 @@ namespace OpcPlc
                 Description = new LocalizedText(description)
             };
 
-            if (parent != null)
-            {
-                parent.AddChild(method);
-            }
+            parent?.AddChild(method);
 
             return method;
         }
@@ -617,7 +624,9 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new method using type Numeric for the NodeId.
         /// </summary>
+#pragma warning disable RCS1213 // Remove unused member declaration.
         private MethodState CreateMethod(NodeState parent, uint id, string name)
+#pragma warning restore RCS1213 // Remove unused member declaration.
         {
             var method = new MethodState(parent)
             {
@@ -632,10 +641,7 @@ namespace OpcPlc
                 UserExecutable = true
             };
 
-            if (parent != null)
-            {
-                parent.AddChild(method);
-            }
+            parent?.AddChild(method);
 
             return method;
         }
@@ -646,7 +652,7 @@ namespace OpcPlc
         private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             Program.PlcSimulation.ResetTrendData();
-            Logger.Debug($"ResetTrend method called");
+            Logger.Debug("ResetTrend method called");
             return ServiceResult.Good;
         }
 
@@ -656,7 +662,7 @@ namespace OpcPlc
         private ServiceResult OnResetStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             Program.PlcSimulation.ResetStepUpData();
-            Logger.Debug($"ResetStepUp method called");
+            Logger.Debug("ResetStepUp method called");
             return ServiceResult.Good;
         }
 
@@ -666,7 +672,7 @@ namespace OpcPlc
         private ServiceResult OnStartStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             Program.PlcSimulation.StartStepUp();
-            Logger.Debug($"StartStepUp method called");
+            Logger.Debug("StartStepUp method called");
             return ServiceResult.Good;
         }
 
@@ -676,7 +682,7 @@ namespace OpcPlc
         private ServiceResult OnStopStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             Program.PlcSimulation.StopStepUp();
-            Logger.Debug($"StopStepUp method called");
+            Logger.Debug("StopStepUp method called");
             return ServiceResult.Good;
         }
 

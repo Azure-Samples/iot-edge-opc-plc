@@ -110,7 +110,8 @@ docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/
 ~~~
 
 ## OPC Publisher file (pn.json)
-The option `sph` shows and dumps a pn.json file that matches the configuration. In addition, a web server hosts the file on a configurable port (`wp`, default 8080): e.g. http://localhost:8080/pn.json
+The options `sph` and `sp` show and dump an OPC Publisher configuration file (default name: `pn.json`) that matches the configuration. In addition, a web server hosts the file on a configurable port (`wp`, default 8080): e.g. http://localhost:8080/pn.json
+Additionally, you can set the configuration file name via the option `spf`.
 
 ## Build
 
