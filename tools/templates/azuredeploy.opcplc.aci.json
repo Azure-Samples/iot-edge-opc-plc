@@ -21,7 +21,7 @@
         "numberOfSlowNodes": {
             "type": "int",
             "defaultValue": 250,
-            "maxValue": 4000000,
+            "maxValue": 2000000,
             "minValue": 1,
             "metadata": {
                 "description": "Number of slow nodes"
@@ -53,7 +53,7 @@
         "numberOfFastNodes": {
             "type": "int",
             "defaultValue": 50,
-            "maxValue": 4000000,
+            "maxValue": 2000000,
             "minValue": 1,
             "metadata": {
                 "description": "Number of fast nodes"
@@ -88,7 +88,7 @@
             "maxValue": 16,
             "minValue": 1,
             "metadata": {
-                "description": "ACI memory in GB (~1 GB/250 k nodes)"
+                "description": "ACI memory in GB (~1 GB/250 k nodes), subject to region limits"
             }
         },
         "numberOfCpus": {
@@ -97,7 +97,7 @@
             "maxValue": 4,
             "minValue": 1,
             "metadata": {
-                "description": "Number of ACI CPUs (~1 CPU/1 M nodes)"
+                "description": "Number of ACI CPUs (~1 CPU/1 M nodes), subject to region limits"
             }
         },
         "containerImage": {

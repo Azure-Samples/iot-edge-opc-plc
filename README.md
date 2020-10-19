@@ -15,6 +15,9 @@ Implements an OPC-UA server with different nodes generating random data, anomali
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fiot-edge-opc-plc%2Ftree%2Fmaster%2Ftools%2Ftemplates%2Fazuredeploy.opcplc.aci.json)
 
+* After deployment, the OPC PLC server will be available at `opc.tcp://<NAME>.<REGION>.azurecontainer.io:50000`
+* See [region limits](https://docs.microsoft.com/en-us/azure/container-instances/container-instances-region-availability#availability---general)
+
 ## Features
 The following nodes are part of the PLC simulation:
 - Alternating boolean
