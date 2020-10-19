@@ -94,7 +94,7 @@
         "numberOfCpus": {
             "type": "int",
             "defaultValue": 1,
-            "maxValue": 16,
+            "maxValue": 4,
             "minValue": 1,
             "metadata": {
                 "description": "Number of ACI CPUs (~1 CPU/1 M nodes)"
