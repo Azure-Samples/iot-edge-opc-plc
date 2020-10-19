@@ -21,7 +21,7 @@
         "numberOfSlowNodes": {
             "type": "int",
             "defaultValue": 250,
-            "maxValue": 20000000,
+            "maxValue": 4000000,
             "minValue": 1,
             "metadata": {
                 "description": "Number of slow nodes"
@@ -53,7 +53,7 @@
         "numberOfFastNodes": {
             "type": "int",
             "defaultValue": 50,
-            "maxValue": 1000000,
+            "maxValue": 4000000,
             "minValue": 1,
             "metadata": {
                 "description": "Number of fast nodes"
