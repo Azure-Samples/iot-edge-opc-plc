@@ -13,7 +13,7 @@ urlFragment: azure-iot-sample-opc-ua-server
 # OPC PLC server
 Implements an OPC-UA server with different nodes generating random data, anomalies and configuration of user defined nodes.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fiot-edge-opc-plc%2Ftree%2Fmaster%2Ftools%2Ftemplates%2Fazuredeploy.opcplc.aci.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fiot-edge-opc-plc%2Fmaster%2Ftools%2Ftemplates%2Fazuredeploy.opcplc.aci.json)
 
 * After deployment, the OPC PLC server will be available at `opc.tcp://<NAME>.<REGION>.azurecontainer.io:50000`
 * See [region limits](https://docs.microsoft.com/en-us/azure/container-instances/container-instances-region-availability#availability---general)
