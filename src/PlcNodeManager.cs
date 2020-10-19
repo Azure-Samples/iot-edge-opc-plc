@@ -311,8 +311,8 @@ namespace OpcPlc
             if (count > 0)
             {
                 Logger.Information($"Creating {count} {name} nodes of type: {type}");
-                Logger.Information("Node values will change each " + (name == "Fast" ? FastNodeRate : SlowNodeRate) + " sec");
-                Logger.Information("Node values sampling rate is " + (name == "Fast" ? FastNodeSamplingInterval : SlowNodeSamplingInterval) + " msec");
+                Logger.Information("Node values will change every " + (name == "Fast" ? FastNodeRate : SlowNodeRate) + " s");
+                Logger.Information("Node values sampling rate is " + (name == "Fast" ? FastNodeSamplingInterval : SlowNodeSamplingInterval) + " ms");
             }
 
             for (int i = 0; i < count; i++)
