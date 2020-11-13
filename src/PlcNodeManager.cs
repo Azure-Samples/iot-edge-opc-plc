@@ -6,156 +6,111 @@ namespace OpcPlc
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using static PlcSimulation;
+    using System.Reflection;
     using static Program;
 
     public class PlcNodeManager : CustomNodeManager2
     {
+        #region Properties
         public uint RandomUnsignedInt32
         {
             get => (uint)_randomUnsignedInt32.Value;
-            set
-            {
-                _randomUnsignedInt32.Value = value;
-                _randomUnsignedInt32.Timestamp = DateTime.Now;
-                _randomUnsignedInt32.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_randomUnsignedInt32, value);
         }
 
         public int RandomSignedInt32
         {
             get => (int)_randomSignedInt32.Value;
-            set
-            {
-                _randomSignedInt32.Value = value;
-                _randomSignedInt32.Timestamp = DateTime.Now;
-                _randomSignedInt32.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_randomSignedInt32, value);
         }
 
         public double SpikeData
         {
             get => (double)_spikeData.Value;
-            set
-            {
-                _spikeData.Value = value;
-                _spikeData.Timestamp = DateTime.Now;
-                _spikeData.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_spikeData, value);
         }
 
         public double DipData
         {
             get => (double)_dipData.Value;
-            set
-            {
-                _dipData.Value = value;
-                _dipData.Timestamp = DateTime.Now;
-                _dipData.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_dipData, value);
         }
 
         public double PosTrendData
         {
             get => (double)_posTrendData.Value;
-            set
-            {
-                _posTrendData.Value = value;
-                _posTrendData.Timestamp = DateTime.Now;
-                _posTrendData.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_posTrendData, value);
         }
 
         public double NegTrendData
         {
             get => (double)_negTrendData.Value;
-            set
-            {
-                _negTrendData.Value = value;
-                _negTrendData.Timestamp = DateTime.Now;
-                _negTrendData.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_negTrendData, value);
         }
 
         public bool AlternatingBoolean
         {
             get => (bool)_alternatingBoolean.Value;
-            set
-            {
-                _alternatingBoolean.Value = value;
-                _alternatingBoolean.Timestamp = DateTime.Now;
-                _alternatingBoolean.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_alternatingBoolean, value);
         }
 
         public uint StepUp
         {
             get => (uint)_stepUp.Value;
-            set
+            set => SetValue(_stepUp, value);
+        }
+        #endregion
+
+        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
+            : base(server, configuration, Namespaces.OpcPlcApplications)
+        {
+            _nodeFileName = nodeFileName;
+            SystemContext.NodeIdFactory = this;
+
+            if (AddComplexTypeBoiler)
             {
-                _stepUp.Value = value;
-                _stepUp.Timestamp = DateTime.Now;
-                _stepUp.ClearChangeMasks(SystemContext, false);
+                SetComplexTypeNamespaces();
             }
         }
 
-#pragma warning disable RCS1163 // Unused parameter.
 #pragma warning disable IDE0060 // Remove unused parameter
         public void IncreaseSlowNodes(object state)
 #pragma warning restore IDE0060 // Remove unused parameter
-#pragma warning restore RCS1163 // Unused parameter.
         {
             IncreaseNodes(_slowNodes, PlcSimulation.SlowNodeType);
         }
 
-#pragma warning disable RCS1163 // Unused parameter.
 #pragma warning disable IDE0060 // Remove unused parameter
         public void IncreaseFastNodes(object state)
 #pragma warning restore IDE0060 // Remove unused parameter
-#pragma warning restore RCS1163 // Unused parameter.
         {
             IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType);
         }
 
-        private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type)
+#pragma warning disable IDE0060 // Remove unused parameter
+        public void ChangeBoiler1(object state)
+#pragma warning restore IDE0060 // Remove unused parameter
         {
-            for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
+            BoilerModel.BoilerTemperatureType temperature = _boiler1.BoilerStatus.Value.Temperature;
+
+            if (_boiler1.BoilerStatus.Value.HeaterState == BoilerModel.BoilerHeaterStateType.On)
             {
-                object value;
-
-                switch (type)
-                {
-                    case NodeType.Double:
-                        value = (double)nodes[nodeIndex].Value + 0.1;
-                        break;
-                    case NodeType.Bool:
-                        value = !(bool)nodes[nodeIndex].Value;
-                        break;
-                    case NodeType.UIntArray:
-                        uint[] arrayValue = (uint[])nodes[nodeIndex].Value;
-                        for (int arrayIndex = 0; arrayIndex < arrayValue?.Length; arrayIndex++)
-                        {
-                            arrayValue[arrayIndex]++;
-                        }
-                        value = arrayValue;
-                        break;
-                    case NodeType.UInt:
-                    default:
-                        value = (uint)nodes[nodeIndex].Value + 1;
-                        break;
-                }
-
-                nodes[nodeIndex].Value = value;
-                nodes[nodeIndex].Timestamp = DateTime.Now;
-                nodes[nodeIndex].ClearChangeMasks(SystemContext, false);
+                // Heater on, increase values.
+                temperature.Bottom += 1;
             }
-        }
+            else
+            {
+                // Heater off, decrease values down to a minimum of 20.
+                temperature.Bottom = temperature.Bottom > 20
+                    ? temperature.Bottom - 1
+                    : temperature.Bottom;
+            }
 
-        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
-        : base(server, configuration, Namespaces.OpcPlcApplications)
-        {
-            _nodeFileName = nodeFileName;
-            SystemContext.NodeIdFactory = this;
+            // Top is always 5 degrees less than bottom, with a minimum value of 20.
+            temperature.Top = Math.Max(20, temperature.Bottom - 5);
+
+            // Pressure is always 100_000 + bottom temperature.
+            _boiler1.BoilerStatus.Value.Pressure = 100_000 + temperature.Bottom;
         }
 
         /// <summary>
@@ -172,29 +127,6 @@ namespace OpcPlc
             }
 
             return node.NodeId;
-        }
-
-        /// <summary>
-        /// Creates a new folder.
-        /// </summary>
-        private FolderState CreateFolder(NodeState parent, string path, string name)
-        {
-            var folder = new FolderState(parent)
-            {
-                SymbolicName = name,
-                ReferenceTypeId = ReferenceTypes.Organizes,
-                TypeDefinitionId = ObjectTypeIds.FolderType,
-                NodeId = new NodeId(path, NamespaceIndex),
-                BrowseName = new QualifiedName(path, NamespaceIndex),
-                DisplayName = new LocalizedText("en", name),
-                WriteMask = AttributeWriteMask.None,
-                UserWriteMask = AttributeWriteMask.None,
-                EventNotifier = EventNotifiers.None
-            };
-
-            parent?.AddChild(folder);
-
-            return folder;
         }
 
         /// <summary>
@@ -256,15 +188,12 @@ namespace OpcPlc
                         SetStopStepUpMethodProperties(ref stopStepUpMethod);
                     }
 
-                    // process user configurable nodes
+                    // Process user configurable nodes
                     if (!string.IsNullOrEmpty(_nodeFileName))
                     {
-                        string json;
-                        using (var reader = new StreamReader(_nodeFileName))
-                        {
-                            json = reader.ReadToEnd();
-                        }
-                        ConfigFolder cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
+                        string json = File.ReadAllText(_nodeFileName);
+
+                        var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
                         {
                             TypeNameHandling = TypeNameHandling.All
                         });
@@ -292,8 +221,29 @@ namespace OpcPlc
                             Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{NamespaceIndex}'");
                             CreateBaseVariable(userNodesFolder, node);
                         }
+
                         Logger.Information("Processing node information completed.");
                     }
+
+                    if (AddComplexTypeBoiler)
+                    {
+                        // Load complex types from binary uanodes file.
+                        LoadPredefinedNodes(SystemContext, externalReferences);
+
+                        // Find the Boiler1 node that was created when the model was loaded.
+                        var passiveNode = (BaseObjectState)FindPredefinedNode(new NodeId(BoilerModel.Objects.Boiler1, NamespaceIndexes[0]), typeof(BaseObjectState));
+
+                        // Convert to node that can be manipulated within the server.
+                        _boiler1 = new BoilerModel.BoilerState(null);
+                        _boiler1.Create(SystemContext, passiveNode);
+
+                        // Create heater on/off methods.
+                        MethodState heaterOnMethod = CreateMethod(methodsFolder, "HeaterOn", "HeaterOn", "Turns the heater on");
+                        SetHeaterOnMethodProperties(ref heaterOnMethod);
+                        MethodState heaterOffMethod = CreateMethod(methodsFolder, "HeaterOff", "HeaterOff", "Turns the heater off");
+                        SetHeaterOffMethodProperties(ref heaterOffMethod);
+                    }
+
                 }
                 catch (Exception e)
                 {
@@ -304,6 +254,63 @@ namespace OpcPlc
             }
         }
 
+        private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type)
+        {
+            for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
+            {
+                object value;
+
+                switch (type)
+                {
+                    case NodeType.Double:
+                        value = (double)nodes[nodeIndex].Value + 0.1;
+                        break;
+                    case NodeType.Bool:
+                        value = !(bool)nodes[nodeIndex].Value;
+                        break;
+                    case NodeType.UIntArray:
+                        uint[] arrayValue = (uint[])nodes[nodeIndex].Value;
+                        for (int arrayIndex = 0; arrayIndex < arrayValue?.Length; arrayIndex++)
+                        {
+                            arrayValue[arrayIndex]++;
+                        }
+                        value = arrayValue;
+                        break;
+                    case NodeType.UInt:
+                    default:
+                        value = (uint)nodes[nodeIndex].Value + 1;
+                        break;
+                }
+
+                nodes[nodeIndex].Value = value;
+                nodes[nodeIndex].Timestamp = DateTime.Now;
+                nodes[nodeIndex].ClearChangeMasks(SystemContext, false);
+            }
+        }
+
+        /// <summary>
+        /// Creates a new folder.
+        /// </summary>
+        private FolderState CreateFolder(NodeState parent, string path, string name)
+        {
+            var folder = new FolderState(parent)
+            {
+                SymbolicName = name,
+                ReferenceTypeId = ReferenceTypes.Organizes,
+                TypeDefinitionId = ObjectTypeIds.FolderType,
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(path, NamespaceIndex),
+                DisplayName = new LocalizedText("en", name),
+                WriteMask = AttributeWriteMask.None,
+                UserWriteMask = AttributeWriteMask.None,
+                EventNotifier = EventNotifiers.None
+            };
+
+            parent?.AddChild(folder);
+
+            return folder;
+        }
+
         private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, uint count, NodeType type)
         {
             var nodes = new BaseDataVariableState[count];
@@ -311,8 +318,8 @@ namespace OpcPlc
             if (count > 0)
             {
                 Logger.Information($"Creating {count} {name} nodes of type: {type}");
-                Logger.Information("Node values will change every " + (name == "Fast" ? FastNodeRate : SlowNodeRate) + " s");
-                Logger.Information("Node values sampling rate is " + (name == "Fast" ? FastNodeSamplingInterval : SlowNodeSamplingInterval) + " ms");
+                Logger.Information("Node values will change every " + (name == "Fast" ? PlcSimulation.FastNodeRate : PlcSimulation.SlowNodeRate) + " s");
+                Logger.Information("Node values sampling rate is " + (name == "Fast" ? PlcSimulation.FastNodeSamplingInterval : PlcSimulation.SlowNodeSamplingInterval) + " ms");
             }
 
             for (int i = 0; i < count; i++)
@@ -370,6 +377,22 @@ namespace OpcPlc
         }
 
         /// <summary>
+        /// Sets properties of the HeaterOn method.
+        /// </summary>
+        private void SetHeaterOnMethodProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnHeaterOnCall);
+        }
+
+        /// <summary>
+        /// Sets properties of the HeaterOff method.
+        /// </summary>
+        private void SetHeaterOffMethodProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnHeaterOffCall);
+        }
+
+        /// <summary>
         /// Creates a new variable.
         /// </summary>
         private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, object defaultValue = null)
@@ -391,6 +414,7 @@ namespace OpcPlc
                 variable.NodeId = new NodeId(path, NamespaceIndex);
                 variable.BrowseName = new QualifiedName(path, NamespaceIndex);
             }
+
             variable.DisplayName = new LocalizedText("en", name);
             variable.WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
             variable.UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
@@ -399,7 +423,7 @@ namespace OpcPlc
             variable.AccessLevel = accessLevel;
             variable.UserAccessLevel = accessLevel;
             variable.Historizing = false;
-            variable.Value = defaultValue ?? TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
+            variable.Value = defaultValue ?? Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
             variable.StatusCode = StatusCodes.Good;
             variable.Timestamp = DateTime.UtcNow;
             variable.Description = new LocalizedText(description);
@@ -442,6 +466,30 @@ namespace OpcPlc
                 accessLevel = AccessLevels.CurrentReadOrWrite;
             }
             CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description);
+        }
+
+        private void SetComplexTypeNamespaces()
+        {
+            // Set one namespace for the type model and one names for dynamically created nodes.
+            var namespaceUrls = new string[2];
+            namespaceUrls[0] = BoilerModel.Namespaces.Boiler;
+            namespaceUrls[1] = BoilerModel.Namespaces.Boiler + "/Instance";
+            SetNamespaces(namespaceUrls);
+        }
+
+        /// <summary>
+        /// Loads a node set from a file or resource and addes them to the set of predefined nodes.
+        /// </summary>
+        protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+        {
+            var predefinedNodes = new NodeStateCollection();
+
+            predefinedNodes.LoadFromBinaryResource(context,
+                "Boiler/BoilerModel.PredefinedNodes.uanodes",
+                typeof(PlcNodeManager).GetTypeInfo().Assembly,
+                updateTables: true);
+
+            return predefinedNodes;
         }
 
         ///// <summary>
@@ -613,7 +661,7 @@ namespace OpcPlc
                 UserWriteMask = AttributeWriteMask.None,
                 Executable = true,
                 UserExecutable = true,
-                Description = new LocalizedText(description)
+                Description = new LocalizedText(description),
             };
 
             parent?.AddChild(method);
@@ -624,9 +672,7 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new method using type Numeric for the NodeId.
         /// </summary>
-#pragma warning disable RCS1213 // Remove unused member declaration.
         private MethodState CreateMethod(NodeState parent, uint id, string name)
-#pragma warning restore RCS1213 // Remove unused member declaration.
         {
             var method = new MethodState(parent)
             {
@@ -638,7 +684,7 @@ namespace OpcPlc
                 WriteMask = AttributeWriteMask.None,
                 UserWriteMask = AttributeWriteMask.None,
                 Executable = true,
-                UserExecutable = true
+                UserExecutable = true,
             };
 
             parent?.AddChild(method);
@@ -687,6 +733,33 @@ namespace OpcPlc
         }
 
         /// <summary>
+        /// Method to turn the heater on. Executes synchronously.
+        /// </summary>
+        private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            _boiler1.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.On;
+            Logger.Debug("OnHeaterOnCall method called");
+            return ServiceResult.Good;
+        }
+
+        /// <summary>
+        /// Method to turn the heater off. Executes synchronously.
+        /// </summary>
+        private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            _boiler1.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.Off;
+            Logger.Debug("OnHeaterOffCall method called");
+            return ServiceResult.Good;
+        }
+
+        private void SetValue<T>(BaseDataVariableState variable, T value)
+        {
+            variable.Value = value;
+            variable.Timestamp = DateTime.Now;
+            variable.ClearChangeMasks(SystemContext, false);
+        }
+
+        /// <summary>
         /// Following variables listed here are simulated.
         /// </summary>
         protected BaseDataVariableState _stepUp = null;
@@ -699,6 +772,7 @@ namespace OpcPlc
         protected BaseDataVariableState _negTrendData = null;
         protected BaseDataVariableState[] _slowNodes = null;
         protected BaseDataVariableState[] _fastNodes = null;
+        protected BoilerModel.BoilerState _boiler1 = null;
 
         /// <summary>
         /// File name for user configurable nodes.

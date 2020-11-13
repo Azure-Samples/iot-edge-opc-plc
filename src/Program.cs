@@ -87,6 +87,11 @@
         public static bool ShowPublisherConfigJsonPh { get; set; }
 
         /// <summary>
+        /// Add complex type (boiler) to address space.
+        /// </summary>
+        public static bool AddComplexTypeBoiler { get; set; }
+
+        /// <summary>
         /// Web server port for hosting OPC Publisher file.
         /// </summary>
         public static uint WebServerPort { get; set; } = 8080;
@@ -153,6 +158,8 @@
                 { "np|nopostrend", $"do not generate positive trend data\nDefault: {!GeneratePosTrend}", a => GeneratePosTrend = a == null },
                 { "nn|nonegtrend", $"do not generate negative trend data\nDefault: {!GenerateNegTrend}", a => GenerateNegTrend = a == null },
                 { "nv|nodatavalues", $"do not generate data values\nDefault: {!GenerateData}", a => GenerateData = a == null },
+
+                // Slow and fast nodes.
                 { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodeCount}", (uint i) => SlowNodeCount = i },
                 { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (uint i) => SlowNodeRate = i },
                 { "st|slowtype=", $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
@@ -292,6 +299,7 @@
                 {"daa|disableanonymousauth", $"flag to disable anonymous authentication. \nDefault: {DisableAnonymousAuth}", d => DisableAnonymousAuth = d != null },
                 {"dua|disableusernamepasswordauth", $"flag to disable username/password authentication. \nDefault: {DisableUsernamePasswordAuth}", d=> DisableUsernamePasswordAuth = d != null },
                 {"dca|disablecertauth", $"flag to disable certificate authentication. \nDefault: {DisableCertAuth}", d => DisableCertAuth = d != null },
+
                 // user management
                 { "au|adminuser=", $"the username of the admin user.\nDefault: {AdminUser}", (string p) => AdminUser = p ?? AdminUser},
                 { "ac|adminpassword=", $"the password of the administrator.\nDefault: {AdminPassword}", (string p) => AdminPassword = p ?? AdminPassword},
@@ -301,7 +309,8 @@
                 // misc
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
                 { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {ShowPublisherConfigJsonPh}", h => ShowPublisherConfigJsonPh = h != null },
-                { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write using hostname (sph) by default.\nDefault: {PnJson}", (string f) => PnJson = f },
+                { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {PnJson}", (string f) => PnJson = f },
+                { "ctb|complextypeboiler", $"add complex type (boiler) to address space.\nDefault: {AddComplexTypeBoiler}", h => AddComplexTypeBoiler = h != null },
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint i) => WebServerPort = i },
                 { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
             };
@@ -413,7 +422,6 @@
             const string NSS = "ns=2;s=";
             var sb = new StringBuilder();
 
-#pragma warning disable RCS1197 // Optimize StringBuilder.Append/AppendLine call.
             sb.AppendLine(Environment.NewLine + "[");
             sb.AppendLine("  {");
             sb.AppendLine($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",");
@@ -457,7 +465,6 @@
             sb.AppendLine(Environment.NewLine + "    ]");
             sb.AppendLine("  }");
             sb.AppendLine("]");
-#pragma warning restore RCS1197 // Optimize StringBuilder.Append/AppendLine call.
 
             string pnJson = sb.ToString();
             Logger.Information($"OPC Publisher configuration file: {PnJson}" + pnJson);

@@ -31,6 +31,10 @@ namespace OpcPlc
                 Logger.Error(errorMessage);
                 throw new Exception(errorMessage);
             }
+
+            // Add encodable complex types.
+            server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
+
             PlcNodeManager = new PlcNodeManager(server, configuration, NodesFileName);
             nodeManagers.Add(PlcNodeManager);
             var masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());

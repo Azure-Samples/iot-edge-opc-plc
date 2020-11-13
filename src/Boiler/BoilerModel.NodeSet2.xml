@@ -1,0 +1,399 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UANodeSet xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://opcfoundation.org/Quickstarts/Boiler</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://opcfoundation.org/Quickstarts/Boiler">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05" PublicationDate="2019-05-01T00:00:00Z" />
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="SByte">i=2</Alias>
+    <Alias Alias="Byte">i=3</Alias>
+    <Alias Alias="Int16">i=4</Alias>
+    <Alias Alias="UInt16">i=5</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
+    <Alias Alias="Int64">i=8</Alias>
+    <Alias Alias="UInt64">i=9</Alias>
+    <Alias Alias="Float">i=10</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="ByteString">i=15</Alias>
+    <Alias Alias="Guid">i=14</Alias>
+    <Alias Alias="XmlElement">i=16</Alias>
+    <Alias Alias="NodeId">i=17</Alias>
+    <Alias Alias="ExpandedNodeId">i=18</Alias>
+    <Alias Alias="QualifiedName">i=20</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="StatusCode">i=19</Alias>
+    <Alias Alias="Structure">i=22</Alias>
+    <Alias Alias="Number">i=26</Alias>
+    <Alias Alias="Integer">i=27</Alias>
+    <Alias Alias="UInteger">i=28</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasEventSource">i=36</Alias>
+    <Alias Alias="HasNotifier">i=48</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasEncoding">i=38</Alias>
+    <Alias Alias="HasDescription">i=39</Alias>
+  </Aliases>
+  <UADataType NodeId="ns=1;i=15032" BrowseName="1:BoilerDataType">
+    <DisplayName>BoilerDataType</DisplayName>
+    <Description>Temperature in °C, pressure in Pa and heater state.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
+    </References>
+    <Definition Name="1:BoilerDataType">
+      <Field Name="Temperature" DataType="ns=1;i=15001" />
+      <Field Name="Pressure" DataType="i=6" />
+      <Field Name="HeaterState" DataType="ns=1;i=15014" />
+    </Definition>
+  </UADataType>
+  <UADataType NodeId="ns=1;i=15001" BrowseName="1:BoilerTemperatureType">
+    <DisplayName>BoilerTemperatureType</DisplayName>
+    <Description>Temperature in °C next to the heater at the bottom, and away from the heater at the top.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
+    </References>
+    <Definition Name="1:BoilerTemperatureType">
+      <Field Name="Top" DataType="i=6" />
+      <Field Name="Bottom" DataType="i=6" />
+    </Definition>
+  </UADataType>
+  <UADataType NodeId="ns=1;i=15014" BrowseName="1:BoilerHeaterStateType">
+    <DisplayName>BoilerHeaterStateType</DisplayName>
+    <Description>Heater working state.</Description>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=15015</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
+    </References>
+    <Definition Name="1:BoilerHeaterStateType">
+      <Field Name="Off" Value="0" />
+      <Field Name="On" Value="1" />
+    </Definition>
+  </UADataType>
+  <UAVariable NodeId="ns=1;i=15015" BrowseName="EnumStrings" ParentNodeId="ns=1;i=15014" DataType="LocalizedText" ValueRank="1" ArrayDimensions="0">
+    <DisplayName>EnumStrings</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15014</Reference>
+    </References>
+    <Value>
+      <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+        <LocalizedText>
+          <Locale>
+          </Locale>
+          <Text>Off</Text>
+        </LocalizedText>
+        <LocalizedText>
+          <Locale>
+          </Locale>
+          <Text>On</Text>
+        </LocalizedText>
+      </ListOfLocalizedText>
+    </Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=15068" BrowseName="1:BoilerType">
+    <DisplayName>BoilerType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=15003</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=15003" BrowseName="1:BoilerStatus" ParentNodeId="ns=1;i=15068" DataType="ns=1;i=15032">
+    <DisplayName>BoilerStatus</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15068</Reference>
+    </References>
+    <Value>
+      <ExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+        <TypeId>
+          <Identifier>ns=1;i=15084</Identifier>
+        </TypeId>
+        <Body>
+          <BoilerDataType xmlns="http://opcfoundation.org/Quickstarts/Boiler">
+            <Temperature>
+              <Top>20</Top>
+              <Bottom>20</Bottom>
+            </Temperature>
+            <Pressure>100000</Pressure>
+            <HeaterState>On</HeaterState>
+          </BoilerDataType>
+        </Body>
+      </ExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=15070" BrowseName="1:Boiler #1" SymbolicName="Boiler1" EventNotifier="1">
+    <DisplayName>Boiler #1</DisplayName>
+    <Description>A simple boiler.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=15013</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=15068</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=15013" BrowseName="1:BoilerStatus" ParentNodeId="ns=1;i=15070" DataType="ns=1;i=15032">
+    <DisplayName>BoilerStatus</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15070</Reference>
+    </References>
+    <Value>
+      <ExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+        <TypeId>
+          <Identifier>ns=1;i=15084</Identifier>
+        </TypeId>
+        <Body>
+          <BoilerDataType xmlns="http://opcfoundation.org/Quickstarts/Boiler">
+            <Temperature>
+              <Top>20</Top>
+              <Bottom>20</Bottom>
+            </Temperature>
+            <Pressure>100000</Pressure>
+            <HeaterState>On</HeaterState>
+          </BoilerDataType>
+        </Body>
+      </ExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=15072" BrowseName="Default Binary" SymbolicName="DefaultBinary">
+    <DisplayName>Default Binary</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=15032</Reference>
+      <Reference ReferenceType="HasDescription">ns=1;i=15078</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=15004" BrowseName="Default Binary" SymbolicName="DefaultBinary">
+    <DisplayName>Default Binary</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=15001</Reference>
+      <Reference ReferenceType="HasDescription">ns=1;i=15005</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=15074" BrowseName="1:BoilerModel" SymbolicName="Boiler_BinarySchema" DataType="ByteString">
+    <DisplayName>BoilerModel</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=15076</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=15077</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=15078</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=15005</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">i=93</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=72</Reference>
+    </References>
+    <Value>
+      <ByteString xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">PG9wYzpUeXBlRGljdGlvbmFyeQ0KICB4bWxuczpvcGM9Imh0dHA6Ly9vcGNmb3VuZGF0aW9uLm9y
+Zy9CaW5hcnlTY2hlbWEvIg0KICB4bWxuczp4c2k9Imh0dHA6Ly93d3cudzMub3JnLzIwMDEvWE1M
+U2NoZW1hLWluc3RhbmNlIg0KICB4bWxuczp1YT0iaHR0cDovL29wY2ZvdW5kYXRpb24ub3JnL1VB
+LyINCiAgeG1sbnM6dG5zPSJodHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvUXVpY2tzdGFydHMvQm9p
+bGVyIg0KICBEZWZhdWx0Qnl0ZU9yZGVyPSJMaXR0bGVFbmRpYW4iDQogIFRhcmdldE5hbWVzcGFj
+ZT0iaHR0cDovL29wY2ZvdW5kYXRpb24ub3JnL1F1aWNrc3RhcnRzL0JvaWxlciINCj4NCiAgPG9w
+YzpJbXBvcnQgTmFtZXNwYWNlPSJodHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvVUEvIiBMb2NhdGlv
+bj0iT3BjLlVhLkJpbmFyeVNjaGVtYS5ic2QiLz4NCg0KICA8b3BjOlN0cnVjdHVyZWRUeXBlIE5h
+bWU9IkJvaWxlckRhdGFUeXBlIiBCYXNlVHlwZT0idWE6RXh0ZW5zaW9uT2JqZWN0Ij4NCiAgICA8
+b3BjOkRvY3VtZW50YXRpb24+VGVtcGVyYXR1cmUgaW4gwrBDLCBwcmVzc3VyZSBpbiBQYSBhbmQg
+aGVhdGVyIHN0YXRlLjwvb3BjOkRvY3VtZW50YXRpb24+DQogICAgPG9wYzpGaWVsZCBOYW1lPSJU
+ZW1wZXJhdHVyZSIgVHlwZU5hbWU9InRuczpCb2lsZXJUZW1wZXJhdHVyZVR5cGUiIC8+DQogICAg
+PG9wYzpGaWVsZCBOYW1lPSJQcmVzc3VyZSIgVHlwZU5hbWU9Im9wYzpJbnQzMiIgLz4NCiAgICA8
+b3BjOkZpZWxkIE5hbWU9IkhlYXRlclN0YXRlIiBUeXBlTmFtZT0idG5zOkJvaWxlckhlYXRlclN0
+YXRlVHlwZSIgLz4NCiAgPC9vcGM6U3RydWN0dXJlZFR5cGU+DQoNCiAgPG9wYzpTdHJ1Y3R1cmVk
+VHlwZSBOYW1lPSJCb2lsZXJUZW1wZXJhdHVyZVR5cGUiIEJhc2VUeXBlPSJ1YTpFeHRlbnNpb25P
+YmplY3QiPg0KICAgIDxvcGM6RG9jdW1lbnRhdGlvbj5UZW1wZXJhdHVyZSBpbiDCsEMgbmV4dCB0
+byB0aGUgaGVhdGVyIGF0IHRoZSBib3R0b20sIGFuZCBhd2F5IGZyb20gdGhlIGhlYXRlciBhdCB0
+aGUgdG9wLjwvb3BjOkRvY3VtZW50YXRpb24+DQogICAgPG9wYzpGaWVsZCBOYW1lPSJUb3AiIFR5
+cGVOYW1lPSJvcGM6SW50MzIiIC8+DQogICAgPG9wYzpGaWVsZCBOYW1lPSJCb3R0b20iIFR5cGVO
+YW1lPSJvcGM6SW50MzIiIC8+DQogIDwvb3BjOlN0cnVjdHVyZWRUeXBlPg0KDQogIDxvcGM6RW51
+bWVyYXRlZFR5cGUgTmFtZT0iQm9pbGVySGVhdGVyU3RhdGVUeXBlIiBMZW5ndGhJbkJpdHM9IjMy
+Ij4NCiAgICA8b3BjOkRvY3VtZW50YXRpb24+SGVhdGVyIHdvcmtpbmcgc3RhdGUuPC9vcGM6RG9j
+dW1lbnRhdGlvbj4NCiAgICA8b3BjOkVudW1lcmF0ZWRWYWx1ZSBOYW1lPSJPZmYiIFZhbHVlPSIw
+IiAvPg0KICAgIDxvcGM6RW51bWVyYXRlZFZhbHVlIE5hbWU9Ik9uIiBWYWx1ZT0iMSIgLz4NCiAg
+PC9vcGM6RW51bWVyYXRlZFR5cGU+DQoNCjwvb3BjOlR5cGVEaWN0aW9uYXJ5Pg==</ByteString>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15076" BrowseName="NamespaceUri" ParentNodeId="ns=1;i=15074" DataType="String">
+    <DisplayName>NamespaceUri</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15074</Reference>
+    </References>
+    <Value>
+      <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">http://opcfoundation.org/Quickstarts/Boiler</String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15077" BrowseName="Deprecated" ParentNodeId="ns=1;i=15074" DataType="Boolean">
+    <DisplayName>Deprecated</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15074</Reference>
+    </References>
+    <Value>
+      <Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15078" BrowseName="1:BoilerDataType" ParentNodeId="ns=1;i=15074" DataType="String">
+    <DisplayName>BoilerDataType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=69</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15074</Reference>
+    </References>
+    <Value>
+      <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">BoilerDataType</String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15005" BrowseName="1:BoilerTemperatureType" ParentNodeId="ns=1;i=15074" DataType="String">
+    <DisplayName>BoilerTemperatureType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=69</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15074</Reference>
+    </References>
+    <Value>
+      <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">BoilerTemperatureType</String>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=15084" BrowseName="Default XML" SymbolicName="DefaultXml">
+    <DisplayName>Default XML</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=15032</Reference>
+      <Reference ReferenceType="HasDescription">ns=1;i=15090</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=15008" BrowseName="Default XML" SymbolicName="DefaultXml">
+    <DisplayName>Default XML</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=15001</Reference>
+      <Reference ReferenceType="HasDescription">ns=1;i=15009</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=15086" BrowseName="1:BoilerModel" SymbolicName="Boiler_XmlSchema" DataType="ByteString">
+    <DisplayName>BoilerModel</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=15088</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=15089</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=15090</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=15009</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">i=92</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=72</Reference>
+    </References>
+    <Value>
+      <ByteString xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">PHhzOnNjaGVtYQ0KICB4bWxuczp4cz0iaHR0cDovL3d3dy53My5vcmcvMjAwMS9YTUxTY2hlbWEi
+DQogIHhtbG5zOnVhPSJodHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvVUEvMjAwOC8wMi9UeXBlcy54
+c2QiDQogIHhtbG5zOnRucz0iaHR0cDovL29wY2ZvdW5kYXRpb24ub3JnL1F1aWNrc3RhcnRzL0Jv
+aWxlciINCiAgdGFyZ2V0TmFtZXNwYWNlPSJodHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvUXVpY2tz
+dGFydHMvQm9pbGVyIg0KICBlbGVtZW50Rm9ybURlZmF1bHQ9InF1YWxpZmllZCINCj4NCiAgPHhz
+OmltcG9ydCBuYW1lc3BhY2U9Imh0dHA6Ly9vcGNmb3VuZGF0aW9uLm9yZy9VQS8yMDA4LzAyL1R5
+cGVzLnhzZCIgLz4NCg0KICA8eHM6Y29tcGxleFR5cGUgbmFtZT0iQm9pbGVyRGF0YVR5cGUiPg0K
+ICAgIDx4czphbm5vdGF0aW9uPg0KICAgICAgPHhzOmRvY3VtZW50YXRpb24+VGVtcGVyYXR1cmUg
+aW4gwrBDLCBwcmVzc3VyZSBpbiBQYSBhbmQgaGVhdGVyIHN0YXRlLjwveHM6ZG9jdW1lbnRhdGlv
+bj4NCiAgICA8L3hzOmFubm90YXRpb24+DQogICAgPHhzOnNlcXVlbmNlPg0KICAgICAgPHhzOmVs
+ZW1lbnQgbmFtZT0iVGVtcGVyYXR1cmUiIHR5cGU9InRuczpCb2lsZXJUZW1wZXJhdHVyZVR5cGUi
+IG1pbk9jY3Vycz0iMCIgbmlsbGFibGU9InRydWUiIC8+DQogICAgICA8eHM6ZWxlbWVudCBuYW1l
+PSJQcmVzc3VyZSIgdHlwZT0ieHM6aW50IiBtaW5PY2N1cnM9IjAiIC8+DQogICAgICA8eHM6ZWxl
+bWVudCBuYW1lPSJIZWF0ZXJTdGF0ZSIgdHlwZT0idG5zOkJvaWxlckhlYXRlclN0YXRlVHlwZSIg
+bWluT2NjdXJzPSIwIiAvPg0KICAgIDwveHM6c2VxdWVuY2U+DQogIDwveHM6Y29tcGxleFR5cGU+
+DQogIDx4czplbGVtZW50IG5hbWU9IkJvaWxlckRhdGFUeXBlIiB0eXBlPSJ0bnM6Qm9pbGVyRGF0
+YVR5cGUiIC8+DQoNCiAgPHhzOmNvbXBsZXhUeXBlIG5hbWU9Ikxpc3RPZkJvaWxlckRhdGFUeXBl
+Ij4NCiAgICA8eHM6c2VxdWVuY2U+DQogICAgICA8eHM6ZWxlbWVudCBuYW1lPSJCb2lsZXJEYXRh
+VHlwZSIgdHlwZT0idG5zOkJvaWxlckRhdGFUeXBlIiBtaW5PY2N1cnM9IjAiIG1heE9jY3Vycz0i
+dW5ib3VuZGVkIiBuaWxsYWJsZT0idHJ1ZSIgLz4NCiAgICA8L3hzOnNlcXVlbmNlPg0KICA8L3hz
+OmNvbXBsZXhUeXBlPg0KICA8eHM6ZWxlbWVudCBuYW1lPSJMaXN0T2ZCb2lsZXJEYXRhVHlwZSIg
+dHlwZT0idG5zOkxpc3RPZkJvaWxlckRhdGFUeXBlIiBuaWxsYWJsZT0idHJ1ZSI+PC94czplbGVt
+ZW50Pg0KDQogIDx4czpjb21wbGV4VHlwZSBuYW1lPSJCb2lsZXJUZW1wZXJhdHVyZVR5cGUiPg0K
+ICAgIDx4czphbm5vdGF0aW9uPg0KICAgICAgPHhzOmRvY3VtZW50YXRpb24+VGVtcGVyYXR1cmUg
+aW4gwrBDIG5leHQgdG8gdGhlIGhlYXRlciBhdCB0aGUgYm90dG9tLCBhbmQgYXdheSBmcm9tIHRo
+ZSBoZWF0ZXIgYXQgdGhlIHRvcC48L3hzOmRvY3VtZW50YXRpb24+DQogICAgPC94czphbm5vdGF0
+aW9uPg0KICAgIDx4czpzZXF1ZW5jZT4NCiAgICAgIDx4czplbGVtZW50IG5hbWU9IlRvcCIgdHlw
+ZT0ieHM6aW50IiBtaW5PY2N1cnM9IjAiIC8+DQogICAgICA8eHM6ZWxlbWVudCBuYW1lPSJCb3R0
+b20iIHR5cGU9InhzOmludCIgbWluT2NjdXJzPSIwIiAvPg0KICAgIDwveHM6c2VxdWVuY2U+DQog
+IDwveHM6Y29tcGxleFR5cGU+DQogIDx4czplbGVtZW50IG5hbWU9IkJvaWxlclRlbXBlcmF0dXJl
+VHlwZSIgdHlwZT0idG5zOkJvaWxlclRlbXBlcmF0dXJlVHlwZSIgLz4NCg0KICA8eHM6Y29tcGxl
+eFR5cGUgbmFtZT0iTGlzdE9mQm9pbGVyVGVtcGVyYXR1cmVUeXBlIj4NCiAgICA8eHM6c2VxdWVu
+Y2U+DQogICAgICA8eHM6ZWxlbWVudCBuYW1lPSJCb2lsZXJUZW1wZXJhdHVyZVR5cGUiIHR5cGU9
+InRuczpCb2lsZXJUZW1wZXJhdHVyZVR5cGUiIG1pbk9jY3Vycz0iMCIgbWF4T2NjdXJzPSJ1bmJv
+dW5kZWQiIG5pbGxhYmxlPSJ0cnVlIiAvPg0KICAgIDwveHM6c2VxdWVuY2U+DQogIDwveHM6Y29t
+cGxleFR5cGU+DQogIDx4czplbGVtZW50IG5hbWU9Ikxpc3RPZkJvaWxlclRlbXBlcmF0dXJlVHlw
+ZSIgdHlwZT0idG5zOkxpc3RPZkJvaWxlclRlbXBlcmF0dXJlVHlwZSIgbmlsbGFibGU9InRydWUi
+PjwveHM6ZWxlbWVudD4NCg0KICA8eHM6c2ltcGxlVHlwZSAgbmFtZT0iQm9pbGVySGVhdGVyU3Rh
+dGVUeXBlIj4NCiAgICA8eHM6YW5ub3RhdGlvbj4NCiAgICAgIDx4czpkb2N1bWVudGF0aW9uPkhl
+YXRlciB3b3JraW5nIHN0YXRlLjwveHM6ZG9jdW1lbnRhdGlvbj4NCiAgICA8L3hzOmFubm90YXRp
+b24+DQogICAgPHhzOnJlc3RyaWN0aW9uIGJhc2U9InhzOnN0cmluZyI+DQogICAgICA8eHM6ZW51
+bWVyYXRpb24gdmFsdWU9Ik9mZl8wIiAvPg0KICAgICAgPHhzOmVudW1lcmF0aW9uIHZhbHVlPSJP
+bl8xIiAvPg0KICAgIDwveHM6cmVzdHJpY3Rpb24+DQogIDwveHM6c2ltcGxlVHlwZT4NCiAgPHhz
+OmVsZW1lbnQgbmFtZT0iQm9pbGVySGVhdGVyU3RhdGVUeXBlIiB0eXBlPSJ0bnM6Qm9pbGVySGVh
+dGVyU3RhdGVUeXBlIiAvPg0KDQogIDx4czpjb21wbGV4VHlwZSBuYW1lPSJMaXN0T2ZCb2lsZXJI
+ZWF0ZXJTdGF0ZVR5cGUiPg0KICAgIDx4czpzZXF1ZW5jZT4NCiAgICAgIDx4czplbGVtZW50IG5h
+bWU9IkJvaWxlckhlYXRlclN0YXRlVHlwZSIgdHlwZT0idG5zOkJvaWxlckhlYXRlclN0YXRlVHlw
+ZSIgbWluT2NjdXJzPSIwIiBtYXhPY2N1cnM9InVuYm91bmRlZCIgLz4NCiAgICA8L3hzOnNlcXVl
+bmNlPg0KICA8L3hzOmNvbXBsZXhUeXBlPg0KICA8eHM6ZWxlbWVudCBuYW1lPSJMaXN0T2ZCb2ls
+ZXJIZWF0ZXJTdGF0ZVR5cGUiIHR5cGU9InRuczpMaXN0T2ZCb2lsZXJIZWF0ZXJTdGF0ZVR5cGUi
+IG5pbGxhYmxlPSJ0cnVlIj48L3hzOmVsZW1lbnQ+DQoNCjwveHM6c2NoZW1hPg==</ByteString>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15088" BrowseName="NamespaceUri" ParentNodeId="ns=1;i=15086" DataType="String">
+    <DisplayName>NamespaceUri</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15086</Reference>
+    </References>
+    <Value>
+      <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">http://opcfoundation.org/Quickstarts/Boiler</String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15089" BrowseName="Deprecated" ParentNodeId="ns=1;i=15086" DataType="Boolean">
+    <DisplayName>Deprecated</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15086</Reference>
+    </References>
+    <Value>
+      <Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15090" BrowseName="1:BoilerDataType" ParentNodeId="ns=1;i=15086" DataType="String">
+    <DisplayName>BoilerDataType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=69</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15086</Reference>
+    </References>
+    <Value>
+      <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">//xs:element[@name='BoilerDataType']</String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15009" BrowseName="1:BoilerTemperatureType" ParentNodeId="ns=1;i=15086" DataType="String">
+    <DisplayName>BoilerTemperatureType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=69</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15086</Reference>
+    </References>
+    <Value>
+      <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">//xs:element[@name='BoilerTemperatureType']</String>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=15096" BrowseName="Default JSON" SymbolicName="DefaultJson">
+    <DisplayName>Default JSON</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=15032</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=15012" BrowseName="Default JSON" SymbolicName="DefaultJson">
+    <DisplayName>Default JSON</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=15001</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+</UANodeSet>
