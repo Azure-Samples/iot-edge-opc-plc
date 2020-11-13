@@ -4,8 +4,8 @@
   xmlns:opc="http://opcfoundation.org/UA/ModelDesign.xsd"
   xmlns:ua="http://opcfoundation.org/UA/"
   xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"
-  xmlns="http://opcfoundation.org/Quickstarts/Boiler"
-  TargetNamespace="http://opcfoundation.org/Quickstarts/Boiler"
+  xmlns="http://microsoft.com/Opc/OpcPlc/Boiler"
+  TargetNamespace="http://microsoft.com/Opc/OpcPlc/Boiler"
 >
   <!--
   This element defines the mappings between the URIs used to identify namespaces and the symbols used in code.
@@ -14,7 +14,7 @@
   -->
   <opc:Namespaces>
     <opc:Namespace Name="OpcUa" Prefix="Opc.Ua" XmlNamespace="http://opcfoundation.org/UA/2008/02/Types.xsd">http://opcfoundation.org/UA/</opc:Namespace>
-    <opc:Namespace Name="Boiler" Prefix="BoilerModel">http://opcfoundation.org/Quickstarts/Boiler</opc:Namespace>
+    <opc:Namespace Name="Boiler" Prefix="BoilerModel">http://microsoft.com/Opc/OpcPlc/Boiler</opc:Namespace>
   </opc:Namespaces>
 
   <!--DataTypes -->

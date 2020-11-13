@@ -2,9 +2,9 @@
   xmlns:opc="http://opcfoundation.org/BinarySchema/"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns:ua="http://opcfoundation.org/UA/"
-  xmlns:tns="http://opcfoundation.org/Quickstarts/Boiler"
+  xmlns:tns="http://microsoft.com/Opc/OpcPlc/Boiler"
   DefaultByteOrder="LittleEndian"
-  TargetNamespace="http://opcfoundation.org/Quickstarts/Boiler"
+  TargetNamespace="http://microsoft.com/Opc/OpcPlc/Boiler"
 >
   <opc:Import Namespace="http://opcfoundation.org/UA/" Location="Opc.Ua.BinarySchema.bsd"/>
 

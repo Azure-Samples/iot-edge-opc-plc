@@ -426,7 +426,7 @@ namespace BoilerModel
         /// <summary>
         /// The URI for the Boiler namespace (.NET code namespace is 'BoilerModel').
         /// </summary>
-        public const string Boiler = "http://opcfoundation.org/Quickstarts/Boiler";
+        public const string Boiler = "http://microsoft.com/Opc/OpcPlc/Boiler";
     }
     #endregion
 }

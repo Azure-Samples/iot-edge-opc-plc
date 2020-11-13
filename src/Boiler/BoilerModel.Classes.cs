@@ -90,13 +90,13 @@ namespace BoilerModel
 
         #region Initialization String
         private const string InitializationString =
-           "AQAAACsAAABodHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvUXVpY2tzdGFydHMvQm9pbGVy/////4RggAIB" +
-           "AAAAAQASAAAAQm9pbGVyVHlwZUluc3RhbmNlAQHcOgEB3DrcOgAAAf////8BAAAAFWCpCgIAAAABAAwA" +
-           "AABCb2lsZXJTdGF0dXMBAZs6AC8AP5s6AAAWAQHsOgLIAAAAPEJvaWxlckRhdGFUeXBlIHhtbG5zPSJo" +
-           "dHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvUXVpY2tzdGFydHMvQm9pbGVyIj48VGVtcGVyYXR1cmU+PFRv" +
-           "cD4yMDwvVG9wPjxCb3R0b20+MjA8L0JvdHRvbT48L1RlbXBlcmF0dXJlPjxQcmVzc3VyZT4xMDAwMjA8" +
-           "L1ByZXNzdXJlPjxIZWF0ZXJTdGF0ZT5PbjwvSGVhdGVyU3RhdGU+PC9Cb2lsZXJEYXRhVHlwZT4BAbg6" +
-           "/////wEB/////wAAAAA=";
+           "AQAAACYAAABodHRwOi8vbWljcm9zb2Z0LmNvbS9PcGMvT3BjUGxjL0JvaWxlcv////+EYIACAQAAAAEA" +
+           "EgAAAEJvaWxlclR5cGVJbnN0YW5jZQEB3DoBAdw63DoAAAH/////AQAAABVgqQoCAAAAAQAMAAAAQm9p" +
+           "bGVyU3RhdHVzAQGbOgAvAD+bOgAAFgEB7DoCwwAAADxCb2lsZXJEYXRhVHlwZSB4bWxucz0iaHR0cDov" +
+           "L21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9Cb2lsZXIiPjxUZW1wZXJhdHVyZT48VG9wPjIwPC9Ub3A+" +
+           "PEJvdHRvbT4yMDwvQm90dG9tPjwvVGVtcGVyYXR1cmU+PFByZXNzdXJlPjEwMDAyMDwvUHJlc3N1cmU+" +
+           "PEhlYXRlclN0YXRlPk9uPC9IZWF0ZXJTdGF0ZT48L0JvaWxlckRhdGFUeXBlPgEBuDr/////AQH/////" +
+           "AAAAAA==";
         #endregion
         #endif
         #endregion
