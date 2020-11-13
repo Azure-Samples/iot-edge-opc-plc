@@ -94,7 +94,7 @@ namespace BoilerModel
            "AAAAAQASAAAAQm9pbGVyVHlwZUluc3RhbmNlAQHcOgEB3DrcOgAAAf////8BAAAAFWCpCgIAAAABAAwA" +
            "AABCb2lsZXJTdGF0dXMBAZs6AC8AP5s6AAAWAQHsOgLIAAAAPEJvaWxlckRhdGFUeXBlIHhtbG5zPSJo" +
            "dHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvUXVpY2tzdGFydHMvQm9pbGVyIj48VGVtcGVyYXR1cmU+PFRv" +
-           "cD4yMDwvVG9wPjxCb3R0b20+MjA8L0JvdHRvbT48L1RlbXBlcmF0dXJlPjxQcmVzc3VyZT4xMDAwMDA8" +
+           "cD4yMDwvVG9wPjxCb3R0b20+MjA8L0JvdHRvbT48L1RlbXBlcmF0dXJlPjxQcmVzc3VyZT4xMDAwMjA8" +
            "L1ByZXNzdXJlPjxIZWF0ZXJTdGF0ZT5PbjwvSGVhdGVyU3RhdGU+PC9Cb2lsZXJEYXRhVHlwZT4BAbg6" +
            "/////wEB/////wAAAAA=";
         #endregion
