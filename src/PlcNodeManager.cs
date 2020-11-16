@@ -6,115 +6,252 @@ namespace OpcPlc
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using static PlcSimulation;
+    using System.Reflection;
     using static Program;
 
     public class PlcNodeManager : CustomNodeManager2
     {
+        #region Properties
         public uint RandomUnsignedInt32
         {
             get => (uint)_randomUnsignedInt32.Value;
-            set
-            {
-                _randomUnsignedInt32.Value = value;
-                _randomUnsignedInt32.Timestamp = DateTime.Now;
-                _randomUnsignedInt32.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_randomUnsignedInt32, value);
         }
 
         public int RandomSignedInt32
         {
             get => (int)_randomSignedInt32.Value;
-            set
-            {
-                _randomSignedInt32.Value = value;
-                _randomSignedInt32.Timestamp = DateTime.Now;
-                _randomSignedInt32.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_randomSignedInt32, value);
         }
 
         public double SpikeData
         {
             get => (double)_spikeData.Value;
-            set
-            {
-                _spikeData.Value = value;
-                _spikeData.Timestamp = DateTime.Now;
-                _spikeData.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_spikeData, value);
         }
 
         public double DipData
         {
             get => (double)_dipData.Value;
-            set
-            {
-                _dipData.Value = value;
-                _dipData.Timestamp = DateTime.Now;
-                _dipData.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_dipData, value);
         }
 
         public double PosTrendData
         {
             get => (double)_posTrendData.Value;
-            set
-            {
-                _posTrendData.Value = value;
-                _posTrendData.Timestamp = DateTime.Now;
-                _posTrendData.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_posTrendData, value);
         }
 
         public double NegTrendData
         {
             get => (double)_negTrendData.Value;
-            set
-            {
-                _negTrendData.Value = value;
-                _negTrendData.Timestamp = DateTime.Now;
-                _negTrendData.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_negTrendData, value);
         }
 
         public bool AlternatingBoolean
         {
             get => (bool)_alternatingBoolean.Value;
-            set
-            {
-                _alternatingBoolean.Value = value;
-                _alternatingBoolean.Timestamp = DateTime.Now;
-                _alternatingBoolean.ClearChangeMasks(SystemContext, false);
-            }
+            set => SetValue(_alternatingBoolean, value);
         }
 
         public uint StepUp
         {
             get => (uint)_stepUp.Value;
-            set
+            set => SetValue(_stepUp, value);
+        }
+        #endregion
+
+        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
+            : base(server, configuration, Namespaces.OpcPlcApplications)
+        {
+            _nodeFileName = nodeFileName;
+            SystemContext.NodeIdFactory = this;
+
+            if (AddComplexTypeBoiler)
             {
-                _stepUp.Value = value;
-                _stepUp.Timestamp = DateTime.Now;
-                _stepUp.ClearChangeMasks(SystemContext, false);
+                SetComplexTypeNamespaces();
             }
         }
 
-#pragma warning disable RCS1163 // Unused parameter.
 #pragma warning disable IDE0060 // Remove unused parameter
         public void IncreaseSlowNodes(object state)
 #pragma warning restore IDE0060 // Remove unused parameter
-#pragma warning restore RCS1163 // Unused parameter.
         {
             IncreaseNodes(_slowNodes, PlcSimulation.SlowNodeType);
         }
 
-#pragma warning disable RCS1163 // Unused parameter.
 #pragma warning disable IDE0060 // Remove unused parameter
         public void IncreaseFastNodes(object state)
 #pragma warning restore IDE0060 // Remove unused parameter
-#pragma warning restore RCS1163 // Unused parameter.
         {
             IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType);
+        }
+
+#pragma warning disable IDE0060 // Remove unused parameter
+        public void ChangeBoiler1(object state)
+#pragma warning restore IDE0060 // Remove unused parameter
+        {
+            BoilerModel.BoilerTemperatureType temperature = _boiler1.BoilerStatus.Value.Temperature;
+
+            if (_boiler1.BoilerStatus.Value.HeaterState == BoilerModel.BoilerHeaterStateType.On)
+            {
+                // Heater on, increase values.
+                temperature.Bottom += 1;
+            }
+            else
+            {
+                // Heater off, decrease values down to a minimum of 20.
+                temperature.Bottom = temperature.Bottom > 20
+                    ? temperature.Bottom - 1
+                    : temperature.Bottom;
+            }
+
+            // Top is always 5 degrees less than bottom, with a minimum value of 20.
+            temperature.Top = Math.Max(20, temperature.Bottom - 5);
+
+            // Pressure is always 100_000 + bottom temperature.
+            _boiler1.BoilerStatus.Value.Pressure = 100_000 + temperature.Bottom;
+        }
+
+        /// <summary>
+        /// Creates the NodeId for the specified node.
+        /// </summary>
+        public override NodeId New(ISystemContext context, NodeState node)
+        {
+            if (node is BaseInstanceState instance && instance.Parent != null)
+            {
+                if (instance.Parent.NodeId.Identifier is string id)
+                {
+                    return new NodeId(id + "_" + instance.SymbolicName, instance.Parent.NodeId.NamespaceIndex);
+                }
+            }
+
+            return node.NodeId;
+        }
+
+        /// <summary>
+        /// Does any initialization required before the address space can be used.
+        /// </summary>
+        /// <remarks>
+        /// The externalReferences is an out parameter that allows the node manager to link to nodes
+        /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
+        /// should have a reference to the root folder node(s) exposed by this node manager.
+        /// </remarks>
+        public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+        {
+            lock (Lock)
+            {
+                if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
+                {
+                    externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
+                }
+
+                FolderState root = CreateFolder(null, ProgramName, ProgramName, NamespaceType.OpcPlcApplications);
+                root.AddReference(ReferenceTypes.Organizes, true, ObjectIds.ObjectsFolder);
+                references.Add(new NodeStateReference(ReferenceTypes.Organizes, false, root.NodeId));
+                root.EventNotifier = EventNotifiers.SubscribeToEvents;
+                AddRootNotifier(root);
+
+                var variables = new List<BaseDataVariableState>();
+
+                try
+                {
+                    FolderState dataFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
+
+                    if (PlcSimulation.GenerateData) _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications);
+                    if (PlcSimulation.GenerateData) _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value", NamespaceType.OpcPlcApplications);
+                    if (PlcSimulation.GenerateData) _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value", NamespaceType.OpcPlcApplications);
+                    if (PlcSimulation.GenerateData) _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value", NamespaceType.OpcPlcApplications);
+                    if (PlcSimulation.GenerateSpikes) _spikeData = CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes", NamespaceType.OpcPlcApplications);
+                    if (PlcSimulation.GenerateDips) _dipData = CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips", NamespaceType.OpcPlcApplications);
+                    if (PlcSimulation.GeneratePosTrend) _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend", NamespaceType.OpcPlcApplications);
+                    if (PlcSimulation.GenerateNegTrend) _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications);
+
+                    // Process slow/fast nodes
+                    _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodeCount, PlcSimulation.SlowNodeType);
+                    _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodeCount, PlcSimulation.FastNodeType);
+
+                    FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
+                    if (PlcSimulation.GeneratePosTrend || PlcSimulation.GenerateNegTrend)
+                    {
+                        MethodState resetTrendMethod = CreateMethod(methodsFolder, "ResetTrend", "ResetTrend", "Reset the trend values to their baseline value", NamespaceType.OpcPlcApplications);
+                        SetResetTrendMethodProperties(ref resetTrendMethod);
+                    }
+
+                    if (PlcSimulation.GenerateData)
+                    {
+                        MethodState resetStepUpMethod = CreateMethod(methodsFolder, "ResetStepUp", "ResetStepUp", "Resets the StepUp counter to 0", NamespaceType.OpcPlcApplications);
+                        SetResetStepUpMethodProperties(ref resetStepUpMethod);
+                        MethodState startStepUpMethod = CreateMethod(methodsFolder, "StartStepUp", "StartStepUp", "Starts the StepUp counter", NamespaceType.OpcPlcApplications);
+                        SetStartStepUpMethodProperties(ref startStepUpMethod);
+                        MethodState stopStepUpMethod = CreateMethod(methodsFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter", NamespaceType.OpcPlcApplications);
+                        SetStopStepUpMethodProperties(ref stopStepUpMethod);
+                    }
+
+                    // Process user configurable nodes
+                    if (!string.IsNullOrEmpty(_nodeFileName))
+                    {
+                        string json = File.ReadAllText(_nodeFileName);
+
+                        var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
+                        {
+                            TypeNameHandling = TypeNameHandling.All
+                        });
+
+                        Logger.Information($"Processing node information configured in {_nodeFileName}");
+                        Logger.Debug($"Create folder {cfgFolder.Folder}");
+                        FolderState userNodesFolder = CreateFolder(root, cfgFolder.Folder, cfgFolder.Folder, NamespaceType.OpcPlcApplications);
+
+                        foreach (var node in cfgFolder.NodeList)
+                        {
+                            if (node.NodeId.GetType() != Type.GetType("System.Int64") && node.NodeId.GetType() != Type.GetType("System.String"))
+                            {
+                                Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal and string are supported. Default to string.");
+                                node.NodeId = node.NodeId.ToString();
+                            }
+                            string typedNodeId = $"{(node.NodeId.GetType() == Type.GetType("System.Int64") ? "i=" : "s=")}{node.NodeId.ToString()}";
+                            if (string.IsNullOrEmpty(node.Name))
+                            {
+                                node.Name = typedNodeId;
+                            }
+                            if (string.IsNullOrEmpty(node.Description))
+                            {
+                                node.Description = node.Name;
+                            }
+                            Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]}'");
+                            CreateBaseVariable(userNodesFolder, node);
+                        }
+
+                        Logger.Information("Processing node information completed.");
+                    }
+
+                    if (AddComplexTypeBoiler)
+                    {
+                        // Load complex types from binary uanodes file.
+                        LoadPredefinedNodes(SystemContext, externalReferences);
+
+                        // Find the Boiler1 node that was created when the model was loaded.
+                        var passiveNode = (BaseObjectState)FindPredefinedNode(new NodeId(BoilerModel.Objects.Boiler1, NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+
+                        // Convert to node that can be manipulated within the server.
+                        _boiler1 = new BoilerModel.BoilerState(null);
+                        _boiler1.Create(SystemContext, passiveNode);
+
+                        // Create heater on/off methods.
+                        MethodState heaterOnMethod = CreateMethod(methodsFolder, "HeaterOn", "HeaterOn", "Turn the heater on", NamespaceType.Boiler);
+                        SetHeaterOnMethodProperties(ref heaterOnMethod);
+                        MethodState heaterOffMethod = CreateMethod(methodsFolder, "HeaterOff", "HeaterOff", "Turn the heater off", NamespaceType.Boiler);
+                        SetHeaterOffMethodProperties(ref heaterOffMethod);
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    Utils.Trace(e, "Error creating the address space.");
+                }
+
+                AddPredefinedNode(SystemContext, root);
+            }
         }
 
         private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type)
@@ -151,41 +288,20 @@ namespace OpcPlc
             }
         }
 
-        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
-        : base(server, configuration, Namespaces.OpcPlcApplications)
-        {
-            _nodeFileName = nodeFileName;
-            SystemContext.NodeIdFactory = this;
-        }
-
-        /// <summary>
-        /// Creates the NodeId for the specified node.
-        /// </summary>
-        public override NodeId New(ISystemContext context, NodeState node)
-        {
-            if (node is BaseInstanceState instance && instance.Parent != null)
-            {
-                if (instance.Parent.NodeId.Identifier is string id)
-                {
-                    return new NodeId(id + "_" + instance.SymbolicName, instance.Parent.NodeId.NamespaceIndex);
-                }
-            }
-
-            return node.NodeId;
-        }
-
         /// <summary>
         /// Creates a new folder.
         /// </summary>
-        private FolderState CreateFolder(NodeState parent, string path, string name)
+        private FolderState CreateFolder(NodeState parent, string path, string name, NamespaceType namespaceType)
         {
+            ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
+
             var folder = new FolderState(parent)
             {
                 SymbolicName = name,
                 ReferenceTypeId = ReferenceTypes.Organizes,
                 TypeDefinitionId = ObjectTypeIds.FolderType,
-                NodeId = new NodeId(path, NamespaceIndex),
-                BrowseName = new QualifiedName(path, NamespaceIndex),
+                NodeId = new NodeId(path, namespaceIndex),
+                BrowseName = new QualifiedName(path, namespaceIndex),
                 DisplayName = new LocalizedText("en", name),
                 WriteMask = AttributeWriteMask.None,
                 UserWriteMask = AttributeWriteMask.None,
@@ -197,113 +313,6 @@ namespace OpcPlc
             return folder;
         }
 
-        /// <summary>
-        /// Does any initialization required before the address space can be used.
-        /// </summary>
-        /// <remarks>
-        /// The externalReferences is an out parameter that allows the node manager to link to nodes
-        /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
-        /// should have a reference to the root folder node(s) exposed by this node manager.
-        /// </remarks>
-        public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
-        {
-            lock (Lock)
-            {
-                if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
-                {
-                    externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
-                }
-
-                FolderState root = CreateFolder(null, ProgramName, ProgramName);
-                root.AddReference(ReferenceTypes.Organizes, true, ObjectIds.ObjectsFolder);
-                references.Add(new NodeStateReference(ReferenceTypes.Organizes, false, root.NodeId));
-                root.EventNotifier = EventNotifiers.SubscribeToEvents;
-                AddRootNotifier(root);
-
-                var variables = new List<BaseDataVariableState>();
-
-                try
-                {
-                    FolderState dataFolder = CreateFolder(root, "Telemetry", "Telemetry");
-
-                    if (PlcSimulation.GenerateData) _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value");
-                    if (PlcSimulation.GenerateData) _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value");
-                    if (PlcSimulation.GenerateData) _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value");
-                    if (PlcSimulation.GenerateData) _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value");
-                    if (PlcSimulation.GenerateSpikes) _spikeData = CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes");
-                    if (PlcSimulation.GenerateDips) _dipData = CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips");
-                    if (PlcSimulation.GeneratePosTrend) _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend");
-                    if (PlcSimulation.GenerateNegTrend) _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend");
-
-                    // Process slow/fast nodes
-                    _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodeCount, PlcSimulation.SlowNodeType);
-                    _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodeCount, PlcSimulation.FastNodeType);
-
-                    FolderState methodsFolder = CreateFolder(root, "Methods", "Methods");
-                    if (PlcSimulation.GeneratePosTrend || PlcSimulation.GenerateNegTrend)
-                    {
-                        MethodState resetTrendMethod = CreateMethod(methodsFolder, "ResetTrend", "ResetTrend", "Reset the trend values to their baseline value");
-                        SetResetTrendMethodProperties(ref resetTrendMethod);
-                    }
-
-                    if (PlcSimulation.GenerateData)
-                    {
-                        MethodState resetStepUpMethod = CreateMethod(methodsFolder, "ResetStepUp", "ResetStepUp", "Resets the StepUp counter to 0");
-                        SetResetStepUpMethodProperties(ref resetStepUpMethod);
-                        MethodState startStepUpMethod = CreateMethod(methodsFolder, "StartStepUp", "StartStepUp", "Starts the StepUp counter");
-                        SetStartStepUpMethodProperties(ref startStepUpMethod);
-                        MethodState stopStepUpMethod = CreateMethod(methodsFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter");
-                        SetStopStepUpMethodProperties(ref stopStepUpMethod);
-                    }
-
-                    // process user configurable nodes
-                    if (!string.IsNullOrEmpty(_nodeFileName))
-                    {
-                        string json;
-                        using (var reader = new StreamReader(_nodeFileName))
-                        {
-                            json = reader.ReadToEnd();
-                        }
-                        ConfigFolder cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
-                        {
-                            TypeNameHandling = TypeNameHandling.All
-                        });
-
-                        Logger.Information($"Processing node information configured in {_nodeFileName}");
-                        Logger.Debug($"Create folder {cfgFolder.Folder}");
-                        FolderState userNodesFolder = CreateFolder(root, cfgFolder.Folder, cfgFolder.Folder);
-
-                        foreach (var node in cfgFolder.NodeList)
-                        {
-                            if (node.NodeId.GetType() != Type.GetType("System.Int64") && node.NodeId.GetType() != Type.GetType("System.String"))
-                            {
-                                Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal and string are supported. Default to string.");
-                                node.NodeId = node.NodeId.ToString();
-                            }
-                            string typedNodeId = $"{(node.NodeId.GetType() == Type.GetType("System.Int64") ? "i=" : "s=")}{node.NodeId.ToString()}";
-                            if (string.IsNullOrEmpty(node.Name))
-                            {
-                                node.Name = typedNodeId;
-                            }
-                            if (string.IsNullOrEmpty(node.Description))
-                            {
-                                node.Description = node.Name;
-                            }
-                            Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{NamespaceIndex}'");
-                            CreateBaseVariable(userNodesFolder, node);
-                        }
-                        Logger.Information("Processing node information completed.");
-                    }
-                }
-                catch (Exception e)
-                {
-                    Utils.Trace(e, "Error creating the address space.");
-                }
-
-                AddPredefinedNode(SystemContext, root);
-            }
-        }
-
         private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, uint count, NodeType type)
         {
             var nodes = new BaseDataVariableState[count];
@@ -311,8 +320,8 @@ namespace OpcPlc
             if (count > 0)
             {
                 Logger.Information($"Creating {count} {name} nodes of type: {type}");
-                Logger.Information("Node values will change every " + (name == "Fast" ? FastNodeRate : SlowNodeRate) + " s");
-                Logger.Information("Node values sampling rate is " + (name == "Fast" ? FastNodeSamplingInterval : SlowNodeSamplingInterval) + " ms");
+                Logger.Information("Node values will change every " + (name == "Fast" ? PlcSimulation.FastNodeRate : PlcSimulation.SlowNodeRate) + " s");
+                Logger.Information("Node values sampling rate is " + (name == "Fast" ? PlcSimulation.FastNodeSamplingInterval : PlcSimulation.SlowNodeSamplingInterval) + " ms");
             }
 
             for (int i = 0; i < count; i++)
@@ -320,7 +329,7 @@ namespace OpcPlc
                 var (dataType, valueRank, defaultValue) = GetNodeType(type);
 
                 string id = (i + 1).ToString();
-                nodes[i] = CreateBaseVariable(dataFolder, $"{name}{type}{id}", $"{name}{type}{id}", dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)", defaultValue);
+                nodes[i] = CreateBaseVariable(dataFolder, $"{name}{type}{id}", $"{name}{type}{id}", dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)", NamespaceType.OpcPlcApplications, defaultValue);
             }
 
             return nodes;
@@ -370,10 +379,28 @@ namespace OpcPlc
         }
 
         /// <summary>
+        /// Sets properties of the HeaterOn method.
+        /// </summary>
+        private void SetHeaterOnMethodProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnHeaterOnCall);
+        }
+
+        /// <summary>
+        /// Sets properties of the HeaterOff method.
+        /// </summary>
+        private void SetHeaterOffMethodProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnHeaterOffCall);
+        }
+
+        /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, object defaultValue = null)
+        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
         {
+            ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
+
             var variable = new BaseDataVariableState(parent)
             {
                 SymbolicName = name,
@@ -383,14 +410,15 @@ namespace OpcPlc
 
             if (path.GetType() == Type.GetType("System.Int64"))
             {
-                variable.NodeId = new NodeId((uint)path, NamespaceIndex);
-                variable.BrowseName = new QualifiedName(((uint)path).ToString(), NamespaceIndex);
+                variable.NodeId = new NodeId((uint)path, namespaceIndex);
+                variable.BrowseName = new QualifiedName(((uint)path).ToString(), namespaceIndex);
             }
             else
             {
-                variable.NodeId = new NodeId(path, NamespaceIndex);
-                variable.BrowseName = new QualifiedName(path, NamespaceIndex);
+                variable.NodeId = new NodeId(path, namespaceIndex);
+                variable.BrowseName = new QualifiedName(path, namespaceIndex);
             }
+
             variable.DisplayName = new LocalizedText("en", name);
             variable.WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
             variable.UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
@@ -399,7 +427,7 @@ namespace OpcPlc
             variable.AccessLevel = accessLevel;
             variable.UserAccessLevel = accessLevel;
             variable.Historizing = false;
-            variable.Value = defaultValue ?? TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
+            variable.Value = defaultValue ?? Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
             variable.StatusCode = StatusCodes.Good;
             variable.Timestamp = DateTime.UtcNow;
             variable.Description = new LocalizedText(description);
@@ -441,7 +469,33 @@ namespace OpcPlc
                 node.AccessLevel = "CurrentRead";
                 accessLevel = AccessLevels.CurrentReadOrWrite;
             }
-            CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description);
+            CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications);
+        }
+
+        private void SetComplexTypeNamespaces()
+        {
+            // Set one namespace for the type model and one names for dynamically created nodes.
+            var namespaceUrls = new string[3];
+            namespaceUrls[(int)NamespaceType.Boiler] = BoilerModel.Namespaces.Boiler;
+            namespaceUrls[(int)NamespaceType.BoilerInstance] = BoilerModel.Namespaces.Boiler + "/Instance";
+            namespaceUrls[(int)NamespaceType.OpcPlcApplications] = Namespaces.OpcPlcApplications;
+
+            SetNamespaces(namespaceUrls);
+        }
+
+        /// <summary>
+        /// Loads a node set from a file or resource and addes them to the set of predefined nodes.
+        /// </summary>
+        protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+        {
+            var predefinedNodes = new NodeStateCollection();
+
+            predefinedNodes.LoadFromBinaryResource(context,
+                "Boiler/BoilerModel.PredefinedNodes.uanodes",
+                typeof(PlcNodeManager).GetTypeInfo().Assembly,
+                updateTables: true);
+
+            return predefinedNodes;
         }
 
         ///// <summary>
@@ -600,20 +654,22 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new method.
         /// </summary>
-        private MethodState CreateMethod(NodeState parent, string path, string name, string description)
+        private MethodState CreateMethod(NodeState parent, string path, string name, string description, NamespaceType namespaceType)
         {
+            ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
+
             var method = new MethodState(parent)
             {
                 SymbolicName = name,
                 ReferenceTypeId = ReferenceTypeIds.HasComponent,
-                NodeId = new NodeId(path, NamespaceIndex),
-                BrowseName = new QualifiedName(path, NamespaceIndex),
+                NodeId = new NodeId(path, namespaceIndex),
+                BrowseName = new QualifiedName(path, namespaceIndex),
                 DisplayName = new LocalizedText("en", name),
                 WriteMask = AttributeWriteMask.None,
                 UserWriteMask = AttributeWriteMask.None,
                 Executable = true,
                 UserExecutable = true,
-                Description = new LocalizedText(description)
+                Description = new LocalizedText(description),
             };
 
             parent?.AddChild(method);
@@ -624,21 +680,19 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new method using type Numeric for the NodeId.
         /// </summary>
-#pragma warning disable RCS1213 // Remove unused member declaration.
-        private MethodState CreateMethod(NodeState parent, uint id, string name)
-#pragma warning restore RCS1213 // Remove unused member declaration.
+        private MethodState CreateMethod(NodeState parent, uint id, string name, ushort namespaceIndex)
         {
             var method = new MethodState(parent)
             {
                 SymbolicName = name,
                 ReferenceTypeId = ReferenceTypeIds.HasComponent,
-                NodeId = new NodeId(id, NamespaceIndex),
-                BrowseName = new QualifiedName(name, NamespaceIndex),
+                NodeId = new NodeId(id, namespaceIndex),
+                BrowseName = new QualifiedName(name, namespaceIndex),
                 DisplayName = new LocalizedText("en", name),
                 WriteMask = AttributeWriteMask.None,
                 UserWriteMask = AttributeWriteMask.None,
                 Executable = true,
-                UserExecutable = true
+                UserExecutable = true,
             };
 
             parent?.AddChild(method);
@@ -687,6 +741,40 @@ namespace OpcPlc
         }
 
         /// <summary>
+        /// Method to turn the heater on. Executes synchronously.
+        /// </summary>
+        private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            _boiler1.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.On;
+            Logger.Debug("OnHeaterOnCall method called");
+            return ServiceResult.Good;
+        }
+
+        /// <summary>
+        /// Method to turn the heater off. Executes synchronously.
+        /// </summary>
+        private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            _boiler1.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.Off;
+            Logger.Debug("OnHeaterOffCall method called");
+            return ServiceResult.Good;
+        }
+
+        private void SetValue<T>(BaseDataVariableState variable, T value)
+        {
+            variable.Value = value;
+            variable.Timestamp = DateTime.Now;
+            variable.ClearChangeMasks(SystemContext, false);
+        }
+
+        private enum NamespaceType
+        {
+            Boiler,
+            BoilerInstance,
+            OpcPlcApplications,
+        }
+
+        /// <summary>
         /// Following variables listed here are simulated.
         /// </summary>
         protected BaseDataVariableState _stepUp = null;
@@ -699,6 +787,7 @@ namespace OpcPlc
         protected BaseDataVariableState _negTrendData = null;
         protected BaseDataVariableState[] _slowNodes = null;
         protected BaseDataVariableState[] _fastNodes = null;
+        protected BoilerModel.BoilerState _boiler1 = null;
 
         /// <summary>
         /// File name for user configurable nodes.

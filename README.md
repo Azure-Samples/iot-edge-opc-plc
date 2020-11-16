@@ -54,7 +54,7 @@ If the module (application) is started with the argument **--nodesfile** then th
 Nodes defined in the JSON file will be published by the server. This enables another OPC-UA client application to set the state/value of the node. Please note that nodes specified in the JSON file are NOT part of the simulation. They remain visible in an unchanged state until an OPC UA client changes their status.
 The following command shows how to start the application on a Windows host:
 ~~~
-opcplc.exe --at X509Store --nodesfile nodesfile.json
+dotnet opcplc.dll --at X509Store --nodesfile nodesfile.json
 ~~~
 Here's a sample node configuration file:
 ~~~
@@ -106,7 +106,7 @@ A number of changing nodes can be simulated with the following options. The node
 
 Sample start command on a Windows host:
 ~~~
-opcplc.exe --pn=50000 --at X509Store --autoaccept --nospikes --nodips --nopostrend --nonegtrend --nodatavalues --sph --sn=25 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint
+dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --nospikes --nodips --nopostrend --nonegtrend --nodatavalues --sph --sn=25 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint
 ~~~
 
 Sample start command for Docker:
@@ -115,8 +115,19 @@ docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/
 ~~~
 
 ## OPC Publisher file (pn.json)
+
 The options `sph` and `sp` show and dump an OPC Publisher configuration file (default name: `pn.json`) that matches the configuration. In addition, a web server hosts the file on a configurable port (`wp`, default 8080): e.g. http://localhost:8080/pn.json
 Additionally, you can set the configuration file name via the option `spf`.
+
+## Complex type (boiler)
+ 
+The option `--ctb` adds a simple boiler to the address space.
+
+Features:
+- BoilerStatus is a complex type that shows: temperature, pressure and heater state
+- Method to turn heater on/off
+- When the heater is on, the bottom temperature increases by 1 degree/s, the top temperature is always 5 degrees less than the bottom one
+- Pressure is calculated as 100000 + bottom temperature
 
 ## Build
 
