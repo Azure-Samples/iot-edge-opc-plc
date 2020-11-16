@@ -114,10 +114,10 @@ namespace OpcPlc
             }
 
             // Top is always 5 degrees less than bottom, with a minimum value of 20.
-            newTemperature.Top = Math.Max(20, currentTemperature.Bottom - 5);
+            newTemperature.Top = Math.Max(20, newTemperature.Bottom - 5);
 
             // Pressure is always 100_000 + bottom temperature.
-            newValue.Pressure = 100_000 + currentTemperature.Bottom;
+            newValue.Pressure = 100_000 + newTemperature.Bottom;
 
             // Change complex value in one atomic step.
             _boiler1.BoilerStatus.Value = newValue;
