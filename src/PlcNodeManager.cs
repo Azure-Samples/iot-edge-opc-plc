@@ -94,23 +94,22 @@ namespace OpcPlc
             var newValue = new BoilerModel.BoilerDataType
             {
                 HeaterState = _boiler1.BoilerStatus.Value.HeaterState,
-                Temperature = new BoilerModel.BoilerTemperatureType(),
             };
 
-            BoilerModel.BoilerTemperatureType currentTemperature = _boiler1.BoilerStatus.Value.Temperature;
+            int currentTemperatureBottom = _boiler1.BoilerStatus.Value.Temperature.Bottom;
             BoilerModel.BoilerTemperatureType newTemperature = newValue.Temperature;
 
             if (_boiler1.BoilerStatus.Value.HeaterState == BoilerModel.BoilerHeaterStateType.On)
             {
                 // Heater on, increase values.
-                newTemperature.Bottom = currentTemperature.Bottom + 1;
+                newTemperature.Bottom = currentTemperatureBottom + 1;
             }
             else
             {
                 // Heater off, decrease values down to a minimum of 20.
-                newTemperature.Bottom = currentTemperature.Bottom > 20
-                    ? currentTemperature.Bottom - 1
-                    : currentTemperature.Bottom;
+                newTemperature.Bottom = currentTemperatureBottom > 20
+                    ? currentTemperatureBottom - 1
+                    : currentTemperatureBottom;
             }
 
             // Top is always 5 degrees less than bottom, with a minimum value of 20.
@@ -121,8 +120,7 @@ namespace OpcPlc
 
             // Change complex value in one atomic step.
             _boiler1.BoilerStatus.Value = newValue;
-            _boiler1.BoilerStatus.Timestamp = DateTime.Now;
-            _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren:  true);
+            _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
         }
 
         /// <summary>
