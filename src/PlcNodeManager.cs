@@ -101,12 +101,12 @@ namespace OpcPlc
 
             if (_boiler1.BoilerStatus.Value.HeaterState == BoilerModel.BoilerHeaterStateType.On)
             {
-                // Heater on, increase values.
+                // Heater on, increase by 1.
                 newTemperature.Bottom = currentTemperatureBottom + 1;
             }
             else
             {
-                // Heater off, decrease values down to a minimum of 20.
+                // Heater off, decrease down to a minimum of 20.
                 newTemperature.Bottom = currentTemperatureBottom > 20
                     ? currentTemperatureBottom - 1
                     : currentTemperatureBottom;
