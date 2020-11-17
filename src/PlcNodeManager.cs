@@ -88,29 +88,39 @@ namespace OpcPlc
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-        public void ChangeBoiler1(object state)
+        public void UpdateBoiler1(object state)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
-            BoilerModel.BoilerTemperatureType temperature = _boiler1.BoilerStatus.Value.Temperature;
+            var newValue = new BoilerModel.BoilerDataType
+            {
+                HeaterState = _boiler1.BoilerStatus.Value.HeaterState,
+            };
+
+            int currentTemperatureBottom = _boiler1.BoilerStatus.Value.Temperature.Bottom;
+            BoilerModel.BoilerTemperatureType newTemperature = newValue.Temperature;
 
             if (_boiler1.BoilerStatus.Value.HeaterState == BoilerModel.BoilerHeaterStateType.On)
             {
-                // Heater on, increase values.
-                temperature.Bottom += 1;
+                // Heater on, increase by 1.
+                newTemperature.Bottom = currentTemperatureBottom + 1;
             }
             else
             {
-                // Heater off, decrease values down to a minimum of 20.
-                temperature.Bottom = temperature.Bottom > 20
-                    ? temperature.Bottom - 1
-                    : temperature.Bottom;
+                // Heater off, decrease down to a minimum of 20.
+                newTemperature.Bottom = currentTemperatureBottom > 20
+                    ? currentTemperatureBottom - 1
+                    : currentTemperatureBottom;
             }
 
             // Top is always 5 degrees less than bottom, with a minimum value of 20.
-            temperature.Top = Math.Max(20, temperature.Bottom - 5);
+            newTemperature.Top = Math.Max(20, newTemperature.Bottom - 5);
 
             // Pressure is always 100_000 + bottom temperature.
-            _boiler1.BoilerStatus.Value.Pressure = 100_000 + temperature.Bottom;
+            newValue.Pressure = 100_000 + newTemperature.Bottom;
+
+            // Change complex value in one atomic step.
+            _boiler1.BoilerStatus.Value = newValue;
+            _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
         }
 
         /// <summary>
@@ -236,6 +246,8 @@ namespace OpcPlc
                         // Convert to node that can be manipulated within the server.
                         _boiler1 = new BoilerModel.BoilerState(null);
                         _boiler1.Create(SystemContext, passiveNode);
+
+                        AddPredefinedNode(SystemContext, _boiler1);
 
                         // Create heater on/off methods.
                         MethodState heaterOnMethod = CreateMethod(methodsFolder, "HeaterOn", "HeaterOn", "Turn the heater on", NamespaceType.Boiler);
@@ -491,7 +503,7 @@ namespace OpcPlc
             var predefinedNodes = new NodeStateCollection();
 
             predefinedNodes.LoadFromBinaryResource(context,
-                "Boiler/BoilerModel.PredefinedNodes.uanodes",
+                "Boiler/BoilerModel.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
                 typeof(PlcNodeManager).GetTypeInfo().Assembly,
                 updateTables: true);
 

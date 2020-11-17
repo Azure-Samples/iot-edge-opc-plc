@@ -74,7 +74,7 @@ namespace OpcPlc
 
             if(AddComplexTypeBoiler)
             {
-                _boiler1Generator = new Timer(_plcServer.PlcNodeManager.ChangeBoiler1, null, 0, period: 1000);
+                _boiler1Generator = new Timer(_plcServer.PlcNodeManager.UpdateBoiler1, null, 0, period: 1000);
             }
         }
 
