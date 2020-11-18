@@ -69,10 +69,16 @@ namespace OpcPlc
                 _dataGenerator = new Timer(ValueGenerator, null, 0, SimulationCycleLength);
             }
 
-            _slowNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseSlowNodes, null, 0, SlowNodeRate * 1000);
-            _fastNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseFastNodes, null, 0, FastNodeRate * 1000);
+            if (SlowNodeCount > 0)
+            {
+                _slowNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseSlowNodes, null, 0, SlowNodeRate * 1000);
+            }
+            if (FastNodeCount > 0)
+            {
+                _fastNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseFastNodes, null, 0, FastNodeRate * 1000);
+            }
 
-            if(AddComplexTypeBoiler)
+            if (AddComplexTypeBoiler)
             {
                 _boiler1Generator = new Timer(_plcServer.PlcNodeManager.UpdateBoiler1, null, 0, period: 1000);
             }
