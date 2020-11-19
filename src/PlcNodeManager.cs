@@ -67,10 +67,7 @@ namespace OpcPlc
             _nodeFileName = nodeFileName;
             SystemContext.NodeIdFactory = this;
 
-            if (AddComplexTypeBoiler)
-            {
-                SetComplexTypeNamespaces();
-            }
+            SetComplexTypeNamespaces();
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
