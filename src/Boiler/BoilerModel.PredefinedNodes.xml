@@ -19,6 +19,51 @@
     <uax:SuperTypeId>
       <uax:Identifier>i=22</uax:Identifier>
     </uax:SuperTypeId>
+    <uax:DataTypeDefinition>
+      <uax:TypeId>
+        <uax:Identifier>i=14798</uax:Identifier>
+      </uax:TypeId>
+      <uax:Body>
+        <uax:StructureDefinition>
+          <uax:BaseDataType>
+            <uax:Identifier>i=22</uax:Identifier>
+          </uax:BaseDataType>
+          <uax:StructureType>Structure_0</uax:StructureType>
+          <uax:Fields>
+            <uax:StructureField>
+              <uax:Name>Temperature</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>ns=1;i=15001</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:MaxStringLength>0</uax:MaxStringLength>
+              <uax:IsOptional>false</uax:IsOptional>
+            </uax:StructureField>
+            <uax:StructureField>
+              <uax:Name>Pressure</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>i=6</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:MaxStringLength>0</uax:MaxStringLength>
+              <uax:IsOptional>false</uax:IsOptional>
+            </uax:StructureField>
+            <uax:StructureField>
+              <uax:Name>HeaterState</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>ns=1;i=15014</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:MaxStringLength>0</uax:MaxStringLength>
+              <uax:IsOptional>false</uax:IsOptional>
+            </uax:StructureField>
+          </uax:Fields>
+        </uax:StructureDefinition>
+      </uax:Body>
+    </uax:DataTypeDefinition>
   </BoilerDataType>
   <BoilerTemperatureType xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>DataType_64</uax:NodeClass>
@@ -36,6 +81,41 @@
     <uax:SuperTypeId>
       <uax:Identifier>i=22</uax:Identifier>
     </uax:SuperTypeId>
+    <uax:DataTypeDefinition>
+      <uax:TypeId>
+        <uax:Identifier>i=14798</uax:Identifier>
+      </uax:TypeId>
+      <uax:Body>
+        <uax:StructureDefinition>
+          <uax:BaseDataType>
+            <uax:Identifier>i=22</uax:Identifier>
+          </uax:BaseDataType>
+          <uax:StructureType>Structure_0</uax:StructureType>
+          <uax:Fields>
+            <uax:StructureField>
+              <uax:Name>Top</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>i=6</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:MaxStringLength>0</uax:MaxStringLength>
+              <uax:IsOptional>false</uax:IsOptional>
+            </uax:StructureField>
+            <uax:StructureField>
+              <uax:Name>Bottom</uax:Name>
+              <uax:DataType>
+                <uax:Identifier>i=6</uax:Identifier>
+              </uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:MaxStringLength>0</uax:MaxStringLength>
+              <uax:IsOptional>false</uax:IsOptional>
+            </uax:StructureField>
+          </uax:Fields>
+        </uax:StructureDefinition>
+      </uax:Body>
+    </uax:DataTypeDefinition>
   </BoilerTemperatureType>
   <BoilerHeaterStateType xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>DataType_64</uax:NodeClass>
@@ -53,6 +133,31 @@
     <uax:SuperTypeId>
       <uax:Identifier>i=29</uax:Identifier>
     </uax:SuperTypeId>
+    <uax:DataTypeDefinition>
+      <uax:TypeId>
+        <uax:Identifier>i=14799</uax:Identifier>
+      </uax:TypeId>
+      <uax:Body>
+        <uax:EnumDefinition>
+          <uax:Fields>
+            <uax:EnumField>
+              <uax:Value>0</uax:Value>
+              <uax:DisplayName>
+                <uax:Text>Off</uax:Text>
+              </uax:DisplayName>
+              <uax:Name>Off</uax:Name>
+            </uax:EnumField>
+            <uax:EnumField>
+              <uax:Value>1</uax:Value>
+              <uax:DisplayName>
+                <uax:Text>On</uax:Text>
+              </uax:DisplayName>
+              <uax:Name>On</uax:Name>
+            </uax:EnumField>
+          </uax:Fields>
+        </uax:EnumDefinition>
+      </uax:Body>
+    </uax:DataTypeDefinition>
     <EnumStrings xmlns="http://opcfoundation.org/UA/">
       <uax:NodeClass>Variable_2</uax:NodeClass>
       <uax:NodeId>
