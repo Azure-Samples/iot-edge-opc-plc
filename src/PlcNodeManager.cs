@@ -62,26 +62,42 @@ namespace OpcPlc
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
-            : base(server, configuration, Namespaces.OpcPlcApplications)
+            : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
         {
             _nodeFileName = nodeFileName;
             SystemContext.NodeIdFactory = this;
-
-            SetComplexTypeNamespaces();
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
         public void IncreaseSlowNodes(object state)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
-            IncreaseNodes(_slowNodes, PlcSimulation.SlowNodeType);
+            if (_slowNodes != null)
+            {
+                IncreaseNodes(_slowNodes, PlcSimulation.SlowNodeType, StatusCodes.Good, false);
+            }
+
+            if (_slowBadNodes != null) 
+            {
+                (StatusCode status, bool addBadValue) = BadStatusSequence[_slowBadNodesCycle++ % BadStatusSequence.Length];
+                IncreaseNodes(_slowBadNodes, PlcSimulation.SlowNodeType, status, addBadValue);
+            }
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
         public void IncreaseFastNodes(object state)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
-            IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType);
+            if (_fastNodes != null)
+            {
+                IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
+            }
+
+            if (_fastBadNodes != null) 
+            {
+                (StatusCode status, bool addBadValue) = BadStatusSequence[_fastBadNodesCycle++ % BadStatusSequence.Length];
+                IncreaseNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
+            }
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
@@ -178,6 +194,10 @@ namespace OpcPlc
                     _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodeCount, PlcSimulation.SlowNodeType);
                     _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodeCount, PlcSimulation.FastNodeType);
 
+                    // Process Bad slow/fast nodes
+                    _slowBadNodes = CreateBaseLoadNodes(dataFolder, "BadSlow", 1, PlcSimulation.SlowNodeType);
+                    _fastBadNodes = CreateBaseLoadNodes(dataFolder, "BadFast", 1, PlcSimulation.FastNodeType);
+
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
                     if (PlcSimulation.GeneratePosTrend || PlcSimulation.GenerateNegTrend)
                     {
@@ -256,41 +276,60 @@ namespace OpcPlc
                 }
                 catch (Exception e)
                 {
-                    Utils.Trace(e, "Error creating the address space.");
+                    Logger.Error(e, "Error creating the address space.");
                 }
 
                 AddPredefinedNode(SystemContext, root);
             }
         }
 
-        private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type)
+        private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
         {
+            if (nodes == null || nodes.Length == 0) {
+                Logger.Warning("Invalid argument {argument} provided.", nodes);
+                return;
+            }
             for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
             {
-                object value;
-
-                switch (type)
+                object value = null;
+                if (StatusCode.IsNotBad(status) || addBadValue) 
                 {
-                    case NodeType.Double:
-                        value = (double)nodes[nodeIndex].Value + 0.1;
-                        break;
-                    case NodeType.Bool:
-                        value = !(bool)nodes[nodeIndex].Value;
-                        break;
-                    case NodeType.UIntArray:
-                        uint[] arrayValue = (uint[])nodes[nodeIndex].Value;
-                        for (int arrayIndex = 0; arrayIndex < arrayValue?.Length; arrayIndex++)
-                        {
-                            arrayValue[arrayIndex]++;
-                        }
-                        value = arrayValue;
-                        break;
-                    case NodeType.UInt:
-                    default:
-                        value = (uint)nodes[nodeIndex].Value + 1;
-                        break;
+                    switch (type) {
+                        case NodeType.Double:
+                            value = nodes[nodeIndex].Value != null
+                                ? (double)nodes[nodeIndex].Value + 0.1
+                                : 0.0;
+                            break;
+                        case NodeType.Bool:
+                            value = nodes[nodeIndex].Value != null
+                                ? !(bool)nodes[nodeIndex].Value
+                                : true;
+                            break;
+                        case NodeType.UIntArray:
+                            uint[] arrayValue = (uint[])nodes[nodeIndex].Value;
+                            if (arrayValue != null)
+                            {
+                                for (int arrayIndex = 0; arrayIndex < arrayValue?.Length; arrayIndex++)
+                                {
+                                    arrayValue[arrayIndex]++;
+                                }
+                            }
+                            else
+                            {
+                                arrayValue = new uint[32];
+                            }
+                            value = arrayValue;
+                            break;
+                        case NodeType.UInt:
+                        default:
+                            value = nodes[nodeIndex].Value != null
+                                ? (uint)nodes[nodeIndex].Value + 1
+                                : 0;
+                            break;
+                    }
                 }
 
+                nodes[nodeIndex].StatusCode = status;
                 nodes[nodeIndex].Value = value;
                 nodes[nodeIndex].Timestamp = DateTime.Now;
                 nodes[nodeIndex].ClearChangeMasks(SystemContext, false);
@@ -329,8 +368,8 @@ namespace OpcPlc
             if (count > 0)
             {
                 Logger.Information($"Creating {count} {name} nodes of type: {type}");
-                Logger.Information("Node values will change every " + (name == "Fast" ? PlcSimulation.FastNodeRate : PlcSimulation.SlowNodeRate) + " s");
-                Logger.Information("Node values sampling rate is " + (name == "Fast" ? PlcSimulation.FastNodeSamplingInterval : PlcSimulation.SlowNodeSamplingInterval) + " ms");
+                Logger.Information("Node values will change every " + (name.Contains("Fast") ? PlcSimulation.FastNodeRate : PlcSimulation.SlowNodeRate) + " s");
+                Logger.Information("Node values sampling rate is " + (name.Contains("Fast") ? PlcSimulation.FastNodeSamplingInterval : PlcSimulation.SlowNodeSamplingInterval) + " ms");
             }
 
             for (int i = 0; i < count; i++)
@@ -348,10 +387,10 @@ namespace OpcPlc
         {
             return nodeType switch
             {
-                NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, null),
-                NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, null),
+                NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, true),
+                NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, (double)0.0),
                 NodeType.UIntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32]),
-                _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, null),
+                _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, (uint)0),
             };
         }
 
@@ -479,17 +518,6 @@ namespace OpcPlc
                 accessLevel = AccessLevels.CurrentReadOrWrite;
             }
             CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications);
-        }
-
-        private void SetComplexTypeNamespaces()
-        {
-            // Set one namespace for the type model and one names for dynamically created nodes.
-            var namespaceUrls = new string[3];
-            namespaceUrls[(int)NamespaceType.Boiler] = BoilerModel.Namespaces.Boiler;
-            namespaceUrls[(int)NamespaceType.BoilerInstance] = BoilerModel.Namespaces.Boiler + "/Instance";
-            namespaceUrls[(int)NamespaceType.OpcPlcApplications] = Namespaces.OpcPlcApplications;
-
-            SetNamespaces(namespaceUrls);
         }
 
         /// <summary>
@@ -687,29 +715,6 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Creates a new method using type Numeric for the NodeId.
-        /// </summary>
-        private MethodState CreateMethod(NodeState parent, uint id, string name, ushort namespaceIndex)
-        {
-            var method = new MethodState(parent)
-            {
-                SymbolicName = name,
-                ReferenceTypeId = ReferenceTypeIds.HasComponent,
-                NodeId = new NodeId(id, namespaceIndex),
-                BrowseName = new QualifiedName(name, namespaceIndex),
-                DisplayName = new LocalizedText("en", name),
-                WriteMask = AttributeWriteMask.None,
-                UserWriteMask = AttributeWriteMask.None,
-                Executable = true,
-                UserExecutable = true,
-            };
-
-            parent?.AddChild(method);
-
-            return method;
-        }
-
-        /// <summary>
         /// Method to reset the trend values. Executes synchronously.
         /// </summary>
         private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
@@ -778,10 +783,27 @@ namespace OpcPlc
 
         private enum NamespaceType
         {
+            OpcPlcApplications,
             Boiler,
             BoilerInstance,
-            OpcPlcApplications,
         }
+
+        private (StatusCode, bool)[] BadStatusSequence = new (StatusCode, bool)[]
+            {
+                ( StatusCodes.Good, true ),
+                ( StatusCodes.Good, true ),
+                ( StatusCodes.Good, true ),
+                ( StatusCodes.UncertainLastUsableValue, true),
+                ( StatusCodes.Good, true ),
+                ( StatusCodes.Good, true ),
+                ( StatusCodes.Good, true ),
+                ( StatusCodes.UncertainLastUsableValue, true),
+                ( StatusCodes.BadDataLost, true),
+                ( StatusCodes.BadNoCommunication, false)
+            };
+
+        private uint _slowBadNodesCycle = 0;
+        private uint _fastBadNodesCycle = 0;
 
         /// <summary>
         /// Following variables listed here are simulated.
@@ -797,6 +819,8 @@ namespace OpcPlc
         protected BaseDataVariableState[] _slowNodes = null;
         protected BaseDataVariableState[] _fastNodes = null;
         protected BoilerModel.BoilerState _boiler1 = null;
+        protected BaseDataVariableState[] _slowBadNodes = null;
+        protected BaseDataVariableState[] _fastBadNodes = null;
 
         /// <summary>
         /// File name for user configurable nodes.

@@ -27,6 +27,8 @@ The following nodes are part of the PLC simulation:
 - Sine wave with a dip anomaly
 - Value showing a positive trend
 - Value showing a negative trend
+- Value having perodical good, bad and uncertain statuses (slow changing - 10s by default)
+- Value having perodical good, bad and uncertain statuses (fast changing - 1s by default)
 
 By default everything is enabled, use command line options to disable certain anomaly or data generation features.
 Additionally to those nodes with simulated data, a JSON configuration file allows nodes to be created as specified. Finally, the simulation supports a number of nodes of specific types that can change at a configurable rate.
@@ -91,10 +93,10 @@ Here's a sample node configuration file:
 
 ## Slow and fast changing nodes
 A number of changing nodes can be simulated with the following options. The nodes are categorized into slow and fast only for convenience.
-- sn: Number of slow nodes
+- sn: Number of slow nodes (default 1)
 - sr: Rate in seconds at which to change the slow nodes (uint, default every 10 s)
 - st: Data type for slow nodes (UInt|Double|Bool|UIntArray, case insensitive)
-- fn: Number of fast nodes
+- fn: Number of fast nodes (default 1)
 - fr: Rate in seconds at which to change the fast nodes (uint, default every 1 s)
 - ft: Data type for fast nodes (UInt|Double|Bool|UIntArray, case insensitive)
 

@@ -14,11 +14,11 @@ namespace OpcPlc
         public static bool GeneratePosTrend { get; set; } = true;
         public static bool GenerateNegTrend { get; set; } = true;
         public static bool GenerateData { get; set; } = true;
-        public static uint SlowNodeCount { get; set; } = 0;
+        public static uint SlowNodeCount { get; set; } = 1;
         public static uint SlowNodeRate { get; set; } = 10; // s.
         public static NodeType SlowNodeType { get; set; } = NodeType.UInt;
         public static uint SlowNodeSamplingInterval { get; set; } // ms.
-        public static uint FastNodeCount { get; set; } = 0;
+        public static uint FastNodeCount { get; set; } = 1;
         public static uint FastNodeRate { get; set; } = 1; // s.
         public static NodeType FastNodeType { get; set; } = NodeType.UInt;
         public static uint FastNodeSamplingInterval { get; set; } // ms.
@@ -304,6 +304,8 @@ namespace OpcPlc
 
         private Timer _slowNodeGenerator;
         private Timer _fastNodeGenerator;
+
         private Timer _boiler1Generator;
+
     }
 }
