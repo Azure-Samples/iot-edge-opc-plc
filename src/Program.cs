@@ -92,6 +92,11 @@
         public static bool AddComplexTypeBoiler { get; set; }
 
         /// <summary>
+        /// Add node with special characters in name.
+        /// </summary>
+        public static bool AddSpecialCharName { get; set; }
+
+        /// <summary>
         /// Web server port for hosting OPC Publisher file.
         /// </summary>
         public static uint WebServerPort { get; set; } = 8080;
@@ -120,9 +125,71 @@
         /// </summary>
         public static async Task MainAsync(string[] args)
         {
-            bool shouldShowHelp = false;
+            (Mono.Options.OptionSet options, bool showHelp) = InitCommandLineOptions();
 
-            // command line options
+            InitAppLocation();
+
+            InitLogging();
+
+            var extraArgs = new List<string>();
+            try
+            {
+                // parse the command line
+                extraArgs = options.Parse(args);
+            }
+            catch (OptionException e)
+            {
+                // show message
+                Logger.Fatal(e, "Error in command line options");
+                Logger.Error($"Command line arguments: {string.Join(" ", args)}");
+                // show usage
+                Usage(options);
+                return;
+            }
+
+            // show usage if requested
+            if (showHelp)
+            {
+                Usage(options);
+                return;
+            }
+
+            // validate and parse extra arguments
+            if (extraArgs.Count > 0)
+            {
+                Logger.Error("Error in command line options");
+                Logger.Error($"Command line arguments: {string.Join(" ", args)}");
+                Usage(options);
+                return;
+            }
+
+            //show version
+            var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
+            Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up...");
+            Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
+
+            using var host = CreateHostBuilder(args);
+            if (ShowPublisherConfigJsonIp || ShowPublisherConfigJsonPh)
+            {
+                StartWebServer(host);
+            }
+
+            try
+            {
+                await ConsoleServerAsync(args).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Logger.Fatal(ex, "OPC UA server failed unexpectedly.");
+            }
+
+            Logger.Information("OPC UA server exiting...");
+        }
+
+        private static (Mono.Options.OptionSet options, bool showHelp) InitCommandLineOptions()
+        {
+            bool showHelp = false;
+
             var options = new Mono.Options.OptionSet {
                 // log configuration
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
@@ -306,73 +373,19 @@
                 { "du|defaultuser=", $"the username of the default user.\nDefault: {DefaultUser}", (string p) => DefaultUser = p ?? DefaultUser},
                 { "dc|defaultpassword=", $"the password of the default user.\nDefault: {DefaultPassword}", (string p) => DefaultPassword = p ?? DefaultPassword},
 
+                // Special nodes
+                { "ctb|complextypeboiler", $"add complex type (boiler) to address space.\nDefault: {AddComplexTypeBoiler}", h => AddComplexTypeBoiler = h != null },
+                { "scn|specialcharname", $"add node with special characters in name.\nDefault: {AddSpecialCharName}", h => AddSpecialCharName = h != null },
+
                 // misc
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
                 { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {ShowPublisherConfigJsonPh}", h => ShowPublisherConfigJsonPh = h != null },
                 { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {PnJson}", (string f) => PnJson = f },
-                { "ctb|complextypeboiler", $"add complex type (boiler) to address space.\nDefault: {AddComplexTypeBoiler}", h => AddComplexTypeBoiler = h != null },
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint i) => WebServerPort = i },
-                { "h|help", "show this message and exit", h => shouldShowHelp = h != null },
+                { "h|help", "show this message and exit", h => showHelp = h != null },
             };
 
-            // Init app location
-            InitAppFolder();
-
-            // Init logging
-            InitLogging();
-
-            var extraArgs = new List<string>();
-            try
-            {
-                // parse the command line
-                extraArgs = options.Parse(args);
-            }
-            catch (OptionException e)
-            {
-                // show message
-                Logger.Fatal(e, "Error in command line options");
-                Logger.Error($"Command line arguments: {string.Join(" ", args)}");
-                // show usage
-                Usage(options);
-                return;
-            }
-
-            // show usage if requested
-            if (shouldShowHelp)
-            {
-                Usage(options);
-                return;
-            }
-
-            // validate and parse extra arguments
-            if (extraArgs.Count > 0)
-            {
-                Logger.Error("Error in command line options");
-                Logger.Error($"Command line arguments: {string.Join(" ", args)}");
-                Usage(options);
-                return;
-            }
-
-            //show version
-            var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
-            Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up...");
-            Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
-
-            using var host = CreateHostBuilder(args);
-            if (ShowPublisherConfigJsonIp || ShowPublisherConfigJsonPh)
-            {
-                StartWebServer(host);
-            }
-
-            try
-            {
-                await ConsoleServerAsync(args).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Logger.Fatal(ex, "OPC UA server failed unexpectedly.");
-            }
-            Logger.Information("OPC UA server exiting...");
+            return (options, showHelp);
         }
 
         /// <summary>
@@ -436,6 +449,9 @@
             if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}RandomUnsignedInt32\" }},");
             if (GenerateSpikes) sb.AppendLine($"      {{ \"Id\": \"{NSS}SpikeData\" }},");
             if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}StepUp\" }},");
+
+            const string SpecialChars = @"\""!§$%&/()=?`´\\+~*'#_-:.;,<>|@^°€µ{[]}";
+            if (AddSpecialCharName) sb.AppendLine($"      {{ \"Id\": \"{NSS}Special_{SpecialChars}\" }},");
 
             string slowPublishingInterval = SlowNodeRate > 1
                 ? $", \"OpcPublishingInterval\": {SlowNodeRate * 1000}" // ms
@@ -746,7 +762,7 @@
         /// <summary>
         /// Set app folder.
         /// </summary>
-        private static void InitAppFolder()
+        private static void InitAppLocation()
         {
             string exePath = Process.GetCurrentProcess().MainModule.FileName;
             string appFolder = Path.GetDirectoryName(exePath);
