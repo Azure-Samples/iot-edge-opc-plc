@@ -192,7 +192,7 @@
             {
                 if (!await UpdateApplicationCertificateAsync(NewCertificateBase64String, NewCertificateFileName, CertificatePassword, PrivateKeyBase64String, PrivateKeyFileName).ConfigureAwait(false))
                 {
-                        throw new Exception("Update/Setting of the application certificate failed.");
+                    throw new Exception("Update/Setting of the application certificate failed.");
                 }
             }
 
@@ -220,7 +220,7 @@
                     null,
                     null
                     );
-                    Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' created.");
+                Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' created.");
 
                 // update security information
                 ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = certificate ?? throw new Exception("OPC UA application certificate can not be created! Cannot continue without it!");
@@ -407,7 +407,7 @@
         /// Event handler to validate certificates.
         /// </summary>
         private static void CertificateValidator_CertificateValidation(CertificateValidator validator, CertificateValidationEventArgs e)
-       {
+        {
             if (e.Error.StatusCode == Opc.Ua.StatusCodes.BadCertificateUntrusted)
             {
                 e.Accept = AutoAcceptCerts;
@@ -417,11 +417,11 @@
                 }
                 else
                 {
-                    Logger.Information($"Not trusting OPC application  with the certificate subject '{e.Certificate.Subject}'.");
+                    Logger.Information($"Not trusting OPC application with certificate subject '{e.Certificate.Subject}'.");
                     Logger.Information("If you want to trust this certificate, please copy it from the directory:");
-                    Logger.Information($"{OpcApplicationConfiguration.ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath}/certs");
+                    Logger.Information($"{ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath}/certs");
                     Logger.Information("to the directory:");
-                    Logger.Information($"{OpcApplicationConfiguration.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}/certs");
+                    Logger.Information($"{ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}/certs");
                     Logger.Information("Rejecting certificate for now.");
                 }
             }
