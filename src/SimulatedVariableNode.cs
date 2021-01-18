@@ -27,13 +27,17 @@
             Stop();
         }
 
+        /// <summary>
+        /// Start periodic update.
+        /// The update Func gets the current value as input and should return the updated value.
+        /// </summary>
         public void Start(Func<T, T> update, int periodMs)
         {
             _timer = new Timer(s =>
             {
                 Value = update(Value);
             },
-            null,
+            state: null,
             dueTime: 0,
             period: periodMs);
         }

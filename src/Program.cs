@@ -444,6 +444,13 @@
 
             const string SpecialChars = @"\""!§$%&/()=?`´\\+~*'#_-:.;,<>|@^°€µ{[]}";
             if (AddSpecialCharName) sb.AppendLine($"      {{ \"Id\": \"{NSS}Special_{SpecialChars}\" }},");
+            if (AddLongStringNodes)
+            {
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString10kB\" }},");
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString50kB\" }},");
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString100kB\" }},");
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString200kB\" }},");
+            }
 
             string slowPublishingInterval = SlowNodeRate > 1
                 ? $", \"OpcPublishingInterval\": {SlowNodeRate * 1000}" // ms
