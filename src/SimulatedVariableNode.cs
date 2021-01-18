@@ -4,7 +4,7 @@
     using System;
     using System.Threading;
 
-    public class SimulatedNode<T> : IDisposable
+    public class SimulatedVariableNode<T> : IDisposable
     {
         private ISystemContext _context;
         private BaseDataVariableState _variable;
@@ -16,7 +16,7 @@
             private set => SetValue(_variable, value);
         }
 
-        public SimulatedNode(ISystemContext context, BaseDataVariableState variable)
+        public SimulatedVariableNode(ISystemContext context, BaseDataVariableState variable)
         {
             _context = context;
             _variable = variable;
