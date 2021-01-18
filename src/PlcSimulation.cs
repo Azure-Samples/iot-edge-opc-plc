@@ -25,6 +25,7 @@ namespace OpcPlc
 
         public static bool AddComplexTypeBoiler { get; set; }
         public static bool AddSpecialCharName { get; set; }
+        public static bool AddLongId { get; set; }
 
         /// <summary>
         /// Simulation data.
@@ -94,6 +95,11 @@ namespace OpcPlc
             if (AddSpecialCharName)
             {
                 _plcServer.PlcNodeManager.SpecialCharNameNode.Start(value => value + 1, periodMs: 1000);
+            }
+
+            if (AddLongId)
+            {
+                _plcServer.PlcNodeManager.LongIdNode.Start(value => value + 1, periodMs: 1000);
             }
         }
 

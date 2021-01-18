@@ -7,6 +7,7 @@ namespace OpcPlc
     using System.Collections.Generic;
     using System.IO;
     using System.Reflection;
+    using System.Text;
     using static Program;
 
     public class PlcNodeManager : CustomNodeManager2
@@ -29,6 +30,8 @@ namespace OpcPlc
         public SimulatedVariableNode<uint> StepUpNode { get; set; }
 
         public SimulatedVariableNode<uint> SpecialCharNameNode { get; set; }
+
+        public SimulatedVariableNode<uint> LongIdNode { get; set; }
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
@@ -163,8 +166,7 @@ namespace OpcPlc
 
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
-                    AddSpecialCharName(dataFolder);
-
+                    AddSpecialNodes(dataFolder);
                 }
                 catch (Exception e)
                 {
@@ -175,7 +177,7 @@ namespace OpcPlc
             }
         }
 
-        private void AddSpecialCharName(FolderState dataFolder)
+        private void AddSpecialNodes(FolderState dataFolder)
         {
             if (PlcSimulation.AddSpecialCharName)
             {
@@ -183,6 +185,19 @@ namespace OpcPlc
 
                 SpecialCharNameNode = new SimulatedVariableNode<uint>(SystemContext,
                     CreateBaseVariable(dataFolder, "Special_" + SpecialChars, SpecialChars, new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
+            }
+
+            if (PlcSimulation.AddLongId)
+            {
+                // Repeat A-Z until 3950 chars are collected.
+                var sb = new StringBuilder(4000);
+                for (int i = 0; i < 3950; i++)
+                {
+                    sb.Append((char)(65 + (i % 26)));
+                }
+
+                LongIdNode = new SimulatedVariableNode<uint>(SystemContext,
+                    CreateBaseVariable(dataFolder, sb.ToString(), "LongId3950", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
             }
         }
 
