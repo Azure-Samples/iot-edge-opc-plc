@@ -24,17 +24,9 @@ namespace OpcPlc
 
         public SimulatedVariableNode<double> NegTrendNode { get; set; }
 
-        public bool AlternatingBooleanNode
-        {
-            get => (bool)_alternatingBoolean.Value;
-            set => SetValue(_alternatingBoolean, value);
-        }
+        public SimulatedVariableNode<bool> AlternatingBooleanNode { get; set; }
 
-        public uint StepUpNode
-        {
-            get => (uint)_stepUp.Value;
-            set => SetValue(_stepUp, value);
-        }
+        public SimulatedVariableNode<uint> StepUpNode { get; set; }
 
         public SimulatedVariableNode<uint> SpecialCharNameNode { get; set; }
         #endregion
@@ -198,8 +190,8 @@ namespace OpcPlc
         {
             if (PlcSimulation.GenerateData)
             {
-                _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications);
-                _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value", NamespaceType.OpcPlcApplications);
+                StepUpNode = new SimulatedVariableNode<uint>(SystemContext, CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications));
+                AlternatingBooleanNode = new SimulatedVariableNode<bool>(SystemContext, CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value", NamespaceType.OpcPlcApplications));
                 RandomSignedInt32 = new SimulatedVariableNode<int>(SystemContext, CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value", NamespaceType.OpcPlcApplications));
                 RandomUnsignedInt32 = new SimulatedVariableNode<uint>(SystemContext, CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value", NamespaceType.OpcPlcApplications));
             }
@@ -831,8 +823,6 @@ namespace OpcPlc
         /// <summary>
         /// Following variables listed here are simulated.
         /// </summary>
-        protected BaseDataVariableState _stepUp = null;
-        protected BaseDataVariableState _alternatingBoolean = null;
         protected BaseDataVariableState[] _slowNodes = null;
         protected BaseDataVariableState[] _fastNodes = null;
         protected BoilerModel.BoilerState _boiler1 = null;

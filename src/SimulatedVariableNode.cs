@@ -13,7 +13,7 @@
         public T Value
         {
             get => (T)_variable.Value;
-            private set => SetValue(_variable, value);
+            set => SetValue(_variable, value);
         }
 
         public SimulatedVariableNode(ISystemContext context, BaseDataVariableState variable)
