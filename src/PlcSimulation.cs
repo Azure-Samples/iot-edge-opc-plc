@@ -7,7 +7,7 @@ namespace OpcPlc
     public class PlcSimulation
     {
         /// <summary>
-        /// Flags for anomaly generation.
+        /// Flags for node generation.
         /// </summary>
         public static bool GenerateSpikes { get; set; } = true;
         public static bool GenerateDips { get; set; } = true;
@@ -22,6 +22,9 @@ namespace OpcPlc
         public static uint FastNodeRate { get; set; } = 1; // s.
         public static NodeType FastNodeType { get; set; } = NodeType.UInt;
         public static uint FastNodeSamplingInterval { get; set; } // ms.
+
+        public static bool AddComplexTypeBoiler { get; set; }
+        public static bool AddSpecialCharName { get; set; }
 
         /// <summary>
         /// Simulation data.

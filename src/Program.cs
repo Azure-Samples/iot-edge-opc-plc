@@ -87,16 +87,6 @@
         public static bool ShowPublisherConfigJsonPh { get; set; }
 
         /// <summary>
-        /// Add complex type (boiler) to address space.
-        /// </summary>
-        public static bool AddComplexTypeBoiler { get; set; }
-
-        /// <summary>
-        /// Add node with special characters in name.
-        /// </summary>
-        public static bool AddSpecialCharName { get; set; }
-
-        /// <summary>
         /// Web server port for hosting OPC Publisher file.
         /// </summary>
         public static uint WebServerPort { get; set; } = 8080;

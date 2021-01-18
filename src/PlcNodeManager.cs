@@ -213,7 +213,7 @@ namespace OpcPlc
 
         private void AddSpecialCharName(FolderState dataFolder)
         {
-            if (Program.AddSpecialCharName)
+            if (PlcSimulation.AddSpecialCharName)
             {
                 const string SpecialChars = "\"!§$%&/()=?`´\\+~*'#_-:.;,<>|@^°€µ{[]}";
                 _specialCharNameStepUp = CreateBaseVariable(dataFolder, "Special_" + SpecialChars, SpecialChars, new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications);
@@ -248,7 +248,7 @@ namespace OpcPlc
 
         private void AddComplexTypeBoiler(FolderState methodsFolder, IDictionary<NodeId, IList<IReference>> externalReferences)
         {
-            if (Program.AddComplexTypeBoiler)
+            if (PlcSimulation.AddComplexTypeBoiler)
             {
                 // Load complex types from binary uanodes file.
                 base.LoadPredefinedNodes(SystemContext, externalReferences);
