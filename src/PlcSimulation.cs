@@ -26,6 +26,7 @@ namespace OpcPlc
         public static bool AddComplexTypeBoiler { get; set; }
         public static bool AddSpecialCharName { get; set; }
         public static bool AddLongId { get; set; }
+        public static bool AddLongStringNodes { get; set; }
 
         /// <summary>
         /// Simulation data.
@@ -100,6 +101,15 @@ namespace OpcPlc
             if (AddLongId)
             {
                 _plcServer.PlcNodeManager.LongIdNode.Start(value => value + 1, periodMs: 1000);
+            }
+
+            if (AddLongStringNodes)
+            {
+                // Change value every second to string containing single repeated uppercase letter.
+                _plcServer.PlcNodeManager.LongStringIdNode10.Start(value => new string((char)_random.Next(65, 91), 10 * 1024), periodMs: 1000);
+                _plcServer.PlcNodeManager.LongStringIdNode50.Start(value => new string((char)_random.Next(65, 91), 50 * 1024), periodMs: 1000);
+                _plcServer.PlcNodeManager.LongStringIdNode100.Start(value => new string((char)_random.Next(65, 91), 100 * 1024), periodMs: 1000);
+                _plcServer.PlcNodeManager.LongStringIdNode200.Start(value => new string((char)_random.Next(65, 91), 200 * 1024), periodMs: 1000);
             }
         }
 
