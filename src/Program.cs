@@ -87,16 +87,6 @@
         public static bool ShowPublisherConfigJsonPh { get; set; }
 
         /// <summary>
-        /// Add complex type (boiler) to address space.
-        /// </summary>
-        public static bool AddComplexTypeBoiler { get; set; }
-
-        /// <summary>
-        /// Add node with special characters in name.
-        /// </summary>
-        public static bool AddSpecialCharName { get; set; }
-
-        /// <summary>
         /// Web server port for hosting OPC Publisher file.
         /// </summary>
         public static uint WebServerPort { get; set; } = 8080;
@@ -376,6 +366,7 @@
                 // Special nodes
                 { "ctb|complextypeboiler", $"add complex type (boiler) to address space.\nDefault: {AddComplexTypeBoiler}", h => AddComplexTypeBoiler = h != null },
                 { "scn|specialcharname", $"add node with special characters in name.\nDefault: {AddSpecialCharName}", h => AddSpecialCharName = h != null },
+                { "lid|longid", $"add node with ID of 3950 chars.\nDefault: {AddLongId}", h => AddLongId = h != null },
 
                 // misc
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },

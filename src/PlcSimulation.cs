@@ -7,7 +7,7 @@ namespace OpcPlc
     public class PlcSimulation
     {
         /// <summary>
-        /// Flags for anomaly generation.
+        /// Flags for node generation.
         /// </summary>
         public static bool GenerateSpikes { get; set; } = true;
         public static bool GenerateDips { get; set; } = true;
@@ -23,6 +23,10 @@ namespace OpcPlc
         public static NodeType FastNodeType { get; set; } = NodeType.UInt;
         public static uint FastNodeSamplingInterval { get; set; } // ms.
 
+        public static bool AddComplexTypeBoiler { get; set; }
+        public static bool AddSpecialCharName { get; set; }
+        public static bool AddLongId { get; set; }
+
         /// <summary>
         /// Simulation data.
         /// </summary>
@@ -37,7 +41,9 @@ namespace OpcPlc
         {
             _plcServer = plcServer;
             _random = new Random();
-            _cyclesInPhase = SimulationCycleCount;
+
+            _stepUpCycleInPhase = SimulationCycleCount;
+            _alternatingBooleanCycleInPhase = SimulationCycleCount;
             _spikeCycleInPhase = SimulationCycleCount;
             _spikeAnomalyCycle = _random.Next(SimulationCycleCount);
             Logger.Verbose($"first spike anomaly cycle: {_spikeAnomalyCycle}");
@@ -50,10 +56,7 @@ namespace OpcPlc
             _negTrendAnomalyPhase = _random.Next(10);
             _negTrendCycleInPhase = SimulationCycleCount;
             Logger.Verbose($"first neg trend anomaly phase: {_negTrendAnomalyPhase}");
-            _stepUp = 0;
             _stepUpStarted = true;
-
-            _specialCharNameStepUp = 0;
         }
 
         /// <summary>
@@ -61,20 +64,24 @@ namespace OpcPlc
         /// </summary>
         public void Start()
         {
-            if (GenerateSpikes) _spikeGenerator = new Timer(SpikeGenerator, null, 0, SimulationCycleLength);
-            if (GenerateDips) _dipGenerator = new Timer(DipGenerator, null, 0, SimulationCycleLength);
-            if (GeneratePosTrend) _posTrendGenerator = new Timer(PosTrendGenerator, null, 0, SimulationCycleLength);
-            if (GenerateNegTrend) _negTrendGenerator = new Timer(NegTrendGenerator, null, 0, SimulationCycleLength);
-
             if (GenerateData)
             {
-                _dataGenerator = new Timer(ValueGenerator, null, 0, SimulationCycleLength);
+                _plcServer.PlcNodeManager.RandomSignedInt32.Start(value => _random.Next(int.MinValue, int.MaxValue), SimulationCycleLength);
+                _plcServer.PlcNodeManager.RandomUnsignedInt32.Start(value => (uint)_random.Next(), SimulationCycleLength);
+                _plcServer.PlcNodeManager.StepUpNode.Start(StepUpGenerator, SimulationCycleLength);
+                _plcServer.PlcNodeManager.AlternatingBooleanNode.Start(AlternatingBooleanGenerator, SimulationCycleLength);
             }
+
+            if (GenerateSpikes) _plcServer.PlcNodeManager.SpikeNode.Start(SpikeGenerator, SimulationCycleLength);
+            if (GenerateDips) _plcServer.PlcNodeManager.DipNode.Start(DipGenerator, SimulationCycleLength);
+            if (GeneratePosTrend) _plcServer.PlcNodeManager.PosTrendNode.Start(PosTrendGenerator, SimulationCycleLength);
+            if (GenerateNegTrend) _plcServer.PlcNodeManager.NegTrendNode.Start(NegTrendGenerator, SimulationCycleLength);
 
             if (SlowNodeCount > 0)
             {
                 _slowNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseSlowNodes, null, 0, SlowNodeRate * 1000);
             }
+
             if (FastNodeCount > 0)
             {
                 _fastNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseFastNodes, null, 0, FastNodeRate * 1000);
@@ -85,12 +92,14 @@ namespace OpcPlc
                 _boiler1Generator = new Timer(_plcServer.PlcNodeManager.UpdateBoiler1, null, 0, period: 1000);
             }
 
-            if(AddSpecialCharName)
+            if (AddSpecialCharName)
             {
-                _specialCharNameStepUpGenerator = new Timer(state =>
-                {
-                    _plcServer.PlcNodeManager.SpecialCharNameStepUp = _specialCharNameStepUp++;
-                }, null, 0, period: 1000);
+                _plcServer.PlcNodeManager.SpecialCharNameNode.Start(value => value + 1, periodMs: 1000);
+            }
+
+            if (AddLongId)
+            {
+                _plcServer.PlcNodeManager.LongIdNode.Start(value => value + 1, periodMs: 1000);
             }
         }
 
@@ -99,22 +108,26 @@ namespace OpcPlc
         /// </summary>
         public void Stop()
         {
-            _spikeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
-            _dipGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
-            _posTrendGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
-            _negTrendGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
-            _dataGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
+            _plcServer.PlcNodeManager.SpikeNode.Stop();
+            _plcServer.PlcNodeManager.DipNode.Stop();
+            _plcServer.PlcNodeManager.PosTrendNode.Stop();
+            _plcServer.PlcNodeManager.NegTrendNode.Stop();
+            _plcServer.PlcNodeManager.AlternatingBooleanNode.Stop();
+            _plcServer.PlcNodeManager.StepUpNode.Stop();
+            _plcServer.PlcNodeManager.RandomSignedInt32.Stop();
+            _plcServer.PlcNodeManager.RandomUnsignedInt32.Stop();
+            _plcServer.PlcNodeManager.SpecialCharNameNode.Stop();
+
             _slowNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
             _fastNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
             _boiler1Generator?.Change(Timeout.Infinite, Timeout.Infinite);
-            _specialCharNameStepUpGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
         }
 
         /// <summary>
         /// Generates a sine wave with spikes at a random cycle in the phase.
         /// Called each SimulationCycleLength msec.
         /// </summary>
-        private void SpikeGenerator(object state)
+        private double SpikeGenerator(double value)
         {
             // calculate next value
             double nextValue;
@@ -129,7 +142,6 @@ namespace OpcPlc
                 nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / SimulationCycleCount) * _spikeCycleInPhase);
             }
             Logger.Verbose($"spike cycle: {_spikeCycleInPhase} data: {nextValue}");
-            _plcServer.PlcNodeManager.SpikeData = nextValue;
 
             // end of cycle: reset cycle count and calc next anomaly cycle
             if (--_spikeCycleInPhase == 0)
@@ -138,13 +150,15 @@ namespace OpcPlc
                 _spikeAnomalyCycle = _random.Next(SimulationCycleCount);
                 Logger.Verbose($"next spike anomaly cycle: {_spikeAnomalyCycle}");
             }
+
+            return nextValue;
         }
 
         /// <summary>
         /// Generates a sine wave with dips at a random cycle in the phase.
         /// Called each SimulationCycleLength msec.
         /// </summary>
-        private void DipGenerator(object state)
+        private double DipGenerator(double value)
         {
             // calculate next value
             double nextValue;
@@ -158,7 +172,6 @@ namespace OpcPlc
                 nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / SimulationCycleCount) * _dipCycleInPhase);
             }
             Logger.Verbose($"spike cycle: {_dipCycleInPhase} data: {nextValue}");
-            _plcServer.PlcNodeManager.DipData = nextValue;
 
             // end of cycle: reset cycle count and calc next anomaly cycle
             if (--_dipCycleInPhase == 0)
@@ -167,13 +180,15 @@ namespace OpcPlc
                 _dipAnomalyCycle = _random.Next(SimulationCycleCount);
                 Logger.Verbose($"next dip anomaly cycle: {_dipAnomalyCycle}");
             }
+
+            return nextValue;
         }
 
         /// <summary>
         /// Generates a sine wave with spikes at a configurable cycle in the phase.
         /// Called each SimulationCycleLength msec.
         /// </summary>
-        private void PosTrendGenerator(object state)
+        private double PosTrendGenerator(double value)
         {
             // calculate next value
             double nextValue = TREND_BASEVALUE;
@@ -182,7 +197,6 @@ namespace OpcPlc
                 nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10);
                 Logger.Verbose("Generate postrend anomaly");
             }
-            _plcServer.PlcNodeManager.PosTrendData = nextValue;
 
             // end of cycle: reset cycle count and calc next anomaly cycle
             if (--_posTrendCycleInPhase == 0)
@@ -191,13 +205,15 @@ namespace OpcPlc
                 _posTrendPhase++;
                 Logger.Verbose($"pos trend phase: {_posTrendPhase}, data: {nextValue}");
             }
+
+            return nextValue;
         }
 
         /// <summary>
         /// Generates a sine wave with spikes at a configurable cycle in the phase.
         /// Called each SimulationCycleLength msec.
         /// </summary>
-        private void NegTrendGenerator(object state)
+        private double NegTrendGenerator(double value)
         {
             // calculate next value
             double nextValue = TREND_BASEVALUE;
@@ -206,7 +222,6 @@ namespace OpcPlc
                 nextValue = TREND_BASEVALUE - ((_negTrendPhase - _negTrendAnomalyPhase) / 10);
                 Logger.Verbose("Generate negtrend anomaly");
             }
-            _plcServer.PlcNodeManager.NegTrendData = nextValue;
 
             // end of cycle: reset cycle count and calc next anomaly cycle
             if (--_negTrendCycleInPhase == 0)
@@ -215,38 +230,51 @@ namespace OpcPlc
                 _negTrendPhase++;
                 Logger.Verbose($"neg trend phase: {_negTrendPhase}, data: {nextValue}");
             }
+
+            return nextValue;
         }
 
         /// <summary>
         /// Updates simulation values. Called each SimulationCycleLength msec.
         /// Using SimulationCycleCount cycles per simulation phase.
         /// </summary>
-        private void ValueGenerator(object state)
+        private uint StepUpGenerator(uint value)
         {
-            // calculate next boolean value
-            bool nextAlternatingBoolean = (_cyclesInPhase % (SimulationCycleCount / 2)) == 0 ? !_currentAlternatingBoolean : _currentAlternatingBoolean;
-            if (_currentAlternatingBoolean != nextAlternatingBoolean)
-            {
-                Logger.Verbose($"data change to: {nextAlternatingBoolean}");
-                _currentAlternatingBoolean = nextAlternatingBoolean;
-            }
-            _plcServer.PlcNodeManager.AlternatingBoolean = nextAlternatingBoolean;
-
-            // calculate next Int values
-            _plcServer.PlcNodeManager.RandomSignedInt32 = _random.Next(int.MinValue, int.MaxValue);
-            _plcServer.PlcNodeManager.RandomUnsignedInt32 = (uint)_random.Next();
-
             // increase step up value
-            if (_stepUpStarted && (_cyclesInPhase % (SimulationCycleCount / 50) == 0))
+            if (_stepUpStarted && (_stepUpCycleInPhase % (SimulationCycleCount / 50) == 0))
             {
-                _plcServer.PlcNodeManager.StepUp = _stepUp++;
+                value++;
             }
 
             // end of cycle: reset cycle count
-            if (--_cyclesInPhase == 0)
+            if (--_stepUpCycleInPhase == 0)
             {
-                _cyclesInPhase = SimulationCycleCount;
+                _stepUpCycleInPhase = SimulationCycleCount;
             }
+
+            return value;
+        }
+
+        /// <summary>
+        /// Updates simulation values. Called each SimulationCycleLength msec.
+        /// Using SimulationCycleCount cycles per simulation phase.
+        /// </summary>
+        private bool AlternatingBooleanGenerator(bool value)
+        {
+            // calculate next boolean value
+            bool nextAlternatingBoolean = (_stepUpCycleInPhase % (SimulationCycleCount / 2)) == 0 ? !value : value;
+            if (value != nextAlternatingBoolean)
+            {
+                Logger.Verbose($"data change to: {nextAlternatingBoolean}");
+            }
+
+            // end of cycle: reset cycle count
+            if (--_alternatingBooleanCycleInPhase == 0)
+            {
+                _alternatingBooleanCycleInPhase = SimulationCycleCount;
+            }
+
+            return nextAlternatingBoolean;
         }
 
         /// <summary>
@@ -267,7 +295,7 @@ namespace OpcPlc
         /// </summary>
         public void ResetStepUpData()
         {
-            _plcServer.PlcNodeManager.StepUp = _stepUp = 0;
+            _plcServer.PlcNodeManager.StepUpNode.Value = 0;
         }
 
         /// <summary>
@@ -286,39 +314,30 @@ namespace OpcPlc
             _stepUpStarted = false;
         }
 
-        private const int SIMULATION_CYCLECOUNT_DEFAULT = 50;           // in cycles
+        private const int SIMULATION_CYCLECOUNT_DEFAULT = 50;          // in cycles
         private const int SIMULATION_CYCLELENGTH_DEFAULT = 100;        // in msec
         private const double SIMULATION_MAXAMPLITUDE_DEFAULT = 100.0;
         private const double TREND_BASEVALUE = 100.0;
 
         private readonly PlcServer _plcServer;
         private readonly Random _random;
-        private int _cyclesInPhase;
-        private Timer _dataGenerator;
-        private bool _currentAlternatingBoolean;
-        private Timer _spikeGenerator;
+        private int _stepUpCycleInPhase;
+        private int _alternatingBooleanCycleInPhase;
         private int _spikeAnomalyCycle;
         private int _spikeCycleInPhase;
-        private Timer _dipGenerator;
         private int _dipAnomalyCycle;
         private int _dipCycleInPhase;
-        private Timer _posTrendGenerator;
         private int _posTrendAnomalyPhase;
         private int _posTrendCycleInPhase;
         private int _posTrendPhase;
-        private Timer _negTrendGenerator;
         private int _negTrendAnomalyPhase;
         private int _negTrendCycleInPhase;
         private int _negTrendPhase;
-        private uint _stepUp;
         private bool _stepUpStarted;
 
         private Timer _slowNodeGenerator;
         private Timer _fastNodeGenerator;
 
         private Timer _boiler1Generator;
-
-        private uint _specialCharNameStepUp;
-        private Timer _specialCharNameStepUpGenerator;
     }
 }

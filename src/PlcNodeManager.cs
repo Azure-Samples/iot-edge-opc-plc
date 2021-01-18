@@ -7,64 +7,31 @@ namespace OpcPlc
     using System.Collections.Generic;
     using System.IO;
     using System.Reflection;
+    using System.Text;
     using static Program;
 
     public class PlcNodeManager : CustomNodeManager2
     {
         #region Properties
-        public uint RandomUnsignedInt32
-        {
-            get => (uint)_randomUnsignedInt32.Value;
-            set => SetValue(_randomUnsignedInt32, value);
-        }
+        public SimulatedVariableNode<uint> RandomUnsignedInt32 { get; set; }
 
-        public int RandomSignedInt32
-        {
-            get => (int)_randomSignedInt32.Value;
-            set => SetValue(_randomSignedInt32, value);
-        }
+        public SimulatedVariableNode<int> RandomSignedInt32 { get; set; }
 
-        public double SpikeData
-        {
-            get => (double)_spikeData.Value;
-            set => SetValue(_spikeData, value);
-        }
+        public SimulatedVariableNode<double> SpikeNode { get; set; }
 
-        public double DipData
-        {
-            get => (double)_dipData.Value;
-            set => SetValue(_dipData, value);
-        }
+        public SimulatedVariableNode<double> DipNode { get; set; }
 
-        public double PosTrendData
-        {
-            get => (double)_posTrendData.Value;
-            set => SetValue(_posTrendData, value);
-        }
+        public SimulatedVariableNode<double> PosTrendNode { get; set; }
 
-        public double NegTrendData
-        {
-            get => (double)_negTrendData.Value;
-            set => SetValue(_negTrendData, value);
-        }
+        public SimulatedVariableNode<double> NegTrendNode { get; set; }
 
-        public bool AlternatingBoolean
-        {
-            get => (bool)_alternatingBoolean.Value;
-            set => SetValue(_alternatingBoolean, value);
-        }
+        public SimulatedVariableNode<bool> AlternatingBooleanNode { get; set; }
 
-        public uint StepUp
-        {
-            get => (uint)_stepUp.Value;
-            set => SetValue(_stepUp, value);
-        }
+        public SimulatedVariableNode<uint> StepUpNode { get; set; }
 
-        public uint SpecialCharNameStepUp
-        {
-            get => (uint)_specialCharNameStepUp.Value;
-            set => SetValue(_specialCharNameStepUp, value);
-        }
+        public SimulatedVariableNode<uint> SpecialCharNameNode { get; set; }
+
+        public SimulatedVariableNode<uint> LongIdNode { get; set; }
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
@@ -199,8 +166,7 @@ namespace OpcPlc
 
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
-                    AddSpecialCharName(dataFolder);
-
+                    AddSpecialNodes(dataFolder);
                 }
                 catch (Exception e)
                 {
@@ -211,12 +177,27 @@ namespace OpcPlc
             }
         }
 
-        private void AddSpecialCharName(FolderState dataFolder)
+        private void AddSpecialNodes(FolderState dataFolder)
         {
-            if (Program.AddSpecialCharName)
+            if (PlcSimulation.AddSpecialCharName)
             {
                 const string SpecialChars = "\"!§$%&/()=?`´\\+~*'#_-:.;,<>|@^°€µ{[]}";
-                _specialCharNameStepUp = CreateBaseVariable(dataFolder, "Special_" + SpecialChars, SpecialChars, new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications);
+
+                SpecialCharNameNode = new SimulatedVariableNode<uint>(SystemContext,
+                    CreateBaseVariable(dataFolder, "Special_" + SpecialChars, SpecialChars, new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
+            }
+
+            if (PlcSimulation.AddLongId)
+            {
+                // Repeat A-Z until 3950 chars are collected.
+                var sb = new StringBuilder(4000);
+                for (int i = 0; i < 3950; i++)
+                {
+                    sb.Append((char)(65 + (i % 26)));
+                }
+
+                LongIdNode = new SimulatedVariableNode<uint>(SystemContext,
+                    CreateBaseVariable(dataFolder, sb.ToString(), "LongId3950", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
             }
         }
 
@@ -224,15 +205,15 @@ namespace OpcPlc
         {
             if (PlcSimulation.GenerateData)
             {
-                _stepUp = CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications);
-                _alternatingBoolean = CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value", NamespaceType.OpcPlcApplications);
-                _randomSignedInt32 = CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value", NamespaceType.OpcPlcApplications);
-                _randomUnsignedInt32 = CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value", NamespaceType.OpcPlcApplications);
+                StepUpNode = new SimulatedVariableNode<uint>(SystemContext, CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications));
+                AlternatingBooleanNode = new SimulatedVariableNode<bool>(SystemContext, CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value", NamespaceType.OpcPlcApplications));
+                RandomSignedInt32 = new SimulatedVariableNode<int>(SystemContext, CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value", NamespaceType.OpcPlcApplications));
+                RandomUnsignedInt32 = new SimulatedVariableNode<uint>(SystemContext, CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value", NamespaceType.OpcPlcApplications));
             }
-            if (PlcSimulation.GenerateSpikes) _spikeData = CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes", NamespaceType.OpcPlcApplications);
-            if (PlcSimulation.GenerateDips) _dipData = CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips", NamespaceType.OpcPlcApplications);
-            if (PlcSimulation.GeneratePosTrend) _posTrendData = CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend", NamespaceType.OpcPlcApplications);
-            if (PlcSimulation.GenerateNegTrend) _negTrendData = CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Float), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications);
+            if (PlcSimulation.GenerateSpikes) SpikeNode = new SimulatedVariableNode<double>(SystemContext, CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes", NamespaceType.OpcPlcApplications));
+            if (PlcSimulation.GenerateDips) DipNode = new SimulatedVariableNode<double>(SystemContext, CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips", NamespaceType.OpcPlcApplications));
+            if (PlcSimulation.GeneratePosTrend) PosTrendNode = new SimulatedVariableNode<double>(SystemContext, CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend", NamespaceType.OpcPlcApplications));
+            if (PlcSimulation.GenerateNegTrend) NegTrendNode = new SimulatedVariableNode<double>(SystemContext, CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));
         }
 
         private void AddSlowAndFastNodes(FolderState dataFolder)
@@ -248,7 +229,7 @@ namespace OpcPlc
 
         private void AddComplexTypeBoiler(FolderState methodsFolder, IDictionary<NodeId, IList<IReference>> externalReferences)
         {
-            if (Program.AddComplexTypeBoiler)
+            if (PlcSimulation.AddComplexTypeBoiler)
             {
                 // Load complex types from binary uanodes file.
                 base.LoadPredefinedNodes(SystemContext, externalReferences);
@@ -332,7 +313,8 @@ namespace OpcPlc
 
         private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
         {
-            if (nodes == null || nodes.Length == 0) {
+            if (nodes == null || nodes.Length == 0)
+            {
                 Logger.Warning("Invalid argument {argument} provided.", nodes);
                 return;
             }
@@ -341,7 +323,8 @@ namespace OpcPlc
                 object value = null;
                 if (StatusCode.IsNotBad(status) || addBadValue)
                 {
-                    switch (type) {
+                    switch (type)
+                    {
                         case NodeType.Double:
                             value = nodes[nodeIndex].Value != null
                                 ? (double)nodes[nodeIndex].Value + 0.1
@@ -835,19 +818,19 @@ namespace OpcPlc
             BoilerInstance,
         }
 
-        private (StatusCode, bool)[] BadStatusSequence = new (StatusCode, bool)[]
-            {
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.UncertainLastUsableValue, true),
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.UncertainLastUsableValue, true),
-                ( StatusCodes.BadDataLost, true),
-                ( StatusCodes.BadNoCommunication, false)
-            };
+        private readonly (StatusCode, bool)[] BadStatusSequence = new (StatusCode, bool)[]
+        {
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.UncertainLastUsableValue, true),
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.UncertainLastUsableValue, true),
+            ( StatusCodes.BadDataLost, true),
+            ( StatusCodes.BadNoCommunication, false)
+        };
 
         private uint _slowBadNodesCycle = 0;
         private uint _fastBadNodesCycle = 0;
@@ -855,20 +838,11 @@ namespace OpcPlc
         /// <summary>
         /// Following variables listed here are simulated.
         /// </summary>
-        protected BaseDataVariableState _stepUp = null;
-        protected BaseDataVariableState _alternatingBoolean = null;
-        protected BaseDataVariableState _randomUnsignedInt32 = null;
-        protected BaseDataVariableState _randomSignedInt32 = null;
-        protected BaseDataVariableState _spikeData = null;
-        protected BaseDataVariableState _dipData = null;
-        protected BaseDataVariableState _posTrendData = null;
-        protected BaseDataVariableState _negTrendData = null;
         protected BaseDataVariableState[] _slowNodes = null;
         protected BaseDataVariableState[] _fastNodes = null;
         protected BoilerModel.BoilerState _boiler1 = null;
         protected BaseDataVariableState[] _slowBadNodes = null;
         protected BaseDataVariableState[] _fastBadNodes = null;
-        protected BaseDataVariableState _specialCharNameStepUp = null;
 
         /// <summary>
         /// File name for user configurable nodes.
