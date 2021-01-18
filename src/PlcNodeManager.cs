@@ -60,11 +60,7 @@ namespace OpcPlc
             set => SetValue(_stepUp, value);
         }
 
-        public uint SpecialCharNameStepUp
-        {
-            get => (uint)_specialCharNameStepUp.Value;
-            set => SetValue(_specialCharNameStepUp, value);
-        }
+        public SimulatedNode<uint> SpecialCharName { get; set; }
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
@@ -216,7 +212,9 @@ namespace OpcPlc
             if (PlcSimulation.AddSpecialCharName)
             {
                 const string SpecialChars = "\"!§$%&/()=?`´\\+~*'#_-:.;,<>|@^°€µ{[]}";
-                _specialCharNameStepUp = CreateBaseVariable(dataFolder, "Special_" + SpecialChars, SpecialChars, new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications);
+
+                SpecialCharName = new SimulatedNode<uint>(SystemContext,
+                    CreateBaseVariable(dataFolder, "Special_" + SpecialChars, SpecialChars, new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
             }
         }
 
@@ -332,7 +330,8 @@ namespace OpcPlc
 
         private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
         {
-            if (nodes == null || nodes.Length == 0) {
+            if (nodes == null || nodes.Length == 0)
+            {
                 Logger.Warning("Invalid argument {argument} provided.", nodes);
                 return;
             }
@@ -341,7 +340,8 @@ namespace OpcPlc
                 object value = null;
                 if (StatusCode.IsNotBad(status) || addBadValue)
                 {
-                    switch (type) {
+                    switch (type)
+                    {
                         case NodeType.Double:
                             value = nodes[nodeIndex].Value != null
                                 ? (double)nodes[nodeIndex].Value + 0.1
@@ -835,19 +835,19 @@ namespace OpcPlc
             BoilerInstance,
         }
 
-        private (StatusCode, bool)[] BadStatusSequence = new (StatusCode, bool)[]
-            {
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.UncertainLastUsableValue, true),
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.Good, true ),
-                ( StatusCodes.UncertainLastUsableValue, true),
-                ( StatusCodes.BadDataLost, true),
-                ( StatusCodes.BadNoCommunication, false)
-            };
+        private readonly (StatusCode, bool)[] BadStatusSequence = new (StatusCode, bool)[]
+        {
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.UncertainLastUsableValue, true),
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.Good, true ),
+            ( StatusCodes.UncertainLastUsableValue, true),
+            ( StatusCodes.BadDataLost, true),
+            ( StatusCodes.BadNoCommunication, false)
+        };
 
         private uint _slowBadNodesCycle = 0;
         private uint _fastBadNodesCycle = 0;
@@ -868,7 +868,6 @@ namespace OpcPlc
         protected BoilerModel.BoilerState _boiler1 = null;
         protected BaseDataVariableState[] _slowBadNodes = null;
         protected BaseDataVariableState[] _fastBadNodes = null;
-        protected BaseDataVariableState _specialCharNameStepUp = null;
 
         /// <summary>
         /// File name for user configurable nodes.

@@ -55,8 +55,6 @@ namespace OpcPlc
             Logger.Verbose($"first neg trend anomaly phase: {_negTrendAnomalyPhase}");
             _stepUp = 0;
             _stepUpStarted = true;
-
-            _specialCharNameStepUp = 0;
         }
 
         /// <summary>
@@ -90,10 +88,11 @@ namespace OpcPlc
 
             if(AddSpecialCharName)
             {
-                _specialCharNameStepUpGenerator = new Timer(state =>
+                _plcServer.PlcNodeManager.SpecialCharName.Start(value =>
                 {
-                    _plcServer.PlcNodeManager.SpecialCharNameStepUp = _specialCharNameStepUp++;
-                }, null, 0, period: 1000);
+                    return value + 1;
+                },
+                periodMs: 1000);
             }
         }
 
@@ -110,7 +109,7 @@ namespace OpcPlc
             _slowNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
             _fastNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
             _boiler1Generator?.Change(Timeout.Infinite, Timeout.Infinite);
-            _specialCharNameStepUpGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
+            _plcServer.PlcNodeManager.SpecialCharName.Stop();
         }
 
         /// <summary>
@@ -320,8 +319,5 @@ namespace OpcPlc
         private Timer _fastNodeGenerator;
 
         private Timer _boiler1Generator;
-
-        private uint _specialCharNameStepUp;
-        private Timer _specialCharNameStepUpGenerator;
     }
 }
