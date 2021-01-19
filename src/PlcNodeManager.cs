@@ -32,6 +32,11 @@ namespace OpcPlc
         public SimulatedVariableNode<uint> SpecialCharNameNode { get; set; }
 
         public SimulatedVariableNode<uint> LongIdNode { get; set; }
+
+        public SimulatedVariableNode<string> LongStringIdNode10 { get; set; }
+        public SimulatedVariableNode<string> LongStringIdNode50 { get; set; }
+        public SimulatedVariableNode<byte[]> LongStringIdNode100 { get; set; }
+        public SimulatedVariableNode<byte[]> LongStringIdNode200 { get; set; }
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
@@ -198,6 +203,29 @@ namespace OpcPlc
 
                 LongIdNode = new SimulatedVariableNode<uint>(SystemContext,
                     CreateBaseVariable(dataFolder, sb.ToString(), "LongId3950", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
+            }
+
+            if (PlcSimulation.AddLongStringNodes)
+            {
+                // 10 kB.
+                string initialString = new string('A', 10 * 1024);
+                LongStringIdNode10 = new SimulatedVariableNode<string>(SystemContext,
+                    CreateBaseVariable(dataFolder, "LongString10kB", "LongString10kB", new NodeId((uint)BuiltInType.String), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialString));
+
+                // 50 kB.
+                initialString = new string('A', 50 * 1024);
+                LongStringIdNode50 = new SimulatedVariableNode<string>(SystemContext,
+                    CreateBaseVariable(dataFolder, "LongString50kB", "LongString50kB", new NodeId((uint)BuiltInType.String), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialString));
+
+                // 100 kB.
+                var initialByteArray = Encoding.UTF8.GetBytes(new string('A', 100 * 1024));
+                LongStringIdNode100 = new SimulatedVariableNode<byte[]>(SystemContext,
+                    CreateBaseVariable(dataFolder, "LongString100kB", "LongString100kB", new NodeId((uint)BuiltInType.ByteString), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialByteArray));
+
+                // 200 kB.
+                initialByteArray = Encoding.UTF8.GetBytes(new string('A', 200 * 1024));
+                LongStringIdNode200 = new SimulatedVariableNode<byte[]>(SystemContext,
+                    CreateBaseVariable(dataFolder, "LongString200kB", "LongString200kB", new NodeId((uint)BuiltInType.Byte), ValueRanks.OneDimension, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialByteArray));
             }
         }
 

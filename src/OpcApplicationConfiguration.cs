@@ -97,7 +97,8 @@
             ApplicationConfiguration.TransportQuotas = new TransportQuotas
             {
                 MaxStringLength = OpcMaxStringLength,
-                MaxMessageSize = 4 * 1024 * 1024
+                MaxMessageSize = 4 * 1024 * 1024,
+                MaxByteStringLength = 4 * 1024 * 1024,
             };
 
             // configure OPC UA server
