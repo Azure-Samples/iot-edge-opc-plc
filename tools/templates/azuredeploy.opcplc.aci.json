@@ -102,7 +102,7 @@
         },
         "containerImage": {
             "type": "string",
-            "defaultValue": "iotedge/opc-plc:1.1.6",
+            "defaultValue": "iotedge/opc-plc:1.2.1",
             "metadata": {
                 "description": "Container image"
             }

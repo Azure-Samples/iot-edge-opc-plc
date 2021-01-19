@@ -134,6 +134,8 @@ Features:
 ## Other features
  
 - Node with special characters in name: `--scn`
+- Node with long ID (3950 bytes): `--lid`
+- Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray): `--lsn`
 
 ## Build
 
