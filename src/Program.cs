@@ -91,6 +91,11 @@
         /// </summary>
         public static uint WebServerPort { get; set; } = 8080;
 
+        /// <summary>
+        /// Show usage help.
+        /// </summary>
+        public static bool ShowHelp { get; set; }
+
         public static string PnJson = "pn.json";
 
         public enum NodeType
@@ -115,13 +120,13 @@
         /// </summary>
         public static async Task MainAsync(string[] args)
         {
-            (Mono.Options.OptionSet options, bool showHelp) = InitCommandLineOptions();
+            Mono.Options.OptionSet options = InitCommandLineOptions();
 
             InitAppLocation();
 
             InitLogging();
 
-            var extraArgs = new List<string>();
+            List<string> extraArgs;
             try
             {
                 // parse the command line
@@ -138,7 +143,7 @@
             }
 
             // show usage if requested
-            if (showHelp)
+            if (ShowHelp)
             {
                 Usage(options);
                 return;
@@ -176,11 +181,9 @@
             Logger.Information("OPC UA server exiting...");
         }
 
-        private static (Mono.Options.OptionSet options, bool showHelp) InitCommandLineOptions()
+        private static Mono.Options.OptionSet InitCommandLineOptions()
         {
-            bool showHelp = false;
-
-            var options = new Mono.Options.OptionSet {
+            return new Mono.Options.OptionSet {
                 // log configuration
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
                 { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {_logFileFlushTimeSpanSec} sec", (int s) => {
@@ -374,10 +377,8 @@
                 { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {ShowPublisherConfigJsonPh}", h => ShowPublisherConfigJsonPh = h != null },
                 { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {PnJson}", (string f) => PnJson = f },
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint i) => WebServerPort = i },
-                { "h|help", "show this message and exit", h => showHelp = h != null },
+                { "h|help", "show this message and exit", h => ShowHelp = h != null },
             };
-
-            return (options, showHelp);
         }
 
         /// <summary>
@@ -573,7 +574,7 @@
             Logger.Information("Usage: {0}.exe [<options>]", Assembly.GetEntryAssembly().GetName().Name);
             Logger.Information("");
             Logger.Information("OPC UA PLC for different data simulation scenarios");
-            Logger.Information("To exit the application, just press CTRL-C while it is running.");
+            Logger.Information("To exit the application, press CTRL-C while it is running.");
             Logger.Information("");
             Logger.Information("To specify a list of strings, please use the following format:");
             Logger.Information("\"<string 1>,<string 2>,...,<string n>\"");

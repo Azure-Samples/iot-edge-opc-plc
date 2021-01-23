@@ -207,18 +207,18 @@
                 certificate = CertificateFactory.CreateCertificate(
                     ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StoreType,
                     ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath,
-                    null,
+                    password: null,
                     ApplicationConfiguration.ApplicationUri,
                     ApplicationConfiguration.ApplicationName,
                     ApplicationConfiguration.ApplicationName,
-                    null,
+                    domainNames: null,
                     CertificateFactory.DefaultKeySize,
-                    DateTime.UtcNow - TimeSpan.FromDays(1),
+                    startTime: DateTime.UtcNow - TimeSpan.FromDays(1),
                     CertificateFactory.DefaultLifeTime,
                     CertificateFactory.DefaultHashSize,
-                    false,
-                    null,
-                    null
+                    isCA: false,
+                    issuerCAKeyCert: null,
+                    publicKey: null
                     );
                 Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' created.");
 
