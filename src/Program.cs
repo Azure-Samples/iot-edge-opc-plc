@@ -533,6 +533,7 @@
             Logger.Information($"One cycle takes {SimulationCycleLength} milliseconds");
             Logger.Information($"Spike generation is {(GenerateSpikes ? "enabled" : "disabled")}");
             Logger.Information($"Data generation is {(GenerateData ? "enabled" : "disabled")}");
+            Logger.Information($"Complex type (boiler) is {(AddComplexTypeBoiler ? "enabled" : "disabled")}");
 
             Logger.Information($"Anonymous authentication: {(DisableAnonymousAuth ? "disabled" : "enabled")}");
             Logger.Information($"Username/Password authentication: {(DisableUsernamePasswordAuth ? "disabled" : "enabled")}");
