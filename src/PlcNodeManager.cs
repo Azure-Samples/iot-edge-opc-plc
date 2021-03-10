@@ -1,5 +1,6 @@
 namespace OpcPlc
 {
+    using AlarmCondition;
     using Newtonsoft.Json;
     using Opc.Ua;
     using Opc.Ua.Server;
@@ -40,7 +41,14 @@ namespace OpcPlc
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
-            : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
+            : base(server, configuration, 
+                  new string[] { Namespaces.OpcPlcApplications, 
+                                 Namespaces.OpcPlcBoiler, 
+                                 Namespaces.OpcPlcBoilerInstance,
+                                 Namespaces.OpcPlcSimpleEvents,
+                                 Namespaces.OpcPlcSimpleEventsInstance,
+                                 Namespaces.OpcPlcAlarms,
+                                 Namespaces.OpcPlcAlarmsInstance})
         {
             _nodeFileName = nodeFileName;
             SystemContext.NodeIdFactory = this;
@@ -123,7 +131,15 @@ namespace OpcPlc
             {
                 if (instance.Parent.NodeId.Identifier is string id)
                 {
-                    return new NodeId(id + "_" + instance.SymbolicName, instance.Parent.NodeId.NamespaceIndex);
+                    if(instance.Parent.NodeId.NamespaceIndex == NamespaceIndexes[(int)NamespaceType.AlarmInstance])
+                    {
+                        // for Alarms
+                        return ModelUtils.ConstructIdForComponent(node, NamespaceIndex);
+                    }
+                    else
+                    {
+                        return new NodeId(id + "_" + instance.SymbolicName, instance.Parent.NodeId.NamespaceIndex);
+                    }
                 }
             }
 
@@ -171,6 +187,8 @@ namespace OpcPlc
 
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
+                    AddAlarmCondition(externalReferences);
+
                     AddSpecialNodes(dataFolder);
                 }
                 catch (Exception e)
@@ -180,6 +198,151 @@ namespace OpcPlc
 
                 AddPredefinedNode(SystemContext, root);
             }
+        }
+
+        private void AddAlarmCondition(IDictionary<NodeId, IList<IReference>> externalReferences)
+        {
+            SystemContext.SystemHandle = _alarmSystem = new UnderlyingSystem();
+
+            // create the table to store the available areas.
+            _areasForAlarms = new Dictionary<string, AreaState>();
+
+            // create the table to store the available sources.
+            _sourcesForAlarms = new Dictionary<string, SourceState>();
+
+            // Top level areas need a reference from the Server object. 
+            // These references are added to a list that is returned to the caller.
+            // The caller will update the Objects folder node.
+            IList<IReference> references = null;
+
+            //if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out references))
+            //{
+            //    externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
+            //}
+
+            if (!externalReferences.TryGetValue(ObjectIds.Server, out references))
+            {
+                externalReferences[ObjectIds.Server] = references = new List<IReference>();
+            }
+
+            foreach (var areaConfig in CreateAreaConfigurationCollection())
+            {
+                // recursively process each area.
+                AreaState area = CreateAndIndexAreasForAlarms(null, areaConfig);
+                AddRootNotifier(area);
+
+                AddPredefinedNode(SystemContext, area);
+
+                // add an organizes reference from the ObjectsFolder to the area.
+                references.Add(new NodeStateReference(ReferenceTypeIds.HasNotifier, false, area.NodeId));
+            }
+
+        }
+
+        private AreaConfigurationCollection CreateAreaConfigurationCollection()
+        {
+            return new AreaConfigurationCollection
+            {
+                new AreaConfiguration
+                {
+                    Name = "Green",
+                    SubAreas = new AreaConfigurationCollection
+                    {
+                        new AreaConfiguration
+                        {
+                            Name = "East",
+                            SubAreas = new AreaConfigurationCollection
+                            {
+                                new AreaConfiguration
+                                {
+                                    Name = "Red",
+                                    SourcePaths =  new StringCollection { "Metals/SouthMotor", "Colours/NorthMotor" }
+                                },
+                                new AreaConfiguration
+                                {
+                                    Name = "Blue",
+                                    SourcePaths =  new StringCollection { "Metals/WestTank", "Metals/SouthMotor" }
+                                }
+                            }
+                        }
+                    }
+                },
+                new AreaConfiguration
+                {
+                    Name = "Yellow",
+                    SubAreas = new AreaConfigurationCollection
+                    {
+                       new AreaConfiguration
+                       {
+                           Name = "West",
+                           SubAreas = new AreaConfigurationCollection
+                           {
+                                new AreaConfiguration
+                                {
+                                    Name = "Red",
+                                    SourcePaths =  new StringCollection { "Metals/SouthMotor", "Colours/NorthMotor" }
+                                },
+                               new AreaConfiguration
+                                {
+                                    Name = "Blue",
+                                    SourcePaths =  new StringCollection { "Colours/EastTank", "Metals/WestTank" }
+                                }
+
+                           }
+                       }
+                    }
+                }
+            };
+        }
+
+        private AreaState CreateAndIndexAreasForAlarms(AreaState parent, AreaConfiguration configuration)
+        {
+            // create a unique path to the area.
+            string areaPath = Utils.Format("{0}/{1}", (parent != null) ? parent.SymbolicName : String.Empty, configuration.Name);
+            NodeId areaId = ModelUtils.ConstructIdForArea(areaPath, NamespaceIndexes[(int)NamespaceType.AlarmInstance]);
+
+            // create the object that will be used to access the area and any variables contained within it.
+            AreaState area = new AreaState(SystemContext, parent, areaId, configuration);
+            _areasForAlarms[areaPath] = area;
+
+            if (parent != null)
+            {
+                parent.AddChild(area);
+            }
+
+            // create an index any sub-areas defined for the area.
+            if (configuration.SubAreas != null)
+            {
+                for (int ii = 0; ii < configuration.SubAreas.Count; ii++)
+                {
+                    CreateAndIndexAreasForAlarms(area, configuration.SubAreas[ii]);
+                }
+            }
+
+            // add references to sources.
+            if (configuration.SourcePaths != null)
+            {
+                for (int ii = 0; ii < configuration.SourcePaths.Count; ii++)
+                {
+                    string sourcePath = configuration.SourcePaths[ii];
+
+                    // check if the source already exists because it is referenced by another area.
+                    if (!_sourcesForAlarms.TryGetValue(sourcePath, out SourceState source))
+                    {
+                        NodeId sourceId = ModelUtils.ConstructIdForSource(sourcePath, NamespaceIndexes[(int)NamespaceType.AlarmInstance]);
+                        _sourcesForAlarms[sourcePath] = source = new SourceState(this, sourceId, sourcePath);
+                    }
+
+                    // HasEventSource and HasNotifier control the propagation of event notifications so
+                    // they are not like other references. These calls set up a link between the source
+                    // and area that will cause events produced by the source to be automatically 
+                    // propagated to the area.
+                    source.AddNotifier(SystemContext, ReferenceTypeIds.HasEventSource, true, area);
+                    area.AddNotifier(SystemContext, ReferenceTypeIds.HasEventSource, false, source);
+                }
+            }
+
+            return area;
         }
 
         private void AddSpecialNodes(FolderState dataFolder)
@@ -440,6 +603,34 @@ namespace OpcPlc
 
             return nodes;
         }
+
+        //protected override NodeHandle GetManagerHandle(ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache)
+        //{
+        //    lock (Lock)
+        //    {
+        //        // quickly exclude nodes that are not in the namespace.
+        //        if (!IsNodeIdInNamespace(nodeId))
+        //        {
+        //            return null;
+        //        }
+        //        // parse the identifier.
+        //        ParsedNodeId parsedNodeId = ParsedNodeId.Parse(nodeId);
+
+        //        if (parsedNodeId != null)
+        //        {
+        //            NodeHandle handle = new NodeHandle();
+
+        //            handle.NodeId = nodeId;
+        //            handle.Validated = false;
+        //            handle.Node = null;
+        //            handle.ParsedNodeId = parsedNodeId;
+
+        //            return handle;
+        //        }
+
+        //        return null;
+        //    }
+        //}
 
         private static (NodeId dataType, int valueRank, object defaultValue) GetNodeType(NodeType nodeType)
         {
@@ -844,6 +1035,10 @@ namespace OpcPlc
             OpcPlcApplications,
             Boiler,
             BoilerInstance,
+            SimpleEvent,
+            SimpleEventInstance,
+            Alarm,
+            AlarmInstance
         }
 
         private readonly (StatusCode, bool)[] BadStatusSequence = new (StatusCode, bool)[]
@@ -876,5 +1071,13 @@ namespace OpcPlc
         /// File name for user configurable nodes.
         /// </summary>
         protected string _nodeFileName = null;
+
+        /// <summary>
+        /// Alarms and Condition
+        /// </summary>
+        private Dictionary<string, AreaState> _areasForAlarms;
+        private Dictionary<string, SourceState> _sourcesForAlarms;
+        private UnderlyingSystem _alarmSystem;
+
     }
 }
