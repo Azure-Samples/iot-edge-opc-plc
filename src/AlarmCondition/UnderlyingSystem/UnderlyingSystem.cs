@@ -132,24 +132,24 @@ namespace AlarmCondition
             // add the alarms based on the source type.
             // note that the source and alarm types used here are types defined by the underlying system.
             // the node manager will need to map these types to UA defined types.
-            //switch (source.SourceType)
-            //{
-            //    case "Colours":
-            //    {
-            //        source.CreateAlarm("Red", "HighAlarm");
-            //        source.CreateAlarm("Yellow", "HighLowAlarm");
-            //        source.CreateAlarm("Green", "TripAlarm");
-            //        break;
-            //    }
+            switch (source.SourceType)
+            {
+                case "Colours":
+                    {
+                        source.CreateAlarm("Red", "HighAlarm");
+                        source.CreateAlarm("Yellow", "HighLowAlarm");
+                        source.CreateAlarm("Green", "TripAlarm");
+                        break;
+                    }
 
-            //    case "Metals":
-            //    {
-            //        source.CreateAlarm("Gold", "HighAlarm");
-            //        source.CreateAlarm("Silver", "HighLowAlarm");
-            //        source.CreateAlarm("Bronze", "TripAlarm");
-            //        break;
-            //    }
-            //}
+                case "Metals":
+                    {
+                        source.CreateAlarm("Gold", "HighAlarm");
+                        source.CreateAlarm("Silver", "HighLowAlarm");
+                        source.CreateAlarm("Bronze", "TripAlarm");
+                        break;
+                    }
+            }
 
             // return the new source.
             return source;

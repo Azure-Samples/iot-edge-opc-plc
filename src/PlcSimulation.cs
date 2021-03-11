@@ -28,6 +28,7 @@ namespace OpcPlc
         public static bool AddSpecialCharName { get; set; }
         public static bool AddLongId { get; set; }
         public static bool AddLongStringNodes { get; set; }
+        public static bool AddAlarmSimulation { get; set; }
 
         /// <summary>
         /// Simulation data.

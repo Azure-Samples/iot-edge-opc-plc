@@ -44,7 +44,7 @@ namespace AlarmCondition
         /// Initializes the area.
         /// </summary>
         public SourceState(
-            PlcNodeManager nodeManager,
+            AlarmConditionServerNodeManager nodeManager,
             NodeId nodeId,
             string sourcePath) 
         : 
@@ -56,10 +56,7 @@ namespace AlarmCondition
             m_nodeManager = nodeManager;
 
             // create the source with the underlying system.
-            //m_source = ((UnderlyingSystem)nodeManager.SystemContext.SystemHandle).CreateSource(sourcePath, OnAlarmChanged);
-
-            m_source = new UnderlyingSystemSource { Name = "aaa" };
-            m_dialog = new DialogConditionState(this);
+            m_source = ((UnderlyingSystem)nodeManager.SystemContext.SystemHandle).CreateSource(sourcePath, OnAlarmChanged);
 
             // initialize the area with the fixed metadata.
             this.SymbolicName = m_source.Name;
@@ -72,7 +69,7 @@ namespace AlarmCondition
             this.EventNotifier = EventNotifiers.None;
 
             //// create a dialog.
-            //m_dialog = CreateDialog("OnlineState");
+            m_dialog = CreateDialog("OnlineState");
 
             //// create the table of conditions.
             m_alarms = new Dictionary<string, AlarmConditionState>();
@@ -740,7 +737,7 @@ namespace AlarmCondition
         #endregion    
 
         #region Private Fields
-        private PlcNodeManager m_nodeManager;
+        private AlarmConditionServerNodeManager m_nodeManager;
         private UnderlyingSystemSource m_source;
         private Dictionary<string,AlarmConditionState> m_alarms;
         private Dictionary<string,AlarmConditionState> m_events;
