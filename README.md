@@ -131,6 +131,14 @@ Features:
 - When the heater is on, the bottom temperature increases by 1 degree/s, the top temperature is always 5 degrees less than the bottom one
 - Pressure is calculated as 100000 + bottom temperature
 
+## Simple Events
+
+The option `--ses` enables simple events [quickstart sample](https://github.com/OPCFoundation/UA-.NETStandard-Samples/tree/master/Workshop/SimpleEvents) from OPC Foundation.
+
+## Alarms and Condition
+
+The option `--alm` enables Alarm and Condition [quickstart sample](https://github.com/OPCFoundation/UA-.NETStandard-Samples/tree/master/Workshop/AlarmCondition) from OPC Foundation.
+
 ## Other features
  
 - Node with special characters in name: `--scn`
