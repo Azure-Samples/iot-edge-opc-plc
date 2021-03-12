@@ -186,7 +186,7 @@ namespace OpcPlc
         {
             if (PlcSimulation.AddSpecialCharName)
             {
-                const string SpecialChars = "\"!�$%&/()=?`�\\+~*'#_-:.;,<>|@^���{[]}";
+                const string SpecialChars = "\"!§$%&/()=?`´\\+~*'#_-:.;,<>|@^°€µ{[]}";
 
                 SpecialCharNameNode = new SimulatedVariableNode<uint>(SystemContext,
                     CreateBaseVariable(dataFolder, "Special_" + SpecialChars, SpecialChars, new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));

@@ -11,7 +11,5 @@ namespace AlarmCondition
         public string Name { get; set; }
         public AreaConfigurationCollection SubAreas { get; set; }
         public StringCollection SourcePaths { get; set; }
-
-
     }
 }
