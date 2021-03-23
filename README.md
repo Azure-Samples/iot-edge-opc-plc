@@ -131,6 +131,40 @@ Features:
 - When the heater is on, the bottom temperature increases by 1 degree/s, the top temperature is always 5 degrees less than the bottom one
 - Pressure is calculated as 100000 + bottom temperature
 
+## Simple Events
+
+The option `--ses` enables simple events from the [quickstart sample](https://github.com/OPCFoundation/UA-.NETStandard-Samples/tree/master/Workshop/SimpleEvents) from OPC Foundation.
+
+Simple Events defines four new event types. _SystemCycleStatusEventType_ is inherited from the [_SystemEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/SystemEventType/) and
+_SystemCycleStartedEventType_, _SystemCycleAbortedEventType_, _SystemCycleFinishedEventType_ from _SystemCycleStatusEventType_.
+
+Every 3000 ms a new _SystemCycleStartedEventState_ is triggered. (The other event types are not used.)
+A _message_ is generated with a counter "The system cycle '\{counter}' has started." for each event.
+
+A structure of type _CycleStepDataType_ is added to _SystemCycleStartedEventState_ event. The values in that
+structure is hard coded to Name: Step 1 and Duration: 1000.
+
+
+## Alarms and Condition
+
+The option `--alm` enables Alarm and Condition [quickstart sample](https://github.com/OPCFoundation/UA-.NETStandard-Samples/tree/master/Workshop/AlarmCondition) from OPC Foundation.
+
+It creates a hierarchical folder structure from _Server_, starting with _Green_ and _Yellow_. The leaf nodes
+_SouthMotor_, _WestTank_, _EastTank_ and _NorthMotor_ are sources for the alarms.
+
+The alarms are of different types:
+- Bronze - [TripAlarmType](https://reference.opcfoundation.org/v104/Core/ObjectTypes/TripAlarmType/)
+- Gold - [ExclusiveDeviationAlarmType](https://reference.opcfoundation.org/v104/Core/ObjectTypes/ExclusiveDeviationAlarmType/)
+- Silver - [NonExclusiveLevelAlarmType](https://reference.opcfoundation.org/v104/Core/ObjectTypes/NonExclusiveLevelAlarmType/)
+- OnlineState - [DialogConditionType](https://reference.opcfoundation.org/v104/Core/ObjectTypes/DialogConditionType/)
+
+All these alarms will update on a regular interval. It is also possible to _Acknowledge_, _Confirm_ and and add _Comment_ 
+to them.
+
+This simulation also emits two types of system events: [_SystemEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/SystemEventType/)
+ and [_AuditEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/AuditEventType/), every 1000 ms.
+  
+
 ## Other features
  
 - Node with special characters in name: `--scn`

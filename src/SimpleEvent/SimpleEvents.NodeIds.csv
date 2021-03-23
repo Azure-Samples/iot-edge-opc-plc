@@ -1,0 +1,10 @@
+CycleStepDataType,1,DataType
+CycleStepDataType_Encoding_DefaultBinary,52,Object
+CycleStepDataType_Encoding_DefaultJson,68,Object
+CycleStepDataType_Encoding_DefaultXml,60,Object
+SimpleEvents_BinarySchema,53,Variable
+SimpleEvents_XmlSchema,61,Variable
+SystemCycleAbortedEventType,27,ObjectType
+SystemCycleFinishedEventType,40,ObjectType
+SystemCycleStartedEventType,14,ObjectType
+SystemCycleStatusEventType,2,ObjectType

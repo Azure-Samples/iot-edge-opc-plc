@@ -1,7 +1,9 @@
 namespace OpcPlc
 {
+    using AlarmCondition;
     using Opc.Ua;
     using Opc.Ua.Server;
+    using SimpleEvents;
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -12,6 +14,8 @@ namespace OpcPlc
     public partial class PlcServer : StandardServer
     {
         public PlcNodeManager PlcNodeManager = null;
+        public AlarmConditionServerNodeManager AlarmNodeManager = null;
+        public SimpleEventsNodeManager SimpleEventsNodeManager = null;
 
         /// <summary>
         /// Creates the node managers for the server.
@@ -37,6 +41,18 @@ namespace OpcPlc
 
             PlcNodeManager = new PlcNodeManager(server, configuration, NodesFileName);
             nodeManagers.Add(PlcNodeManager);
+
+            if (PlcSimulation.AddSimpleEventsSimulation)
+            {
+                SimpleEventsNodeManager = new SimpleEventsNodeManager(server, configuration);
+                nodeManagers.Add(SimpleEventsNodeManager);
+            }
+
+            if (PlcSimulation.AddAlarmSimulation)
+            {
+                AlarmNodeManager = new AlarmConditionServerNodeManager(server, configuration);
+                nodeManagers.Add(AlarmNodeManager);
+            }
             var masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
 
             return masterNodeManager;

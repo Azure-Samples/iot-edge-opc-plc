@@ -8,6 +8,7 @@ namespace OpcPlc
     using System.IO;
     using System.Reflection;
     using System.Text;
+    using System.Web;
     using static Program;
 
     public class PlcNodeManager : CustomNodeManager2
@@ -186,7 +187,7 @@ namespace OpcPlc
         {
             if (PlcSimulation.AddSpecialCharName)
             {
-                const string SpecialChars = "\"!§$%&/()=?`´\\+~*'#_-:.;,<>|@^°€µ{[]}";
+                string SpecialChars = HttpUtility.HtmlDecode(@"&quot;!&#167;$%&amp;/()=?`&#180;\+~*&#39;#_-:.;,&lt;&gt;|@^&#176;â‚¬&#181;{[]}");
 
                 SpecialCharNameNode = new SimulatedVariableNode<uint>(SystemContext,
                     CreateBaseVariable(dataFolder, "Special_" + SpecialChars, SpecialChars, new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));

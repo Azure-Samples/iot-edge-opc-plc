@@ -28,6 +28,8 @@ namespace OpcPlc
         public static bool AddSpecialCharName { get; set; }
         public static bool AddLongId { get; set; }
         public static bool AddLongStringNodes { get; set; }
+        public static bool AddAlarmSimulation { get; set; }
+        public static bool AddSimpleEventsSimulation { get; set; }
 
         /// <summary>
         /// Simulation data.
@@ -120,15 +122,15 @@ namespace OpcPlc
         /// </summary>
         public void Stop()
         {
-            _plcServer.PlcNodeManager.SpikeNode.Stop();
-            _plcServer.PlcNodeManager.DipNode.Stop();
-            _plcServer.PlcNodeManager.PosTrendNode.Stop();
-            _plcServer.PlcNodeManager.NegTrendNode.Stop();
-            _plcServer.PlcNodeManager.AlternatingBooleanNode.Stop();
-            _plcServer.PlcNodeManager.StepUpNode.Stop();
-            _plcServer.PlcNodeManager.RandomSignedInt32.Stop();
-            _plcServer.PlcNodeManager.RandomUnsignedInt32.Stop();
-            _plcServer.PlcNodeManager.SpecialCharNameNode.Stop();
+            _plcServer.PlcNodeManager.SpikeNode?.Stop();
+            _plcServer.PlcNodeManager.DipNode?.Stop();
+            _plcServer.PlcNodeManager.PosTrendNode?.Stop();
+            _plcServer.PlcNodeManager.NegTrendNode?.Stop();
+            _plcServer.PlcNodeManager.AlternatingBooleanNode?.Stop();
+            _plcServer.PlcNodeManager.StepUpNode?.Stop();
+            _plcServer.PlcNodeManager.RandomSignedInt32?.Stop();
+            _plcServer.PlcNodeManager.RandomUnsignedInt32?.Stop();
+            _plcServer.PlcNodeManager.SpecialCharNameNode?.Stop();
 
             _slowNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
             _fastNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);

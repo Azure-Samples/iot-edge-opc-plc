@@ -371,6 +371,8 @@
                 { "scn|specialcharname", $"add node with special characters in name.\nDefault: {AddSpecialCharName}", h => AddSpecialCharName = h != null },
                 { "lid|longid", $"add node with ID of 3950 chars.\nDefault: {AddLongId}", h => AddLongId = h != null },
                 { "lsn|longstringnodes", $"add nodes with string values of 10/50/100/200 kB.\nDefault: {AddLongStringNodes}", h => AddLongStringNodes = h != null },
+                { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", h => AddAlarmSimulation = h != null },
+                { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", h => AddSimpleEventsSimulation = h != null },
 
                 // misc
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
