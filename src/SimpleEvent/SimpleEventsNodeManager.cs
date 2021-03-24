@@ -96,10 +96,10 @@ namespace SimpleEvents {
         protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
         {
             NodeStateCollection predefinedNodes = new NodeStateCollection();
-                predefinedNodes.LoadFromBinaryResource(context,
-                    "SimpleEvent/SimpleEvents.PredefinedNodes.uanodes",
-                    typeof(SimpleEventsNodeManager).GetTypeInfo().Assembly,
-                    true);
+            predefinedNodes.LoadFromBinaryResource(context,
+                "SimpleEvent/SimpleEvents.PredefinedNodes.uanodes",
+                typeof(SimpleEventsNodeManager).GetTypeInfo().Assembly,
+                true);
             return predefinedNodes;
         }
         #endregion
