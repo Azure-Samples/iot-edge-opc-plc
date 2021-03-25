@@ -48,7 +48,6 @@
 
   <ItemGroup>
     <Folder Include="AlarmCondition\UnderlyingSystem\" />
-    <Folder Include="SimpleEvent\" />
   </ItemGroup>
 
 </Project>

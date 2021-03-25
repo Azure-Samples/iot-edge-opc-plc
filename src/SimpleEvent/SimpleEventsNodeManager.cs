@@ -97,8 +97,8 @@ namespace SimpleEvents {
         {
             NodeStateCollection predefinedNodes = new NodeStateCollection();
             predefinedNodes.LoadFromBinaryResource(context,
-                "Quickstarts.SimpleEvents.Server.Quickstarts.SimpleEvents.PredefinedNodes.uanodes",
-                typeof(SimpleEventsNodeManager).GetTypeInfo().Assembly, 
+                "SimpleEvent/SimpleEvents.PredefinedNodes.uanodes",
+                typeof(SimpleEventsNodeManager).GetTypeInfo().Assembly,
                 true);
             return predefinedNodes;
         }
