@@ -92,6 +92,11 @@
         public static uint WebServerPort { get; set; } = 8080;
 
         /// <summary>
+        /// For deterministic alarms - script file
+        /// </summary>
+        public static string ScriptFileName { get; set; }
+
+        /// <summary>
         /// Show usage help.
         /// </summary>
         public static bool ShowHelp { get; set; }
@@ -373,6 +378,19 @@
                 { "lsn|longstringnodes", $"add nodes with string values of 10/50/100/200 kB.\nDefault: {AddLongStringNodes}", h => AddLongStringNodes = h != null },
                 { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", h => AddAlarmSimulation = h != null },
                 { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", h => AddSimpleEventsSimulation = h != null },
+                { "dalm|deterministicalarms", $"add deterministic alarm simulation to address space.\nDefault: {AddDeterministicAlarmSimulation}", h => AddDeterministicAlarmSimulation = h != null },
+                { "dalmfile|deterministicalarmscripfile", "Script file for controlling deterministic testing", (string s) =>
+                    {
+                        if (File.Exists(s))
+                        {
+                            DeterministicAlarmScriptFilename = s;
+                        }
+                        else
+                        {
+                            throw new OptionException("The file '{s}' does not exist.", "deterministicalarmscripfile");
+                        }
+                    }
+                },
 
                 // misc
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },

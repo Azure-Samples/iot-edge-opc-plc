@@ -53,6 +53,23 @@ namespace OpcPlc
                 AlarmNodeManager = new AlarmConditionServerNodeManager(server, configuration);
                 nodeManagers.Add(AlarmNodeManager);
             }
+
+            if(PlcSimulation.AddDeterministicAlarmSimulation)
+            {
+                if(string.IsNullOrEmpty(ScriptFileName))
+                {
+                    string errorMessage = $"The script file for deterministic testing is not set (deterministicalarmscripfile).";
+                    Logger.Error(errorMessage);
+                    throw new Exception(errorMessage);
+                }
+                if(!File.Exists(ScriptFileName))
+                {
+                    string errorMessage = $"The script file ({ScriptFileName}) for deterministic testing does not exist.";
+                    Logger.Error(errorMessage);
+                    throw new Exception(errorMessage);
+                }
+            }
+
             var masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
 
             return masterNodeManager;
