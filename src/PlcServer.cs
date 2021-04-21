@@ -3,6 +3,7 @@ namespace OpcPlc
     using AlarmCondition;
     using Opc.Ua;
     using Opc.Ua.Server;
+    using OpcPlc.DeterministicAlarms;
     using SimpleEvents;
     using System;
     using System.Collections.Generic;
@@ -16,6 +17,7 @@ namespace OpcPlc
         public PlcNodeManager PlcNodeManager = null;
         public AlarmConditionServerNodeManager AlarmNodeManager = null;
         public SimpleEventsNodeManager SimpleEventsNodeManager = null;
+        public DeterministicAlarmsNodeManager DeterministicAlarmsNodeManager = null;
 
         /// <summary>
         /// Creates the node managers for the server.
@@ -68,6 +70,9 @@ namespace OpcPlc
                     Logger.Error(errorMessage);
                     throw new Exception(errorMessage);
                 }
+
+                DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, ScriptFileName);
+                nodeManagers.Add(DeterministicAlarmsNodeManager);
             }
 
             var masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
