@@ -116,12 +116,12 @@ namespace OpcPlc.DeterministicAlarms
             try
             {
                 VerifyScriptConfiguration(scriptConfiguration);
-                Console.WriteLine("Script starts executing");
+                Logger.Information("Script starts executing");
                 _scriptEngine = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable);
             }
             catch (ScriptException ex)
             {
-                Console.WriteLine($"Script Engine Exception '{ex.Message}'\nSCRIPT WILL NOT START");
+                Logger.Error($"Script Engine Exception '{ex.Message}'\nSCRIPT WILL NOT START");
                 throw;
             }
         }
@@ -135,7 +135,7 @@ namespace OpcPlc.DeterministicAlarms
         {
             if (step == null)
             {
-                Console.WriteLine("SCRIPT ENDED");
+                Logger.Information("SCRIPT ENDED");
             }
             else
             {
@@ -191,7 +191,7 @@ namespace OpcPlc.DeterministicAlarms
         }
 
         /// <summary>
-        /// Print script current step on console
+        /// Print script current step
         /// </summary>
         /// <param name="step"></param>
         /// <param name="loopNumber"></param>
@@ -199,16 +199,16 @@ namespace OpcPlc.DeterministicAlarms
         {
             if (step.Event != null)
             {
-                Console.WriteLine($"{DateTime.UtcNow.ToLongTimeString()} ({loopNumber}) -\t{step.Event.AlarmId}\t{step.Event.Reason}");
+                Logger.Information($"({loopNumber}) -\t{step.Event.AlarmId}\t{step.Event.Reason}");
                 foreach (var sc in step.Event.StateChanges)
                 {
-                    Console.WriteLine($"\t\t{sc.StateType} - {sc.State}");
+                    Logger.Information($"\t\t{sc.StateType} - {sc.State}");
                 }
             }
 
             if (step.SleepInSeconds > 0)
             {
-                Console.WriteLine($"{DateTime.UtcNow.ToLongTimeString()} ({loopNumber}) -\tSleep: {step.SleepInSeconds}");
+                Logger.Information($"({loopNumber}) -\tSleep: {step.SleepInSeconds}");
             }
         }
 
