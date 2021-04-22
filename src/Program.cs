@@ -379,7 +379,7 @@
                 { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", h => AddAlarmSimulation = h != null },
                 { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", h => AddSimpleEventsSimulation = h != null },
                 { "dalm|deterministicalarms", $"add deterministic alarm simulation to address space.\nDefault: {AddDeterministicAlarmSimulation}", h => AddDeterministicAlarmSimulation = h != null },
-                { "dalmfile|deterministicalarmscripfile", "Script file for controlling deterministic testing", (string h) => ScriptFileName = h },
+                { "dalmfile|deterministicalarmscripfile=", "Script file for controlling deterministic testing", (string h) => ScriptFileName = h },
 
                 // misc
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
