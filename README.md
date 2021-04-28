@@ -163,7 +163,12 @@ to them.
 
 This simulation also emits two types of system events: [_SystemEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/SystemEventType/)
  and [_AuditEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/AuditEventType/), every 1000 ms.
-  
+
+## Deterministic Alarms testing
+The option `--dalm` together with `--dalmfile` enables deterministic testing of 
+Alarms and Conditions.
+
+More information about this feature can be found [here](deterministic-alarms.md).   
 
 ## Other features
  

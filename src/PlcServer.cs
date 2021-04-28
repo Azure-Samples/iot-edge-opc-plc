@@ -3,6 +3,7 @@ namespace OpcPlc
     using AlarmCondition;
     using Opc.Ua;
     using Opc.Ua.Server;
+    using OpcPlc.DeterministicAlarms;
     using SimpleEvents;
     using System;
     using System.Collections.Generic;
@@ -16,6 +17,7 @@ namespace OpcPlc
         public PlcNodeManager PlcNodeManager = null;
         public AlarmConditionServerNodeManager AlarmNodeManager = null;
         public SimpleEventsNodeManager SimpleEventsNodeManager = null;
+        public DeterministicAlarmsNodeManager DeterministicAlarmsNodeManager = null;
 
         /// <summary>
         /// Creates the node managers for the server.
@@ -53,6 +55,26 @@ namespace OpcPlc
                 AlarmNodeManager = new AlarmConditionServerNodeManager(server, configuration);
                 nodeManagers.Add(AlarmNodeManager);
             }
+
+            if(PlcSimulation.AddDeterministicAlarmSimulation)
+            {
+                if(string.IsNullOrEmpty(ScriptFileName))
+                {
+                    string errorMessage = $"The script file for deterministic testing is not set (deterministicalarmscripfile).";
+                    Logger.Error(errorMessage);
+                    throw new Exception(errorMessage);
+                }
+                if(!File.Exists(ScriptFileName))
+                {
+                    string errorMessage = $"The script file ({ScriptFileName}) for deterministic testing does not exist.";
+                    Logger.Error(errorMessage);
+                    throw new Exception(errorMessage);
+                }
+
+                DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, ScriptFileName);
+                nodeManagers.Add(DeterministicAlarmsNodeManager);
+            }
+
             var masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
 
             return masterNodeManager;
