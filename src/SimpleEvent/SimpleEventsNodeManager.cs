@@ -56,9 +56,8 @@ namespace SimpleEvents {
 
             // set one namespace for the type model and one names for dynamically created nodes.
             string[] namespaceUrls = new string[1];
-            namespaceUrls[0] = OpcPlc.Namespaces.OpcPlcSimpleEventsInstance;
+            namespaceUrls[0] = OpcPlc.Namespaces.OpcPlcSimpleEvents;
             SetNamespaces(namespaceUrls);
-
         }
 
         #endregion
