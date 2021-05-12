@@ -1,6 +1,7 @@
 namespace OpcPlc
 {
     using AlarmCondition;
+    using OpcPlc.Reference;
     using Opc.Ua;
     using Opc.Ua.Server;
     using SimpleEvents;
@@ -16,6 +17,7 @@ namespace OpcPlc
         public PlcNodeManager PlcNodeManager = null;
         public AlarmConditionServerNodeManager AlarmNodeManager = null;
         public SimpleEventsNodeManager SimpleEventsNodeManager = null;
+        public ReferenceNodeManager SimulationNodeManager = null;
 
         /// <summary>
         /// Creates the node managers for the server.
@@ -53,6 +55,12 @@ namespace OpcPlc
                 AlarmNodeManager = new AlarmConditionServerNodeManager(server, configuration);
                 nodeManagers.Add(AlarmNodeManager);
             }
+            if (PlcSimulation.AddReferenceTestSimulation) 
+            {
+                SimulationNodeManager = new ReferenceNodeManager(server, configuration);
+                nodeManagers.Add(SimulationNodeManager);
+            }
+
             var masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
 
             return masterNodeManager;

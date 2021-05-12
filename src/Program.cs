@@ -373,6 +373,7 @@
                 { "lsn|longstringnodes", $"add nodes with string values of 10/50/100/200 kB.\nDefault: {AddLongStringNodes}", h => AddLongStringNodes = h != null },
                 { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", h => AddAlarmSimulation = h != null },
                 { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", h => AddSimpleEventsSimulation = h != null },
+                { "ref|referencetest", $"add reference test simulation node manager to address space.\nDefault: {AddReferenceTestSimulation}", h => AddReferenceTestSimulation = h != null },
 
                 // misc
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
@@ -536,6 +537,7 @@
             Logger.Information($"Spike generation is {(GenerateSpikes ? "enabled" : "disabled")}");
             Logger.Information($"Data generation is {(GenerateData ? "enabled" : "disabled")}");
             Logger.Information($"Complex type (boiler) is {(AddComplexTypeBoiler ? "enabled" : "disabled")}");
+            Logger.Information($"Reference Test Simulation is {(AddReferenceTestSimulation ? "enabled" : "disabled")}");
 
             Logger.Information($"Anonymous authentication: {(DisableAnonymousAuth ? "disabled" : "enabled")}");
             Logger.Information($"Username/Password authentication: {(DisableUsernamePasswordAuth ? "disabled" : "enabled")}");
