@@ -55,6 +55,7 @@ namespace OpcPlc
                 AlarmNodeManager = new AlarmConditionServerNodeManager(server, configuration);
                 nodeManagers.Add(AlarmNodeManager);
             }
+
             if (PlcSimulation.AddReferenceTestSimulation) 
             {
                 SimulationNodeManager = new ReferenceNodeManager(server, configuration);
