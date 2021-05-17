@@ -5,6 +5,7 @@ namespace OpcPlc
     using Opc.Ua.Server;
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Reflection;
     using System.Text;
@@ -340,6 +341,9 @@ namespace OpcPlc
             return methodsFolder;
         }
 
+        private static uint numUpdates = 0;
+        private static DateTime lastUpdated = DateTime.UtcNow;
+
         private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
         {
             if (nodes == null || nodes.Length == 0)
@@ -392,6 +396,18 @@ namespace OpcPlc
                 nodes[nodeIndex].Value = value;
                 nodes[nodeIndex].Timestamp = DateTime.Now;
                 nodes[nodeIndex].ClearChangeMasks(SystemContext, false);
+            }
+
+            numUpdates++;
+            var sinceLastUpdate = DateTime.UtcNow - lastUpdated;
+            if (sinceLastUpdate > TimeSpan.FromSeconds(10))
+            {
+                if (numUpdates > 0)
+                {
+                    Debug.WriteLine($"Number of updates per second {numUpdates / sinceLastUpdate.TotalSeconds}; Update frequency {sinceLastUpdate.TotalMilliseconds / numUpdates} ms");
+                }
+                numUpdates = 0;
+                lastUpdated = DateTime.UtcNow;
             }
         }
 
