@@ -8,6 +8,7 @@ namespace OpcPlc
     using System.IO;
     using System.Reflection;
     using System.Text;
+    using System.Timers;
     using System.Web;
     using static Program;
 
@@ -48,7 +49,7 @@ namespace OpcPlc
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-        public void IncreaseSlowNodes(object state)
+        public void IncreaseSlowNodes(object state, ElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
             if (_slowNodes != null)
@@ -64,7 +65,7 @@ namespace OpcPlc
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-        public void IncreaseFastNodes(object state)
+        public void IncreaseFastNodes(object state, ElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
             if (_fastNodes != null)
@@ -80,7 +81,7 @@ namespace OpcPlc
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-        public void UpdateBoiler1(object state)
+        public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
             var newValue = new BoilerModel.BoilerDataType
@@ -390,7 +391,9 @@ namespace OpcPlc
 
                 nodes[nodeIndex].StatusCode = status;
                 nodes[nodeIndex].Value = value;
-                nodes[nodeIndex].Timestamp = DateTime.Now;
+                var dateTime = PlcSimulation.TimeService.Now();
+                var m = dateTime.Millisecond;
+                nodes[nodeIndex].Timestamp = dateTime;
                 nodes[nodeIndex].ClearChangeMasks(SystemContext, false);
             }
         }
@@ -536,7 +539,7 @@ namespace OpcPlc
             variable.Historizing = false;
             variable.Value = defaultValue ?? Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
             variable.StatusCode = StatusCodes.Good;
-            variable.Timestamp = DateTime.UtcNow;
+            variable.Timestamp = PlcSimulation.TimeService.UtcNow();
             variable.Description = new LocalizedText(description);
 
             if (valueRank == ValueRanks.OneDimension)
@@ -836,7 +839,7 @@ namespace OpcPlc
         private void SetValue<T>(BaseDataVariableState variable, T value)
         {
             variable.Value = value;
-            variable.Timestamp = DateTime.Now;
+            variable.Timestamp = PlcSimulation.TimeService.Now();
             variable.ClearChangeMasks(SystemContext, false);
         }
 

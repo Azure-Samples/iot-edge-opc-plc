@@ -2,13 +2,12 @@
 {
     using Opc.Ua;
     using System;
-    using System.Threading;
 
     public class SimulatedVariableNode<T> : IDisposable
     {
         private ISystemContext _context;
         private BaseDataVariableState _variable;
-        private Timer _timer;
+        private ITimer _timer;
 
         public T Value
         {
@@ -33,24 +32,27 @@
         /// </summary>
         public void Start(Func<T, T> update, int periodMs)
         {
-            _timer = new Timer(s =>
+            _timer = PlcSimulation.TimeService.NewTimer((s, o) =>
             {
                 Value = update(Value);
             },
-            state: null,
-            dueTime: 0,
-            period: periodMs);
+            (uint)periodMs);
         }
 
         public void Stop()
         {
-            _timer?.Change(Timeout.Infinite, Timeout.Infinite);
+            if (_timer == null)
+            {
+                return;
+            }
+
+            _timer.Enabled = false;
         }
 
         private void SetValue(BaseDataVariableState variable, T value)
         {
             variable.Value = value;
-            variable.Timestamp = DateTime.Now;
+            variable.Timestamp = PlcSimulation.TimeService.Now();
             variable.ClearChangeMasks(_context, false);
         }
     }

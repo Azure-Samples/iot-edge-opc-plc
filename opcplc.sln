@@ -35,6 +35,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{
 		tools\templates\ci.yml = tools\templates\ci.yml
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{EA6EF073-D8AD-42AC-9009-A6B4573C7723}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "opc-plc-tests", "tests\opc-plc-tests\opc-plc-tests.csproj", "{2EBD1D58-501A-4101-9518-E23CD0B7F78C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +49,10 @@ Global
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2EBD1D58-501A-4101-9518-E23CD0B7F78C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2EBD1D58-501A-4101-9518-E23CD0B7F78C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2EBD1D58-501A-4101-9518-E23CD0B7F78C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2EBD1D58-501A-4101-9518-E23CD0B7F78C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -54,6 +62,7 @@ Global
 		{5DD19E36-0601-491E-932A-E6AB807AD85C} = {99F0F8B6-79F2-45FB-A5B7-5A3CD731A43D}
 		{5C55721F-4E2A-4DEF-864F-17D68BEBC3DB} = {5DD19E36-0601-491E-932A-E6AB807AD85C}
 		{E32C2238-5380-471E-B15E-4B11A8C27528} = {5DD19E36-0601-491E-932A-E6AB807AD85C}
+		{2EBD1D58-501A-4101-9518-E23CD0B7F78C} = {EA6EF073-D8AD-42AC-9009-A6B4573C7723}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {90B4B490-DDDE-4BB2-A111-E5DAE5000248}
