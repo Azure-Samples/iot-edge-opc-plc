@@ -16,11 +16,11 @@ namespace OpcPlc
         public static bool GenerateNegTrend { get; set; } = true;
         public static bool GenerateData { get; set; } = true;
         public static uint SlowNodeCount { get; set; } = 1;
-        public static uint SlowNodeRate { get; set; } = 10; // s.
+        public static uint SlowNodeRate { get; set; } = 10000; // ms.
         public static NodeType SlowNodeType { get; set; } = NodeType.UInt;
         public static uint SlowNodeSamplingInterval { get; set; } // ms.
         public static uint FastNodeCount { get; set; } = 1;
-        public static uint FastNodeRate { get; set; } = 1; // s.
+        public static uint FastNodeRate { get; set; } = 1000; // ms.
         public static NodeType FastNodeType { get; set; } = NodeType.UInt;
         public static uint FastNodeSamplingInterval { get; set; } // ms.
 
@@ -84,12 +84,12 @@ namespace OpcPlc
 
             if (SlowNodeCount > 0)
             {
-                _slowNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseSlowNodes, null, 0, SlowNodeRate * 1000);
+                _slowNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseSlowNodes, null, 0, SlowNodeRate);
             }
 
             if (FastNodeCount > 0)
             {
-                _fastNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseFastNodes, null, 0, FastNodeRate * 1000);
+                _fastNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseFastNodes, null, 0, FastNodeRate);
             }
 
             if (AddComplexTypeBoiler)

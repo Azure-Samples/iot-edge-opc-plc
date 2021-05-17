@@ -427,7 +427,7 @@ namespace OpcPlc
             if (count > 0)
             {
                 Logger.Information($"Creating {count} {name} nodes of type: {type}");
-                Logger.Information("Node values will change every " + (name.Contains("Fast") ? PlcSimulation.FastNodeRate : PlcSimulation.SlowNodeRate) + " s");
+                Logger.Information("Node values will change every " + (name.Contains("Fast") ? PlcSimulation.FastNodeRate : PlcSimulation.SlowNodeRate) + " ms");
                 Logger.Information("Node values sampling rate is " + (name.Contains("Fast") ? PlcSimulation.FastNodeSamplingInterval : PlcSimulation.SlowNodeSamplingInterval) + " ms");
             }
 
