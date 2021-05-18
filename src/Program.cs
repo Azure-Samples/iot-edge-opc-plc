@@ -39,6 +39,11 @@
         /// Simulation object.
         /// </summary>
         public static PlcSimulation PlcSimulation = null;
+        
+        /// <summary>
+        /// A flag indicating when the server is up and ready to accept connections.
+        /// </summary>
+        public static volatile bool Ready = false;
 
         /// <summary>
         /// Shutdown token.
@@ -111,6 +116,10 @@
         /// </summary>
         public static void Main(string[] args)
         {
+            InitAppLocation();
+
+            InitLogging();
+
             // Start OPC UA server
             MainAsync(args).Wait();
         }
@@ -121,10 +130,6 @@
         public static async Task MainAsync(string[] args)
         {
             Mono.Options.OptionSet options = InitCommandLineOptions();
-
-            InitAppLocation();
-
-            InitLogging();
 
             List<string> extraArgs;
             try
@@ -558,6 +563,7 @@
                 await DumpPublisherConfigJsonAsync($"{Hostname}:{ServerPort}{ServerPath}").ConfigureAwait(false);
             }
 
+            Ready = true;
             Logger.Information("PLC Simulation started. Press CTRL-C to exit.");
 
             // wait for Ctrl-C

@@ -2,11 +2,15 @@ namespace OpcPlc
 {
     using System;
     using System.Text;
-    using System.Threading;
     using static Program;
 
     public class PlcSimulation
     {
+        /// <summary>
+        /// Service returning <see cref="DateTime"/> values and <see cref="Timer"/> instances. Mocked in tests.
+        /// </summary>
+        public static TimeService TimeService { get; set; } = new TimeService();
+
         /// <summary>
         /// Flags for node generation.
         /// </summary>
@@ -84,17 +88,17 @@ namespace OpcPlc
 
             if (SlowNodeCount > 0)
             {
-                _slowNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseSlowNodes, null, 0, SlowNodeRate * 1000);
+                _slowNodeGenerator = TimeService.NewTimer(_plcServer.PlcNodeManager.IncreaseSlowNodes, SlowNodeRate * 1000);
             }
 
             if (FastNodeCount > 0)
             {
-                _fastNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseFastNodes, null, 0, FastNodeRate * 1000);
+                _fastNodeGenerator = TimeService.NewTimer(_plcServer.PlcNodeManager.IncreaseFastNodes, FastNodeRate * 1000);
             }
 
             if (AddComplexTypeBoiler)
             {
-                _boiler1Generator = new Timer(_plcServer.PlcNodeManager.UpdateBoiler1, null, 0, period: 1000);
+                _boiler1Generator = TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
             }
 
             if (AddSpecialCharName)
@@ -133,9 +137,19 @@ namespace OpcPlc
             _plcServer.PlcNodeManager.RandomUnsignedInt32?.Stop();
             _plcServer.PlcNodeManager.SpecialCharNameNode?.Stop();
 
-            _slowNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
-            _fastNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
-            _boiler1Generator?.Change(Timeout.Infinite, Timeout.Infinite);
+            Disable(_slowNodeGenerator);
+            Disable(_fastNodeGenerator);
+            Disable(_fastNodeGenerator);
+        }
+
+        private void Disable(ITimer timer)
+        {
+            if (timer == null)
+            {
+                return;
+            }
+
+            timer.Enabled = false;
         }
 
         /// <summary>
@@ -209,7 +223,7 @@ namespace OpcPlc
             double nextValue = TREND_BASEVALUE;
             if (GeneratePosTrend && _posTrendPhase >= _posTrendAnomalyPhase)
             {
-                nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10);
+                nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10d);
                 Logger.Verbose("Generate postrend anomaly");
             }
 
@@ -234,7 +248,7 @@ namespace OpcPlc
             double nextValue = TREND_BASEVALUE;
             if (GenerateNegTrend && _negTrendPhase >= _negTrendAnomalyPhase)
             {
-                nextValue = TREND_BASEVALUE - ((_negTrendPhase - _negTrendAnomalyPhase) / 10);
+                nextValue = TREND_BASEVALUE - ((_negTrendPhase - _negTrendAnomalyPhase) / 10d);
                 Logger.Verbose("Generate negtrend anomaly");
             }
 
@@ -277,7 +291,7 @@ namespace OpcPlc
         private bool AlternatingBooleanGenerator(bool value)
         {
             // calculate next boolean value
-            bool nextAlternatingBoolean = (_stepUpCycleInPhase % (SimulationCycleCount / 2)) == 0 ? !value : value;
+            bool nextAlternatingBoolean = _alternatingBooleanCycleInPhase % SimulationCycleCount == 0 ? !value : value;
             if (value != nextAlternatingBoolean)
             {
                 Logger.Verbose($"data change to: {nextAlternatingBoolean}");
@@ -350,9 +364,9 @@ namespace OpcPlc
         private int _negTrendPhase;
         private bool _stepUpStarted;
 
-        private Timer _slowNodeGenerator;
-        private Timer _fastNodeGenerator;
+        private ITimer _slowNodeGenerator;
+        private ITimer _fastNodeGenerator;
 
-        private Timer _boiler1Generator;
+        private ITimer _boiler1Generator;
     }
 }
