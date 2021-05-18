@@ -45,11 +45,6 @@
         /// </summary>
         public static volatile bool Ready = false;
 
-        /// <summary>
-        /// Shutdown token.
-        /// </summary>
-        public static CancellationToken ShutdownToken;
-
         public static bool DisableAnonymousAuth { get; set; } = false;
 
         public static bool DisableUsernamePasswordAuth { get; set; } = false;
@@ -127,7 +122,7 @@
         /// <summary>
         /// Asynchronous part of the main method of the app.
         /// </summary>
-        public static async Task MainAsync(string[] args)
+        public static async Task MainAsync(string[] args, CancellationToken cancellationToken = default)
         {
             Mono.Options.OptionSet options = InitCommandLineOptions();
 
@@ -176,7 +171,7 @@
 
             try
             {
-                await ConsoleServerAsync(args).ConfigureAwait(false);
+                await ConsoleServerAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -510,30 +505,11 @@
         /// <summary>
         /// Run the server.
         /// </summary>
-#pragma warning disable IDE0060 // Remove unused parameter
-        private static async Task ConsoleServerAsync(string[] args)
-#pragma warning restore IDE0060 // Remove unused parameter
+        private static async Task ConsoleServerAsync(CancellationToken cancellationToken)
         {
-            var quitEvent = new ManualResetEvent(false);
-            var shutdownTokenSource = new CancellationTokenSource();
-            ShutdownToken = shutdownTokenSource.Token;
-
             // init OPC configuration and tracing
             var plcOpcApplicationConfiguration = new OpcApplicationConfiguration();
             ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync().ConfigureAwait(false);
-
-            // allow canceling the connection process
-            try
-            {
-                Console.CancelKeyPress += (sender, eArgs) =>
-                {
-                    quitEvent.Set();
-                    eArgs.Cancel = true;
-                };
-            }
-            catch
-            {
-            }
 
             // start the server.
             Logger.Information($"Starting server on endpoint {plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]} ...");
@@ -568,9 +544,18 @@
             Logger.Information("PLC Simulation started. Press CTRL-C to exit.");
 
             // wait for Ctrl-C
-            quitEvent.WaitOne(Timeout.Infinite);
+
+            // allow canceling the connection process
+            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            Console.CancelKeyPress += (_, eArgs) => {
+                cancellationTokenSource.Cancel();
+                eArgs.Cancel = true;
+            };
+            while (!cancellationTokenSource.Token.WaitHandle.WaitOne(1000))
+            {
+            }
             PlcSimulation.Stop();
-            shutdownTokenSource.Cancel();
+            PlcServer.Stop();
         }
 
         /// <summary>

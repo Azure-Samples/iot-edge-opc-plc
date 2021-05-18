@@ -39,6 +39,8 @@ namespace OpcPlc.Tests
 
         private Task _serverTask;
 
+        private readonly CancellationTokenSource _serverCancellationTokenSource = new CancellationTokenSource();
+
         private ApplicationConfiguration _config;
 
         private ConfiguredEndpoint _serverEndpoint;
@@ -80,7 +82,7 @@ namespace OpcPlc.Tests
                 .Returns(() => _now);
 
             // The simulator program command line.
-            _serverTask = Task.Run(() => Program.MainAsync(new[] { "--autoaccept", "--simpleevents", "--alm", "--ref" }).GetAwaiter().GetResult());
+            _serverTask = Task.Run(() => Program.MainAsync(new[] { "--autoaccept", "--simpleevents", "--alm", "--ref" }, _serverCancellationTokenSource.Token).GetAwaiter().GetResult());
             var endpointUrl = WaitForServerUp();
             await _log.WriteAsync($"Found server at {endpointUrl}");
             _config = await GetConfigurationAsync();
@@ -90,12 +92,11 @@ namespace OpcPlc.Tests
         }
 
         [OneTimeTearDown]
-        public void RunAfterAnyTests()
+        public Task RunAfterAnyTests()
         {
-            // TODO shutdown simulator
-            _serverTask = null;
-            _config = null;
-            _serverEndpoint = null;
+            // shutdown simulator
+            _serverCancellationTokenSource.Cancel();
+            return _serverTask;
         }
 
         /// <summary>
