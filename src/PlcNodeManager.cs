@@ -65,7 +65,7 @@ namespace OpcPlc
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-        public void IncreaseFastNodes(object state, ElapsedEventArgs elapsedEventArgs)
+        public void IncreaseFastNodes(object state, FastTimerElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
             if (_fastNodes != null)
