@@ -221,13 +221,14 @@
 
                 // Slow and fast nodes.
                 { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodeCount}", (uint i) => SlowNodeCount = i },
-                { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (uint i) => SlowNodeRate = i },
+                { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate / 1000}", (uint i) => SlowNodeRate = i * 1000 },
                 { "st|slowtype=", $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
                 { "ssi|slownodesamplinginterval=", $"rate in milliseconds to sample slow nodes\nDefault: {SlowNodeSamplingInterval}", (uint i) => SlowNodeSamplingInterval = i },
                 { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodeCount}", (uint i) => FastNodeCount = i },
-                { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
+                { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate / 1000}", (uint i) => FastNodeRate = i * 1000 },
                 { "ft|fasttype=", $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
                 { "fsi|fastnodesamplinginterval=", $"rate in milliseconds to sample fast nodes\nDefault: {FastNodeSamplingInterval}", (uint i) => FastNodeSamplingInterval = i },
+                { "vfr|veryfastrate=", $"rate in milliseconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
 
                 // user defined nodes configuration
                 { "nf|nodesfile=", "the filename which contains the list of nodes to be created in the OPC UA address space.", (string l) => NodesFileName = l },
@@ -456,8 +457,8 @@
                 sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString200kB\" }},");
             }
 
-            string slowPublishingInterval = SlowNodeRate > 1
-                ? $", \"OpcPublishingInterval\": {SlowNodeRate * 1000}" // ms
+            string slowPublishingInterval = SlowNodeRate > 1000
+                ? $", \"OpcPublishingInterval\": {SlowNodeRate}" // ms
                 : "";
             string slowSamplingInterval = SlowNodeSamplingInterval > 0
                 ? $", \"OpcSamplingInterval\": {SlowNodeSamplingInterval}" // ms
@@ -467,8 +468,8 @@
                 sb.AppendLine($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\"{slowPublishingInterval}{slowSamplingInterval} }},");
             }
 
-            string fastPublishingInterval = FastNodeRate > 1
-               ? $", \"OpcPublishingInterval\": {FastNodeRate * 1000}" // ms
+            string fastPublishingInterval = FastNodeRate > 1000
+               ? $", \"OpcPublishingInterval\": {FastNodeRate}" // ms
                : "";
             string fastSamplingInterval = FastNodeSamplingInterval > 0
                 ? $", \"OpcSamplingInterval\": {FastNodeSamplingInterval}" // ms
