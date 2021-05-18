@@ -16,6 +16,41 @@ namespace OpcPlc.Tests
         // Simulator does not update trended and boolean values in the first few cycles (a random number of cycles between 1 and 10)
         private const int RampUpPeriods = 10;
 
+        [TestCase("DipData", -1000)]
+        [TestCase("SpikeData", 1000)]
+        public void Telemetry_ContainsOutlier(string identifier, int outlierValue)
+        {
+            var nodeId = GetOpcPlcNodeId(identifier);
+
+            var outlierCount = 0;
+            var maxValue = 0d;
+            var minValue = 0d;
+
+            // take 100 measurements, which is enough that at least a few outliers should be present
+            for (int i = 0; i < 100; i++)
+            {
+                FireTimersWithPeriod(100u, 1);
+
+                var value = Session.ReadValue(nodeId).Value;
+                value.Should().BeOfType(typeof(double));
+
+                var doubleValue = (double)value;
+                if (doubleValue == outlierValue)
+                {
+                    outlierCount++;
+                }
+                else
+                {
+                    maxValue = Math.Max(maxValue, doubleValue);
+                    minValue = Math.Min(minValue, doubleValue);
+                }
+            }
+
+            maxValue.Should().BeInRange(90, 100, "Measurement data should have a ceiling around 100");
+            minValue.Should().BeInRange(-100, -90, "Measurement data should have a floor around -100");
+            outlierCount.Should().BeGreaterThan(0, "There should be at least a few measurements that were " + outlierValue);
+        }
+
         [Test]
         [TestCase("FastUInt1", typeof(uint), 1000u, 1, 0)]
         [TestCase("SlowUInt1", typeof(uint), 10000u, 1, 0)]
