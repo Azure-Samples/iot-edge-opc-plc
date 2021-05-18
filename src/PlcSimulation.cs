@@ -277,7 +277,7 @@ namespace OpcPlc
         private bool AlternatingBooleanGenerator(bool value)
         {
             // calculate next boolean value
-            bool nextAlternatingBoolean = (_stepUpCycleInPhase % (SimulationCycleCount / 2)) == 0 ? !value : value;
+            bool nextAlternatingBoolean = _alternatingBooleanCycleInPhase % SimulationCycleCount == 0 ? !value : value;
             if (value != nextAlternatingBoolean)
             {
                 Logger.Verbose($"data change to: {nextAlternatingBoolean}");
