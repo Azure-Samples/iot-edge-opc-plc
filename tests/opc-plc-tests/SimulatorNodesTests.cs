@@ -35,7 +35,7 @@ namespace OpcPlc.Tests
                 value.Should().BeOfType(typeof(double));
 
                 var doubleValue = (double)value;
-                if (doubleValue == outlierValue)
+                if (Math.Round(doubleValue) == outlierValue)
                 {
                     outlierCount++;
                 }
@@ -46,9 +46,9 @@ namespace OpcPlc.Tests
                 }
             }
 
-            maxValue.Should().BeInRange(90, 100, "Measurement data should have a ceiling around 100");
-            minValue.Should().BeInRange(-100, -90, "Measurement data should have a floor around -100");
-            outlierCount.Should().BeGreaterThan(0, "There should be at least a few measurements that were " + outlierValue);
+            maxValue.Should().BeInRange(90, 100, "measurement data should have a ceiling around 100");
+            minValue.Should().BeInRange(-100, -90, "measurement data should have a floor around -100");
+            outlierCount.Should().BeGreaterThan(0, "there should be at least a few measurements that were {0}", outlierValue);
         }
 
         [Test]
