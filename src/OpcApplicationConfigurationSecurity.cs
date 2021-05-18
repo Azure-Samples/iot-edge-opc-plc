@@ -148,9 +148,6 @@
             ApplicationConfiguration.CertificateValidator = new CertificateValidator();
             ApplicationConfiguration.CertificateValidator.CertificateValidation += new CertificateValidationEventHandler(CertificateValidator_CertificateValidation);
 
-            // update security information
-            await ApplicationConfiguration.CertificateValidator.Update(ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
-
             // remove issuer and trusted certificates with the given thumbprints
             if (ThumbprintsToRemove?.Count > 0)
             {
@@ -197,8 +194,13 @@
                 }
             }
 
-            // use existing certificate, if it is there
-            certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Find(true).ConfigureAwait(false);
+            // reload the application certificate with private key, if it is there
+            // note: do not change this sequence, or the private key is not properly loaded on some platforms
+            if (await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.LoadPrivateKey(null).ConfigureAwait(false) != null)
+            {
+                // update certificate with private key
+                certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Find(true).ConfigureAwait(false);
+            }
 
             // create a self signed certificate if there is none
             if (certificate == null)
@@ -225,14 +227,26 @@
 #pragma warning restore CS0618 // Type or member is obsolete
                 Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' created.");
 
-                // update security information
-                ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = certificate ?? throw new Exception("OPC UA application certificate can not be created! Cannot continue without it!");
-                await ApplicationConfiguration.CertificateValidator.UpdateCertificate(ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
+                // reload the cert in the key store
+                certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.LoadPrivateKey(null);
+                if (certificate == null)
+                {
+                    throw new Exception("OPC UA application certificate can not be loaded from disk!");
+                }
+                else
+                {
+                    // update certificate with private key
+                    certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Find(true).ConfigureAwait(false);
+                }
             }
             else
             {
                 Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' found in the application certificate store.");
             }
+
+            // update security information
+            await ApplicationConfiguration.CertificateValidator.Update(ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
+
             ApplicationConfiguration.ApplicationUri = X509Utils.GetApplicationUriFromCertificate(certificate);
             Logger.Information($"Application certificate is for ApplicationUri '{ApplicationConfiguration.ApplicationUri}', ApplicationName '{ApplicationConfiguration.ApplicationName}' and Subject is '{ApplicationConfiguration.ApplicationName}'");
 
@@ -258,6 +272,8 @@
             {
                 await ShowCreateSigningRequestInformationAsync(certificate).ConfigureAwait(false);
             }
+
+            X509Utils.VerifyRSAKeyPair(certificate, certificate, true);
         }
 
         /// <summary>
