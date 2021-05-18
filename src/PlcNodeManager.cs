@@ -5,7 +5,6 @@ namespace OpcPlc
     using Opc.Ua.Server;
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.IO;
     using System.Reflection;
     using System.Text;
@@ -71,17 +70,6 @@ namespace OpcPlc
             if (_fastNodes != null)
             {
                 IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
-                numUpdates++;
-                var sinceLastUpdate = DateTime.UtcNow - lastUpdated;
-                if (sinceLastUpdate > TimeSpan.FromSeconds(10))
-                {
-                    if (numUpdates > 0)
-                    {
-                        Debug.WriteLine($"Number of updates per second {numUpdates / sinceLastUpdate.TotalSeconds}; Update frequency {sinceLastUpdate.TotalMilliseconds / numUpdates} ms");
-                    }
-                    numUpdates = 0;
-                    lastUpdated = DateTime.UtcNow;
-                }
             }
 
             if (_fastBadNodes != null)
@@ -351,9 +339,6 @@ namespace OpcPlc
 
             return methodsFolder;
         }
-
-        private static uint numUpdates = 0;
-        private static DateTime lastUpdated = DateTime.UtcNow;
 
         private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
         {
