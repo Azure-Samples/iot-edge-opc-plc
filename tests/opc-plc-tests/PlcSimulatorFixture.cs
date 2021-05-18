@@ -165,7 +165,7 @@ namespace OpcPlc.Tests
             return config;
         }
 
-        private void CertificateValidator_AutoAccept(CertificateValidator validator, CertificateValidationEventArgs e)
+        private static void CertificateValidator_AutoAccept(CertificateValidator validator, CertificateValidationEventArgs e)
         {
             if (e.Error.StatusCode == StatusCodes.BadCertificateUntrusted)
             {

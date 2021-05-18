@@ -391,9 +391,7 @@ namespace OpcPlc
 
                 nodes[nodeIndex].StatusCode = status;
                 nodes[nodeIndex].Value = value;
-                var dateTime = PlcSimulation.TimeService.Now();
-                var m = dateTime.Millisecond;
-                nodes[nodeIndex].Timestamp = dateTime;
+                nodes[nodeIndex].Timestamp = PlcSimulation.TimeService.Now();
                 nodes[nodeIndex].ClearChangeMasks(SystemContext, false);
             }
         }
