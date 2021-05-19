@@ -80,21 +80,17 @@ namespace OpcPlc
         public void UpdateFastNodes(object state, ElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
-            if (_fastNodes != null)
-            {
-                UpdateNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
-            }
-
-            if (_fastBadNodes != null)
-            {
-                (StatusCode status, bool addBadValue) = BadStatusSequence[_fastBadNodesCycle++ % BadStatusSequence.Length];
-                UpdateNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
-            }
+            UpdateNodes();
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateVeryFastNodes(object state, FastTimerElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
+        {
+            UpdateNodes();
+        }
+
+        private void UpdateNodes()
         {
             if (_fastNodes != null)
             {
