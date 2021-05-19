@@ -14,6 +14,8 @@ namespace OpcPlc
 
     public class PlcNodeManager : CustomNodeManager2
     {
+        private const string NumberOfUpdates = "NumberOfUpdates";
+
         #region Properties
         public SimulatedVariableNode<uint> RandomUnsignedInt32 { get; set; }
 
@@ -350,6 +352,11 @@ namespace OpcPlc
             }
             for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
             {
+                if (!ShouldUpdate(nodes[nodeIndex]))
+                {
+                    continue;
+                }
+
                 object value = null;
                 if (StatusCode.IsNotBad(status) || addBadValue)
                 {
@@ -394,6 +401,30 @@ namespace OpcPlc
                 nodes[nodeIndex].Timestamp = PlcSimulation.TimeService.Now();
                 nodes[nodeIndex].ClearChangeMasks(SystemContext, false);
             }
+        }
+
+        /// <summary>
+        /// Determines whether the value of a simulated node should be updated, based
+        /// on the value of its <see cref="NumberOfUpdates"/> property.
+        /// Decrements the property value and returns true if the property value if greater than zero,
+        /// returns false if the property value is zero,
+        /// returns true if the property value is less than zero.
+        /// </summary>
+        /// <param name="node">Node that is considered for update.</param>
+        /// <returns>True if the value of the node should be updated by the simulator, false otherwise.</returns>
+        private bool ShouldUpdate(NodeState node)
+        {
+            var propertyState = (PropertyState<int>)node.FindChildBySymbolicName(SystemContext, NumberOfUpdates);
+            var value = propertyState.Value;
+            if (value == 0)
+            {
+                return false;
+            }
+            if (value > 0)
+            {
+                SetValue(propertyState, value - 1);
+            }
+            return true;
         }
 
         /// <summary>
@@ -505,7 +536,7 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
+        private BaseDataVariableState CreateBaseVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
         {
             ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
 
@@ -515,18 +546,8 @@ namespace OpcPlc
                 ReferenceTypeId = ReferenceTypes.Organizes,
                 TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
             };
-
-            if (path.GetType() == Type.GetType("System.Int64"))
-            {
-                variable.NodeId = new NodeId((uint)path, namespaceIndex);
-                variable.BrowseName = new QualifiedName(((uint)path).ToString(), namespaceIndex);
-            }
-            else
-            {
-                variable.NodeId = new NodeId(path, namespaceIndex);
-                variable.BrowseName = new QualifiedName(path, namespaceIndex);
-            }
-
+            variable.NodeId = new NodeId(path, namespaceIndex);
+            variable.BrowseName = new QualifiedName(path, namespaceIndex);
             variable.DisplayName = new LocalizedText("en", name);
             variable.WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
             variable.UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
@@ -539,6 +560,13 @@ namespace OpcPlc
             variable.StatusCode = StatusCodes.Good;
             variable.Timestamp = PlcSimulation.TimeService.UtcNow();
             variable.Description = new LocalizedText(description);
+
+            // Create property to hold NumberOfUpdates (to stop simulated updates after a given count)
+            var property = variable.AddProperty<int>(NumberOfUpdates, DataTypeIds.Int32, ValueRanks.Scalar);
+            property.NodeId = new NodeId($"{NumberOfUpdates}_{path}", namespaceIndex);
+            property.Value = -1;
+            property.AccessLevel = AccessLevels.CurrentReadOrWrite;
+            property.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
 
             if (valueRank == ValueRanks.OneDimension)
             {
@@ -834,7 +862,7 @@ namespace OpcPlc
             return ServiceResult.Good;
         }
 
-        private void SetValue<T>(BaseDataVariableState variable, T value)
+        private void SetValue<T>(BaseVariableState variable, T value)
         {
             variable.Value = value;
             variable.Timestamp = PlcSimulation.TimeService.Now();
