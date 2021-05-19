@@ -512,7 +512,7 @@ namespace OpcPlc
             return nodeType switch
             {
                 NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, true, null, null, null),
-                NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, (double)0.0, double.Parse(stepSize), minValue == null ? double.MinValue : double.Parse(minValue), maxValue == null ? double.MaxValue : double.Parse(maxValue)),
+                NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, (double)0.0, double.Parse(stepSize), minValue == null ? 0.0 : double.Parse(minValue), maxValue == null ? double.MaxValue : double.Parse(maxValue)),
                 NodeType.UIntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32], null, null, null),
                 _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, (uint)0, uint.Parse(stepSize), minValue == null ? uint.MinValue : uint.Parse(minValue), maxValue == null ? uint.MaxValue : uint.Parse(maxValue)),
             };
@@ -765,7 +765,7 @@ namespace OpcPlc
         //    variable.Historizing = false;
         //    variable.Value = Opc.Ua.TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
         //    variable.StatusCode = StatusCodes.Good;
-        //    variable.Timestamp = DateTime.UtcNow;
+        //    variable.Timestamp = PlcSimulation.TimeService.UtcNow();
 
         //    if (valueRank == ValueRanks.OneDimension)
         //    {
