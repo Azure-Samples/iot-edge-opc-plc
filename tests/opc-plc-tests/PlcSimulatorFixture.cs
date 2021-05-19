@@ -89,7 +89,10 @@ namespace OpcPlc.Tests
                 .Returns(() => _now);
 
             // The simulator program command line.
+            // Currently, we do not support multiple instances of PLC server in test framework hence we are limited to use mutually exclusive cmd line parameters
+            // This prevents us from using random flag as it will make other tests fail which are using sequential values for nodes.
             _serverTask = Task.Run(() => Program.MainAsync(_args.Concat(new[] { "--autoaccept" }).ToArray(), _serverCancellationTokenSource.Token).GetAwaiter().GetResult());
+
             var endpointUrl = WaitForServerUp();
             await _log.WriteAsync($"Found server at {endpointUrl}");
             _config = await GetConfigurationAsync();

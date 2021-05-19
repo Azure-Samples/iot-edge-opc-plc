@@ -39,7 +39,7 @@
         /// Simulation object.
         /// </summary>
         public static PlcSimulation PlcSimulation = null;
-        
+
         /// <summary>
         /// A flag indicating when the server is up and ready to accept connections.
         /// </summary>
@@ -223,10 +223,18 @@
                 { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodeCount}", (uint i) => SlowNodeCount = i },
                 { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate / 1000}", (uint i) => SlowNodeRate = i * 1000 },
                 { "st|slowtype=", $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
+                { "stl|slowtypelowerbound=", $"lower bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.", a => SlowNodeMinValue = a },
+                { "stu|slowtypeupperbound=", $"upper bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.", a => SlowNodeMaxValue = a },
+                { "str|slowtyperandomization=", $"randomization of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeRandomization}", a => SlowNodeRandomization = bool.Parse(a) },
+                { "sts|slowtypestepsize=", $"step or increment size of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeStepSize}", a => SlowNodeStepSize = a },
                 { "ssi|slownodesamplinginterval=", $"rate in milliseconds to sample slow nodes\nDefault: {SlowNodeSamplingInterval}", (uint i) => SlowNodeSamplingInterval = i },
                 { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodeCount}", (uint i) => FastNodeCount = i },
                 { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate / 1000}", (uint i) => FastNodeRate = i * 1000 },
                 { "ft|fasttype=", $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
+                { "ftl|fasttypelowerbound=", $"lower bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.", a => FastNodeMinValue = a },
+                { "ftu|fasttypeupperbound=", $"upper bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.", a => FastNodeMaxValue = a },
+                { "ftr|fasttyperandomization=", $"randomization of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeRandomization}", a => FastNodeRandomization = bool.Parse(a) },
+                { "fts|fasttypestepsize=", $"step or increment size of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeStepSize}", a => FastNodeStepSize = a },
                 { "fsi|fastnodesamplinginterval=", $"rate in milliseconds to sample fast nodes\nDefault: {FastNodeSamplingInterval}", (uint i) => FastNodeSamplingInterval = i },
                 { "vfr|veryfastrate=", $"rate in milliseconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
 
@@ -536,7 +544,8 @@
             {
                 await DumpPublisherConfigJsonAsync($"{GetIpAddress()}:{ServerPort}{ServerPath}").ConfigureAwait(false);
             }
-            else if (ShowPublisherConfigJsonPh) {
+            else if (ShowPublisherConfigJsonPh)
+            {
                 await DumpPublisherConfigJsonAsync($"{Hostname}:{ServerPort}{ServerPath}").ConfigureAwait(false);
             }
 
