@@ -96,9 +96,17 @@ A number of changing nodes can be simulated with the following options. The node
 - sn: Number of slow nodes (default 1)
 - sr: Rate in seconds at which to change the slow nodes (uint, default every 10 s)
 - st: Data type for slow nodes (UInt|Double|Bool|UIntArray, case insensitive)
+- stl: lower bound of data type of slow nodes (UInt|Double types only, defaults to minimium value of the type in C#)
+- stu: upper bound of data type of slow nodes (UInt|Double types only, defaults to maximum value of the type in C#)
+- str: randomization of slow nodes value (UInt|Double types only, defaults to false)
+- sts: step or increment size of slow nodes value (UInt|Double types only, defaults to 1)
 - fn: Number of fast nodes (default 1)
 - fr: Rate in seconds at which to change the fast nodes (uint, default every 1 s)
 - ft: Data type for fast nodes (UInt|Double|Bool|UIntArray, case insensitive)
+- ftl: lower bound of data type of fast nodes (UInt|Double types only, defaults to minimium value of the type in C#)
+- ftu: upper bound of data type of fast nodes (UInt|Double types only, defaults to maximum value of the type in C#)
+- ftr: randomization of fast nodes value (UInt|Double types only, defaults to false)
+- fts: step or increment size of fast nodes value (UInt|Double types only, defaults to 1)
 
 ### Data types
 - UInt: Increases by 1

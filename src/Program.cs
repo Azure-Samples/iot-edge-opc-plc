@@ -229,10 +229,19 @@
                 { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (uint i) => SlowNodeRate = i },
                 { "st|slowtype=", $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
                 { "ssi|slownodesamplinginterval=", $"rate in milliseconds to sample slow nodes\nDefault: {SlowNodeSamplingInterval}", (uint i) => SlowNodeSamplingInterval = i },
+                { "stl|slowtypelowerbound=", $"lower bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.", a => SlowNodeMinValue = a },
+                { "stu|slowtypeupperbound=", $"upper bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.", a => SlowNodeMaxValue = a },
+                { "str|slowtyperandomization=", $"randomization of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeRandomization}", a => SlowNodeRandomization = bool.Parse(a) },
+                { "sts|slowtypestepsize=", $"step or increment size of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeStepSize}", a => SlowNodeStepSize = a },
+
                 { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodeCount}", (uint i) => FastNodeCount = i },
                 { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
                 { "ft|fasttype=", $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
                 { "fsi|fastnodesamplinginterval=", $"rate in milliseconds to sample fast nodes\nDefault: {FastNodeSamplingInterval}", (uint i) => FastNodeSamplingInterval = i },
+                { "ftl|fasttypelowerbound=", $"lower bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.", a => FastNodeMinValue = a },
+                { "ftu|fasttypeupperbound=", $"upper bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.", a => FastNodeMaxValue = a },
+                { "ftr|fasttyperandomization=", $"randomization of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeRandomization}", a => FastNodeRandomization = bool.Parse(a) },
+                { "fts|fasttypestepsize=", $"step or increment size of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeStepSize}", a => FastNodeStepSize = a },
 
                 // user defined nodes configuration
                 { "nf|nodesfile=", "the filename which contains the list of nodes to be created in the OPC UA address space.", (string l) => NodesFileName = l },
@@ -497,7 +506,7 @@
         }
 
         /// <summary>
-        /// Parse node data type, default to Int.
+        /// Parse node data type, default to UInt.
         /// </summary>
         private static NodeType ParseNodeType(string type)
         {

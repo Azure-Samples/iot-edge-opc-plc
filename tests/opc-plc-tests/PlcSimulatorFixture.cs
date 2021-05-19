@@ -80,7 +80,10 @@ namespace OpcPlc.Tests
                 .Returns(() => _now);
 
             // The simulator program command line.
-            _serverTask = Task.Run(() => Program.MainAsync(new[] { "--autoaccept", "--simpleevents", "--alm", "--ref" }).GetAwaiter().GetResult());
+            // Currently, we do not support multiple instances of PLC server in test framework hence we are limited to use mutually exclusive cmd line parameters
+            // e.g. we are using --str=true which we use for slow nodes random values test, fast nodes are using sequential value increment.
+            _serverTask = Task.Run(() => Program.MainAsync(new[] { "--autoaccept", "--simpleevents", "--alm", "--ref", "--str=true", "--sr=2" }).GetAwaiter().GetResult());
+            
             var endpointUrl = WaitForServerUp();
             await _log.WriteAsync($"Found server at {endpointUrl}");
             _config = await GetConfigurationAsync();
