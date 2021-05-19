@@ -93,18 +93,18 @@ namespace OpcPlc
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-        public void IncreaseVeryFastNodes(object state, FastTimerElapsedEventArgs elapsedEventArgs)
+        public void UpdateVeryFastNodes(object state, FastTimerElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
             if (_fastNodes != null)
             {
-                IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
+                UpdateNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
             }
 
             if (_fastBadNodes != null)
             {
                 (StatusCode status, bool addBadValue) = BadStatusSequence[_fastBadNodesCycle++ % BadStatusSequence.Length];
-                IncreaseNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
+                UpdateNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
             }
         }
 
