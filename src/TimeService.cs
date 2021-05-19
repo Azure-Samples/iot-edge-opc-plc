@@ -264,8 +264,6 @@ namespace OpcPlc
         private static readonly float tickFrequency = 1000f / Stopwatch.Frequency;
 
         private bool isEnabled = true;
-        public bool isRunning = false;
-        public Thread thread;
-
+        private bool isRunning = false;
     }
 }
