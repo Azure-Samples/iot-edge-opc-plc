@@ -93,7 +93,10 @@ namespace OpcPlc
 
             if (FastNodeCount > 0)
             {
-                _fastNodeGenerator = TimeService.NewFastTimer(_plcServer.PlcNodeManager.IncreaseFastNodes, FastNodeRate);
+                // only use the fast timers when we need to go really fast
+                _fastNodeGenerator = FastNodeRate >= 50 ?
+                    TimeService.NewTimer(_plcServer.PlcNodeManager.IncreaseFastNodes, FastNodeRate) :
+                    TimeService.NewFastTimer(_plcServer.PlcNodeManager.IncreaseVeryFastNodes, FastNodeRate);
             }
 
             if (AddComplexTypeBoiler)

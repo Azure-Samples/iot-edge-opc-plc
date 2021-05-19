@@ -135,10 +135,6 @@ namespace OpcPlc
             set
             {
                 autoReset = value;
-                if (this.isEnabled)
-                {
-                    Start();
-                }
             }
         }
 
@@ -177,10 +173,6 @@ namespace OpcPlc
             set
             {
                 this.interval = value;
-                if (this.isEnabled)
-                {
-                    Start();
-                }
             }
         }
 
@@ -223,6 +215,13 @@ namespace OpcPlc
                 if (isRunning)
                 {
                     Elapsed?.Invoke(this, new FastTimerElapsedEventArgs());
+
+                    if (!AutoReset)
+                    {
+                        isRunning = false;
+                        Enabled = false;
+                        break;
+                    }
 
                     // restarting the timer in every hour to prevent precision problems
                     if (sw.Elapsed.TotalHours >= 1d)
