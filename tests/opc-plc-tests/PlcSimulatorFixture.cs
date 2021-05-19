@@ -2,6 +2,7 @@ namespace OpcPlc.Tests
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -18,9 +19,10 @@ namespace OpcPlc.Tests
     /// <summary>
     /// A test fixture that starts a static singleton instance of the OPC PLC simulator.
     /// </summary>
-    [SetUpFixture]
     public class PlcSimulatorFixture
     {
+        private readonly string[] _args;
+
         /// <summary>
         /// The writer in which output is immediately displayed in the NUnit console.
         /// </summary>
@@ -45,15 +47,20 @@ namespace OpcPlc.Tests
 
         private ConfiguredEndpoint _serverEndpoint;
 
-        // The global singleton fixture instance.
-        public static PlcSimulatorFixture Instance { get; private set; }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PlcSimulatorFixture"/> class.
+        /// </summary>
+        /// <param name="args">Command-line arguments to be passed to the simulator.</param>
+        public PlcSimulatorFixture(string[] args)
+        {
+            _args = args ?? Array.Empty<string>();
+        }
 
         /// <summary>
         /// Configure and run the simulator in a background thread, run once for the entire assembly.
         /// The simulator is instrumented with mock time services.
         /// </summary>
-        [OneTimeSetUp]
-        public async Task RunBeforeAnyTests()
+        public async Task Start()
         {
             Program.Logger = new LoggerConfiguration()
                 .WriteTo.NUnitOutput()
@@ -83,19 +90,16 @@ namespace OpcPlc.Tests
 
             // The simulator program command line.
             // Currently, we do not support multiple instances of PLC server in test framework hence we are limited to use mutually exclusive cmd line parameters
-            // e.g. we are using --str=true which we use for slow nodes random values test, fast nodes are using sequential value increment.
-            _serverTask = Task.Run(() => Program.MainAsync(new[] { "--autoaccept", "--simpleevents", "--alm", "--ref", "--str=true", "--sr=2" }).GetAwaiter().GetResult());
-            
+            // This prevents us from using random flag as it will make other tests fail which are using sequential values for nodes.
+            _serverTask = Task.Run(() => Program.MainAsync(_args.Concat(new[] { "--autoaccept" }).ToArray(), _serverCancellationTokenSource.Token).GetAwaiter().GetResult());
+
             var endpointUrl = WaitForServerUp();
             await _log.WriteAsync($"Found server at {endpointUrl}");
             _config = await GetConfigurationAsync();
-            var endpoint = CoreClientUtils.SelectEndpoint(endpointUrl, false, 15000);
-            _serverEndpoint = GetServerEndpoint(endpoint, _config);
-            Instance = this;
+            _serverEndpoint = GetServerEndpoint(endpointUrl);
         }
 
-        [OneTimeTearDown]
-        public Task RunAfterAnyTests()
+        public Task Stop()
         {
             // shutdown simulator
             _serverCancellationTokenSource.Cancel();
@@ -143,7 +147,7 @@ namespace OpcPlc.Tests
         {
             await _log.WriteLineAsync("Create an Application Configuration.");
 
-            ApplicationInstance application = new ApplicationInstance
+            var application = new ApplicationInstance
             {
                 ApplicationName = nameof(PlcSimulatorFixture),
                 ApplicationType = ApplicationType.Client,
@@ -151,17 +155,16 @@ namespace OpcPlc.Tests
             };
 
             // load the application configuration.
-            ApplicationConfiguration config = await application.LoadApplicationConfiguration(false).ConfigureAwait(false);
+            var config = await application.LoadApplicationConfiguration(false).ConfigureAwait(false);
 
             // check the application certificate.
-            bool haveAppCertificate = await application.CheckApplicationInstanceCertificate(false, 0).ConfigureAwait(false);
+            var haveAppCertificate = await application.CheckApplicationInstanceCertificate(false, 0).ConfigureAwait(false);
             if (!haveAppCertificate)
             {
                 throw new Exception("Application instance certificate invalid!");
             }
 
-            // Note for future OpcUa update: Utils is renamed X509Utils in later versions
-            config.ApplicationUri = Utils.GetApplicationUriFromCertificate(config.SecurityConfiguration.ApplicationCertificate.Certificate);
+            config.ApplicationUri = X509Utils.GetApplicationUriFromCertificate(config.SecurityConfiguration.ApplicationCertificate.Certificate);
 
             // Auto-accept server certificate
             config.CertificateValidator.CertificateValidation += CertificateValidator_AutoAccept;
@@ -177,10 +180,33 @@ namespace OpcPlc.Tests
             }
         }
 
-        private ConfiguredEndpoint GetServerEndpoint(EndpointDescription endpoint, ApplicationConfiguration config)
+        /// <summary>
+        /// Get the configuration information for a given endpoint URL.
+        /// In some environments, this can fail for a while when a simulator has been recreated after
+        /// a simulator has been shut down, for unclear reasons.
+        /// Therefore, the method retries for up to 10 seconds in case of failure.
+        /// </summary>
+        /// <param name="endpointUrl"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        private ConfiguredEndpoint GetServerEndpoint(string endpointUrl)
         {
-            var endpointConfiguration = EndpointConfiguration.Create(config);
-            return new ConfiguredEndpoint(null, endpoint, endpointConfiguration);
+            var sw = Stopwatch.StartNew();
+
+            while (true)
+            {
+                try
+                {
+                    var endpoint = CoreClientUtils.SelectEndpoint(endpointUrl, false, 15000);
+                    var endpointConfiguration = EndpointConfiguration.Create(_config);
+                    return new ConfiguredEndpoint(null, endpoint, endpointConfiguration);
+                }
+                catch (ServiceResultException) when (sw.Elapsed < TimeSpan.FromSeconds(10))
+                {
+                    _log.Write("Retrying to access endpoint...");
+                    Thread.Sleep(100);
+                }
+            }
         }
 
         private string WaitForServerUp()

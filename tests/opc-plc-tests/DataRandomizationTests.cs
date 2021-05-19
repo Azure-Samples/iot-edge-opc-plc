@@ -31,9 +31,9 @@
             // Arrange
             ClearEvents();
 
-            // Act: collect events during 20 seconds
+            // Act: collect events during 50 seconds
             // Value is updated every 10 seconds
-            FireTimersWithPeriod(2000, 5);
+            FireTimersWithPeriod(10000, 5);
 
             // Assert
             var events = ReceiveEvents(6);

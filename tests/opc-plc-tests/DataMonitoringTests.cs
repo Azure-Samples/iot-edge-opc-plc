@@ -9,7 +9,6 @@ namespace OpcPlc.Tests
     /// Tests for OPC-UA Monitoring for Data changes.
     /// </summary>
     [TestFixture]
-    [Parallelizable(ParallelScope.All)]
     public class DataMonitoringTests : SubscriptionTestsBase
     {
         [SetUp]
