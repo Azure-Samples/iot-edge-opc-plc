@@ -104,7 +104,7 @@ namespace OpcPlc
 
     public delegate void FastTimerElapsedEventHandler(object sender, FastTimerElapsedEventArgs e);
 
-    public class FastTimer : ITimer, IDisposable
+    public class FastTimer : ITimer
     {
         /// <summary>
         /// Initializes a new instance of the FastTimer class and sets all properties to their default values
@@ -190,14 +190,6 @@ namespace OpcPlc
         public event FastTimerElapsedEventHandler Elapsed;
 
         /// <summary>
-        /// Disposes resource held by this object
-        /// </summary>
-        public void Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
         /// Starts the timer 
         /// </summary>
         public void Start()
@@ -216,13 +208,7 @@ namespace OpcPlc
         /// <summary>
         /// Stops the timer
         /// </summary>
-        public void Stop()
-        {
-            if (isRunning)
-            {
-                isRunning = false;
-            }
-        }
+        public void Stop() => isRunning = false;
 
         private void Runner()
         {
@@ -234,13 +220,16 @@ namespace OpcPlc
             while (isRunning)
             {
                 WaitInterval(sw, ref nextTrigger);
-                Elapsed?.Invoke(this, new FastTimerElapsedEventArgs());
-
-                // restarting the timer in every hour to prevent precision problems
-                if (sw.Elapsed.TotalHours >= 1d)
+                if (isRunning)
                 {
-                    sw.Restart();
-                    nextTrigger = 0f;
+                    Elapsed?.Invoke(this, new FastTimerElapsedEventArgs());
+
+                    // restarting the timer in every hour to prevent precision problems
+                    if (sw.Elapsed.TotalHours >= 1d)
+                    {
+                        sw.Restart();
+                        nextTrigger = 0f;
+                    }
                 }
             }
 
@@ -288,88 +277,10 @@ namespace OpcPlc
             }
         }
 
-
-#if false
-private void ExecuteTimer()
+        public void Dispose()
         {
-            int fallouts = 0;
-            float nextTrigger = 0f;
-
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            while (isRunning)
-            {
-                float intervalLocal = interval;
-                nextTrigger += intervalLocal;
-                float elapsed;
-
-
-                while (true)
-                {
-                    elapsed = ElapsedHiRes(stopwatch);
-                    float diff = nextTrigger - elapsed;
-                    if (diff <= 0f)
-                        break;
-
-                    if (diff < 1f)
-                        Thread.SpinWait(10);
-                    else if (diff < 10f)
-                        Thread.SpinWait(100);
-                    else
-                    {
-                        // By default Sleep(1) lasts about 15.5 ms (if not configured otherwise for the application by WinMM, for example)
-                        // so not allowing sleeping under 16 ms. Not sleeping for more than 50 ms so interval changes/stopping can be detected.
-                        if (diff >= 16f)
-                            Thread.Sleep(diff >= 100f ? 50 : 1);
-                        else
-                        {
-                            Thread.SpinWait(1000);
-                            Thread.Sleep(0);
-                        }
-
-                        // if we have a larger time to wait, we check if the interval has been changed in the meantime
-                        float newInterval = interval;
-
-                        // ReSharper disable once CompareOfFloatsByEqualityOperator
-                        if (intervalLocal != newInterval)
-                        {
-                            nextTrigger += newInterval - intervalLocal;
-                            intervalLocal = newInterval;
-                        }
-                    }
-
-                    if (!isRunning)
-                        return;
-                }
-
-
-                float delay = elapsed - nextTrigger;
-                if (delay >= ignoreElapsedThreshold)
-                {
-                    fallouts += 1;
-                    continue;
-                }
-
-                Elapsed?.Invoke(this, new HiResTimerElapsedEventArgs(delay, fallouts));
-                fallouts = 0;
-
-                // restarting the timer in every hour to prevent precision problems
-                if (stopwatch.Elapsed.TotalHours >= 1d)
-                {
-#if NET35
-                    stopwatch.Reset();
-                    stopwatch.Start();
-#else
-                    stopwatch.Restart();
-#endif
-                    nextTrigger = 0f;
-                }
-            }
-
-            stopwatch.Stop();
+            isRunning = false;
         }
-#endif
 
         private static readonly float tickFrequency = 1000f / Stopwatch.Frequency;
 
