@@ -621,7 +621,7 @@ namespace OpcPlc
             baseDataVariableState.Historizing = false;
             baseDataVariableState.Value = defaultValue ?? Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
             baseDataVariableState.StatusCode = StatusCodes.Good;
-            baseDataVariableState.Timestamp = DateTime.UtcNow;
+            baseDataVariableState.Timestamp = PlcSimulation.TimeService.UtcNow();
             baseDataVariableState.Description = new LocalizedText(description);
 
             if (valueRank == ValueRanks.OneDimension)
