@@ -159,9 +159,9 @@ namespace OpcPlc
         /// </summary>
         private void Start()
         {
-            if (!_isRunning)
+            var isRunning = Interlocked.Exchange(ref _isRunning, 1);
+            if (isRunning == 0)
             {
-                _isRunning = true;
                 var thread = new Thread(Runner) 
                 { 
                     Priority = ThreadPriority.Highest 
@@ -173,7 +173,10 @@ namespace OpcPlc
         /// <summary>
         /// Stops the timer
         /// </summary>
-        private void Stop() => _isRunning = false;
+        private void Stop()
+        {
+            Interlocked.Exchange(ref _isRunning, 0);
+        }
 
         private void Runner()
         {
@@ -182,16 +185,16 @@ namespace OpcPlc
             Stopwatch sw = new Stopwatch();
             sw.Start();
 
-            while (_isRunning)
+            while (_isRunning == 1)
             {
                 WaitInterval(sw, ref nextTrigger);
-                if (_isRunning)
+                if (_isRunning == 1)
                 {
                     Elapsed?.Invoke(this, new FastTimerElapsedEventArgs());
 
                     if (!AutoReset)
                     {
-                        _isRunning = false;
+                        Interlocked.Exchange(ref _isRunning, 0);
                         Enabled = false;
                         break;
                     }
@@ -244,19 +247,19 @@ namespace OpcPlc
                     }
                 }
 
-                if (!_isRunning)
+                if (_isRunning == 0)
                     return;
             }
         }
 
         public void Dispose()
         {
-            _isRunning = false;
+            Interlocked.Exchange(ref _isRunning, 0);
         }
 
         private static readonly float TickFrequency = 1000f / Stopwatch.Frequency;
 
         private bool _isEnabled = false;
-        private bool _isRunning = false;
+        private int _isRunning = 0;
     }
 }

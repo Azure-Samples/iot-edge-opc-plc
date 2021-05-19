@@ -103,7 +103,8 @@ namespace OpcPlc
 
             if (FastNodeCount > 0)
             {
-                // only use the fast timers when we need to go really fast
+                // only use the fast timers when we need to go really fast,
+                // since they consume more resources and create an own thread.
                 _fastNodeGenerator = FastNodeRate >= 50 ?
                     TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateFastNodes, FastNodeRate) :
                     TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastNodes, FastNodeRate);
