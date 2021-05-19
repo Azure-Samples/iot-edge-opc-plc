@@ -2,6 +2,7 @@ namespace OpcPlc.Tests
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -92,8 +93,7 @@ namespace OpcPlc.Tests
             var endpointUrl = WaitForServerUp();
             await _log.WriteAsync($"Found server at {endpointUrl}");
             _config = await GetConfigurationAsync();
-            var endpoint = CoreClientUtils.SelectEndpoint(endpointUrl, false, 15000);
-            _serverEndpoint = GetServerEndpoint(endpoint, _config);
+            _serverEndpoint = GetServerEndpoint(endpointUrl);
         }
 
         public Task Stop()
@@ -178,10 +178,33 @@ namespace OpcPlc.Tests
             }
         }
 
-        private ConfiguredEndpoint GetServerEndpoint(EndpointDescription endpoint, ApplicationConfiguration config)
+        /// <summary>
+        /// Get the configuration information for a given endpoint URL.
+        /// In some environments, this can fail for a while when a simulator has been recreated after
+        /// a simulator has been shut down, for unclear reasons.
+        /// Therefore, the method retries for up to 10 seconds in case of failure.
+        /// </summary>
+        /// <param name="endpointUrl"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        private ConfiguredEndpoint GetServerEndpoint(string endpointUrl)
         {
-            var endpointConfiguration = EndpointConfiguration.Create(config);
-            return new ConfiguredEndpoint(null, endpoint, endpointConfiguration);
+            var sw = Stopwatch.StartNew();
+
+            while (true)
+            {
+                try
+                {
+                    var endpoint = CoreClientUtils.SelectEndpoint(endpointUrl, false, 15000);
+                    var endpointConfiguration = EndpointConfiguration.Create(_config);
+                    return new ConfiguredEndpoint(null, endpoint, endpointConfiguration);
+                }
+                catch (ServiceResultException) when (sw.Elapsed < TimeSpan.FromSeconds(10))
+                {
+                    _log.Write("Retrying to access endpoint...");
+                    Thread.Sleep(100);
+                }
+            }
         }
 
         private string WaitForServerUp()
