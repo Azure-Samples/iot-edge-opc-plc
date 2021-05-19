@@ -126,17 +126,7 @@ namespace OpcPlc
         /// <summary>
         /// Property that sets if the timer should restart when an event has been fired
         /// </summary>
-        public bool AutoReset
-        {
-            get
-            {
-                return this.autoReset;
-            }
-            set
-            {
-                autoReset = value;
-            }
-        }
+        public bool AutoReset { get; set; }
 
         /// <summary>
         /// Is this timer currently running?
@@ -164,17 +154,7 @@ namespace OpcPlc
         /// <summary>
         /// The current interval between triggering of this timer
         /// </summary>
-        public double Interval
-        {
-            get
-            {
-                return this.interval;
-            }
-            set
-            {
-                this.interval = value;
-            }
-        }
+        public double Interval { get; set; }
 
         /// <summary>
         /// The event handler we call when the timer is triggered
@@ -237,7 +217,7 @@ namespace OpcPlc
 
         private void WaitInterval(Stopwatch sw, ref double nextTrigger)
         {
-            var intervalLocal = interval;
+            var intervalLocal = Interval;
             nextTrigger += intervalLocal;
 
             while (true)
@@ -262,7 +242,7 @@ namespace OpcPlc
                     }
 
                     // if we have a larger time to wait, we check if the interval has been changed in the meantime
-                    var newInterval = interval;
+                    var newInterval = Interval;
 
                     if (intervalLocal != newInterval)
                     {
@@ -284,8 +264,6 @@ namespace OpcPlc
         private static readonly float tickFrequency = 1000f / Stopwatch.Frequency;
 
         private bool isEnabled = true;
-        private bool autoReset = true;
-        private double interval = 0.0f;
         public bool isRunning = false;
         public Thread thread;
 
