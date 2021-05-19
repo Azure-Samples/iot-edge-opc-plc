@@ -50,10 +50,10 @@ namespace OpcPlc
             var timer = new FastTimer
             {
                 Interval = intervalInMilliseconds,
-                AutoReset = true,
-                Enabled = true
+                AutoReset = true
             };
             timer.Elapsed += callback;
+            timer.Enabled = true;
             return timer;
         }
 
@@ -97,9 +97,6 @@ namespace OpcPlc
 
     public class FastTimerElapsedEventArgs : EventArgs 
     {
-        public FastTimerElapsedEventArgs()
-        {
-        }
     }
 
     public delegate void FastTimerElapsedEventHandler(object sender, FastTimerElapsedEventArgs e);
@@ -118,7 +115,6 @@ namespace OpcPlc
         /// </summary>
         /// <param name="interval"></param>
         public FastTimer(double interval)
-            : base()
         {
             Interval = interval;
         }
@@ -126,21 +122,18 @@ namespace OpcPlc
         /// <summary>
         /// Property that sets if the timer should restart when an event has been fired
         /// </summary>
-        public bool AutoReset { get; set; }
+        public bool AutoReset { get; set; } = true;
 
         /// <summary>
         /// Is this timer currently running?
         /// </summary>
         public bool Enabled
         {
-            get
-            {
-                return this.isEnabled;
-            }
+            get => _isEnabled;
             set
             {
-                this.isEnabled = value;
-                if (this.isEnabled)
+                _isEnabled = value;
+                if (_isEnabled)
                 {
                     Start();
                 }
@@ -154,7 +147,7 @@ namespace OpcPlc
         /// <summary>
         /// The current interval between triggering of this timer
         /// </summary>
-        public double Interval { get; set; }
+        public double Interval { get; set; } = 0.0;
 
         /// <summary>
         /// The event handler we call when the timer is triggered
@@ -164,11 +157,11 @@ namespace OpcPlc
         /// <summary>
         /// Starts the timer 
         /// </summary>
-        public void Start()
+        private void Start()
         {
-            if (!isRunning)
+            if (!_isRunning)
             {
-                isRunning = true;
+                _isRunning = true;
                 var thread = new Thread(Runner) 
                 { 
                     Priority = ThreadPriority.Highest 
@@ -180,7 +173,7 @@ namespace OpcPlc
         /// <summary>
         /// Stops the timer
         /// </summary>
-        public void Stop() => isRunning = false;
+        private void Stop() => _isRunning = false;
 
         private void Runner()
         {
@@ -189,16 +182,16 @@ namespace OpcPlc
             Stopwatch sw = new Stopwatch();
             sw.Start();
 
-            while (isRunning)
+            while (_isRunning)
             {
                 WaitInterval(sw, ref nextTrigger);
-                if (isRunning)
+                if (_isRunning)
                 {
                     Elapsed?.Invoke(this, new FastTimerElapsedEventArgs());
 
                     if (!AutoReset)
                     {
-                        isRunning = false;
+                        _isRunning = false;
                         Enabled = false;
                         break;
                     }
@@ -222,7 +215,7 @@ namespace OpcPlc
 
             while (true)
             {
-                var elapsed = sw.ElapsedTicks * tickFrequency;
+                var elapsed = sw.ElapsedTicks * TickFrequency;
                 var diff = nextTrigger - elapsed;
                 if (diff <= 0f)
                     break;
@@ -251,19 +244,19 @@ namespace OpcPlc
                     }
                 }
 
-                if (!isRunning)
+                if (!_isRunning)
                     return;
             }
         }
 
         public void Dispose()
         {
-            isRunning = false;
+            _isRunning = false;
         }
 
-        private static readonly float tickFrequency = 1000f / Stopwatch.Frequency;
+        private static readonly float TickFrequency = 1000f / Stopwatch.Frequency;
 
-        private bool isEnabled = true;
-        private bool isRunning = false;
+        private bool _isEnabled = false;
+        private bool _isRunning = false;
     }
 }
