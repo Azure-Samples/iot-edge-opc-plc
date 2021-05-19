@@ -360,7 +360,7 @@ namespace OpcPlc
                 Logger.Warning("Invalid argument {argument} provided.", nodes);
                 return;
             }
-            
+
             for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
             {
                 var extendedNode = (BaseDataVariableStateExtended)nodes[nodeIndex];
@@ -404,9 +404,17 @@ namespace OpcPlc
                                                  ? minDoubleValue
                                                      : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
                                 }
+                                else if (maxDoubleValue <= 0 && minDoubleValue < 0) // Negative only range cases (e.g. 0 to -9.5).
+                                {
+                                    value = (extendedDoubleNodeValue % minDoubleValue) > maxDoubleValue
+                                    ? maxDoubleValue
+                                     : ((extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize) < minDoubleValue
+                                                 ? maxDoubleValue
+                                                 : (extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize;
+                                }
                                 else
                                 {
-                                    throw new ArgumentException($"Negative range {minDoubleValue} to {maxDoubleValue} for sequential node values is not supported currently.");
+                                    throw new ArgumentException($"Negative to positive range {minDoubleValue} to {maxDoubleValue} for sequential node values is not supported currently.");
                                 }
                             }
                             break;
