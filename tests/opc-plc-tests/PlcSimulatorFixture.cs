@@ -39,6 +39,8 @@ namespace OpcPlc.Tests
 
         private Task _serverTask;
 
+        private readonly CancellationTokenSource _serverCancellationTokenSource = new CancellationTokenSource();
+
         private ApplicationConfiguration _config;
 
         private ConfiguredEndpoint _serverEndpoint;
@@ -93,12 +95,11 @@ namespace OpcPlc.Tests
         }
 
         [OneTimeTearDown]
-        public void RunAfterAnyTests()
+        public Task RunAfterAnyTests()
         {
-            // TODO shutdown simulator
-            _serverTask = null;
-            _config = null;
-            _serverEndpoint = null;
+            // shutdown simulator
+            _serverCancellationTokenSource.Cancel();
+            return _serverTask;
         }
 
         /// <summary>

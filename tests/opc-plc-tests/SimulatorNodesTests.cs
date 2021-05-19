@@ -1,6 +1,7 @@
 namespace OpcPlc.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using FluentAssertions;
     using NUnit.Framework;
@@ -15,6 +16,38 @@ namespace OpcPlc.Tests
     {
         // Simulator does not update trended and boolean values in the first few cycles (a random number of cycles between 1 and 10)
         private const int RampUpPeriods = 10;
+
+        [TestCase]
+        public void Telemetry_StepUp()
+        {
+            var nodeId = GetOpcPlcNodeId("StepUp");
+
+            var measurements = new List<object>();
+
+            // need to track the first value encountered b/c the measurement stream starts when
+            // the server starts and it can take several seconds for our test to start
+            var firstValue = 0u; 
+            for (int i = 0; i < 10; i++)
+            {
+                FireTimersWithPeriod(100u, 1);
+
+                var value = Session.ReadValue(nodeId).Value;
+                if (firstValue == 0)
+                {
+                    firstValue = (uint)value;
+                }
+                measurements.Add(value);
+            }
+
+            List<uint> expectedValues = Enumerable.Range((int)firstValue, 10)
+                .Select<int, uint>(i => (uint)i)
+                .ToList();
+
+            measurements.Should().NotBeEmpty()
+                .And.HaveCount(10)
+                .And.ContainInOrder(expectedValues)
+                .And.ContainItemsAssignableTo<UInt32>();
+        }
 
         [TestCase("DipData", -1000)]
         [TestCase("SpikeData", 1000)]
