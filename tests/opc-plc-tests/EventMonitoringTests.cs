@@ -10,10 +10,13 @@ namespace OpcPlc.Tests
     /// Tests for OPC-UA Monitoring for Events.
     /// </summary>
     [TestFixture]
-    [Parallelizable(ParallelScope.All)]
     public class EventMonitoringTests : SubscriptionTestsBase
     {
         private NodeId _eventType;
+
+        public EventMonitoringTests() : base(new[] { "--simpleevents" })
+        {
+        }
 
         [SetUp]
         public void CreateMonitoredItem()

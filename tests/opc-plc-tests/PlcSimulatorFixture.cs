@@ -18,9 +18,10 @@ namespace OpcPlc.Tests
     /// <summary>
     /// A test fixture that starts a static singleton instance of the OPC PLC simulator.
     /// </summary>
-    [SetUpFixture]
     public class PlcSimulatorFixture
     {
+        private readonly string[] _args;
+
         /// <summary>
         /// The writer in which output is immediately displayed in the NUnit console.
         /// </summary>
@@ -45,15 +46,20 @@ namespace OpcPlc.Tests
 
         private ConfiguredEndpoint _serverEndpoint;
 
-        // The global singleton fixture instance.
-        public static PlcSimulatorFixture Instance { get; private set; }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PlcSimulatorFixture"/> class.
+        /// </summary>
+        /// <param name="args">Command-line arguments to be passed to the simulator.</param>
+        public PlcSimulatorFixture(string[] args)
+        {
+            _args = args ?? Array.Empty<string>();
+        }
 
         /// <summary>
         /// Configure and run the simulator in a background thread, run once for the entire assembly.
         /// The simulator is instrumented with mock time services.
         /// </summary>
-        [OneTimeSetUp]
-        public async Task RunBeforeAnyTests()
+        public async Task Start()
         {
             Program.Logger = new LoggerConfiguration()
                 .WriteTo.NUnitOutput()
@@ -82,17 +88,15 @@ namespace OpcPlc.Tests
                 .Returns(() => _now);
 
             // The simulator program command line.
-            _serverTask = Task.Run(() => Program.MainAsync(new[] { "--autoaccept", "--simpleevents", "--alm", "--ref" }, _serverCancellationTokenSource.Token).GetAwaiter().GetResult());
+            _serverTask = Task.Run(() => Program.MainAsync(_args.Concat(new[] { "--autoaccept" }).ToArray(), _serverCancellationTokenSource.Token).GetAwaiter().GetResult());
             var endpointUrl = WaitForServerUp();
             await _log.WriteAsync($"Found server at {endpointUrl}");
             _config = await GetConfigurationAsync();
             var endpoint = CoreClientUtils.SelectEndpoint(endpointUrl, false, 15000);
             _serverEndpoint = GetServerEndpoint(endpoint, _config);
-            Instance = this;
         }
 
-        [OneTimeTearDown]
-        public Task RunAfterAnyTests()
+        public Task Stop()
         {
             // shutdown simulator
             _serverCancellationTokenSource.Cancel();
@@ -140,7 +144,7 @@ namespace OpcPlc.Tests
         {
             await _log.WriteLineAsync("Create an Application Configuration.");
 
-            ApplicationInstance application = new ApplicationInstance
+            var application = new ApplicationInstance
             {
                 ApplicationName = nameof(PlcSimulatorFixture),
                 ApplicationType = ApplicationType.Client,
@@ -148,10 +152,10 @@ namespace OpcPlc.Tests
             };
 
             // load the application configuration.
-            ApplicationConfiguration config = await application.LoadApplicationConfiguration(false).ConfigureAwait(false);
+            var config = await application.LoadApplicationConfiguration(false).ConfigureAwait(false);
 
             // check the application certificate.
-            bool haveAppCertificate = await application.CheckApplicationInstanceCertificate(false, 0).ConfigureAwait(false);
+            var haveAppCertificate = await application.CheckApplicationInstanceCertificate(false, 0).ConfigureAwait(false);
             if (!haveAppCertificate)
             {
                 throw new Exception("Application instance certificate invalid!");

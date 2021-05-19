@@ -11,7 +11,6 @@ namespace OpcPlc.Tests
     /// Tests for the variables defined in the simulator, such as fast-changing and trended nodes.
     /// </summary>
     [TestFixture]
-    [Parallelizable(ParallelScope.None)]
     public class SimulatorNodesTests : SimulatorTestsBase
     {
         // Simulator does not update trended and boolean values in the first few cycles (a random number of cycles between 1 and 10)

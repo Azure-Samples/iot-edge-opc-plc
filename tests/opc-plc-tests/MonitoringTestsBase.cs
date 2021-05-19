@@ -15,7 +15,6 @@ namespace OpcPlc.Tests
     /// Abstract base class for tests using OPC-UA Subscriptions.
     /// </summary>
     [TestFixture]
-    [Parallelizable(ParallelScope.All)]
     public abstract class SubscriptionTestsBase : SimulatorTestsBase
     {
         /// <summary>
@@ -26,6 +25,10 @@ namespace OpcPlc.Tests
         private Subscription _subscription;
 
         private readonly ConcurrentQueue<MonitoredItemNotificationEventArgs> _receivedEvents = new ConcurrentQueue<MonitoredItemNotificationEventArgs>();
+
+        protected SubscriptionTestsBase(string[] args = default) : base(args)
+        {
+        }
 
         /// <summary>
         /// Creates the subscription.
