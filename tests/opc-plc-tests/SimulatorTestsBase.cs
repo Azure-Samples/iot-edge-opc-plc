@@ -12,7 +12,6 @@ namespace OpcPlc.Tests
     /// Abstract base class for simulator integration tests.
     /// </summary>
     [TestFixture]
-    [Parallelizable(ParallelScope.All)]
     public abstract class SimulatorTestsBase
     {
         private const string OpcPlcNamespaceUri = "http://microsoft.com/Opc/OpcPlc/";
@@ -26,22 +25,30 @@ namespace OpcPlc.Tests
         /// <summary>A Bogus data generator.</summary>
         protected static readonly Faker Fake = new Faker();
 
+        private PlcSimulatorFixture _simulator;
+
+        protected SimulatorTestsBase(string[] args = default)
+        {
+            _simulator = new PlcSimulatorFixture(args);
+        }
+
         /// <summary>The current OPC-UA Session.</summary>
         protected Session Session { get; private set; }
 
-        /// <summary>Creates a new OPC-UA session, shared by all test methods in a class.</summary>
+        /// <summary>Starts the simulator and creates a new OPC-UA session, shared by all test methods in a class.</summary>
         [OneTimeSetUp]
         public async Task Setup()
         {
-            Session = await PlcSimulatorFixture.Instance.CreateSessionAsync(GetType().Name);
+            await _simulator.Start();
+            Session = await _simulator.CreateSessionAsync(GetType().Name);
         }
 
-        /// <summary>Closes the OPC-UA session.</summary>
+        /// <summary>Closes the OPC-UA session and stops the simulator.</summary>
         [OneTimeTearDown]
-        public void TearDown()
+        public async Task TearDown()
         {
             Session.Close();
-            Session = null;
+            await _simulator.Stop();
         }
 
         /// <summary>
@@ -84,8 +91,8 @@ namespace OpcPlc.Tests
         /// </summary>
         /// <param name="periodInMilliseconds">Defines the timers to fire: only timers with this interval are fired.</param>
         /// <param name="numberOfTimes">Number of times the timer should be fired.</param>
-        protected static void FireTimersWithPeriod(uint periodInMilliseconds, int numberOfTimes)
-            => PlcSimulatorFixture.Instance.FireTimersWithPeriod(periodInMilliseconds, numberOfTimes);
+        protected void FireTimersWithPeriod(uint periodInMilliseconds, int numberOfTimes)
+            => _simulator.FireTimersWithPeriod(periodInMilliseconds, numberOfTimes);
 
         private NodeId FindNode(NodeId startingNode, string relativePath)
         {
@@ -111,6 +118,5 @@ namespace OpcPlc.Tests
                 .Subject.TargetId;
             return ToNodeId(nodeId);
         }
-
     }
 }

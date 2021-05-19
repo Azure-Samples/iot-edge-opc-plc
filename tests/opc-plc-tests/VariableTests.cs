@@ -9,10 +9,13 @@ namespace OpcPlc.Tests
     /// Tests for interacting with OPC-UA Variable nodes.
     /// </summary>
     [TestFixture]
-    [Parallelizable(ParallelScope.All)]
     public class VariableTests : SimulatorTestsBase
     {
         private NodeId _scalarStaticNode;
+
+        public VariableTests() : base(new[] { "--ref" })
+        {
+        }
 
         [SetUp]
         public void SetUp()

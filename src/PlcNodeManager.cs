@@ -1,8 +1,10 @@
 namespace OpcPlc
 {
     using Newtonsoft.Json;
+
     using Opc.Ua;
     using Opc.Ua.Server;
+
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -10,6 +12,7 @@ namespace OpcPlc
     using System.Text;
     using System.Timers;
     using System.Web;
+
     using static Program;
 
     public class PlcNodeManager : CustomNodeManager2
@@ -41,42 +44,51 @@ namespace OpcPlc
         public SimulatedVariableNode<byte[]> LongStringIdNode200 { get; set; }
         #endregion
 
-        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, string nodeFileName = null)
+        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue, string nodeFileName = null)
             : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
         {
+            _slowNodeRandomization = slowNodeRandomization;
+            _slowNodeStepSize = slowNodeStepSize;
+            _fastNodeRandomization = fastNodeRandomization;
+            _fastNodeStepSize = fastNodeStepSize;
+            _slowNodeMinValue = slowNodeMinValue;
+            _slowNodeMaxValue = slowNodeMaxValue;
+            _fastNodeMinValue = fastNodeMinValue;
+            _fastNodeMaxValue = fastNodeMaxValue;
             _nodeFileName = nodeFileName;
+            _random = new Random();
             SystemContext.NodeIdFactory = this;
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-        public void IncreaseSlowNodes(object state, ElapsedEventArgs elapsedEventArgs)
+        public void UpdateSlowNodes(object state, ElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
             if (_slowNodes != null)
             {
-                IncreaseNodes(_slowNodes, PlcSimulation.SlowNodeType, StatusCodes.Good, false);
+                UpdateNodes(_slowNodes, PlcSimulation.SlowNodeType, StatusCodes.Good, false);
             }
 
             if (_slowBadNodes != null)
             {
                 (StatusCode status, bool addBadValue) = BadStatusSequence[_slowBadNodesCycle++ % BadStatusSequence.Length];
-                IncreaseNodes(_slowBadNodes, PlcSimulation.SlowNodeType, status, addBadValue);
+                UpdateNodes(_slowBadNodes, PlcSimulation.SlowNodeType, status, addBadValue);
             }
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-        public void IncreaseFastNodes(object state, ElapsedEventArgs elapsedEventArgs)
+        public void UpdateFastNodes(object state, ElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
             if (_fastNodes != null)
             {
-                IncreaseNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
+                UpdateNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
             }
 
             if (_fastBadNodes != null)
             {
                 (StatusCode status, bool addBadValue) = BadStatusSequence[_fastBadNodesCycle++ % BadStatusSequence.Length];
-                IncreaseNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
+                UpdateNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
             }
         }
 
@@ -179,7 +191,7 @@ namespace OpcPlc
 
                     AddChangingNodes(dataFolder);
 
-                    AddSlowAndFastNodes(dataFolder);
+                    AddSlowAndFastNodes(dataFolder, _slowNodeRandomization, _slowNodeStepSize, _slowNodeMinValue, _slowNodeMaxValue, _fastNodeRandomization, _fastNodeStepSize, _fastNodeMinValue, _fastNodeMaxValue);
 
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
 
@@ -262,15 +274,15 @@ namespace OpcPlc
             if (PlcSimulation.GenerateNegTrend) NegTrendNode = new SimulatedVariableNode<double>(SystemContext, CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));
         }
 
-        private void AddSlowAndFastNodes(FolderState dataFolder)
+        private void AddSlowAndFastNodes(FolderState dataFolder, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue)
         {
             // Normal nodes
-            _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodeCount, PlcSimulation.SlowNodeType);
-            _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodeCount, PlcSimulation.FastNodeType);
+            _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodeCount, PlcSimulation.SlowNodeType, slowNodeRandomization, slowNodeStepSize, slowNodeMinValue, slowNodeMaxValue);
+            _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodeCount, PlcSimulation.FastNodeType, fastNodeRandomization, fastNodeStepSize, fastNodeMinValue, fastNodeMaxValue);
 
             // Bad nodes
-            _slowBadNodes = CreateBaseLoadNodes(dataFolder, "BadSlow", count: 1, PlcSimulation.SlowNodeType);
-            _fastBadNodes = CreateBaseLoadNodes(dataFolder, "BadFast", count: 1, PlcSimulation.FastNodeType);
+            _slowBadNodes = CreateBaseLoadNodes(dataFolder, "BadSlow", count: 1, PlcSimulation.SlowNodeType, slowNodeRandomization, slowNodeStepSize, slowNodeMinValue, slowNodeMaxValue);
+            _fastBadNodes = CreateBaseLoadNodes(dataFolder, "BadFast", count: 1, PlcSimulation.FastNodeType, fastNodeRandomization, fastNodeStepSize, fastNodeMinValue, fastNodeMaxValue);
         }
 
         private void AddComplexTypeBoiler(FolderState methodsFolder, IDictionary<NodeId, IList<IReference>> externalReferences)
@@ -357,32 +369,70 @@ namespace OpcPlc
             return methodsFolder;
         }
 
-        private void IncreaseNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
+        private void UpdateNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
         {
             if (nodes == null || nodes.Length == 0)
             {
                 Logger.Warning("Invalid argument {argument} provided.", nodes);
                 return;
             }
+            
             for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
             {
+                var extendedNode = (BaseDataVariableStateExtended)nodes[nodeIndex];
+
                 object value = null;
                 if (StatusCode.IsNotBad(status) || addBadValue)
                 {
                     switch (type)
                     {
                         case NodeType.Double:
-                            value = nodes[nodeIndex].Value != null
-                                ? (double)nodes[nodeIndex].Value + 0.1
-                                : 0.0;
+                            var minDoubleValue = (double)extendedNode.MinValue;
+                            var maxDoubleValue = (double)extendedNode.MaxValue;
+
+                            if (extendedNode.Randomize)
+                            {
+                                // Hybrid range case (e.g. -5.0 to 5.0).
+                                if (minDoubleValue < 0 && maxDoubleValue > 0)
+                                {
+                                    // Split the range from 0 on both sides.
+                                    var value1 = _random.NextDouble() * maxDoubleValue;
+                                    var value2 = _random.NextDouble() * minDoubleValue;
+
+                                    // Return random value from postive or negative range, randomly.
+                                    value = _random.Next(10) % 2 == 0 ? value1 : value2;
+                                }
+                                else // Negative and positive only range cases (e.g. -5.0 to -8.0 or 0 to 9.5).
+                                {
+                                    value = minDoubleValue + (_random.NextDouble() * (maxDoubleValue - minDoubleValue));
+                                }
+                            }
+                            else
+                            {
+                                var extendedDoubleNodeValue = (double)(extendedNode.Value ?? minDoubleValue);
+
+                                // Positive only range cases (e.g. 0 to 9.5).
+                                if (minDoubleValue >= 0 && maxDoubleValue > 0)
+                                {
+                                    value = (extendedDoubleNodeValue % maxDoubleValue) < minDoubleValue
+                                         ? minDoubleValue
+                                             : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize) > maxDoubleValue
+                                                 ? minDoubleValue
+                                                     : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
+                                }
+                                else
+                                {
+                                    throw new ArgumentException($"Negative range {minDoubleValue} to {maxDoubleValue} for sequential node values is not supported currently.");
+                                }
+                            }
                             break;
                         case NodeType.Bool:
-                            value = nodes[nodeIndex].Value != null
-                                ? !(bool)nodes[nodeIndex].Value
+                            value = extendedNode.Value != null
+                                ? !(bool)extendedNode.Value
                                 : true;
                             break;
                         case NodeType.UIntArray:
-                            uint[] arrayValue = (uint[])nodes[nodeIndex].Value;
+                            uint[] arrayValue = (uint[])extendedNode.Value;
                             if (arrayValue != null)
                             {
                                 for (int arrayIndex = 0; arrayIndex < arrayValue?.Length; arrayIndex++)
@@ -398,17 +448,31 @@ namespace OpcPlc
                             break;
                         case NodeType.UInt:
                         default:
-                            value = nodes[nodeIndex].Value != null
-                                ? (uint)nodes[nodeIndex].Value + 1
-                                : 0;
+                            var minUIntValue = (uint)extendedNode.MinValue;
+                            var maxUIntValue = (uint)extendedNode.MaxValue;
+                            var extendedUIntNodeValue = (uint)(extendedNode.Value ?? minUIntValue);
+
+                            if (extendedNode.Randomize)
+                            {
+                                value = (uint)(_random.NextDouble() * (maxUIntValue - minUIntValue) + minUIntValue);
+                            }
+                            else
+                            {
+                                value = (extendedUIntNodeValue % maxUIntValue) < minUIntValue
+                                            ? minUIntValue
+                                                : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize) > maxUIntValue
+                                                    ? minUIntValue
+                                                        : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize);
+                            }
+
                             break;
                     }
                 }
 
-                nodes[nodeIndex].StatusCode = status;
-                nodes[nodeIndex].Value = value;
-                nodes[nodeIndex].Timestamp = PlcSimulation.TimeService.Now();
-                nodes[nodeIndex].ClearChangeMasks(SystemContext, false);
+                extendedNode.StatusCode = status;
+                extendedNode.Value = value;
+                extendedNode.Timestamp = DateTime.Now;
+                extendedNode.ClearChangeMasks(SystemContext, false);
             }
         }
 
@@ -437,7 +501,7 @@ namespace OpcPlc
             return folder;
         }
 
-        private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, uint count, NodeType type)
+        private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, uint count, NodeType type, bool randomize, string stepSize, string minValue, string maxValue)
         {
             var nodes = new BaseDataVariableState[count];
 
@@ -450,23 +514,23 @@ namespace OpcPlc
 
             for (int i = 0; i < count; i++)
             {
-                var (dataType, valueRank, defaultValue) = GetNodeType(type);
+                var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) = GetNodeType(type, stepSize, minValue, maxValue);
 
                 string id = (i + 1).ToString();
-                nodes[i] = CreateBaseVariable(dataFolder, $"{name}{type}{id}", $"{name}{type}{id}", dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)", NamespaceType.OpcPlcApplications, defaultValue);
+                nodes[i] = CreateBaseVariable(dataFolder, $"{name}{type}{id}", $"{name}{type}{id}", dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)", NamespaceType.OpcPlcApplications, randomize, stepTypeSize, minTypeValue, maxTypeValue, defaultValue);
             }
 
             return nodes;
         }
 
-        private static (NodeId dataType, int valueRank, object defaultValue) GetNodeType(NodeType nodeType)
+        private static (NodeId dataType, int valueRank, object defaultValue, object stepSize, object minValue, object maxValue) GetNodeType(NodeType nodeType, string stepSize, string minValue, string maxValue)
         {
             return nodeType switch
             {
-                NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, true),
-                NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, (double)0.0),
-                NodeType.UIntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32]),
-                _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, (uint)0),
+                NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, true, null, null, null),
+                NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, (double)0.0, double.Parse(stepSize), minValue == null ? 0.0 : double.Parse(minValue), maxValue == null ? double.MaxValue : double.Parse(maxValue)),
+                NodeType.UIntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32], null, null, null),
+                _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, (uint)0, uint.Parse(stepSize), minValue == null ? uint.MinValue : uint.Parse(minValue), maxValue == null ? uint.MaxValue : uint.Parse(maxValue)),
             };
         }
 
@@ -519,55 +583,75 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Creates a new variable.
+        /// Creates a new extended variable.
         /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
+        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, bool randomize, object stepSizeValue, object minTypeValue, object maxTypeValue, object defaultValue = null)
         {
-            ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
-
-            var variable = new BaseDataVariableState(parent)
+            var baseDataVariableState = new BaseDataVariableStateExtended(parent, randomize, stepSizeValue, minTypeValue, maxTypeValue)
             {
                 SymbolicName = name,
                 ReferenceTypeId = ReferenceTypes.Organizes,
                 TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
             };
 
+            return CreateBaseVariable(baseDataVariableState, parent, path, name, dataType, valueRank, accessLevel, description, namespaceType, defaultValue);
+        }
+
+        /// <summary>
+        /// Creates a new variable.
+        /// </summary>
+        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
+        {
+            var baseDataVariableState = new BaseDataVariableState(parent)
+            {
+                SymbolicName = name,
+                ReferenceTypeId = ReferenceTypes.Organizes,
+                TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+            };
+
+            return CreateBaseVariable(baseDataVariableState, parent, path, name, dataType, valueRank, accessLevel, description, namespaceType, defaultValue);
+        }
+
+        private BaseDataVariableState CreateBaseVariable(BaseDataVariableState baseDataVariableState, NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
+        {
+            ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
+
             if (path.GetType() == Type.GetType("System.Int64"))
             {
-                variable.NodeId = new NodeId((uint)path, namespaceIndex);
-                variable.BrowseName = new QualifiedName(((uint)path).ToString(), namespaceIndex);
+                baseDataVariableState.NodeId = new NodeId((uint)path, namespaceIndex);
+                baseDataVariableState.BrowseName = new QualifiedName(((uint)path).ToString(), namespaceIndex);
             }
             else
             {
-                variable.NodeId = new NodeId(path, namespaceIndex);
-                variable.BrowseName = new QualifiedName(path, namespaceIndex);
+                baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
+                baseDataVariableState.BrowseName = new QualifiedName(path, namespaceIndex);
             }
 
-            variable.DisplayName = new LocalizedText("en", name);
-            variable.WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
-            variable.UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
-            variable.DataType = dataType;
-            variable.ValueRank = valueRank;
-            variable.AccessLevel = accessLevel;
-            variable.UserAccessLevel = accessLevel;
-            variable.Historizing = false;
-            variable.Value = defaultValue ?? Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
-            variable.StatusCode = StatusCodes.Good;
-            variable.Timestamp = PlcSimulation.TimeService.UtcNow();
-            variable.Description = new LocalizedText(description);
+            baseDataVariableState.DisplayName = new LocalizedText("en", name);
+            baseDataVariableState.WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
+            baseDataVariableState.UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
+            baseDataVariableState.DataType = dataType;
+            baseDataVariableState.ValueRank = valueRank;
+            baseDataVariableState.AccessLevel = accessLevel;
+            baseDataVariableState.UserAccessLevel = accessLevel;
+            baseDataVariableState.Historizing = false;
+            baseDataVariableState.Value = defaultValue ?? Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
+            baseDataVariableState.StatusCode = StatusCodes.Good;
+            baseDataVariableState.Timestamp = PlcSimulation.TimeService.UtcNow();
+            baseDataVariableState.Description = new LocalizedText(description);
 
             if (valueRank == ValueRanks.OneDimension)
             {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
+                baseDataVariableState.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
             }
             else if (valueRank == ValueRanks.TwoDimensions)
             {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
+                baseDataVariableState.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
             }
 
-            parent?.AddChild(variable);
+            parent?.AddChild(baseDataVariableState);
 
-            return variable;
+            return baseDataVariableState;
         }
 
         /// <summary>
@@ -697,7 +781,7 @@ namespace OpcPlc
         //    variable.Historizing = false;
         //    variable.Value = Opc.Ua.TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
         //    variable.StatusCode = StatusCodes.Good;
-        //    variable.Timestamp = DateTime.UtcNow;
+        //    variable.Timestamp = PlcSimulation.TimeService.UtcNow();
 
         //    if (valueRank == ValueRanks.OneDimension)
         //    {
@@ -889,6 +973,15 @@ namespace OpcPlc
         protected BoilerModel.BoilerState _boiler1 = null;
         protected BaseDataVariableState[] _slowBadNodes = null;
         protected BaseDataVariableState[] _fastBadNodes = null;
+        private readonly bool _slowNodeRandomization;
+        private readonly string _slowNodeStepSize;
+        private readonly string _slowNodeMinValue;
+        private readonly string _slowNodeMaxValue;
+        private readonly bool _fastNodeRandomization;
+        private readonly string _fastNodeStepSize;
+        private readonly string _fastNodeMinValue;
+        private readonly string _fastNodeMaxValue;
+        private readonly Random _random;
 
         /// <summary>
         /// File name for user configurable nodes.

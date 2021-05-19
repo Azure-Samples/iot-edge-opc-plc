@@ -41,7 +41,19 @@ namespace OpcPlc
             // Add encodable complex types.
             server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
 
-            PlcNodeManager = new PlcNodeManager(server, configuration, NodesFileName);
+            PlcNodeManager = new PlcNodeManager(
+                server,
+                configuration,
+                PlcSimulation.SlowNodeRandomization,
+                PlcSimulation.SlowNodeStepSize,
+                PlcSimulation.SlowNodeMinValue,
+                PlcSimulation.SlowNodeMaxValue,
+                PlcSimulation.FastNodeRandomization,
+                PlcSimulation.FastNodeStepSize,
+                PlcSimulation.FastNodeMinValue,
+                PlcSimulation.FastNodeMaxValue, 
+                NodesFileName);
+
             nodeManagers.Add(PlcNodeManager);
 
             if (PlcSimulation.AddSimpleEventsSimulation)
