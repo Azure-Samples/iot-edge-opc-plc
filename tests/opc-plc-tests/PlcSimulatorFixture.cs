@@ -157,8 +157,7 @@ namespace OpcPlc.Tests
                 throw new Exception("Application instance certificate invalid!");
             }
 
-            // Note for future OpcUa update: Utils is renamed X509Utils in later versions
-            config.ApplicationUri = Utils.GetApplicationUriFromCertificate(config.SecurityConfiguration.ApplicationCertificate.Certificate);
+            config.ApplicationUri = X509Utils.GetApplicationUriFromCertificate(config.SecurityConfiguration.ApplicationCertificate.Certificate);
 
             // Auto-accept server certificate
             config.CertificateValidator.CertificateValidation += CertificateValidator_AutoAccept;

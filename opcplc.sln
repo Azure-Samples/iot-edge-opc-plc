@@ -32,6 +32,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{E32C2238-5380-471E-B15E-4B11A8C27528}"
 	ProjectSection(SolutionItems) = preProject
 		tools\templates\acrbuild.yml = tools\templates\acrbuild.yml
+		tools\templates\azuredeploy.opcplc.aci.json = tools\templates\azuredeploy.opcplc.aci.json
 		tools\templates\ci.yml = tools\templates\ci.yml
 	EndProjectSection
 EndProject
