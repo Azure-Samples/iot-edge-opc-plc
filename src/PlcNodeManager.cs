@@ -395,23 +395,19 @@ namespace OpcPlc
                             {
                                 var extendedDoubleNodeValue = (double)(extendedNode.Value ?? minDoubleValue);
 
-                                // Negative range case (e.g. -5.0 to -8.0).
-                                if (minDoubleValue < 0 && maxDoubleValue < 0)
-                                {
-                                    value = (extendedDoubleNodeValue % maxDoubleValue) == 0
-                                        ? minDoubleValue
-                                            : ((maxDoubleValue % extendedDoubleNodeValue) + (double)extendedNode.StepSize) < maxDoubleValue
-                                                ? minDoubleValue
-                                                    : ((maxDoubleValue % extendedDoubleNodeValue) + (double)extendedNode.StepSize);
-                                }
-                                else if (minDoubleValue >= 0 && maxDoubleValue > 0) // Positive only range cases (e.g. 0 to 9.5).
+                                // Positive only range cases (e.g. 0 to 9.5).
+                                if (minDoubleValue >= 0 && maxDoubleValue > 0)
                                 {
                                     value = (extendedDoubleNodeValue % maxDoubleValue) < minDoubleValue
                                          ? minDoubleValue
                                              : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize) > maxDoubleValue
                                                  ? minDoubleValue
                                                      : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
-                                }                                
+                                }
+                                else
+                                {
+                                    throw new ArgumentException($"Negative range {minDoubleValue} to {maxDoubleValue} for sequential node values is not supported currently.");
+                                }
                             }
                             break;
                         case NodeType.Bool:
