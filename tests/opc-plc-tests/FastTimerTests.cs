@@ -2,6 +2,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 
 namespace OpcPlc.Tests
@@ -33,21 +34,25 @@ namespace OpcPlc.Tests
         [Test]
         public void FastTimer_ShouldFire_100TimesPerSecond()
         {
-            // Arrange
-            var fastTimer = new FastTimer(10)
+            // this will only work if the Stopwatch supports high resolution
+            if (Stopwatch.IsHighResolution)
             {
-                Enabled = false
-            };
-            fastTimer.Elapsed += Callback;
-            _callbacks.Clear();
+                // Arrange
+                var fastTimer = new FastTimer(10)
+                {
+                    Enabled = false
+                };
+                fastTimer.Elapsed += Callback;
+                _callbacks.Clear();
 
-            // Act
-            fastTimer.Enabled = true;
-            Thread.Sleep(2000);
-            fastTimer.Enabled = false;
+                // Act
+                fastTimer.Enabled = true;
+                Thread.Sleep(2000);
+                fastTimer.Enabled = false;
 
-            // Assert (let's have some wiggle room here for timing issues)
-            _callbacks.Count.Should().BeInRange(199, 201);
+                // Assert (let's have some wiggle room here for timing issues)
+                _callbacks.Count.Should().BeInRange(199, 201);
+            }
         }
 
         [Test]

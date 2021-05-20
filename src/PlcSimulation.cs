@@ -1,6 +1,7 @@
 namespace OpcPlc
 {
     using System;
+    using System.Diagnostics;
     using System.Text;
     using static Program;
 
@@ -105,7 +106,7 @@ namespace OpcPlc
             {
                 // only use the fast timers when we need to go really fast,
                 // since they consume more resources and create an own thread.
-                _fastNodeGenerator = FastNodeRate >= 50 ?
+                _fastNodeGenerator = FastNodeRate >= 50 || !Stopwatch.IsHighResolution ?
                     TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateFastNodes, FastNodeRate) :
                     TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastNodes, FastNodeRate);
             }
