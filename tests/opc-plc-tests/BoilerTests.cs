@@ -4,7 +4,6 @@ namespace OpcPlc.Tests
     using FluentAssertions;
     using NUnit.Framework;
     using Opc.Ua;
-    using System;
 
     /// <summary>
     /// Tests for the variables defined in the simulator, such as fast-changing and trended nodes.
@@ -23,6 +22,9 @@ namespace OpcPlc.Tests
         [TestCase]
         public void shouldStartTurnedOn()
         {
+
+            FireTimersWithPeriod(1000u, 1000);
+
             BoilerDataType model = GetBoilerModel();
 
             BoilerHeaterStateType state = model.HeaterState;
@@ -32,36 +34,16 @@ namespace OpcPlc.Tests
             state.Should().Be(BoilerHeaterStateType.On, "heater should start in 'on' state");
             pressure.Should().BeGreaterThan(10_000, "pressure should start at 10k and get higher");
 
-            temperature.Top.Should().Be(20, "temperature is not changing in unit tests");
-            temperature.Bottom.Should().Be(20, "temperature is not changing in unit tests");
-        }
-
-        [TestCase]
-        public void shouldHaveRisingPressureOverTime()
-        {
-            BoilerDataType model = GetBoilerModel();
-            int pressure = model.Pressure;
-            Console.WriteLine(pressure);
-
-            FireTimersWithPeriod(100u, 1000);
-            FireTimersWithPeriod(100u, 1000);
-            FireTimersWithPeriod(100u, 1000);
-            FireTimersWithPeriod(100u, 1000);
-            FireTimersWithPeriod(100u, 1000);
-            FireTimersWithPeriod(100u, 1000);
-            FireTimersWithPeriod(100u, 1000);
-            FireTimersWithPeriod(100u, 1000);
-            FireTimersWithPeriod(100u, 1000);
-
-            model = GetBoilerModel();
-            pressure = model.Pressure;
-            Console.WriteLine(pressure);
+            temperature.Top.Should().Be(pressure - 100_005, "top is always 100,005 less than pressure. Pressure: {0}", pressure);
+            temperature.Bottom.Should().Be(pressure - 100_000, "btoom is always 100,000 less than pressure. Pressure: {0}", pressure);
         }
 
         [TestCase]
         public void shouldTurnOffWhenRequested()
         {
             InvokeHeaterMethod("HeaterOff");
+
+            FireTimersWithPeriod(1000u, 1000);
 
             BoilerDataType model = GetBoilerModel();
 
@@ -72,8 +54,50 @@ namespace OpcPlc.Tests
             state.Should().Be(BoilerHeaterStateType.Off, "heater should have been turned off");
             pressure.Should().BeGreaterThan(10_000, "pressure should start at 10k and get higher");
 
-            temperature.Top.Should().Be(20, "temperature is not changing in unit tests");
-            temperature.Bottom.Should().Be(20, "temperature is not changing in unit tests");
+            temperature.Top.Should().Be(pressure - 100_005, "top is always 100,005 less than pressure. Pressure: {0}", pressure);
+            temperature.Bottom.Should().Be(pressure - 100_000, "btoom is always 100,000 less than pressure. Pressure: {0}", pressure);
+        }
+
+        [TestCase]
+        public void RunningHeater_shouldHaveRisingPressureOverTime()
+        {
+            int previousPressure = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                FireTimersWithPeriod(1000u, 1000);
+                BoilerDataType model = GetBoilerModel();
+                int pressure = model.Pressure;
+
+                pressure.Should().BeGreaterThan(previousPressure, "pressure should build when heater is on");
+                previousPressure = pressure;
+            }
+        }
+
+        [TestCase]
+        public void StoppedHeater_shouldHaveDecreasingPressureOverTime()
+        {
+            int previousPressure = 0;
+            for (int i = 0; i < 10; i++)
+            {
+                FireTimersWithPeriod(1000u, 1000);
+                BoilerDataType model = GetBoilerModel();
+                int pressure = model.Pressure;
+
+                pressure.Should().BeGreaterThan(previousPressure, "pressure should build when heater is on");
+                previousPressure = pressure;
+            }
+
+            InvokeHeaterMethod("HeaterOff");
+
+            for (int i = 0; i < 5; i++)
+            {
+                FireTimersWithPeriod(1000u, 1000);
+                BoilerDataType model = GetBoilerModel();
+                int pressure = model.Pressure;
+
+                pressure.Should().BeLessThan(previousPressure, "pressure should drop when heater is off");
+                previousPressure = pressure;
+            }
         }
 
         private void InvokeHeaterMethod(string methodName)
