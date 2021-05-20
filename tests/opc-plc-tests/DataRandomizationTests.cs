@@ -12,7 +12,6 @@
     /// Tests for OPC-UA Monitoring for Data changes.
     /// </summary>
     [TestFixture]
-    [Parallelizable(ParallelScope.All)]
     public class DataRandomizationTests : SubscriptionTestsBase
     {
         [SetUp]
