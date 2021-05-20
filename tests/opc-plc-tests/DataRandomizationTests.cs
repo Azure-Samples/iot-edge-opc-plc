@@ -14,6 +14,9 @@
     [TestFixture]
     public class DataRandomizationTests : SubscriptionTestsBase
     {
+        public DataRandomizationTests() : base(new[] { "--str=true", "--sr=2" })
+        { }
+
         [SetUp]
         public void CreateMonitoredItem()
         {
@@ -30,9 +33,9 @@
             // Arrange
             ClearEvents();
 
-            // Act: collect events during 50 seconds
-            // Value is updated every 10 seconds
-            FireTimersWithPeriod(10000, 5);
+            // Act: collect events during 10 seconds
+            // Value is updated every 2 seconds
+            FireTimersWithPeriod(2000, 5);
 
             // Assert
             var events = ReceiveEvents(6);
