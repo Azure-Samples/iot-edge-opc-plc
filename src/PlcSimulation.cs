@@ -1,6 +1,7 @@
 namespace OpcPlc
 {
     using System;
+    using System.Diagnostics;
     using System.Text;
     using static Program;
 
@@ -103,7 +104,11 @@ namespace OpcPlc
 
             if (FastNodeCount > 0)
             {
-                _fastNodeGenerator = TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateFastNodes, FastNodeRate);
+                // only use the fast timers when we need to go really fast,
+                // since they consume more resources and create an own thread.
+                _fastNodeGenerator = FastNodeRate >= 50 || !Stopwatch.IsHighResolution ?
+                    TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateFastNodes, FastNodeRate) :
+                    TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastNodes, FastNodeRate);
             }
 
             if (AddComplexTypeBoiler)
@@ -149,7 +154,7 @@ namespace OpcPlc
 
             Disable(_slowNodeGenerator);
             Disable(_fastNodeGenerator);
-            Disable(_fastNodeGenerator);
+            Disable(_boiler1Generator);
         }
 
         private void Disable(ITimer timer)

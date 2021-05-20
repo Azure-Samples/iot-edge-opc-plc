@@ -39,6 +39,12 @@ namespace OpcPlc.Tests
         private readonly ConcurrentBag<(ITimer timer, ElapsedEventHandler handler)> _timers
             = new ConcurrentBag<(ITimer, ElapsedEventHandler)>();
 
+        /// <summary>
+        /// Registry of mocked fast timers.
+        /// </summary>
+        private readonly ConcurrentBag<(ITimer timer, FastTimerElapsedEventHandler handler)> _fastTimers
+            = new ConcurrentBag<(ITimer, FastTimerElapsedEventHandler)>();
+
         private Task _serverTask;
 
         private readonly CancellationTokenSource _serverCancellationTokenSource = new CancellationTokenSource();
@@ -78,6 +84,18 @@ namespace OpcPlc.Tests
                     timer.AutoReset = true;
                     timer.Enabled = true;
                     _timers.Add((timer, handler));
+                    return timer;
+                });
+            mock.Setup(f => f.NewFastTimer(It.IsAny<FastTimerElapsedEventHandler>(), It.IsAny<uint>()))
+                .Returns((FastTimerElapsedEventHandler handler, uint intervalInMilliseconds) =>
+                {
+                    var mockTimer = new Mock<ITimer>();
+                    mockTimer.SetupAllProperties();
+                    var timer = mockTimer.Object;
+                    timer.Interval = intervalInMilliseconds;
+                    timer.AutoReset = true;
+                    timer.Enabled = true;
+                    _fastTimers.Add((timer, handler));
                     return timer;
                 });
             PlcSimulation.TimeService = mock.Object;
@@ -135,6 +153,19 @@ namespace OpcPlc.Tests
             {
                 _now += TimeSpan.FromMilliseconds(periodInMilliseconds);
                 foreach (var handler in matchedHandlers)
+                {
+                    handler(null, null);
+                }
+            }
+            var matchedFastHandlers = _fastTimers.Where(t
+                    => t.timer.Enabled
+                       && CloseTo(t.timer.Interval, periodInMilliseconds))
+                .Select(t => t.handler)
+                .ToList();
+            for (var i = 0; i < numberOfTimes; i++)
+            {
+                _now += TimeSpan.FromMilliseconds(periodInMilliseconds);
+                foreach (var handler in matchedFastHandlers)
                 {
                     handler(null, null);
                 }
