@@ -6,7 +6,7 @@ namespace OpcPlc.Tests
     using Opc.Ua;
 
     /// <summary>
-    /// Tests for the variables defined in the simulator, such as fast-changing and trended nodes.
+    /// Tests for the Boiler, which is a complex type.
     /// </summary>
     [TestFixture]
     public class BoilerTests : SimulatorTestsBase
