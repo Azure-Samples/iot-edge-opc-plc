@@ -5,6 +5,7 @@ namespace OpcPlc.Tests
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Timers;
@@ -21,6 +22,12 @@ namespace OpcPlc.Tests
     /// </summary>
     public class PlcSimulatorFixture
     {
+        /// <summary>
+        /// Port on which to run the simulator. Using a non-standard port so that
+        /// developers can simultaneously run the simulator process.
+        /// </summary>
+        private const int Port = 50001;
+
         private readonly string[] _args;
 
         /// <summary>
@@ -107,12 +114,27 @@ namespace OpcPlc.Tests
                 .Returns(() => _now);
 
             // The simulator program command line.            
-            _serverTask = Task.Run(() => Program.MainAsync(_args.Concat(new[] { "--autoaccept" }).ToArray(), _serverCancellationTokenSource.Token).GetAwaiter().GetResult());
+            _serverTask = Task.Run(() => Program.MainAsync(
+                    _args.Concat(
+                            new[]
+                            {
+                                "--autoaccept",
+                                $"--portnum={Port}",
+                            })
+                        .ToArray(),
+                    _serverCancellationTokenSource.Token)
+                .GetAwaiter().GetResult());
 
             var endpointUrl = WaitForServerUp();
-            await _log.WriteAsync($"Found server at {endpointUrl}");
+            await _log.WriteAsync($"Found server at: {endpointUrl}");
+
+            // On Mac platforms, the URL containing the machine hostname is sometimes not accessible.
+            // Use the Loopback IP address as a workaround.
+            var loopbackEndpointUrl = $"opc.tcp://{IPAddress.Loopback}:{Port}";
+            await _log.WriteAsync($"Connecting to server URL: {loopbackEndpointUrl}");
+
             _config = await GetConfigurationAsync();
-            _serverEndpoint = GetServerEndpoint(endpointUrl);
+            _serverEndpoint = GetServerEndpoint(loopbackEndpointUrl);
         }
 
         public Task Stop()
@@ -155,6 +177,7 @@ namespace OpcPlc.Tests
                     handler(null, null);
                 }
             }
+
             var matchedFastHandlers = _fastTimers.Where(t
                     => t.timer.Enabled
                        && CloseTo(t.timer.Interval, periodInMilliseconds))
