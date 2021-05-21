@@ -16,11 +16,11 @@ namespace OpcPlc.Tests
         [TearDown]
         public void TearDown()
         {
-            InvokeHeaterMethod("HeaterOn");
+            TurnHeaterOn();
         }
 
         [TestCase]
-        public void shouldStartTurnedOn()
+        public void Heater_AtStartUp_IsTurnedOn()
         {
 
             FireTimersWithPeriod(1000u, 1000);
@@ -39,9 +39,12 @@ namespace OpcPlc.Tests
         }
 
         [TestCase]
-        public void shouldTurnOffWhenRequested()
+        public void Heater_CanBeTurnedOff()
         {
-            InvokeHeaterMethod("HeaterOff");
+            // let heater run for a few seconds to make temperature rise
+            FireTimersWithPeriod(1000u, 1000);
+
+            TurnHeaterOff();
 
             FireTimersWithPeriod(1000u, 1000);
 
@@ -59,7 +62,7 @@ namespace OpcPlc.Tests
         }
 
         [TestCase]
-        public void RunningHeater_shouldHaveRisingPressureOverTime()
+        public void Heater_WhenRunning_HasRisingPressure()
         {
             int previousPressure = 0;
             for (int i = 0; i < 5; i++)
@@ -74,7 +77,7 @@ namespace OpcPlc.Tests
         }
 
         [TestCase]
-        public void StoppedHeater_shouldHaveDecreasingPressureOverTime()
+        public void Heater_WhenStopped_HasFallingPressure()
         {
             int previousPressure = 0;
             for (int i = 0; i < 10; i++)
@@ -87,7 +90,7 @@ namespace OpcPlc.Tests
                 previousPressure = pressure;
             }
 
-            InvokeHeaterMethod("HeaterOff");
+            TurnHeaterOff();
 
             for (int i = 0; i < 5; i++)
             {
@@ -100,9 +103,15 @@ namespace OpcPlc.Tests
             }
         }
 
-        private void InvokeHeaterMethod(string methodName)
+        private void TurnHeaterOn()
         {
-            var methodNode = NodeId.Create(methodName, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+            var methodNode = NodeId.Create("HeaterOn", OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+            Session.Call(GetOpcPlcNodeId("Methods"), methodNode);
+        }
+
+        private void TurnHeaterOff()
+        {
+            var methodNode = NodeId.Create("HeaterOff", OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
             Session.Call(GetOpcPlcNodeId("Methods"), methodNode);
         }
 
@@ -110,7 +119,7 @@ namespace OpcPlc.Tests
         {
             var nodeId = NodeId.Create(BoilerModel.Variables.Boiler1_BoilerStatus, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
             var value = Session.ReadValue(nodeId).Value;
-            return (value as ExtensionObject).Body as BoilerModel.BoilerDataType;
+            return value.Should().BeOfType<ExtensionObject>().Which.Body.Should().BeOfType<BoilerDataType>().Subject;
         }
 
     }
