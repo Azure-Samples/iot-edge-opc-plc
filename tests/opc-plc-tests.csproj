@@ -32,7 +32,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\opc-plc.csproj" />
+      <ProjectReference Include="..\src\opc-plc.csproj" />
     </ItemGroup>
 
     <ItemGroup>
