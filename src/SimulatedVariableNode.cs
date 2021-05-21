@@ -8,6 +8,7 @@
         private ISystemContext _context;
         private BaseDataVariableState _variable;
         private ITimer _timer;
+        private readonly TimeService _timeService;
 
         public T Value
         {
@@ -15,10 +16,11 @@
             set => SetValue(_variable, value);
         }
 
-        public SimulatedVariableNode(ISystemContext context, BaseDataVariableState variable)
+        public SimulatedVariableNode(ISystemContext context, BaseDataVariableState variable, TimeService timeService)
         {
             _context = context;
             _variable = variable;
+            _timeService = timeService;
         }
 
         public void Dispose()
@@ -32,7 +34,7 @@
         /// </summary>
         public void Start(Func<T, T> update, int periodMs)
         {
-            _timer = PlcSimulation.TimeService.NewTimer((s, o) =>
+            _timer = _timeService.NewTimer((s, o) =>
             {
                 Value = update(Value);
             },
@@ -52,7 +54,7 @@
         private void SetValue(BaseDataVariableState variable, T value)
         {
             variable.Value = value;
-            variable.Timestamp = PlcSimulation.TimeService.Now();
+            variable.Timestamp = _timeService.Now();
             variable.ClearChangeMasks(_context, false);
         }
     }

@@ -41,6 +41,11 @@
         public static PlcSimulation PlcSimulation = null;
 
         /// <summary>
+        /// Service returning <see cref="DateTime"/> values and <see cref="Timer"/> instances. Mocked in tests.
+        /// </summary>
+        public static TimeService TimeService = new TimeService();
+
+        /// <summary>
         /// A flag indicating when the server is up and ready to accept connections.
         /// </summary>
         public static volatile bool Ready = false;
@@ -533,7 +538,7 @@
             Logger.Information($"Username/Password authentication: {(DisableUsernamePasswordAuth ? "disabled" : "enabled")}");
             Logger.Information($"Certificate authentication: {(DisableCertAuth ? "disabled" : "enabled")}");
 
-            PlcServer = new PlcServer();
+            PlcServer = new PlcServer(TimeService);
             PlcServer.Start(plcApplicationConfiguration);
             Logger.Information("OPC UA Server started.");
 

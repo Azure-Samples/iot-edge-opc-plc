@@ -98,7 +98,7 @@ namespace OpcPlc.Tests
                     _fastTimers.Add((timer, handler));
                     return timer;
                 });
-            PlcSimulation.TimeService = mock.Object;
+            Program.TimeService = mock.Object;
 
             mock.Setup(f => f.Now())
                 .Returns(() => _now);

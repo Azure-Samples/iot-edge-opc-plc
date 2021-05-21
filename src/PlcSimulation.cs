@@ -8,11 +8,6 @@ namespace OpcPlc
     public class PlcSimulation
     {
         /// <summary>
-        /// Service returning <see cref="DateTime"/> values and <see cref="Timer"/> instances. Mocked in tests.
-        /// </summary>
-        public static TimeService TimeService { get; set; } = new TimeService();
-
-        /// <summary>
         /// Flags for node generation.
         /// </summary>
         public static bool GenerateSpikes { get; set; } = true;
@@ -99,7 +94,7 @@ namespace OpcPlc
 
             if (SlowNodeCount > 0)
             {
-                _slowNodeGenerator = TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateSlowNodes, SlowNodeRate);
+                _slowNodeGenerator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateSlowNodes, SlowNodeRate);
             }
 
             if (FastNodeCount > 0)
@@ -107,13 +102,13 @@ namespace OpcPlc
                 // only use the fast timers when we need to go really fast,
                 // since they consume more resources and create an own thread.
                 _fastNodeGenerator = FastNodeRate >= 50 || !Stopwatch.IsHighResolution ?
-                    TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateFastNodes, FastNodeRate) :
-                    TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastNodes, FastNodeRate);
+                    _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateFastNodes, FastNodeRate) :
+                    _plcServer.TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastNodes, FastNodeRate);
             }
 
             if (AddComplexTypeBoiler)
             {
-                _boiler1Generator = TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
+                _boiler1Generator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
             }
 
             if (AddSpecialCharName)

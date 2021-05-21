@@ -18,6 +18,12 @@ namespace OpcPlc
         public AlarmConditionServerNodeManager AlarmNodeManager = null;
         public SimpleEventsNodeManager SimpleEventsNodeManager = null;
         public ReferenceNodeManager SimulationNodeManager = null;
+        public readonly TimeService TimeService;
+
+        public PlcServer(TimeService timeService)
+        {
+            TimeService = timeService;
+        }
 
         /// <summary>
         /// Creates the node managers for the server.
@@ -44,6 +50,7 @@ namespace OpcPlc
             PlcNodeManager = new PlcNodeManager(
                 server,
                 configuration,
+                TimeService,
                 PlcSimulation.SlowNodeRandomization,
                 PlcSimulation.SlowNodeStepSize,
                 PlcSimulation.SlowNodeMinValue,
