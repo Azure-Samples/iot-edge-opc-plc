@@ -16,6 +16,9 @@ namespace OpcPlc.Tests
         // Simulator does not update trended and boolean values in the first few cycles (a random number of cycles between 1 and 10)
         private const int RampUpPeriods = 10;
 
+        // Value set for NumberOfUpdates for the simulator to update value indefinitely.
+        private const int NoLimit = -1;
+
         [TestCase]
         public void Telemetry_StepUp()
         {
@@ -25,16 +28,17 @@ namespace OpcPlc.Tests
 
             // need to track the first value encountered b/c the measurement stream starts when
             // the server starts and it can take several seconds for our test to start
-            var firstValue = 0u; 
+            var firstValue = 0u;
             for (int i = 0; i < 10; i++)
             {
                 FireTimersWithPeriod(100u, 1);
 
-                var value = Session.ReadValue(nodeId).Value;
+                var value = ReadValue<uint>(nodeId);
                 if (firstValue == 0)
                 {
-                    firstValue = (uint)value;
+                    firstValue = value;
                 }
+
                 measurements.Add(value);
             }
 
@@ -63,18 +67,16 @@ namespace OpcPlc.Tests
             {
                 FireTimersWithPeriod(100u, 1);
 
-                var value = Session.ReadValue(nodeId).Value;
-                value.Should().BeOfType(typeof(double));
+                var value = ReadValue<double>(nodeId);
 
-                var doubleValue = (double)value;
-                if (Math.Round(doubleValue) == outlierValue)
+                if (Math.Round(value) == outlierValue)
                 {
                     outlierCount++;
                 }
                 else
                 {
-                    maxValue = Math.Max(maxValue, doubleValue);
-                    minValue = Math.Min(minValue, doubleValue);
+                    maxValue = Math.Max(maxValue, value);
+                    minValue = Math.Min(minValue, value);
                 }
             }
 
@@ -168,6 +170,41 @@ namespace OpcPlc.Tests
         }
 
         [Test]
+        [TestCase("FastUInt1", "FastNumberOfUpdates", 1000u)]
+        [TestCase("SlowUInt1", "SlowNumberOfUpdates", 10000u)]
+        public void LimitNumberOfUpdates_StopsUpdatingAfterLimit(string identifier, string numberOfUpdatesNodeName, uint periodInMilliseconds)
+        {
+            var nodeId = GetOpcPlcNodeId(identifier);
+            var value1 = ReadValue<uint>(nodeId);
+
+            // Change the value of the NumberOfUpdates control variable to 6.
+            var numberOfUpdatesNode = GetOpcPlcNodeId(numberOfUpdatesNodeName);
+            WriteValue(numberOfUpdatesNode, 6);
+
+            // Fire the timer 6 times, should increase the value each time.
+            FireTimersWithPeriod(periodInMilliseconds, 6);
+            var value2 = ReadValue<uint>(nodeId);
+            value2.Should().Be(value1 + 6);
+
+            // NumberOfUpdates variable should now be 0. The Fast node value should not change anymore.
+            for (var i = 0; i < 10; i++)
+            {
+                ReadValue<int>(numberOfUpdatesNode).Should().Be(0);
+                FireTimersWithPeriod(periodInMilliseconds, 1);
+                var value3 = ReadValue<uint>(nodeId);
+                value3.Should().Be(value1 + 6);
+            }
+
+            // Change the value of the NumberOfUpdates control variable to -1.
+            // The Fast node value should now increase indefinitely.
+            WriteValue(numberOfUpdatesNode, NoLimit);
+            FireTimersWithPeriod(periodInMilliseconds, 3);
+            var value4 = ReadValue<uint>(nodeId);
+            value4.Should().Be(value1 + 6 + 3);
+            ReadValue<int>(numberOfUpdatesNode).Should().Be(NoLimit, "NumberOfUpdates node value should not change when it is {0}", NoLimit);
+        }
+
+        [Test]
         [TestCase("NegativeTrendData", 100u, 50, false)]
         [TestCase("PositiveTrendData", 100u, 50, true)]
         public void TrendDataNode_HasValueWithTrend(string identifier, uint periodInMilliseconds, int invocations, bool increasing)
@@ -176,9 +213,9 @@ namespace OpcPlc.Tests
 
             FireTimersWithPeriod(periodInMilliseconds, invocations * RampUpPeriods);
 
-            var firstValue = (double)Session.ReadValue(nodeId).Value;
+            var firstValue = ReadValue<double>(nodeId);
             FireTimersWithPeriod(periodInMilliseconds, invocations);
-            var secondValue = (double)Session.ReadValue(nodeId).Value;
+            var secondValue = ReadValue<double>(nodeId);
             if (increasing)
             {
                 secondValue.Should().BeGreaterThan(firstValue);

@@ -14,8 +14,6 @@ namespace OpcPlc.Tests
     [TestFixture]
     public abstract class SimulatorTestsBase
     {
-        private const string OpcPlcNamespaceUri = "http://microsoft.com/Opc/OpcPlc/";
-
         /// <summary>The identifier for the Server Object.</summary>
         protected static readonly NodeId Server = Opc.Ua.ObjectIds.Server;
 
@@ -57,7 +55,7 @@ namespace OpcPlc.Tests
         /// <param name="identifier">Node string identifier to retrieve.</param>
         /// <returns>The node identifier.</returns>
         protected NodeId GetOpcPlcNodeId(string identifier)
-            => NodeId.Create(identifier, OpcPlcNamespaceUri, Session.NamespaceUris);
+            => NodeId.Create(identifier, OpcPlc.Namespaces.OpcPlcApplications, Session.NamespaceUris);
 
         /// <summary>
         /// Find a node given a starting node and the OPC-UA Browse Names of one or more nodes.
@@ -117,6 +115,36 @@ namespace OpcPlc.Tests
                 .Should().ContainSingle()
                 .Subject.TargetId;
             return ToNodeId(nodeId);
+        }
+
+        protected T ReadValue<T>(NodeId nodeId)
+        {
+            return (T)Session.ReadValue(nodeId, typeof(T));
+        }
+
+        protected StatusCodeCollection WriteValue(NodeId nodeId, object newValue)
+        {
+            var valuesToWrite = new WriteValueCollection
+            {
+                new WriteValue
+                {
+                    NodeId = nodeId,
+                    AttributeId = Attributes.Value,
+                    Value =
+                    {
+                        Value = newValue,
+                    }
+                }
+            };
+
+            // write value.
+            Session.Write(
+                default,
+                valuesToWrite,
+                out var results,
+                out _);
+
+            return results;
         }
     }
 }

@@ -17,6 +17,8 @@ namespace OpcPlc
 
     public class PlcNodeManager : CustomNodeManager2
     {
+        private const string NumberOfUpdates = "NumberOfUpdates";
+
         #region Properties
         public SimulatedVariableNode<uint> RandomUnsignedInt32 { get; set; }
 
@@ -65,6 +67,11 @@ namespace OpcPlc
         public void UpdateSlowNodes(object state, ElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
+            if (!ShouldUpdateNodes(_slowNumberOfUpdates))
+            {
+                return;
+            }
+
             if (_slowNodes != null)
             {
                 UpdateNodes(_slowNodes, PlcSimulation.SlowNodeType, StatusCodes.Good, false);
@@ -93,6 +100,11 @@ namespace OpcPlc
 
         private void UpdateNodes()
         {
+            if (!ShouldUpdateNodes(_fastNumberOfUpdates))
+            {
+                return;
+            }
+
             if (_fastNodes != null)
             {
                 UpdateNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
@@ -188,7 +200,7 @@ namespace OpcPlc
 
                     AddChangingNodes(dataFolder);
 
-                    AddSlowAndFastNodes(dataFolder, _slowNodeRandomization, _slowNodeStepSize, _slowNodeMinValue, _slowNodeMaxValue, _fastNodeRandomization, _fastNodeStepSize, _fastNodeMinValue, _fastNodeMaxValue);
+                    AddSlowAndFastNodes(root, dataFolder, _slowNodeRandomization, _slowNodeStepSize, _slowNodeMinValue, _slowNodeMaxValue, _fastNodeRandomization, _fastNodeStepSize, _fastNodeMinValue, _fastNodeMaxValue);
 
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
 
@@ -276,15 +288,37 @@ namespace OpcPlc
             return new SimulatedVariableNode<T>(SystemContext, variable, _timeService);
         }
 
-        private void AddSlowAndFastNodes(FolderState dataFolder, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue)
+        private void AddSlowAndFastNodes(FolderState root, FolderState dataFolder, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue)
         {
-            // Normal nodes
-            _slowNodes = CreateBaseLoadNodes(dataFolder, "Slow", PlcSimulation.SlowNodeCount, PlcSimulation.SlowNodeType, slowNodeRandomization, slowNodeStepSize, slowNodeMinValue, slowNodeMaxValue);
-            _fastNodes = CreateBaseLoadNodes(dataFolder, "Fast", PlcSimulation.FastNodeCount, PlcSimulation.FastNodeType, fastNodeRandomization, fastNodeStepSize, fastNodeMinValue, fastNodeMaxValue);
+            var simulatorFolder = CreateFolder(root, "SimulatorConfiguration", "SimulatorConfiguration", NamespaceType.OpcPlcApplications);
+            (_slowNodes, _slowBadNodes, _slowNumberOfUpdates) = CreateSlowOrFastNodes(PlcSimulation.SlowNodeType, "Slow", PlcSimulation.SlowNodeCount, dataFolder, simulatorFolder, slowNodeRandomization, slowNodeStepSize, slowNodeMinValue, slowNodeMaxValue);
+            (_fastNodes, _fastBadNodes, _fastNumberOfUpdates) = CreateSlowOrFastNodes(PlcSimulation.FastNodeType, "Fast", PlcSimulation.FastNodeCount, dataFolder, simulatorFolder, fastNodeRandomization, fastNodeStepSize, fastNodeMinValue, fastNodeMaxValue);
+        }
 
-            // Bad nodes
-            _slowBadNodes = CreateBaseLoadNodes(dataFolder, "BadSlow", count: 1, PlcSimulation.SlowNodeType, slowNodeRandomization, slowNodeStepSize, slowNodeMinValue, slowNodeMaxValue);
-            _fastBadNodes = CreateBaseLoadNodes(dataFolder, "BadFast", count: 1, PlcSimulation.FastNodeType, fastNodeRandomization, fastNodeStepSize, fastNodeMinValue, fastNodeMaxValue);
+        private (BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes, BaseDataVariableState numberOfUpdatesVariable) CreateSlowOrFastNodes(NodeType nodeType, string name, uint count, FolderState dataFolder, FolderState simulatorFolder, bool nodeRandomization, string nodeStepSize, string nodeMinValue, string nodeMaxValue)
+        {
+            var nodes = CreateBaseLoadNodes(dataFolder, name, count, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue);
+            var badNodes = CreateBaseLoadNodes(dataFolder, $"Bad{name}", count: 1, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue);
+            var numberOfUpdatesVariable = CreateNumberOfUpdatesVariable(name, simulatorFolder);
+            return (nodes, badNodes, numberOfUpdatesVariable);
+        }
+
+        private BaseDataVariableState CreateNumberOfUpdatesVariable(string baseName, FolderState simulatorFolder)
+        {
+            // Create property to hold NumberOfUpdates (to stop simulated updates after a given count)
+            var variable = new BaseDataVariableState(simulatorFolder);
+            var name = $"{baseName}{NumberOfUpdates}";
+            variable.NodeId = new NodeId(name, NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]);
+            variable.DataType = DataTypeIds.Int32;
+            variable.Value = -1; // a value < 0 means to update nodes indefinitely.
+            variable.ValueRank = ValueRanks.Scalar;
+            variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
+            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
+            variable.BrowseName = name;
+            variable.DisplayName = name;
+            variable.Description = new LocalizedText("The number of times to update the {name} nodes. Set to -1 to update indefinitely.");
+            simulatorFolder.AddChild(variable);
+            return variable;
         }
 
         private void AddComplexTypeBoiler(FolderState methodsFolder, IDictionary<NodeId, IList<IReference>> externalReferences)
@@ -482,6 +516,29 @@ namespace OpcPlc
                 extendedNode.StatusCode = status;
                 SetValue(extendedNode, value);
             }
+        }
+
+        /// <summary>
+        /// Determines whether the values of simulated nodes should be updated, based
+        /// on the value of the corresponding <see cref="NumberOfUpdates"/> variable.
+        /// Decrements the NumberOfUpdates variable value and returns true if the NumberOfUpdates variable value if greater than zero,
+        /// returns false if the NumberOfUpdates variable value is zero,
+        /// returns true if the NumberOfUpdates variable value is less than zero.
+        /// </summary>
+        /// <param name="numberOfUpdatesVariable">Node that contains the setting of the number of updates to apply.</param>
+        /// <returns>True if the value of the node should be updated by the simulator, false otherwise.</returns>
+        private bool ShouldUpdateNodes(BaseDataVariableState numberOfUpdatesVariable)
+        {
+            var value = (int) numberOfUpdatesVariable.Value;
+            if (value == 0)
+            {
+                return false;
+            }
+            if (value > 0)
+            {
+                SetValue(numberOfUpdatesVariable, value - 1);
+            }
+            return true;
         }
 
         /// <summary>
@@ -942,7 +999,7 @@ namespace OpcPlc
             return ServiceResult.Good;
         }
 
-        private void SetValue<T>(BaseDataVariableState variable, T value)
+        private void SetValue<T>(BaseVariableState variable, T value)
         {
             variable.Value = value;
             variable.Timestamp = _timeService.Now();
@@ -975,6 +1032,9 @@ namespace OpcPlc
         private uint _slowBadNodesCycle = 0;
         private uint _fastBadNodesCycle = 0;
 
+        private BaseDataVariableState _slowNumberOfUpdates;
+        private BaseDataVariableState _fastNumberOfUpdates;
+        
         /// <summary>
         /// Following variables listed here are simulated.
         /// </summary>

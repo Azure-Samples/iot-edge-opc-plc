@@ -179,6 +179,10 @@ This simulation also emits two types of system events: [_SystemEventType_](https
 - Node with long ID (3950 bytes): `--lid`
 - Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray): `--lsn`
 - Nodes for testing all datatypes, arrays, methods, permissions, etc `--ref`. The ReferenceNodeManager of the [OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard) is used for this purpose.
+- Limit the number of updates of Slow and Fast nodes. Update the values of the `SlowNumberOfUpdates` and `FastNumberOfUpdates` configuration nodes in the `OpcPlc/SimulatorConfiguration` folder to:
+  - `< 0` (default): Slow and Fast nodes are updated indefinitely
+  - `0`: Slow and Fast nodes are not updated
+  - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
 
 ## Build
 

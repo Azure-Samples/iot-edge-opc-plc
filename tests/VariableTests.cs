@@ -38,25 +38,7 @@ namespace OpcPlc.Tests
         {
             var nodeId = FindNode(_scalarStaticNode, OpcPlc.Namespaces.OpcPlcReferenceTest, pathParts);
 
-            var valuesToWrite = new WriteValueCollection
-            {
-                new WriteValue
-                {
-                    NodeId = nodeId,
-                    AttributeId = Attributes.Value,
-                    Value =
-                    {
-                        Value = newValue,
-                    }
-                }
-            };
-
-            // write value.
-            Session.Write(
-                default,
-                valuesToWrite,
-                out var results,
-                out _);
+            var results = WriteValue(nodeId, newValue);
 
             results.Should().BeEquivalentTo(new[] { StatusCodes.Good });
 
