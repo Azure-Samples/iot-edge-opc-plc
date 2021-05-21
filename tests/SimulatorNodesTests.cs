@@ -12,7 +12,12 @@ namespace OpcPlc.Tests
     /// </summary>
     [TestFixture]
     public class SimulatorNodesTests : SimulatorTestsBase
-    {
+    {        
+        // Set any cmd params needed for the plc server explicitly.
+        public SimulatorNodesTests() : base(new[] { "--str=false" })
+        {
+        }
+
         // Simulator does not update trended and boolean values in the first few cycles (a random number of cycles between 1 and 10)
         private const int RampUpPeriods = 10;
 

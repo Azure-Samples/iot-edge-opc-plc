@@ -11,6 +11,11 @@ namespace OpcPlc.Tests
     [TestFixture]
     public class DataMonitoringTests : SubscriptionTestsBase
     {
+        // Set any cmd params needed for the plc server explicitly.        
+        public DataMonitoringTests() : base(new[] { "--str=false" })
+        {
+        }
+
         [SetUp]
         public void CreateMonitoredItem()
         {
