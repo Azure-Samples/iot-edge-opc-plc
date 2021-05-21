@@ -13,7 +13,12 @@
     /// </summary>
     [TestFixture]
     public class DataRandomizationTests : SubscriptionTestsBase
-    {
+    {        
+        // Set any cmd params needed for the plc server explicitly
+        public DataRandomizationTests():base (new[] { "--str=true" })
+        {
+        }
+
         [SetUp]
         public void CreateMonitoredItem()
         {
@@ -37,10 +42,13 @@
             // Assert
             var events = ReceiveEvents(6);
             var values = events.Select(a => (uint)((MonitoredItemNotification)a.NotificationValue).Value.Value).ToList();
-            var uniqueCount = values.Distinct().Count();
+            var differences = values.Zip(values.Skip(1), (x, y) => y - x);
+            var differencesofDifferences = differences.Zip(differences.Skip(1), (x, y) => y - x);
 
-            // We are expecting random numbers to be unique mostly, not always.
-            uniqueCount.Should().BeInRange(5, 6);
+            var uniqueCount = differencesofDifferences.Distinct().Count();            
+
+            // We are expecting random numbers to be unique mostly, not always so the differences between numbers should also be unique mostly.
+            uniqueCount.Should().BeInRange(3, 4);
         }
     }
 }
