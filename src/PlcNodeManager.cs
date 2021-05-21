@@ -44,9 +44,10 @@ namespace OpcPlc
         public SimulatedVariableNode<byte[]> LongStringIdNode200 { get; set; }
         #endregion
 
-        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue, string nodeFileName = null)
+        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue, string nodeFileName = null)
             : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
         {
+            _timeService = timeService;
             _slowNodeRandomization = slowNodeRandomization;
             _slowNodeStepSize = slowNodeStepSize;
             _fastNodeRandomization = fastNodeRandomization;
@@ -214,7 +215,7 @@ namespace OpcPlc
             {
                 string SpecialChars = HttpUtility.HtmlDecode(@"&quot;!&#167;$%&amp;/()=?`&#180;\+~*&#39;#_-:.;,&lt;&gt;|@^&#176;€&#181;{[]}");
 
-                SpecialCharNameNode = new SimulatedVariableNode<uint>(SystemContext,
+                SpecialCharNameNode = CreateVariableNode<uint>(
                     CreateBaseVariable(dataFolder, "Special_" + SpecialChars, SpecialChars, new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
             }
 
@@ -227,7 +228,7 @@ namespace OpcPlc
                     sb.Append((char)(65 + (i % 26)));
                 }
 
-                LongIdNode = new SimulatedVariableNode<uint>(SystemContext,
+                LongIdNode = CreateVariableNode<uint>(
                     CreateBaseVariable(dataFolder, sb.ToString(), "LongId3950", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
             }
 
@@ -235,22 +236,22 @@ namespace OpcPlc
             {
                 // 10 kB.
                 string initialString = new string('A', 10 * 1024);
-                LongStringIdNode10 = new SimulatedVariableNode<string>(SystemContext,
+                LongStringIdNode10 = CreateVariableNode<string>(
                     CreateBaseVariable(dataFolder, "LongString10kB", "LongString10kB", new NodeId((uint)BuiltInType.String), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialString));
 
                 // 50 kB.
                 initialString = new string('A', 50 * 1024);
-                LongStringIdNode50 = new SimulatedVariableNode<string>(SystemContext,
+                LongStringIdNode50 = CreateVariableNode<string>(
                     CreateBaseVariable(dataFolder, "LongString50kB", "LongString50kB", new NodeId((uint)BuiltInType.String), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialString));
 
                 // 100 kB.
                 var initialByteArray = Encoding.UTF8.GetBytes(new string('A', 100 * 1024));
-                LongStringIdNode100 = new SimulatedVariableNode<byte[]>(SystemContext,
+                LongStringIdNode100 = CreateVariableNode<byte[]>(
                     CreateBaseVariable(dataFolder, "LongString100kB", "LongString100kB", new NodeId((uint)BuiltInType.ByteString), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialByteArray));
 
                 // 200 kB.
                 initialByteArray = Encoding.UTF8.GetBytes(new string('A', 200 * 1024));
-                LongStringIdNode200 = new SimulatedVariableNode<byte[]>(SystemContext,
+                LongStringIdNode200 = CreateVariableNode<byte[]>(
                     CreateBaseVariable(dataFolder, "LongString200kB", "LongString200kB", new NodeId((uint)BuiltInType.Byte), ValueRanks.OneDimension, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialByteArray));
             }
         }
@@ -259,15 +260,20 @@ namespace OpcPlc
         {
             if (PlcSimulation.GenerateData)
             {
-                StepUpNode = new SimulatedVariableNode<uint>(SystemContext, CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications));
-                AlternatingBooleanNode = new SimulatedVariableNode<bool>(SystemContext, CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value", NamespaceType.OpcPlcApplications));
-                RandomSignedInt32 = new SimulatedVariableNode<int>(SystemContext, CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value", NamespaceType.OpcPlcApplications));
-                RandomUnsignedInt32 = new SimulatedVariableNode<uint>(SystemContext, CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value", NamespaceType.OpcPlcApplications));
+                StepUpNode = CreateVariableNode<uint>(CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications));
+                AlternatingBooleanNode = CreateVariableNode<bool>(CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value", NamespaceType.OpcPlcApplications));
+                RandomSignedInt32 = CreateVariableNode<int>(CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value", NamespaceType.OpcPlcApplications));
+                RandomUnsignedInt32 = CreateVariableNode<uint>(CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value", NamespaceType.OpcPlcApplications));
             }
-            if (PlcSimulation.GenerateSpikes) SpikeNode = new SimulatedVariableNode<double>(SystemContext, CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes", NamespaceType.OpcPlcApplications));
-            if (PlcSimulation.GenerateDips) DipNode = new SimulatedVariableNode<double>(SystemContext, CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips", NamespaceType.OpcPlcApplications));
-            if (PlcSimulation.GeneratePosTrend) PosTrendNode = new SimulatedVariableNode<double>(SystemContext, CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend", NamespaceType.OpcPlcApplications));
-            if (PlcSimulation.GenerateNegTrend) NegTrendNode = new SimulatedVariableNode<double>(SystemContext, CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));
+            if (PlcSimulation.GenerateSpikes) SpikeNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes", NamespaceType.OpcPlcApplications));
+            if (PlcSimulation.GenerateDips) DipNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips", NamespaceType.OpcPlcApplications));
+            if (PlcSimulation.GeneratePosTrend) PosTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend", NamespaceType.OpcPlcApplications));
+            if (PlcSimulation.GenerateNegTrend) NegTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));
+        }
+        
+        private SimulatedVariableNode<T> CreateVariableNode<T>(BaseDataVariableState variable)
+        {
+            return new SimulatedVariableNode<T>(SystemContext, variable, _timeService);
         }
 
         private void AddSlowAndFastNodes(FolderState dataFolder, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue)
@@ -474,9 +480,7 @@ namespace OpcPlc
                 }
 
                 extendedNode.StatusCode = status;
-                extendedNode.Value = value;
-                extendedNode.Timestamp = DateTime.Now;
-                extendedNode.ClearChangeMasks(SystemContext, false);
+                SetValue(extendedNode, value);
             }
         }
 
@@ -641,7 +645,7 @@ namespace OpcPlc
             baseDataVariableState.Historizing = false;
             baseDataVariableState.Value = defaultValue ?? Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
             baseDataVariableState.StatusCode = StatusCodes.Good;
-            baseDataVariableState.Timestamp = PlcSimulation.TimeService.UtcNow();
+            baseDataVariableState.Timestamp = _timeService.UtcNow();
             baseDataVariableState.Description = new LocalizedText(description);
 
             if (valueRank == ValueRanks.OneDimension)
@@ -941,7 +945,7 @@ namespace OpcPlc
         private void SetValue<T>(BaseDataVariableState variable, T value)
         {
             variable.Value = value;
-            variable.Timestamp = PlcSimulation.TimeService.Now();
+            variable.Timestamp = _timeService.Now();
             variable.ClearChangeMasks(SystemContext, false);
         }
 
@@ -965,6 +969,8 @@ namespace OpcPlc
             ( StatusCodes.BadDataLost, true),
             ( StatusCodes.BadNoCommunication, false)
         };
+
+        private readonly TimeService _timeService;
 
         private uint _slowBadNodesCycle = 0;
         private uint _fastBadNodesCycle = 0;
