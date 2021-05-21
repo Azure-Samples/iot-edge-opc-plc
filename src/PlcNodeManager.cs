@@ -425,28 +425,42 @@ namespace OpcPlc
                         case NodeType.Double:
                             var minDoubleValue = (double)extendedNode.MinValue;
                             var maxDoubleValue = (double)extendedNode.MaxValue;
+                            var extendedDoubleNodeValue = (double)(extendedNode.Value ?? minDoubleValue);
 
                             if (extendedNode.Randomize)
                             {
-                                // Hybrid range case (e.g. -5.0 to 5.0).
-                                if (minDoubleValue < 0 && maxDoubleValue > 0)
+                                if (minDoubleValue != maxDoubleValue)
                                 {
-                                    // Split the range from 0 on both sides.
-                                    var value1 = _random.NextDouble() * maxDoubleValue;
-                                    var value2 = _random.NextDouble() * minDoubleValue;
+                                    // Hybrid range case (e.g. -5.0 to 5.0).
+                                    if (minDoubleValue < 0 && maxDoubleValue > 0)
+                                    {
+                                        // If new random value is same as previous one, generate a new one until it is not.
+                                        while (value == null || extendedDoubleNodeValue == (double)value)
+                                        {
+                                            // Split the range from 0 on both sides.
+                                            var value1 = _random.NextDouble() * maxDoubleValue;
+                                            var value2 = _random.NextDouble() * minDoubleValue;
 
-                                    // Return random value from postive or negative range, randomly.
-                                    value = _random.Next(10) % 2 == 0 ? value1 : value2;
+                                            // Return random value from postive or negative range, randomly.
+                                            value = _random.Next(10) % 2 == 0 ? value1 : value2;
+                                        }
+                                    }
+                                    else // Negative and positive only range cases (e.g. -5.0 to -8.0 or 0 to 9.5).
+                                    {
+                                        // If new random value is same as previous one, generate a new one until it is not.
+                                        while (value == null || extendedDoubleNodeValue == (double)value)
+                                        {
+                                            value = minDoubleValue + (_random.NextDouble() * (maxDoubleValue - minDoubleValue));
+                                        }
+                                    }
                                 }
-                                else // Negative and positive only range cases (e.g. -5.0 to -8.0 or 0 to 9.5).
+                                else
                                 {
-                                    value = minDoubleValue + (_random.NextDouble() * (maxDoubleValue - minDoubleValue));
+                                    throw new ArgumentException($"Range {minDoubleValue} to {maxDoubleValue}does not have provision for randomness.");
                                 }
                             }
                             else
                             {
-                                var extendedDoubleNodeValue = (double)(extendedNode.Value ?? minDoubleValue);
-
                                 // Positive only range cases (e.g. 0 to 9.5).
                                 if (minDoubleValue >= 0 && maxDoubleValue > 0)
                                 {
@@ -466,6 +480,7 @@ namespace OpcPlc
                                 }
                                 else
                                 {
+                                    // This is to prevent infinte loop while attempting to create a different random number than previous one if no range is provided.
                                     throw new ArgumentException($"Negative to positive range {minDoubleValue} to {maxDoubleValue} for sequential node values is not supported currently.");
                                 }
                             }
@@ -498,7 +513,19 @@ namespace OpcPlc
 
                             if (extendedNode.Randomize)
                             {
-                                value = (uint)(_random.NextDouble() * (maxUIntValue - minUIntValue) + minUIntValue);
+                                if (minUIntValue != maxUIntValue)
+                                {
+                                    // If new random value is same as previous one, generate a new one until it is not.
+                                    while (value == null || extendedUIntNodeValue == (uint)value)
+                                    {
+                                        value = (uint)(minUIntValue + (_random.NextDouble() * (maxUIntValue + 1 - minUIntValue)));
+                                    }
+                                }
+                                else
+                                {
+                                    // This is to prevent infinte loop while attempting to create a different random number than previous one if no range is provided.
+                                    throw new ArgumentException($"Range {minUIntValue} to {maxUIntValue} does not have provision for randomness.");
+                                }
                             }
                             else
                             {
