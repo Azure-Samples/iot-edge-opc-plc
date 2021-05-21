@@ -6,6 +6,7 @@ namespace OpcPlc.Tests
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Runtime.InteropServices;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Timers;
@@ -75,6 +76,7 @@ namespace OpcPlc.Tests
         /// </summary>
         public async Task Start()
         {
+            Program.Ready = false;
             Program.Logger = new LoggerConfiguration()
                 .WriteTo.NUnitOutput()
                 .CreateLogger();
@@ -128,13 +130,18 @@ namespace OpcPlc.Tests
             var endpointUrl = WaitForServerUp();
             await _log.WriteAsync($"Found server at: {endpointUrl}");
 
-            // On Mac platforms, the URL containing the machine hostname is sometimes not accessible.
-            // Use the Loopback IP address as a workaround.
-            var loopbackEndpointUrl = $"opc.tcp://{IPAddress.Loopback}:{Port}";
-            await _log.WriteAsync($"Connecting to server URL: {loopbackEndpointUrl}");
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // On Mac platforms (in particular in Azure DevOps builds),
+                // the URL containing the machine hostname is sometimes not accessible.
+                // Use the Loopback IP address as a workaround.
+                // In contrast, on Windows Azure DevOps builds, this results in issues.
+                endpointUrl = $"opc.tcp://{IPAddress.Loopback}:{Port}";
+                await _log.WriteAsync($"Connecting to server URL: {endpointUrl}");
+            }
 
             _config = await GetConfigurationAsync();
-            _serverEndpoint = GetServerEndpoint(loopbackEndpointUrl);
+            _serverEndpoint = GetServerEndpoint(endpointUrl);
         }
 
         public Task Stop()
