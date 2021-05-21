@@ -27,7 +27,7 @@ namespace OpcPlc.Tests
             fastTimer.Enabled = false;
 
             // Assert (let's have some wiggle room here for timing issues)
-            _callbacks.Count.Should().BeInRange(39, 41);
+            _callbacks.Count.Should().BeInRange(35, 45);
         }
 
         [Test]
@@ -47,7 +47,7 @@ namespace OpcPlc.Tests
             fastTimer.Enabled = false;
 
             // Assert (let's have some wiggle room here for timing issues)
-            _callbacks.Count.Should().BeInRange(199, 201);
+            _callbacks.Count.Should().BeInRange(185, 215);
         }
 
         [Test]
