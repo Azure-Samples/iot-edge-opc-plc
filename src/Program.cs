@@ -231,7 +231,7 @@
                 { "stl|slowtypelowerbound=", $"lower bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.", a => SlowNodeMinValue = a },
                 { "stu|slowtypeupperbound=", $"upper bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.", a => SlowNodeMaxValue = a },
                 { "str|slowtyperandomization=", $"randomization of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeRandomization}", a => SlowNodeRandomization = bool.Parse(a) },
-                { "sts|slowtypestepsize=", $"step or increment size of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeStepSize}", a => SlowNodeStepSize = a },
+                { "sts|slowtypestepsize=", $"step or increment size of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeStepSize}", a => SlowNodeStepSize = ParseStepSize(a) },
                 { "ssi|slownodesamplinginterval=", $"rate in milliseconds to sample slow nodes\nDefault: {SlowNodeSamplingInterval}", (uint i) => SlowNodeSamplingInterval = i },
                 { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodeCount}", (uint i) => FastNodeCount = i },
                 { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate / 1000}", (uint i) => FastNodeRate = i * 1000 },
@@ -239,7 +239,7 @@
                 { "ftl|fasttypelowerbound=", $"lower bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.", a => FastNodeMinValue = a },
                 { "ftu|fasttypeupperbound=", $"upper bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.", a => FastNodeMaxValue = a },
                 { "ftr|fasttyperandomization=", $"randomization of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeRandomization}", a => FastNodeRandomization = bool.Parse(a) },
-                { "fts|fasttypestepsize=", $"step or increment size of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeStepSize}", a => FastNodeStepSize = a },
+                { "fts|fasttypestepsize=", $"step or increment size of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeStepSize}", a => FastNodeStepSize = ParseStepSize(a) },
                 { "fsi|fastnodesamplinginterval=", $"rate in milliseconds to sample fast nodes\nDefault: {FastNodeSamplingInterval}", (uint i) => FastNodeSamplingInterval = i },
                 { "vfr|veryfastrate=", $"rate in milliseconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
 
@@ -513,6 +513,26 @@
             return Enum.TryParse(type, ignoreCase: true, out NodeType nodeType)
                 ? nodeType
                 : NodeType.UInt;
+        }
+
+        /// <summary>
+        /// Parse step size.
+        /// </summary>
+        private static string ParseStepSize(string stepSize)
+        {
+            if(double.TryParse(stepSize, out double stepSizeResult))
+            {
+                if(stepSizeResult < 0)
+                {
+                    throw new ArgumentException($"Step size cannot be specified as negative value, current value is {stepSize}.");
+                }
+            }
+            else
+            {
+                throw new ArgumentException($"Step size {stepSize} cannot be parsed as numeric value.");
+            }
+
+            return stepSize;
         }
 
         /// <summary>

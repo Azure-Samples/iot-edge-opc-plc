@@ -1,4 +1,5 @@
 ﻿using Opc.Ua;
+using System;
 
 namespace OpcPlc
 {
@@ -16,13 +17,13 @@ namespace OpcPlc
         {
             if (nodeState is null)
             {
-                throw new System.ArgumentNullException(nameof(nodeState));
+                throw new ArgumentNullException(nameof(nodeState));
             }
 
             Randomize = randomize;
-            StepSize = stepSize ?? throw new System.ArgumentNullException(nameof(stepSize));
-            MinValue = minValue ?? throw new System.ArgumentNullException(nameof(minValue));
-            MaxValue = maxValue ?? throw new System.ArgumentNullException(nameof(maxValue));
+            StepSize = stepSize ?? throw new ArgumentNullException(nameof(stepSize));
+            MinValue = minValue ?? throw new ArgumentNullException(nameof(minValue));
+            MaxValue = maxValue ?? throw new ArgumentNullException(nameof(maxValue));
         }
     }
 }
