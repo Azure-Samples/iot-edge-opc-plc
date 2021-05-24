@@ -102,6 +102,7 @@ A number of changing nodes can be simulated with the following options. The node
 - sts: step or increment size of slow nodes value (UInt|Double types only, defaults to 1)
 - fn: Number of fast nodes (default 1)
 - fr: Rate in seconds at which to change the fast nodes (uint, default every 1 s)
+- vfr: Rate in milliseconds at which to change the fast nodes (uint, default every 1000 ms)
 - ft: Data type for fast nodes (UInt|Double|Bool|UIntArray, case insensitive)
 - ftl: lower bound of data type of fast nodes (UInt|Double types only, defaults to minimium value of the type in C# with exception of Double where it defaults to 0.0)
 - ftu: upper bound of data type of fast nodes (UInt|Double types only, defaults to maximum value of the type in C#)
