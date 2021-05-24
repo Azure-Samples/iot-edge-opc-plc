@@ -518,7 +518,8 @@ namespace OpcPlc
                                     // If new random value is same as previous one, generate a new one until it is not.
                                     while (value == null || extendedUIntNodeValue == (uint)value)
                                     {
-                                        value = (uint)(minUIntValue + (_random.NextDouble() * (maxUIntValue + 1 - minUIntValue)));
+                                        // uint.MaxValue + 1 cycles back to 0 which causes infinte loop here hence a check maxUIntValue == uint.MaxValue to prevent it.
+                                        value = (uint)(minUIntValue + (_random.NextDouble() * ((maxUIntValue == uint.MaxValue ? maxUIntValue : maxUIntValue + 1) - minUIntValue)));
                                     }
                                 }
                                 else
