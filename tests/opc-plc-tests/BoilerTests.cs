@@ -14,7 +14,7 @@ namespace OpcPlc.Tests
         public BoilerTests() : base(new[] { "--ctb" }) { }
 
         [TearDown]
-        public void TearDown()
+        public new virtual void TearDown()
         {
             TurnHeaterOn();
         }
@@ -22,7 +22,6 @@ namespace OpcPlc.Tests
         [TestCase]
         public void Heater_AtStartUp_IsTurnedOn()
         {
-
             FireTimersWithPeriod(1000u, 1000);
 
             BoilerDataType model = GetBoilerModel();
@@ -35,7 +34,7 @@ namespace OpcPlc.Tests
             pressure.Should().BeGreaterThan(10_000, "pressure should start at 10k and get higher");
 
             temperature.Top.Should().Be(pressure - 100_005, "top is always 100,005 less than pressure. Pressure: {0}", pressure);
-            temperature.Bottom.Should().Be(pressure - 100_000, "btoom is always 100,000 less than pressure. Pressure: {0}", pressure);
+            temperature.Bottom.Should().Be(pressure - 100_000, "bottom is always 100,000 less than pressure. Pressure: {0}", pressure);
         }
 
         [TestCase]
@@ -121,6 +120,5 @@ namespace OpcPlc.Tests
             var value = Session.ReadValue(nodeId).Value;
             return value.Should().BeOfType<ExtensionObject>().Which.Body.Should().BeOfType<BoilerDataType>().Subject;
         }
-
     }
 }
