@@ -118,8 +118,6 @@
         {
             InitAppLocation();
 
-            InitLogging();
-
             // Start OPC UA server
             MainAsync(args).Wait();
         }
@@ -146,6 +144,8 @@
                 Usage(options);
                 return;
             }
+
+            InitLogging();
 
             // show usage if requested
             if (ShowHelp)
