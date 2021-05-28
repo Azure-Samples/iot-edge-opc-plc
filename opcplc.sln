@@ -36,6 +36,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{
 		tools\templates\ci.yml = tools\templates\ci.yml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "opc-plc-tests", "tests\opc-plc-tests.csproj", "{978DA9FC-4211-46CE-8548-D16E3DC3550F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,6 +48,10 @@ Global
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

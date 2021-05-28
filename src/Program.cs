@@ -41,9 +41,14 @@
         public static PlcSimulation PlcSimulation = null;
 
         /// <summary>
-        /// Shutdown token.
+        /// Service returning <see cref="DateTime"/> values and <see cref="Timer"/> instances. Mocked in tests.
         /// </summary>
-        public static CancellationToken ShutdownToken;
+        public static TimeService TimeService = new TimeService();
+
+        /// <summary>
+        /// A flag indicating when the server is up and ready to accept connections.
+        /// </summary>
+        public static volatile bool Ready = false;
 
         public static bool DisableAnonymousAuth { get; set; } = false;
 
@@ -111,6 +116,8 @@
         /// </summary>
         public static void Main(string[] args)
         {
+            InitAppLocation();
+
             // Start OPC UA server
             MainAsync(args).Wait();
         }
@@ -118,13 +125,9 @@
         /// <summary>
         /// Asynchronous part of the main method of the app.
         /// </summary>
-        public static async Task MainAsync(string[] args)
+        public static async Task MainAsync(string[] args, CancellationToken cancellationToken = default)
         {
             Mono.Options.OptionSet options = InitCommandLineOptions();
-
-            InitAppLocation();
-
-            InitLogging();
 
             List<string> extraArgs;
             try
@@ -141,6 +144,8 @@
                 Usage(options);
                 return;
             }
+
+            InitLogging();
 
             // show usage if requested
             if (ShowHelp)
@@ -171,7 +176,7 @@
 
             try
             {
-                await ConsoleServerAsync(args).ConfigureAwait(false);
+                await ConsoleServerAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -221,13 +226,22 @@
 
                 // Slow and fast nodes.
                 { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodeCount}", (uint i) => SlowNodeCount = i },
-                { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate}", (uint i) => SlowNodeRate = i },
+                { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate / 1000}", (uint i) => SlowNodeRate = i * 1000 },
                 { "st|slowtype=", $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
+                { "stl|slowtypelowerbound=", $"lower bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.", a => SlowNodeMinValue = a },
+                { "stu|slowtypeupperbound=", $"upper bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.", a => SlowNodeMaxValue = a },
+                { "str|slowtyperandomization=", $"randomization of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeRandomization}", a => SlowNodeRandomization = bool.Parse(a) },
+                { "sts|slowtypestepsize=", $"step or increment size of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeStepSize}", a => SlowNodeStepSize = ParseStepSize(a) },
                 { "ssi|slownodesamplinginterval=", $"rate in milliseconds to sample slow nodes\nDefault: {SlowNodeSamplingInterval}", (uint i) => SlowNodeSamplingInterval = i },
                 { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodeCount}", (uint i) => FastNodeCount = i },
-                { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
+                { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate / 1000}", (uint i) => FastNodeRate = i * 1000 },
                 { "ft|fasttype=", $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
+                { "ftl|fasttypelowerbound=", $"lower bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.", a => FastNodeMinValue = a },
+                { "ftu|fasttypeupperbound=", $"upper bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.", a => FastNodeMaxValue = a },
+                { "ftr|fasttyperandomization=", $"randomization of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeRandomization}", a => FastNodeRandomization = bool.Parse(a) },
+                { "fts|fasttypestepsize=", $"step or increment size of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeStepSize}", a => FastNodeStepSize = ParseStepSize(a) },
                 { "fsi|fastnodesamplinginterval=", $"rate in milliseconds to sample fast nodes\nDefault: {FastNodeSamplingInterval}", (uint i) => FastNodeSamplingInterval = i },
+                { "vfr|veryfastrate=", $"rate in milliseconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
 
                 // user defined nodes configuration
                 { "nf|nodesfile=", "the filename which contains the list of nodes to be created in the OPC UA address space.", (string l) => NodesFileName = l },
@@ -456,8 +470,8 @@
                 sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString200kB\" }},");
             }
 
-            string slowPublishingInterval = SlowNodeRate > 1
-                ? $", \"OpcPublishingInterval\": {SlowNodeRate * 1000}" // ms
+            string slowPublishingInterval = SlowNodeRate > 1000
+                ? $", \"OpcPublishingInterval\": {SlowNodeRate}" // ms
                 : "";
             string slowSamplingInterval = SlowNodeSamplingInterval > 0
                 ? $", \"OpcSamplingInterval\": {SlowNodeSamplingInterval}" // ms
@@ -467,8 +481,8 @@
                 sb.AppendLine($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\"{slowPublishingInterval}{slowSamplingInterval} }},");
             }
 
-            string fastPublishingInterval = FastNodeRate > 1
-               ? $", \"OpcPublishingInterval\": {FastNodeRate * 1000}" // ms
+            string fastPublishingInterval = FastNodeRate > 1000
+               ? $", \"OpcPublishingInterval\": {FastNodeRate}" // ms
                : "";
             string fastSamplingInterval = FastNodeSamplingInterval > 0
                 ? $", \"OpcSamplingInterval\": {FastNodeSamplingInterval}" // ms
@@ -502,32 +516,33 @@
         }
 
         /// <summary>
+        /// Parse step size.
+        /// </summary>
+        private static string ParseStepSize(string stepSize)
+        {
+            if(double.TryParse(stepSize, out double stepSizeResult))
+            {
+                if(stepSizeResult < 0)
+                {
+                    throw new ArgumentException($"Step size cannot be specified as negative value, current value is {stepSize}.");
+                }
+            }
+            else
+            {
+                throw new ArgumentException($"Step size {stepSize} cannot be parsed as numeric value.");
+            }
+
+            return stepSize;
+        }
+
+        /// <summary>
         /// Run the server.
         /// </summary>
-#pragma warning disable IDE0060 // Remove unused parameter
-        private static async Task ConsoleServerAsync(string[] args)
-#pragma warning restore IDE0060 // Remove unused parameter
+        private static async Task ConsoleServerAsync(CancellationToken cancellationToken)
         {
-            var quitEvent = new ManualResetEvent(false);
-            var shutdownTokenSource = new CancellationTokenSource();
-            ShutdownToken = shutdownTokenSource.Token;
-
             // init OPC configuration and tracing
             var plcOpcApplicationConfiguration = new OpcApplicationConfiguration();
             ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync().ConfigureAwait(false);
-
-            // allow canceling the connection process
-            try
-            {
-                Console.CancelKeyPress += (sender, eArgs) =>
-                {
-                    quitEvent.Set();
-                    eArgs.Cancel = true;
-                };
-            }
-            catch
-            {
-            }
 
             // start the server.
             Logger.Information($"Starting server on endpoint {plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]} ...");
@@ -543,7 +558,7 @@
             Logger.Information($"Username/Password authentication: {(DisableUsernamePasswordAuth ? "disabled" : "enabled")}");
             Logger.Information($"Certificate authentication: {(DisableCertAuth ? "disabled" : "enabled")}");
 
-            PlcServer = new PlcServer();
+            PlcServer = new PlcServer(TimeService);
             PlcServer.Start(plcApplicationConfiguration);
             Logger.Information("OPC UA Server started.");
 
@@ -554,16 +569,27 @@
             {
                 await DumpPublisherConfigJsonAsync($"{GetIpAddress()}:{ServerPort}{ServerPath}").ConfigureAwait(false);
             }
-            else if (ShowPublisherConfigJsonPh) {
+            else if (ShowPublisherConfigJsonPh)
+            {
                 await DumpPublisherConfigJsonAsync($"{Hostname}:{ServerPort}{ServerPath}").ConfigureAwait(false);
             }
 
+            Ready = true;
             Logger.Information("PLC Simulation started. Press CTRL-C to exit.");
 
             // wait for Ctrl-C
-            quitEvent.WaitOne(Timeout.Infinite);
+
+            // allow canceling the connection process
+            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            Console.CancelKeyPress += (_, eArgs) => {
+                cancellationTokenSource.Cancel();
+                eArgs.Cancel = true;
+            };
+            while (!cancellationTokenSource.Token.WaitHandle.WaitOne(1000))
+            {
+            }
             PlcSimulation.Stop();
-            shutdownTokenSource.Cancel();
+            PlcServer.Stop();
         }
 
         /// <summary>

@@ -1,8 +1,8 @@
 namespace OpcPlc
 {
     using System;
+    using System.Diagnostics;
     using System.Text;
-    using System.Threading;
     using static Program;
 
     public class PlcSimulation
@@ -15,12 +15,22 @@ namespace OpcPlc
         public static bool GeneratePosTrend { get; set; } = true;
         public static bool GenerateNegTrend { get; set; } = true;
         public static bool GenerateData { get; set; } = true;
+        
+        public static bool SlowNodeRandomization { get; set; } = false;
         public static uint SlowNodeCount { get; set; } = 1;
-        public static uint SlowNodeRate { get; set; } = 10; // s.
+        public static uint SlowNodeRate { get; set; } = 10000; // s.
+        public static string SlowNodeMinValue { get; set; }
+        public static string SlowNodeMaxValue { get; set; }
+        public static string SlowNodeStepSize { get; set; } = "1";        
         public static NodeType SlowNodeType { get; set; } = NodeType.UInt;
         public static uint SlowNodeSamplingInterval { get; set; } // ms.
+
+        public static bool FastNodeRandomization { get; set; } = false;
         public static uint FastNodeCount { get; set; } = 1;
-        public static uint FastNodeRate { get; set; } = 1; // s.
+        public static uint FastNodeRate { get; set; } = 1000; // ms.
+        public static string FastNodeMinValue { get; set; }
+        public static string FastNodeMaxValue { get; set; }
+        public static string FastNodeStepSize { get; set; } = "1";
         public static NodeType FastNodeType { get; set; } = NodeType.UInt;
         public static uint FastNodeSamplingInterval { get; set; } // ms.
 
@@ -84,17 +94,21 @@ namespace OpcPlc
 
             if (SlowNodeCount > 0)
             {
-                _slowNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseSlowNodes, null, 0, SlowNodeRate * 1000);
+                _slowNodeGenerator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateSlowNodes, SlowNodeRate);
             }
 
             if (FastNodeCount > 0)
             {
-                _fastNodeGenerator = new Timer(_plcServer.PlcNodeManager.IncreaseFastNodes, null, 0, FastNodeRate * 1000);
+                // only use the fast timers when we need to go really fast,
+                // since they consume more resources and create an own thread.
+                _fastNodeGenerator = FastNodeRate >= 50 || !Stopwatch.IsHighResolution ?
+                    _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateFastNodes, FastNodeRate) :
+                    _plcServer.TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastNodes, FastNodeRate);
             }
 
             if (AddComplexTypeBoiler)
             {
-                _boiler1Generator = new Timer(_plcServer.PlcNodeManager.UpdateBoiler1, null, 0, period: 1000);
+                _boiler1Generator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
             }
 
             if (AddSpecialCharName)
@@ -133,9 +147,19 @@ namespace OpcPlc
             _plcServer.PlcNodeManager.RandomUnsignedInt32?.Stop();
             _plcServer.PlcNodeManager.SpecialCharNameNode?.Stop();
 
-            _slowNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
-            _fastNodeGenerator?.Change(Timeout.Infinite, Timeout.Infinite);
-            _boiler1Generator?.Change(Timeout.Infinite, Timeout.Infinite);
+            Disable(_slowNodeGenerator);
+            Disable(_fastNodeGenerator);
+            Disable(_boiler1Generator);
+        }
+
+        private void Disable(ITimer timer)
+        {
+            if (timer == null)
+            {
+                return;
+            }
+
+            timer.Enabled = false;
         }
 
         /// <summary>
@@ -209,7 +233,7 @@ namespace OpcPlc
             double nextValue = TREND_BASEVALUE;
             if (GeneratePosTrend && _posTrendPhase >= _posTrendAnomalyPhase)
             {
-                nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10);
+                nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10d);
                 Logger.Verbose("Generate postrend anomaly");
             }
 
@@ -234,7 +258,7 @@ namespace OpcPlc
             double nextValue = TREND_BASEVALUE;
             if (GenerateNegTrend && _negTrendPhase >= _negTrendAnomalyPhase)
             {
-                nextValue = TREND_BASEVALUE - ((_negTrendPhase - _negTrendAnomalyPhase) / 10);
+                nextValue = TREND_BASEVALUE - ((_negTrendPhase - _negTrendAnomalyPhase) / 10d);
                 Logger.Verbose("Generate negtrend anomaly");
             }
 
@@ -350,9 +374,9 @@ namespace OpcPlc
         private int _negTrendPhase;
         private bool _stepUpStarted;
 
-        private Timer _slowNodeGenerator;
-        private Timer _fastNodeGenerator;
+        private ITimer _slowNodeGenerator;
+        private ITimer _fastNodeGenerator;
 
-        private Timer _boiler1Generator;
+        private ITimer _boiler1Generator;
     }
 }
