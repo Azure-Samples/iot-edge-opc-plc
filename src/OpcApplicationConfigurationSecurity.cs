@@ -1,11 +1,12 @@
 ﻿namespace OpcPlc
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Opc.Ua;
-    using System;
-    using System.Security.Cryptography.X509Certificates;
+    using Opc.Ua.Security.Certificates;
     using static Program;
 
     /// <summary>
@@ -147,9 +148,6 @@
             ApplicationConfiguration.CertificateValidator = new CertificateValidator();
             ApplicationConfiguration.CertificateValidator.CertificateValidation += new CertificateValidationEventHandler(CertificateValidator_CertificateValidation);
 
-            // update security information
-            await ApplicationConfiguration.CertificateValidator.Update(ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
-
             // remove issuer and trusted certificates with the given thumbprints
             if (ThumbprintsToRemove?.Count > 0)
             {
@@ -196,14 +194,20 @@
                 }
             }
 
-            // use existing certificate, if it is there
-            certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Find(true).ConfigureAwait(false);
+            // reload the application certificate with private key, if it is there
+            // note: do not change this sequence, or the private key is not properly loaded on some platforms
+            if (await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.LoadPrivateKey(null).ConfigureAwait(false) != null)
+            {
+                // update certificate with private key
+                certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Find(true).ConfigureAwait(false);
+            }
 
             // create a self signed certificate if there is none
             if (certificate == null)
             {
                 Logger.Information($"No existing Application certificate found. Create a self-signed Application certificate valid from yesterday for {CertificateFactory.DefaultLifeTime} months,");
                 Logger.Information($"with a {CertificateFactory.DefaultKeySize} bit key and {CertificateFactory.DefaultHashSize} bit hash.");
+#pragma warning disable CS0618 // Type or member is obsolete
                 certificate = CertificateFactory.CreateCertificate(
                     ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StoreType,
                     ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath,
@@ -220,17 +224,30 @@
                     issuerCAKeyCert: null,
                     publicKey: null
                     );
+#pragma warning restore CS0618 // Type or member is obsolete
                 Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' created.");
 
-                // update security information
-                ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = certificate ?? throw new Exception("OPC UA application certificate can not be created! Cannot continue without it!");
-                await ApplicationConfiguration.CertificateValidator.UpdateCertificate(ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
+                // reload the cert in the key store
+                certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.LoadPrivateKey(null);
+                if (certificate == null)
+                {
+                    throw new Exception("OPC UA application certificate can not be loaded from disk!");
+                }
+                else
+                {
+                    // update certificate with private key
+                    certificate = await ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Find(true).ConfigureAwait(false);
+                }
             }
             else
             {
                 Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' found in the application certificate store.");
             }
-            ApplicationConfiguration.ApplicationUri = Utils.GetApplicationUriFromCertificate(certificate);
+
+            // update security information
+            await ApplicationConfiguration.CertificateValidator.Update(ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
+
+            ApplicationConfiguration.ApplicationUri = X509Utils.GetApplicationUriFromCertificate(certificate);
             Logger.Information($"Application certificate is for ApplicationUri '{ApplicationConfiguration.ApplicationUri}', ApplicationName '{ApplicationConfiguration.ApplicationName}' and Subject is '{ApplicationConfiguration.ApplicationName}'");
 
             // we make the default reference stack behavior configurable to put our own certificate into the trusted peer store, but only for self-signed certs
@@ -255,6 +272,8 @@
             {
                 await ShowCreateSigningRequestInformationAsync(certificate).ConfigureAwait(false);
             }
+
+            X509Utils.VerifyRSAKeyPair(certificate, certificate, true);
         }
 
         /// <summary>
@@ -349,7 +368,7 @@
                     Logger.Information($"Trusted issuer store has {crls.Count} CRLs.");
                     foreach (var crl in certStore.EnumerateCRLs())
                     {
-                        Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdateTime}'");
+                        Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdate}'");
                     }
                 }
             }
@@ -376,7 +395,7 @@
                     Logger.Information($"Trusted peer store has {crls.Count} CRLs.");
                     foreach (var crl in certStore.EnumerateCRLs())
                     {
-                        Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdateTime}'");
+                        Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdate}'");
                     }
                 }
             }
@@ -653,7 +672,7 @@
                 {
                     try
                     {
-                        if (Utils.CompareDistinguishedName(newCrl.Issuer, trustedCertificate.Subject) && newCrl.VerifySignature(trustedCertificate, false))
+                        if (X509Utils.CompareDistinguishedName(newCrl.Issuer, trustedCertificate.Subject) && newCrl.VerifySignature(trustedCertificate, false))
                         {
                             // the issuer of the new CRL is trusted. delete the crls of the issuer in the trusted store
                             Logger.Information("Remove the current CRL from the trusted peer store.");
@@ -707,7 +726,7 @@
                 {
                     try
                     {
-                        if (Utils.CompareDistinguishedName(newCrl.Issuer, issuerCertificate.Subject) && newCrl.VerifySignature(issuerCertificate, false))
+                        if (X509Utils.CompareDistinguishedName(newCrl.Issuer, issuerCertificate.Subject) && newCrl.VerifySignature(issuerCertificate, false))
                         {
                             // the issuer of the new CRL is trusted. delete the crls of the issuer in the trusted store
                             Logger.Information("Remove the current CRL from the trusted issuer store.");
@@ -841,7 +860,7 @@
             }
 
             // for a cert update subject names of current and new certificate must match
-            if (hasApplicationCertificate && !Utils.CompareDistinguishedName(currentSubjectName, newCertificate.SubjectName.Name))
+            if (hasApplicationCertificate && !X509Utils.CompareDistinguishedName(currentSubjectName, newCertificate.SubjectName.Name))
             {
                 Logger.Error($"The SubjectName '{newCertificate.SubjectName.Name}' of the new certificate doesn't match the current certificates SubjectName '{currentSubjectName}'.");
                 return false;
@@ -850,7 +869,7 @@
             // if the new cert is not selfsigned verify with the trusted peer and trusted issuer certificates
             try
             {
-                if (!Utils.CompareDistinguishedName(newCertificate.Subject, newCertificate.Issuer))
+                if (!X509Utils.CompareDistinguishedName(newCertificate.Subject, newCertificate.Issuer))
                 {
                     // verify the new certificate was signed by a trusted issuer or trusted peer
                     var certValidator = new CertificateValidator();
@@ -891,7 +910,7 @@
             {
                 try
                 {
-                    X509Certificate2 certWithPrivateKey = CertificateFactory.CreateCertificateFromPKCS12(privateKey, certificatePassword);
+                    X509Certificate2 certWithPrivateKey = X509Utils.CreateCertificateFromPKCS12(privateKey, certificatePassword);
                     newCertificateWithPrivateKey = CertificateFactory.CreateCertificateWithPrivateKey(newCertificate, certWithPrivateKey);
                     newCertFormat = "PFX";
                     Logger.Information("The private key for the new certificate was passed in using PFX format.");

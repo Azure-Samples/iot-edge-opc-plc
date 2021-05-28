@@ -58,7 +58,6 @@ namespace SimpleEvents {
             string[] namespaceUrls = new string[1];
             namespaceUrls[0] = OpcPlc.Namespaces.OpcPlcSimpleEvents;
             SetNamespaces(namespaceUrls);
-
         }
 
         #endregion

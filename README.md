@@ -96,9 +96,18 @@ A number of changing nodes can be simulated with the following options. The node
 - sn: Number of slow nodes (default 1)
 - sr: Rate in seconds at which to change the slow nodes (uint, default every 10 s)
 - st: Data type for slow nodes (UInt|Double|Bool|UIntArray, case insensitive)
+- stl: lower bound of data type of slow nodes (UInt|Double types only, defaults to minimium value of the type in C# with exception of Double where it defaults to 0.0)
+- stu: upper bound of data type of slow nodes (UInt|Double types only, defaults to maximum value of the type in C#)
+- str: randomization of slow nodes value (UInt|Double types only, defaults to false)
+- sts: step or increment size of slow nodes value (UInt|Double types only, defaults to 1)
 - fn: Number of fast nodes (default 1)
 - fr: Rate in seconds at which to change the fast nodes (uint, default every 1 s)
+- vfr: Rate in milliseconds at which to change the fast nodes (uint, default every 1000 ms)
 - ft: Data type for fast nodes (UInt|Double|Bool|UIntArray, case insensitive)
+- ftl: lower bound of data type of fast nodes (UInt|Double types only, defaults to minimium value of the type in C# with exception of Double where it defaults to 0.0)
+- ftu: upper bound of data type of fast nodes (UInt|Double types only, defaults to maximum value of the type in C#)
+- ftr: randomization of fast nodes value (UInt|Double types only, defaults to false)
+- fts: step or increment size of fast nodes value (UInt|Double types only, defaults to 1)
 
 ### Data types
 - UInt: Increases by 1
@@ -175,6 +184,11 @@ More information about this feature can be found [here](deterministic-alarms.md)
 - Node with special characters in name: `--scn`
 - Node with long ID (3950 bytes): `--lid`
 - Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray): `--lsn`
+- Nodes for testing all datatypes, arrays, methods, permissions, etc `--ref`. The ReferenceNodeManager of the [OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard) is used for this purpose.
+- Limit the number of updates of Slow and Fast nodes. Update the values of the `SlowNumberOfUpdates` and `FastNumberOfUpdates` configuration nodes in the `OpcPlc/SimulatorConfiguration` folder to:
+  - `< 0` (default): Slow and Fast nodes are updated indefinitely
+  - `0`: Slow and Fast nodes are not updated
+  - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
 
 ## Build
 
