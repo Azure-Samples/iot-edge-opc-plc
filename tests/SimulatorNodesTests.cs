@@ -13,7 +13,7 @@ namespace OpcPlc.Tests
     /// </summary>
     [TestFixture]
     public class SimulatorNodesTests : SimulatorTestsBase
-    {        
+    {
         // Set any cmd params needed for the plc server explicitly.
         public SimulatorNodesTests() : base(new string[] { })
         {

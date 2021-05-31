@@ -1,9 +1,9 @@
-﻿using OpcPlc.DeterministicAlarms.Configuration;
-using System;
-using System.Collections.Generic;
-
-namespace OpcPlc.DeterministicAlarms.SimBackend
+﻿namespace OpcPlc.DeterministicAlarms.SimBackend
 {
+    using OpcPlc.DeterministicAlarms.Configuration;
+    using System;
+    using System.Collections.Generic;
+
     public class SimSourceNodeBackend
     {
         public Dictionary<string, SimAlarmStateBackend> Alarms { get; set; } = new Dictionary<string, SimAlarmStateBackend>();
@@ -11,6 +11,7 @@ namespace OpcPlc.DeterministicAlarms.SimBackend
         public string Name { get; internal set; }
 
         public AlarmChangedEventHandler OnAlarmChanged;
+
         public delegate void AlarmChangedEventHandler(SimAlarmStateBackend alarm);
 
         public void CreateAlarms(List<Alarm> alarmsFromConfiguration)
@@ -40,7 +41,7 @@ namespace OpcPlc.DeterministicAlarms.SimBackend
         {
             List<SimAlarmStateBackend> snapshots = new List<SimAlarmStateBackend>();
 
-            lock(this.Alarms)
+            lock (this.Alarms)
             {
                 foreach (var alarm in this.Alarms.Values)
                 {

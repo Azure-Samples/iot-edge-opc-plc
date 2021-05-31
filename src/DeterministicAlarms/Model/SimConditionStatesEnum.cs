@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace OpcPlc.DeterministicAlarms.Model
+﻿namespace OpcPlc.DeterministicAlarms.Model
 {
+    using System;
+
     [Flags]
     public enum SimConditionStatesEnum
     {

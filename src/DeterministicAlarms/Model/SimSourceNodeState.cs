@@ -1,12 +1,12 @@
-﻿using Opc.Ua;
-using OpcPlc.DeterministicAlarms.Configuration;
-using OpcPlc.DeterministicAlarms.SimBackend;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace OpcPlc.DeterministicAlarms.Model
+﻿namespace OpcPlc.DeterministicAlarms.Model
 {
+    using Opc.Ua;
+    using OpcPlc.DeterministicAlarms.Configuration;
+    using OpcPlc.DeterministicAlarms.SimBackend;
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+
     public class SimSourceNodeState : BaseObjectState
     {
         private DeterministicAlarmsNodeManager _nodeManager;
@@ -47,8 +47,8 @@ namespace OpcPlc.DeterministicAlarms.Model
                 {
                     return;
                 }
-
             }
+
             foreach (var alarm in _alarmNodes.Values)
             {
                 if (!alarm.Retain.Value)
@@ -117,7 +117,7 @@ namespace OpcPlc.DeterministicAlarms.Model
             }
 
             CreateCommonFieldsForAlarmAndCondition(context, node, alarm, branchId);
-          
+
             // This call initializes the condition from the type model (i.e. creates all of the objects
             // and variables requried to store its state). The information about the type model was 
             // incorporated into the class when the class was created.
@@ -131,7 +131,7 @@ namespace OpcPlc.DeterministicAlarms.Model
                 new QualifiedName(alarm.Name, this.BrowseName.NamespaceIndex),
                 null,
                 true);
-            
+
             // initialize event information.node
             node.EventType.Value = node.TypeDefinitionId;
             node.SourceNode.Value = this.NodeId;
@@ -200,7 +200,7 @@ namespace OpcPlc.DeterministicAlarms.Model
                 _events.Remove(Utils.ToHexString(node.EventId.Value));
             }
 
-            node.EventId.Value = eventId != null ? Encoding.UTF8.GetBytes(eventId) : Guid.NewGuid().ToByteArray();            
+            node.EventId.Value = eventId != null ? Encoding.UTF8.GetBytes(eventId) : Guid.NewGuid().ToByteArray();
             node.Time.Value = DateTime.UtcNow;
             node.ReceiveTime.Value = node.Time.Value;
 
@@ -228,13 +228,13 @@ namespace OpcPlc.DeterministicAlarms.Model
                     nodeAlarm.SetSuppressedState(context, (alarm.State & SimConditionStatesEnum.Suppressed) != 0);
                     nodeAlarm.ActiveState.TransitionTime.Value = alarm.ActiveTime;
                     // not interested in inactive alarms
-                    if(!nodeAlarm.ActiveState.Id.Value)
+                    if (!nodeAlarm.ActiveState.Id.Value)
                     {
                         nodeAlarm.Retain.Value = false;
                     }
                 }
-
             }
+
             // check for deleted items.
             if ((alarm.State & SimConditionStatesEnum.Deleted) != 0)
             {

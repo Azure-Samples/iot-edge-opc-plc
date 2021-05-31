@@ -4,7 +4,6 @@ namespace OpcPlc
     using System.Diagnostics;
     using System.Threading;
     using System.Timers;
-    using Microsoft.AspNetCore.SignalR.Protocol;
     using Timer = System.Timers.Timer;
 
     /// <summary>

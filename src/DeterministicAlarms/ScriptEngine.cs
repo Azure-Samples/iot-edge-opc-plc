@@ -1,13 +1,14 @@
-﻿using OpcPlc.DeterministicAlarms.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Timers;
-
-namespace OpcPlc.DeterministicAlarms
+﻿namespace OpcPlc.DeterministicAlarms
 {
+    using OpcPlc.DeterministicAlarms.Configuration;
+    using System;
+    using System.Collections.Generic;
+    using System.Timers;
+
     class ScriptEngine
     {
         public delegate void NextScriptStepAvailable(Step step, long numberOfLoops);
+
         public NextScriptStepAvailable OnNextScriptStepAvailable;
 
         private LinkedList<Step> _steps;
@@ -26,7 +27,7 @@ namespace OpcPlc.DeterministicAlarms
         /// <param name="timeService"></param>
         public ScriptEngine(Script script, NextScriptStepAvailable scriptCallback, TimeService timeService)
         {
-            if(scriptCallback == null)
+            if (scriptCallback == null)
             {
                 throw new ScriptException("Script Callback is not defined");
             }
@@ -73,7 +74,7 @@ namespace OpcPlc.DeterministicAlarms
         private void ActivateCurrentStep(LinkedListNode<Step> step)
         {
             _currentStep = step;
-            OnNextScriptStepAvailable?.Invoke(step?.Value , _numberOfLoops);
+            OnNextScriptStepAvailable?.Invoke(step?.Value, _numberOfLoops);
             if (_stepsTimer != null)
             {
                 _stepsTimer.Interval = Math.Max(1, step.Value.SleepInSeconds * 1000);
@@ -89,14 +90,14 @@ namespace OpcPlc.DeterministicAlarms
         {
             // Script should end because it has been executed as long as expected in the parameter
             // RunningForSeconds
-            if(_scriptStopTime < _timeService.Now())
+            if (_scriptStopTime < _timeService.Now())
             {
                 StopScript();
                 return null;
             }
 
             // Is it the first step?
-            if(step == null)
+            if (step == null)
             {
                 return _steps.First;
             }

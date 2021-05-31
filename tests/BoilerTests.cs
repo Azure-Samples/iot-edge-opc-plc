@@ -12,7 +12,9 @@ namespace OpcPlc.Tests
     [TestFixture]
     public class BoilerTests : SimulatorTestsBase
     {
-        public BoilerTests() : base(new[] { "--ctb" }) { }
+        public BoilerTests() : base(new[] { "--ctb" })
+        {
+        }
 
         [TearDown]
         public new virtual void TearDown()

@@ -92,7 +92,7 @@ namespace OpcPlc.Tests
         /// <param name="periodInMilliseconds">Defines the timers to fire: only timers with this interval are fired.</param>
         /// <param name="numberOfTimes">Number of times the timer should be fired.</param>
         protected void FireTimersWithPeriod(TimeSpan periodInMilliseconds, int numberOfTimes)
-            => _simulator.FireTimersWithPeriod((uint) periodInMilliseconds.TotalMilliseconds, numberOfTimes);
+            => _simulator.FireTimersWithPeriod((uint)periodInMilliseconds.TotalMilliseconds, numberOfTimes);
 
         private NodeId FindNode(NodeId startingNode, string relativePath)
         {

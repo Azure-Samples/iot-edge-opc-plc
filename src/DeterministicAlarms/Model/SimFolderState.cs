@@ -1,10 +1,7 @@
-﻿using Opc.Ua;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace OpcPlc.DeterministicAlarms.Model
+﻿namespace OpcPlc.DeterministicAlarms.Model
 {
+    using Opc.Ua;
+
     class SimFolderState : FolderState
     {
         public SimFolderState(ISystemContext context, NodeState parent, NodeId nodeId, string name) : base(parent)

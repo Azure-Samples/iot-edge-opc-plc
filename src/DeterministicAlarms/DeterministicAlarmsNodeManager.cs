@@ -1,15 +1,15 @@
-﻿using Opc.Ua;
-using Opc.Ua.Server;
-using OpcPlc.DeterministicAlarms.Configuration;
-using OpcPlc.DeterministicAlarms.Model;
-using OpcPlc.DeterministicAlarms.SimBackend;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using static OpcPlc.Program;
-
-namespace OpcPlc.DeterministicAlarms
+﻿namespace OpcPlc.DeterministicAlarms
 {
+    using Opc.Ua;
+    using Opc.Ua.Server;
+    using OpcPlc.DeterministicAlarms.Configuration;
+    using OpcPlc.DeterministicAlarms.Model;
+    using OpcPlc.DeterministicAlarms.SimBackend;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using static OpcPlc.Program;
+
     public class DeterministicAlarmsNodeManager : CustomNodeManager2
     {
         private SimBackendService _system;
@@ -39,7 +39,7 @@ namespace OpcPlc.DeterministicAlarms
 
             // set one namespace for the type model and one names for dynamically created nodes.
             string[] namespaceUrls = new string[1];
-            namespaceUrls[0] = Namespaces.OpcPlcDeterministicAlarmsInstance;
+            namespaceUrls[0] = OpcPlc.Namespaces.OpcPlcDeterministicAlarmsInstance;
             SetNamespaces(namespaceUrls);
 
             // read script configuration file
@@ -48,7 +48,7 @@ namespace OpcPlc.DeterministicAlarms
                 var jsonstring = File.ReadAllText(_scriptFileName);
                 _scriptconfiguration = Configuration.Configuration.FromJson(jsonstring);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.Error(ex, "Can't read or decode deterministic alarm script file.");
             }
@@ -93,10 +93,12 @@ namespace OpcPlc.DeterministicAlarms
                     {
                         throw new ScriptException($"EventId: {step.Event.EventId} already exist");
                     }
+
                     if (!_scriptAlarmToSources.ContainsKey(step.Event.AlarmId))
                     {
                         throw new ScriptException($"AlarmId: {step.Event.AlarmId} is not defined");
                     }
+
                     if (step.Event.StateChanges == null || step.Event.StateChanges.Count == 0)
                     {
                         throw new ScriptException($"{step.Event.EventId} doesn't have any StateChanges");
@@ -211,6 +213,7 @@ namespace OpcPlc.DeterministicAlarms
         }
 
         #region CustomNodeManager2 overrides
+
         /// <summary>
         /// Creates a new set of monitored items for a set of variables.
         /// </summary>
@@ -327,9 +330,9 @@ namespace OpcPlc.DeterministicAlarms
         /// Verifies that the specified node exists.
         /// </summary>
         protected override NodeState ValidateNode(
-             ServerSystemContext context,
-             NodeHandle handle,
-             IDictionary<NodeId, NodeState> cache)
+            ServerSystemContext context,
+            NodeHandle handle,
+            IDictionary<NodeId, NodeState> cache)
         {
             // lookup in cache.
             NodeState target = FindNodeInCache(context, handle, cache);
@@ -353,10 +356,10 @@ namespace OpcPlc.DeterministicAlarms
         /// manager must start/stop reporting events for all objects that it manages.
         /// </remarks>
         public override ServiceResult SubscribeToAllEvents(
-             Opc.Ua.Server.OperationContext context,
-             uint subscriptionId,
-             IEventMonitoredItem monitoredItem,
-             bool unsubscribe)
+            Opc.Ua.Server.OperationContext context,
+            uint subscriptionId,
+            IEventMonitoredItem monitoredItem,
+            bool unsubscribe)
         {
             ServerSystemContext serverSystemContext = SystemContext.Copy(context);
 
@@ -386,12 +389,11 @@ namespace OpcPlc.DeterministicAlarms
         /// <param name="unsubscribe">if set to <c>true</c> [unsubscribe].</param>
         /// <returns>Any error code.</returns>
         protected override ServiceResult SubscribeToEvents(
-           ServerSystemContext context,
-           NodeState source,
-           IEventMonitoredItem monitoredItem,
-           bool unsubscribe)
+            ServerSystemContext context,
+            NodeState source,
+            IEventMonitoredItem monitoredItem,
+            bool unsubscribe)
         {
-
             // handle unsubscribe.
             if (unsubscribe)
             {
@@ -464,7 +466,6 @@ namespace OpcPlc.DeterministicAlarms
         /// </remarks>
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
         {
-
             lock (Lock)
             {
                 IList<IReference> references = null;
@@ -645,6 +646,8 @@ namespace OpcPlc.DeterministicAlarms
 
             return predefinedNodes;
         }
+
         #endregion
+
     }
 }

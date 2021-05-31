@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
-using OpcPlc.DeterministicAlarms.Configuration;
-using static OpcPlc.DeterministicAlarms.SimBackend.SimSourceNodeBackend;
-
-namespace OpcPlc.DeterministicAlarms.SimBackend
+﻿namespace OpcPlc.DeterministicAlarms.SimBackend
 {
+    using System.Collections.Generic;
+    using OpcPlc.DeterministicAlarms.Configuration;
+    using static OpcPlc.DeterministicAlarms.SimBackend.SimSourceNodeBackend;
+
     public class SimBackendService
     {
         private object _lock = new object();
@@ -13,7 +13,7 @@ namespace OpcPlc.DeterministicAlarms.SimBackend
         {
             SimSourceNodeBackend simSourceNodeBackend;
 
-            lock(_lock)
+            lock (_lock)
             {
                 simSourceNodeBackend = new SimSourceNodeBackend
                 {

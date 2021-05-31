@@ -125,7 +125,7 @@ namespace OpcPlc.Tests
         {
             var events = ReceiveEvents(expectedCount);
             var values = events
-                .Select(a => (EventFieldList) a.NotificationValue)
+                .Select(a => (EventFieldList)a.NotificationValue)
                 .Select(EventFieldListToDictionary);
             return values;
         }
