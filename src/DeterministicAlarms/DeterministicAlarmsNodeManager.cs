@@ -84,18 +84,14 @@ namespace OpcPlc.DeterministicAlarms
                 }
             }
 
-            var uniqueEventIds = new Dictionary<string, string>();
+            var uniqueEventIds = new HashSet<string>();
             foreach (var step in scriptConfiguration.Script.Steps)
             {
                 if (step.Event != null)
                 {
-                    if (uniqueEventIds.ContainsKey(step.Event.EventId))
+                    if (!uniqueEventIds.Add(step.Event.EventId))
                     {
                         throw new ScriptException($"EventId: {step.Event.EventId} already exist");
-                    }
-                    else
-                    {
-                        uniqueEventIds[step.Event.EventId] = step.Event.AlarmId;
                     }
                     if (!_scriptAlarmToSources.ContainsKey(step.Event.AlarmId))
                     {
@@ -146,7 +142,7 @@ namespace OpcPlc.DeterministicAlarms
                     var alarm = GetAlarm(step);
                     UpdateAlarm(alarm, step.Event);
                     var sourceNodeId = _scriptAlarmToSources[step.Event.AlarmId];
-                    _sourceNodes[sourceNodeId].UpdateAlarmInSource(alarm, $"{step.Event.AlarmId}({loopNumber})");
+                    _sourceNodes[sourceNodeId].UpdateAlarmInSource(alarm, $"{step.Event.EventId} ({loopNumber})");
                 }
 
                 PrintScriptStep(step, loopNumber);

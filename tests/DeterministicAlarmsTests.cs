@@ -53,7 +53,7 @@ namespace OpcPlc.Tests
                 .First()
                 .Should().Contain(new Dictionary<string, object>
                 {
-                    ["/EventId"] = "V1_DoorOpen(1)",
+                    ["/EventId"] = "V1_DoorOpen-1 (1)",
                     ["/EventType"] = ToNodeId(ObjectTypes.TripAlarmType),
                     ["/SourceNode"] = machine1,
                     ["/SourceName"] = "VendingMachine1",
@@ -72,7 +72,7 @@ namespace OpcPlc.Tests
                 .First()
                 .Should().Contain(new Dictionary<string, object>
                 {
-                    ["/EventId"] = "V2_LightOff(1)",
+                    ["/EventId"] = "V2_LightOff-1 (1)",
                     ["/EventType"] = ToNodeId(ObjectTypes.OffNormalAlarmType),
                     ["/SourceNode"] = machine2,
                     ["/SourceName"] = "VendingMachine2",
@@ -88,7 +88,7 @@ namespace OpcPlc.Tests
                 .First()
                 .Should().Contain(new Dictionary<string, object>
                 {
-                    ["/EventId"] = "V1_DoorOpen(1)",
+                    ["/EventId"] = "V1_DoorOpen-2 (1)",
                     ["/EventType"] = ToNodeId(ObjectTypes.TripAlarmType),
                     ["/SourceNode"] = machine1,
                     ["/SourceName"] = "VendingMachine1",
@@ -104,7 +104,7 @@ namespace OpcPlc.Tests
                 .First()
                 .Should().Contain(new Dictionary<string, object>
                 {
-                    ["/EventId"] = "V1_TemperatureHigh(1)",
+                    ["/EventId"] = "V1_TemperatureHigh-1 (1)",
                     ["/EventType"] = ToNodeId(ObjectTypes.LimitAlarmType),
                     ["/SourceNode"] = machine1,
                     ["/SourceName"] = "VendingMachine1",
@@ -118,7 +118,7 @@ namespace OpcPlc.Tests
                 .First()
                 .Should().Contain(new Dictionary<string, object>
                 {
-                    ["/EventId"] = "V1_DoorOpen(2)",
+                    ["/EventId"] = "V1_DoorOpen-1 (2)",
                     ["/Message"] = new LocalizedText("Door Open"),
                 });
 
@@ -130,6 +130,7 @@ namespace OpcPlc.Tests
                 .First()
                 .Should().Contain(new Dictionary<string, object>
                 {
+                    ["/EventId"] = "V2_LightOff-1 (2)",
                     ["/Message"] = new LocalizedText("Light Off in machine"),
                 });
 
