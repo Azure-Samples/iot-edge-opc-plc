@@ -45,7 +45,7 @@ namespace OpcPlc.Tests
             FireTimersWithPeriod(1000, 5);
 
             // Assert
-            var events = ReceiveEvents(5);
+            var events = ReceiveAtMostEvents(5);
             var values = events
                 .Select(a => (EventFieldList)a.NotificationValue)
                 .Select(EventFieldListToDictionary);

@@ -116,6 +116,23 @@ namespace OpcPlc.Tests
         }
 
         /// <summary>
+        /// Wait until a given number of events have been received, and return them.
+        /// </summary>
+        /// <param name="expectedCount">Number of events to at most receive.</param>
+        protected List<MonitoredItemNotificationEventArgs> ReceiveAtMostEvents(int expectedCount)
+        {
+            var sw = Stopwatch.StartNew();
+            do
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(100));
+            } while (_receivedEvents.Count < expectedCount && sw.Elapsed < TimeSpan.FromSeconds(10));
+
+            var events = _receivedEvents.Take(expectedCount).ToList();
+            events.Should().HaveCount(expectedCount);
+            return events;
+        }
+
+        /// <summary>
         /// Utility method to combine the retrieved field names (from the monitored item filter select clause)
         /// and the retrieved field values (from a received event) into a name/value dictionary.
         /// </summary>
