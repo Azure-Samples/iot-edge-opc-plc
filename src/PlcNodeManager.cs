@@ -118,6 +118,46 @@ namespace OpcPlc
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
+        public void UpdateEventInstances(object state, ElapsedEventArgs elapsedEventArgs)
+#pragma warning restore IDE0060 // Remove unused parameter
+        {
+            UpdateEventInstances();
+        }
+
+#pragma warning disable IDE0060 // Remove unused parameter
+        public void UpdateVeryFastEventInstances(object state, FastTimerElapsedEventArgs elapsedEventArgs)
+#pragma warning restore IDE0060 // Remove unused parameter
+        {
+            UpdateEventInstances();
+        }
+
+        private void UpdateEventInstances()
+        {
+            uint eventInstanceCycle = _eventInstanceCycle++;
+
+            for (uint i=0; i<PlcSimulation.EventInstanceCount; i++)
+            {
+                var e = new BaseEventState(null);
+                var info = new TranslationInfo(
+                    "EventInstanceCycleEventKey",
+                    "en-us",
+                    "Event with index '{0}' and event cycle '{1}'",
+                    i, eventInstanceCycle);
+
+                e.Initialize(
+                    SystemContext,
+                    null,
+                    (EventSeverity)EventSeverity.Medium,
+                    new LocalizedText(info));
+
+                e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceName, "System", false);
+                e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, false);
+
+                Server.ReportEvent(e);
+            };
+        }
+
+#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
@@ -1059,6 +1099,7 @@ namespace OpcPlc
 
         private uint _slowBadNodesCycle = 0;
         private uint _fastBadNodesCycle = 0;
+        private uint _eventInstanceCycle = 0;
 
         private BaseDataVariableState _slowNumberOfUpdates;
         private BaseDataVariableState _fastNumberOfUpdates;
