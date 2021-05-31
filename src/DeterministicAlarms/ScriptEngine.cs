@@ -12,17 +12,19 @@ namespace OpcPlc.DeterministicAlarms
 
         private LinkedList<Step> _steps;
         private LinkedListNode<Step> _currentStep;
-        private Timer _stepsTimer;
+        private ITimer _stepsTimer;
         private Script _script;
         private long _numberOfLoops = 1;
-        private DateTime _scriptStartTime;
+        private DateTime _scriptStopTime;
+        private TimeService _timeService;
 
         /// <summary>
         /// Initialize ScriptEngine
         /// </summary>
         /// <param name="script"></param>
         /// <param name="scriptCallback"></param>
-        public ScriptEngine(Script script, NextScriptStepAvailable scriptCallback)
+        /// <param name="timeService"></param>
+        public ScriptEngine(Script script, NextScriptStepAvailable scriptCallback, TimeService timeService)
         {
             if(scriptCallback == null)
             {
@@ -32,6 +34,7 @@ namespace OpcPlc.DeterministicAlarms
             OnNextScriptStepAvailable += scriptCallback;
 
             _script = script;
+            _timeService = timeService;
 
             CreateLinkedList(script.Steps);
 
@@ -40,11 +43,8 @@ namespace OpcPlc.DeterministicAlarms
 
         private void StartScript()
         {
-            _stepsTimer = new Timer();
-            _stepsTimer.Elapsed += OnStepTimedEvent;
-            _stepsTimer.Interval = _script.WaitUntilStartInSeconds * 1000;
-            _stepsTimer.Start();
-            _scriptStartTime = DateTime.Now;
+            _stepsTimer = _timeService.NewTimer(OnStepTimedEvent, Convert.ToUInt32(_script.WaitUntilStartInSeconds * 1000));
+            _scriptStopTime = _timeService.Now().AddSeconds(_script.RunningForSeconds + _script.WaitUntilStartInSeconds);
         }
 
         private void StopScript()
@@ -76,7 +76,7 @@ namespace OpcPlc.DeterministicAlarms
             OnNextScriptStepAvailable?.Invoke(step?.Value , _numberOfLoops);
             if (_stepsTimer != null)
             {
-                _stepsTimer.Interval = 1 + step.Value.SleepInSeconds * 1000;
+                _stepsTimer.Interval = Math.Max(1, step.Value.SleepInSeconds * 1000);
             }
         }
 
@@ -89,7 +89,9 @@ namespace OpcPlc.DeterministicAlarms
         {
             // Script should end because it has been executed as long as expected in the parameter
             // RunningForSeconds
-            if(_scriptStartTime.AddSeconds(_script.RunningForSeconds) < DateTime.Now)
+            var addSeconds = _scriptStopTime;
+            var dateTime = _timeService.Now();
+            if(addSeconds < dateTime)
             {
                 StopScript();
                 return null;

@@ -2,6 +2,7 @@ namespace OpcPlc.Tests
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
@@ -10,6 +11,7 @@ namespace OpcPlc.Tests
     using System.Threading;
     using System.Threading.Tasks;
     using System.Timers;
+    using FluentAssertions;
     using Moq;
     using NUnit.Framework;
     using Opc.Ua;
@@ -76,7 +78,7 @@ namespace OpcPlc.Tests
         /// </summary>
         public async Task Start()
         {
-            Program.Ready = false;
+            Reset();
             Program.Logger = new LoggerConfiguration()
                 .WriteTo.NUnitOutput()
                 .CreateLogger();
@@ -171,33 +173,44 @@ namespace OpcPlc.Tests
         /// <param name="numberOfTimes">Number of times the timer should be fired.</param>
         public void FireTimersWithPeriod(uint periodInMilliseconds, int numberOfTimes)
         {
-            var matchedHandlers = _timers.Where(t
-                    => t.timer.Enabled
-                       && CloseTo(t.timer.Interval, periodInMilliseconds))
-                .Select(t => t.handler)
-                .ToList();
+            var matchedHandlers = GetTimerHandlersForPeriod(periodInMilliseconds);
+            matchedHandlers.Should().NotBeEmpty("expected Timer(s) to be setup with interval {0}ms", periodInMilliseconds);
+
             for (var i = 0; i < numberOfTimes; i++)
             {
                 _now += TimeSpan.FromMilliseconds(periodInMilliseconds);
                 foreach (var handler in matchedHandlers)
                 {
-                    handler(null, null);
+                    handler();
                 }
             }
+        }
 
-            var matchedFastHandlers = _fastTimers.Where(t
+        public List<Action> GetTimerHandlersForPeriod(uint periodInMilliseconds)
+        {
+            var matchedTimers = _timers.Where(t
                     => t.timer.Enabled
                        && CloseTo(t.timer.Interval, periodInMilliseconds))
-                .Select(t => t.handler)
+                .Select(t => (Action)(() => t.handler(null, null)))
                 .ToList();
-            for (var i = 0; i < numberOfTimes; i++)
-            {
-                _now += TimeSpan.FromMilliseconds(periodInMilliseconds);
-                foreach (var handler in matchedFastHandlers)
-                {
-                    handler(null, null);
-                }
-            }
+
+            var matchedFastTimers = _fastTimers.Where(t
+                    => t.timer.Enabled
+                       && CloseTo(t.timer.Interval, periodInMilliseconds))
+                .Select(t => (Action)(() => t.handler(null, null)))
+                .ToList();
+
+            var matchedHandlers = matchedTimers.Union(matchedFastTimers).ToList();
+            return matchedHandlers;
+        }
+
+        private static void Reset()
+        {
+            Program.Ready = false;
+            PlcSimulation.AddAlarmSimulation = false;
+            PlcSimulation.AddDeterministicAlarmSimulation = false;
+            PlcSimulation.FastNodeRandomization = false;
+            PlcSimulation.SlowNodeRandomization = false;
         }
 
         private static bool CloseTo(double a, double b) => Math.Abs(a - b) <= Math.Abs(a * .00001);

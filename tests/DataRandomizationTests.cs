@@ -1,12 +1,10 @@
 ﻿namespace OpcPlc.Tests
 {
     using System.Linq;
-
     using FluentAssertions;
-
     using NUnit.Framework;
-
     using Opc.Ua;
+    using static System.TimeSpan;
 
     /// <summary>
     /// Tests for OPC-UA Monitoring for Data changes.
@@ -37,7 +35,7 @@
 
             // Act: collect events during 50 seconds
             // Value is updated every 10 seconds
-            FireTimersWithPeriod(10000, 5);
+            FireTimersWithPeriod(FromSeconds(10), 5);
 
             // Assert
             var events = ReceiveEvents(6);

@@ -4,6 +4,7 @@ namespace OpcPlc
     using System.Diagnostics;
     using System.Threading;
     using System.Timers;
+    using Microsoft.AspNetCore.SignalR.Protocol;
     using Timer = System.Timers.Timer;
 
     /// <summary>
@@ -93,6 +94,8 @@ namespace OpcPlc
         bool AutoReset { get; set; }
         
         double Interval { get; set; }
+
+        void Close();
     }
 
     public class FastTimerElapsedEventArgs : EventArgs 
@@ -153,6 +156,11 @@ namespace OpcPlc
         /// The event handler we call when the timer is triggered
         /// </summary>
         public event FastTimerElapsedEventHandler Elapsed;
+
+        public void Close()
+        {
+            Enabled = false;
+        }
 
         /// <summary>
         /// Starts the timer 

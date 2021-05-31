@@ -42,7 +42,6 @@ namespace OpcPlc
         public static bool AddSimpleEventsSimulation { get; set; }
         public static bool AddReferenceTestSimulation { get; set; }
         public static bool AddDeterministicAlarmSimulation { get; set; }
-        public static string DeterministicAlarmScriptFilename { get; set; }
 
         /// <summary>
         /// Simulation data.

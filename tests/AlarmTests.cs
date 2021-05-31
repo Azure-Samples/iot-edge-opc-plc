@@ -1,7 +1,6 @@
 namespace OpcPlc.Tests
 {
     using System.Collections.Generic;
-    using System.Linq;
     using FluentAssertions;
     using NUnit.Framework;
     using Opc.Ua;
@@ -18,7 +17,7 @@ namespace OpcPlc.Tests
         [SetUp]
         public void CreateMonitoredItem()
         {
-            _eventType = ToNodeId(Opc.Ua.ObjectTypes.TripAlarmType);
+            _eventType = ToNodeId(ObjectTypes.TripAlarmType);
 
             var areaNode = FindNode(Server, OpcPlc.Namespaces.OpcPlcAlarmsInstance, "Green", "East", "Blue");
             var southMotor = FindNode(areaNode, OpcPlc.Namespaces.OpcPlcAlarmsInstance, "SouthMotor");
@@ -50,11 +49,8 @@ namespace OpcPlc.Tests
         public void AlarmEventSubscribed_FiresNotification()
         {
             // Assert
-            var events = ReceiveEvents(1);
-            var values = events
-                .Select(a => (EventFieldList)a.NotificationValue)
-                .Select(EventFieldListToDictionary);
-            foreach (var value in values)
+            var events = ReceiveEventsAsDictionary(1);
+            foreach (var value in events)
             {
                 value.Should().Contain(new Dictionary<string, object>
                 {

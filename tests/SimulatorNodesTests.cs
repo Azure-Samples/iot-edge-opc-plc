@@ -6,6 +6,7 @@ namespace OpcPlc.Tests
     using FluentAssertions;
     using NUnit.Framework;
     using Opc.Ua;
+    using static System.TimeSpan;
 
     /// <summary>
     /// Tests for the variables defined in the simulator, such as fast-changing and trended nodes.
@@ -14,7 +15,7 @@ namespace OpcPlc.Tests
     public class SimulatorNodesTests : SimulatorTestsBase
     {        
         // Set any cmd params needed for the plc server explicitly.
-        public SimulatorNodesTests() : base(new[] { "--str=false" })
+        public SimulatorNodesTests() : base(new string[] { })
         {
         }
 
@@ -36,7 +37,7 @@ namespace OpcPlc.Tests
             var firstValue = 0u;
             for (int i = 0; i < 10; i++)
             {
-                FireTimersWithPeriod(100u, 1);
+                FireTimersWithPeriod(FromMilliseconds(100), 1);
 
                 var value = ReadValue<uint>(nodeId);
                 if (firstValue == 0)
@@ -70,7 +71,7 @@ namespace OpcPlc.Tests
             // take 100 measurements, which is enough that at least a few outliers should be present
             for (int i = 0; i < 100; i++)
             {
-                FireTimersWithPeriod(100u, 1);
+                FireTimersWithPeriod(FromMilliseconds(100), 1);
 
                 var value = ReadValue<double>(nodeId);
 
@@ -101,7 +102,8 @@ namespace OpcPlc.Tests
         public void Telemetry_ChangesWithPeriod(string identifier, Type type, uint periodInMilliseconds, int invocations, int rampUpPeriods)
         {
             var nodeId = GetOpcPlcNodeId(identifier);
-            FireTimersWithPeriod(periodInMilliseconds, invocations * rampUpPeriods);
+            int numberOfTimes = invocations * rampUpPeriods;
+            FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes);
 
             // Measure the value 4 times, sleeping for a third of the period at which the value changes each time.
             // The number of times the value changes over the 4 measurements should be between 1 and 2.
@@ -109,7 +111,7 @@ namespace OpcPlc.Tests
             var numberOfValueChanges = 0;
             for (int i = 0; i < 4; i++)
             {
-                FireTimersWithPeriod(periodInMilliseconds, invocations);
+                FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), invocations);
 
                 var value = Session.ReadValue(nodeId).Value;
                 value.Should().BeOfType(type);
@@ -138,7 +140,7 @@ namespace OpcPlc.Tests
             var values = Enumerable.Range(0, cycles)
                 .Select(i =>
                 {
-                    FireTimersWithPeriod(periodInMilliseconds, invocations);
+                    FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), invocations);
 
                     try
                     {
@@ -187,7 +189,7 @@ namespace OpcPlc.Tests
             WriteValue(numberOfUpdatesNode, 6);
 
             // Fire the timer 6 times, should increase the value each time.
-            FireTimersWithPeriod(periodInMilliseconds, 6);
+            FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), 6);
             var value2 = ReadValue<uint>(nodeId);
             value2.Should().Be(value1 + 6);
 
@@ -195,7 +197,7 @@ namespace OpcPlc.Tests
             for (var i = 0; i < 10; i++)
             {
                 ReadValue<int>(numberOfUpdatesNode).Should().Be(0);
-                FireTimersWithPeriod(periodInMilliseconds, 1);
+                FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), 1);
                 var value3 = ReadValue<uint>(nodeId);
                 value3.Should().Be(value1 + 6);
             }
@@ -203,7 +205,7 @@ namespace OpcPlc.Tests
             // Change the value of the NumberOfUpdates control variable to -1.
             // The Fast node value should now increase indefinitely.
             WriteValue(numberOfUpdatesNode, NoLimit);
-            FireTimersWithPeriod(periodInMilliseconds, 3);
+            FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), 3);
             var value4 = ReadValue<uint>(nodeId);
             value4.Should().Be(value1 + 6 + 3);
             ReadValue<int>(numberOfUpdatesNode).Should().Be(NoLimit, "NumberOfUpdates node value should not change when it is {0}", NoLimit);
@@ -216,10 +218,10 @@ namespace OpcPlc.Tests
         {
             var nodeId = GetOpcPlcNodeId(identifier);
 
-            FireTimersWithPeriod(periodInMilliseconds, invocations * RampUpPeriods);
+            FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), invocations * RampUpPeriods);
 
             var firstValue = ReadValue<double>(nodeId);
-            FireTimersWithPeriod(periodInMilliseconds, invocations);
+            FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), invocations);
             var secondValue = ReadValue<double>(nodeId);
             if (increasing)
             {

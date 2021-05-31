@@ -98,7 +98,7 @@ namespace OpcPlc
                     throw new Exception(errorMessage);
                 }
 
-                DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, ScriptFileName);
+                DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, ScriptFileName);
                 nodeManagers.Add(DeterministicAlarmsNodeManager);
             }
 

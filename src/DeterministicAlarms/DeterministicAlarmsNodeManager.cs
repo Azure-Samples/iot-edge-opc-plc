@@ -20,6 +20,7 @@ namespace OpcPlc.DeterministicAlarms
         private ServerSystemContext _defaultSystemContext;
         private Dictionary<string, SimSourceNodeState> _sourceNodes = new Dictionary<string, SimSourceNodeState>();
         private Configuration.Configuration _scriptconfiguration;
+        private readonly TimeService _timeService;
         private ScriptEngine _scriptEngine;
         private Dictionary<string, string> _scriptAlarmToSources;
         private string _scriptFileName;
@@ -27,13 +28,14 @@ namespace OpcPlc.DeterministicAlarms
         /// <summary>
         /// Initializes the node manager.
         /// </summary>
-        public DeterministicAlarmsNodeManager(IServerInternal server, ApplicationConfiguration configuration, string scriptFileName) : base(server, configuration)
+        public DeterministicAlarmsNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, string scriptFileName) : base(server, configuration)
         {
             _server = server;
             _defaultSystemContext = _server.DefaultSystemContext.Copy();
             SystemContext.NodeIdFactory = this;
             SystemContext.SystemHandle = _system = new SimBackendService();
             _scriptFileName = scriptFileName;
+            _timeService = timeService;
 
             // set one namespace for the type model and one names for dynamically created nodes.
             string[] namespaceUrls = new string[1];
@@ -117,7 +119,7 @@ namespace OpcPlc.DeterministicAlarms
             {
                 VerifyScriptConfiguration(scriptConfiguration);
                 Logger.Information("Script starts executing");
-                _scriptEngine = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable);
+                _scriptEngine = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable, _timeService);
             }
             catch (ScriptException ex)
             {

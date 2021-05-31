@@ -4,6 +4,7 @@ namespace OpcPlc.Tests
     using FluentAssertions;
     using NUnit.Framework;
     using Opc.Ua;
+    using static System.TimeSpan;
 
     /// <summary>
     /// Tests for OPC-UA Monitoring for Data changes.
@@ -12,7 +13,7 @@ namespace OpcPlc.Tests
     public class DataMonitoringTests : SubscriptionTestsBase
     {
         // Set any cmd params needed for the plc server explicitly.        
-        public DataMonitoringTests() : base(new[] { "--str=false" })
+        public DataMonitoringTests() : base(new string[] { })
         {
         }
 
@@ -35,7 +36,7 @@ namespace OpcPlc.Tests
 
             // Act: collect events during 5 seconds
             // Value is updated every second
-            FireTimersWithPeriod(1000, 5);
+            FireTimersWithPeriod(FromSeconds(1), 5);
 
             // Assert
             var events = ReceiveEvents(6);
