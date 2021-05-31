@@ -112,9 +112,9 @@ namespace OpcPlc.Tests
                 out _);
 
             var nodeId = results
-                .Should().ContainSingle()
+                .Should().ContainSingle("search should retain a result")
                 .Subject.Targets
-                .Should().ContainSingle()
+                .Should().ContainSingle("search for {0} should retain a result target", relativePath)
                 .Subject.TargetId;
             return ToNodeId(nodeId);
         }
