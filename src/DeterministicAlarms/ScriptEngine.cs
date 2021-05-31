@@ -89,9 +89,7 @@ namespace OpcPlc.DeterministicAlarms
         {
             // Script should end because it has been executed as long as expected in the parameter
             // RunningForSeconds
-            var addSeconds = _scriptStopTime;
-            var dateTime = _timeService.Now();
-            if(addSeconds < dateTime)
+            if(_scriptStopTime < _timeService.Now())
             {
                 StopScript();
                 return null;
