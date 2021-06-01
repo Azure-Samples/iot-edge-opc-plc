@@ -135,7 +135,7 @@ namespace OpcPlc
         {
             uint eventInstanceCycle = _eventInstanceCycle++;
 
-            for (uint i=0; i<PlcSimulation.EventInstanceCount; i++)
+            for (uint i = 0; i < PlcSimulation.EventInstanceCount; i++)
             {
                 var e = new BaseEventState(null);
                 var info = new TranslationInfo(
@@ -322,7 +322,7 @@ namespace OpcPlc
             if (PlcSimulation.GeneratePosTrend) PosTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend", NamespaceType.OpcPlcApplications));
             if (PlcSimulation.GenerateNegTrend) NegTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));
         }
-        
+
         private SimulatedVariableNode<T> CreateVariableNode<T>(BaseDataVariableState variable)
         {
             return new SimulatedVariableNode<T>(SystemContext, variable, _timeService);
@@ -597,7 +597,7 @@ namespace OpcPlc
         /// <returns>True if the value of the node should be updated by the simulator, false otherwise.</returns>
         private bool ShouldUpdateNodes(BaseDataVariableState numberOfUpdatesVariable)
         {
-            var value = (int) numberOfUpdatesVariable.Value;
+            var value = (int)numberOfUpdatesVariable.Value;
             if (value == 0)
             {
                 return false;
@@ -1103,7 +1103,7 @@ namespace OpcPlc
 
         private BaseDataVariableState _slowNumberOfUpdates;
         private BaseDataVariableState _fastNumberOfUpdates;
-        
+
         /// <summary>
         /// Following variables listed here are simulated.
         /// </summary>

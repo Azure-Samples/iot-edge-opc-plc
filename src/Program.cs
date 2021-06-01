@@ -524,9 +524,9 @@
         /// </summary>
         private static string ParseStepSize(string stepSize)
         {
-            if(double.TryParse(stepSize, out double stepSizeResult))
+            if (double.TryParse(stepSize, out double stepSizeResult))
             {
-                if(stepSizeResult < 0)
+                if (stepSizeResult < 0)
                 {
                     throw new ArgumentException($"Step size cannot be specified as negative value, current value is {stepSize}.");
                 }
@@ -585,7 +585,8 @@
 
             // allow canceling the connection process
             var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            Console.CancelKeyPress += (_, eArgs) => {
+            Console.CancelKeyPress += (_, eArgs) =>
+            {
                 cancellationTokenSource.Cancel();
                 eArgs.Cancel = true;
             };

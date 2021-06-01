@@ -15,13 +15,13 @@ namespace OpcPlc
         public static bool GeneratePosTrend { get; set; } = true;
         public static bool GenerateNegTrend { get; set; } = true;
         public static bool GenerateData { get; set; } = true;
-        
+
         public static bool SlowNodeRandomization { get; set; } = false;
         public static uint SlowNodeCount { get; set; } = 1;
         public static uint SlowNodeRate { get; set; } = 10000; // s.
         public static string SlowNodeMinValue { get; set; }
         public static string SlowNodeMaxValue { get; set; }
-        public static string SlowNodeStepSize { get; set; } = "1";        
+        public static string SlowNodeStepSize { get; set; } = "1";
         public static NodeType SlowNodeType { get; set; } = NodeType.UInt;
         public static uint SlowNodeSamplingInterval { get; set; } // ms.
 
