@@ -18,8 +18,7 @@ namespace OpcPlc.Tests
 
         public DeterministicAlarmsTests() : base(new[]
         {
-            "--dalm",
-            "--dalmfile=DeterministicAlarmsTests/dalm001.json",
+            "--dalm=DeterministicAlarmsTests/dalm001.json",
         })
         {
         }

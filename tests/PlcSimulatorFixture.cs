@@ -208,7 +208,7 @@ namespace OpcPlc.Tests
         {
             Program.Ready = false;
             PlcSimulation.AddAlarmSimulation = false;
-            PlcSimulation.AddDeterministicAlarmSimulation = false;
+            PlcSimulation.DeterministicAlarmSimulationFile = null;
             PlcSimulation.FastNodeRandomization = false;
             PlcSimulation.SlowNodeRandomization = false;
         }

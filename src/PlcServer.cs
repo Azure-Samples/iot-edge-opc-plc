@@ -83,22 +83,23 @@ namespace OpcPlc
                 nodeManagers.Add(SimulationNodeManager);
             }
 
-            if(PlcSimulation.AddDeterministicAlarmSimulation)
+            if(PlcSimulation.DeterministicAlarmSimulationFile != null)
             {
-                if(string.IsNullOrEmpty(ScriptFileName))
+                var scriptFileName = PlcSimulation.DeterministicAlarmSimulationFile;
+                if(string.IsNullOrWhiteSpace(scriptFileName))
                 {
-                    string errorMessage = $"The script file for deterministic testing is not set (deterministicalarmscripfile).";
+                    string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";
                     Logger.Error(errorMessage);
                     throw new Exception(errorMessage);
                 }
-                if(!File.Exists(ScriptFileName))
+                if(!File.Exists(scriptFileName))
                 {
-                    string errorMessage = $"The script file ({ScriptFileName}) for deterministic testing does not exist.";
+                    string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist.";
                     Logger.Error(errorMessage);
                     throw new Exception(errorMessage);
                 }
 
-                DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, ScriptFileName);
+                DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, scriptFileName);
                 nodeManagers.Add(DeterministicAlarmsNodeManager);
             }
 
