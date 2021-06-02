@@ -15,13 +15,13 @@ namespace OpcPlc
         public static bool GeneratePosTrend { get; set; } = true;
         public static bool GenerateNegTrend { get; set; } = true;
         public static bool GenerateData { get; set; } = true;
-        
+
         public static bool SlowNodeRandomization { get; set; } = false;
         public static uint SlowNodeCount { get; set; } = 1;
         public static uint SlowNodeRate { get; set; } = 10000; // s.
         public static string SlowNodeMinValue { get; set; }
         public static string SlowNodeMaxValue { get; set; }
-        public static string SlowNodeStepSize { get; set; } = "1";        
+        public static string SlowNodeStepSize { get; set; } = "1";
         public static NodeType SlowNodeType { get; set; } = NodeType.UInt;
         public static uint SlowNodeSamplingInterval { get; set; } // ms.
 
@@ -41,6 +41,9 @@ namespace OpcPlc
         public static bool AddAlarmSimulation { get; set; }
         public static bool AddSimpleEventsSimulation { get; set; }
         public static bool AddReferenceTestSimulation { get; set; }
+
+        public static uint EventInstanceCount { get; set; } = 0;
+        public static uint EventInstanceRate { get; set; } = 1000; // ms.
 
         /// <summary>
         /// Simulation data.
@@ -106,6 +109,13 @@ namespace OpcPlc
                     _plcServer.TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastNodes, FastNodeRate);
             }
 
+            if (EventInstanceCount > 0)
+            {
+                _eventInstanceGenerator = EventInstanceRate >= 50 || !Stopwatch.IsHighResolution ?
+                    _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateEventInstances, EventInstanceRate) :
+                    _plcServer.TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastEventInstances, EventInstanceRate);
+            }
+
             if (AddComplexTypeBoiler)
             {
                 _boiler1Generator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
@@ -149,6 +159,7 @@ namespace OpcPlc
 
             Disable(_slowNodeGenerator);
             Disable(_fastNodeGenerator);
+            Disable(_eventInstanceGenerator);
             Disable(_boiler1Generator);
         }
 
@@ -376,6 +387,7 @@ namespace OpcPlc
 
         private ITimer _slowNodeGenerator;
         private ITimer _fastNodeGenerator;
+        private ITimer _eventInstanceGenerator;
 
         private ITimer _boiler1Generator;
     }

@@ -37,7 +37,7 @@ namespace OpcPlc
         {
             var nodeManagers = new List<INodeManager>();
 
-            if(!string.IsNullOrEmpty(NodesFileName) && !File.Exists(NodesFileName))
+            if (!string.IsNullOrEmpty(NodesFileName) && !File.Exists(NodesFileName))
             {
                 string errorMessage = $"The user node configuration file {NodesFileName} does not exist.";
                 Logger.Error(errorMessage);
@@ -58,7 +58,7 @@ namespace OpcPlc
                 PlcSimulation.FastNodeRandomization,
                 PlcSimulation.FastNodeStepSize,
                 PlcSimulation.FastNodeMinValue,
-                PlcSimulation.FastNodeMaxValue, 
+                PlcSimulation.FastNodeMaxValue,
                 NodesFileName);
 
             nodeManagers.Add(PlcNodeManager);
@@ -75,7 +75,7 @@ namespace OpcPlc
                 nodeManagers.Add(AlarmNodeManager);
             }
 
-            if (PlcSimulation.AddReferenceTestSimulation) 
+            if (PlcSimulation.AddReferenceTestSimulation)
             {
                 SimulationNodeManager = new ReferenceNodeManager(server, configuration);
                 nodeManagers.Add(SimulationNodeManager);

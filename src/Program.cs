@@ -243,6 +243,10 @@
                 { "fsi|fastnodesamplinginterval=", $"rate in milliseconds to sample fast nodes\nDefault: {FastNodeSamplingInterval}", (uint i) => FastNodeSamplingInterval = i },
                 { "vfr|veryfastrate=", $"rate in milliseconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
 
+                // events
+                { "ei|eventinstances=", $"number of event instances\nDefault: {EventInstanceCount}", (uint i) => EventInstanceCount = i },
+                { "er|eventrate=", $"rate in milliseconds to send events\nDefault: {EventInstanceRate}", (uint i) => EventInstanceRate = i },
+
                 // user defined nodes configuration
                 { "nf|nodesfile=", "the filename which contains the list of nodes to be created in the OPC UA address space.", (string l) => NodesFileName = l },
 
@@ -520,9 +524,9 @@
         /// </summary>
         private static string ParseStepSize(string stepSize)
         {
-            if(double.TryParse(stepSize, out double stepSizeResult))
+            if (double.TryParse(stepSize, out double stepSizeResult))
             {
-                if(stepSizeResult < 0)
+                if (stepSizeResult < 0)
                 {
                     throw new ArgumentException($"Step size cannot be specified as negative value, current value is {stepSize}.");
                 }
@@ -581,7 +585,8 @@
 
             // allow canceling the connection process
             var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            Console.CancelKeyPress += (_, eArgs) => {
+            Console.CancelKeyPress += (_, eArgs) =>
+            {
                 cancellationTokenSource.Cancel();
                 eArgs.Cancel = true;
             };
