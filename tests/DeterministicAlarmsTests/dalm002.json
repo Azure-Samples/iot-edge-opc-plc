@@ -1,0 +1,66 @@
+{
+  "folders": [
+    {
+      "name": "VendingMachines",
+      "sources": [
+        {
+          "objectType": "BaseObjectState",
+          "name": "VendingMachine1",
+          "alarms": [
+            {
+              "objectType": "TripAlarmType",
+              "name": "VendingMachine1_DoorOpen",
+              "id": "V1_DoorOpen"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "script": {
+    "waitUntilStartInSeconds": 5,
+    "isScriptInRepeatingLoop": false,
+    "runningForSeconds": 36000,
+    "steps": [
+      {
+        "event": {
+          "alarmId": "V1_DoorOpen",
+          "reason": "Door Open",
+          "severity": "High",
+          "eventId": "V1_DoorOpen-1",
+          "stateChanges": [
+            {
+              "stateType": "Enabled",
+              "state": true
+            },
+            {
+              "stateType": "Activated",
+              "state": true
+            }
+          ]
+        }
+      },
+      {
+        "sleepInSeconds": 5
+      },
+      {
+        "event": {
+          "alarmId": "V1_DoorOpen",
+          "reason": "Door Closed",
+          "severity": "Medium",
+          "eventId": "V1_DoorOpen-2",
+          "stateChanges": [
+            {
+              "stateType": "Enabled",
+              "state": false
+            },
+            {
+              "stateType": "Activated",
+              "state": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
