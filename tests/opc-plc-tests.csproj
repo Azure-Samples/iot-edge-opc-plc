@@ -26,6 +26,9 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Update="DeterministicAlarmsTests\dalm002.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
         <None Update="PlcSimulatorFixture.Config.xml">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>

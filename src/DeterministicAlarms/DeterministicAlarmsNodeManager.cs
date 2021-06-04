@@ -160,6 +160,7 @@
         {
             alarm.Reason = scriptEvent.Reason;
             alarm.Severity = scriptEvent.Severity;
+            alarm.Time = DateTime.UtcNow;
 
             foreach (var stateChange in scriptEvent.StateChanges)
             {
