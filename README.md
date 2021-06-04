@@ -175,7 +175,7 @@ This simulation also emits two types of system events: [_SystemEventType_](https
 
 ## Deterministic Alarms testing
 
-The option `--dalm` enables deterministic testing of Alarms and Conditions.
+The option `--dalm=<file>` enables deterministic testing of Alarms and Conditions.
 
 More information about this feature can be found [here](deterministic-alarms.md).   
 
