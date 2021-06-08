@@ -4,7 +4,6 @@ namespace OpcPlc.Tests
     using FluentAssertions;
     using NUnit.Framework;
     using Opc.Ua;
-    using static System.TimeSpan;
 
     /// <summary>
     /// Tests for OPC-UA Monitoring for Events.

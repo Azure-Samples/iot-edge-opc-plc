@@ -1,11 +1,12 @@
-﻿using FluentAssertions;
-using NUnit.Framework;
-using Opc.Ua;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace OpcPlc.Tests
+﻿namespace OpcPlc.Tests
 {
+    using FluentAssertions;
+    using NUnit.Framework;
+    using Opc.Ua;
+    using System.Collections.Generic;
+    using System.Linq;
+    using static System.TimeSpan;
+
     /// <summary>
     /// Tests for OPC-UA Monitoring for Events.
     /// </summary>
@@ -42,7 +43,7 @@ namespace OpcPlc.Tests
 
             // Act
             // Event is fired every second
-            FireTimersWithPeriod(1000, 5);
+            FireTimersWithPeriod(FromSeconds(1), 5);
 
             // Assert
             var events = ReceiveAtMostEvents(5);
