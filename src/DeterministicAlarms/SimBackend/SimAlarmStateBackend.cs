@@ -40,13 +40,13 @@
         {
             if (isSet)
             {
-                bool currentlySet = ((this.State & bits) == bits);
-                this.State |= bits;
+                bool currentlySet = ((State & bits) == bits);
+                State |= bits;
                 return !currentlySet;
             }
 
-            bool currentlyCleared = ((this.State & ~bits) == this.State);
-            this.State &= ~bits;
+            bool currentlyCleared = ((State & ~bits) == State);
+            State &= ~bits;
             return !currentlyCleared;
         }
     }

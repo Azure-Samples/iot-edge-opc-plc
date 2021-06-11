@@ -5,7 +5,7 @@
     using System.Collections.Generic;
     using System.Timers;
 
-    class ScriptEngine
+    public class ScriptEngine
     {
         public delegate void NextScriptStepAvailable(Step step, long numberOfLoops);
 
@@ -14,10 +14,10 @@
         private LinkedList<Step> _steps;
         private LinkedListNode<Step> _currentStep;
         private ITimer _stepsTimer;
-        private Script _script;
+        private readonly Script _script;
         private long _numberOfLoops = 1;
         private DateTime _scriptStopTime;
-        private TimeService _timeService;
+        private readonly TimeService _timeService;
 
         /// <summary>
         /// Initialize ScriptEngine

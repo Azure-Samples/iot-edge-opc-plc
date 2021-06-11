@@ -9,10 +9,10 @@
 
     public class SimSourceNodeState : BaseObjectState
     {
-        private DeterministicAlarmsNodeManager _nodeManager;
-        private SimSourceNodeBackend _simSourceNodeBackend;
-        private Dictionary<string, ConditionState> _alarmNodes = new Dictionary<string, ConditionState>();
-        private Dictionary<string, ConditionState> _events = new Dictionary<string, ConditionState>();
+        private readonly DeterministicAlarmsNodeManager _nodeManager;
+        private readonly SimSourceNodeBackend _simSourceNodeBackend;
+        private readonly Dictionary<string, ConditionState> _alarmNodes = new Dictionary<string, ConditionState>();
+        private readonly Dictionary<string, ConditionState> _events = new Dictionary<string, ConditionState>();
 
         public SimSourceNodeState(DeterministicAlarmsNodeManager nodeManager, NodeId nodeId, string name, List<Alarm> alarms) : base(null)
         {
@@ -25,14 +25,14 @@
                 .CreateSourceNodeBackend(name, alarms, OnAlarmChanged);
 
             // initialize the area with the fixed metadata.
-            this.SymbolicName = name;
-            this.NodeId = nodeId;
-            this.BrowseName = new QualifiedName(name, nodeId.NamespaceIndex);
-            this.DisplayName = BrowseName.Name;
-            this.Description = null;
-            this.ReferenceTypeId = null;
-            this.TypeDefinitionId = ObjectTypeIds.BaseObjectType;
-            this.EventNotifier = EventNotifiers.None;
+            SymbolicName = name;
+            NodeId = nodeId;
+            BrowseName = new QualifiedName(name, nodeId.NamespaceIndex);
+            DisplayName = BrowseName.Name;
+            Description = null;
+            ReferenceTypeId = null;
+            TypeDefinitionId = ObjectTypeIds.BaseObjectType;
+            EventNotifier = EventNotifiers.None;
 
             // This is to create all alarms
             _simSourceNodeBackend.Refresh();
@@ -42,7 +42,7 @@
         {
             foreach (var @event in events)
             {
-                InstanceStateSnapshot instanceSnapShotForExistingEvent = @event as InstanceStateSnapshot;
+                var instanceSnapShotForExistingEvent = @event as InstanceStateSnapshot;
                 if (instanceSnapShotForExistingEvent != null && Object.ReferenceEquals(instanceSnapShotForExistingEvent.Handle, this))
                 {
                     return;
@@ -56,7 +56,7 @@
                     continue;
                 }
 
-                InstanceStateSnapshot instanceStateSnapshotNewAlarm = new InstanceStateSnapshot();
+                var instanceStateSnapshotNewAlarm = new InstanceStateSnapshot();
                 instanceStateSnapshotNewAlarm.Initialize(context, alarm);
                 instanceStateSnapshotNewAlarm.Handle = this;
                 events.Add(instanceStateSnapshotNewAlarm);
@@ -128,14 +128,14 @@
             node.Create(
                 context,
                 null,
-                new QualifiedName(alarm.Name, this.BrowseName.NamespaceIndex),
+                new QualifiedName(alarm.Name, BrowseName.NamespaceIndex),
                 null,
                 true);
 
             // initialize event information.node
             node.EventType.Value = node.TypeDefinitionId;
-            node.SourceNode.Value = this.NodeId;
-            node.SourceName.Value = this.SymbolicName;
+            node.SourceNode.Value = NodeId;
+            node.SourceName.Value = SymbolicName;
             node.ConditionName.Value = node.SymbolicName;
             node.Time.Value = DateTime.UtcNow;
             node.ReceiveTime.Value = node.Time.Value;
@@ -144,7 +144,7 @@
             // don't add branches to the address space.
             if (NodeId.IsNull(branchId))
             {
-                this.AddChild(node);
+                AddChild(node);
             }
 
             return node;
@@ -221,7 +221,7 @@
 
                 if (node is AlarmConditionState)
                 {
-                    AlarmConditionState nodeAlarm = (AlarmConditionState)node;
+                    var nodeAlarm = (AlarmConditionState)node;
                     nodeAlarm.SetAcknowledgedState(context, (alarm.State & SimConditionStatesEnum.Acknowledged) != 0);
                     nodeAlarm.SetConfirmedState(context, (alarm.State & SimConditionStatesEnum.Confirmed) != 0);
                     nodeAlarm.SetActiveState(context, (alarm.State & SimConditionStatesEnum.Active) != 0);
@@ -254,10 +254,10 @@
             alarm.ClearChangeMasks(_nodeManager.SystemContext, true);
 
             // check if events are being monitored for the source.
-            if (this.AreEventsMonitored)
+            if (AreEventsMonitored)
             {
                 // create a snapshot.
-                InstanceStateSnapshot e = new InstanceStateSnapshot();
+                var e = new InstanceStateSnapshot();
                 e.Initialize(_nodeManager.SystemContext, alarm);
 
                 // report the event.

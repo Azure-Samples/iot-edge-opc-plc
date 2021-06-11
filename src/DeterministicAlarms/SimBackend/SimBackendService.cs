@@ -6,7 +6,7 @@
 
     public class SimBackendService
     {
-        private object _lock = new object();
+        private readonly object _lock = new object();
         public Dictionary<string, SimSourceNodeBackend> SourceNodes = new Dictionary<string, SimSourceNodeBackend>();
 
         public SimSourceNodeBackend CreateSourceNodeBackend(string name, List<Alarm> alarms, AlarmChangedEventHandler alarmChangeCallback)

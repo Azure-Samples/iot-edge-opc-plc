@@ -18,32 +18,29 @@
         {
             foreach (var alarmConfiguration in alarmsFromConfiguration)
             {
-                SimAlarmStateBackend alarmStateBackend = new SimAlarmStateBackend
+                var alarmStateBackend = new SimAlarmStateBackend
                 {
                     Source = this,
                     Id = alarmConfiguration.Id,
                     Name = alarmConfiguration.Name,
-                    //State = SimConditionStatesEnum.Enabled,
-                    //EnableTime = DateTime.UtcNow,
-                    //Reason = "Alarm Enabled.",
                     Time = DateTime.UtcNow,
                     AlarmType = alarmConfiguration.ObjectType
                 };
 
-                lock (this.Alarms)
+                lock (Alarms)
                 {
-                    this.Alarms.Add(alarmConfiguration.Id, alarmStateBackend);
+                    Alarms.Add(alarmConfiguration.Id, alarmStateBackend);
                 }
             }
         }
 
         internal void Refresh()
         {
-            List<SimAlarmStateBackend> snapshots = new List<SimAlarmStateBackend>();
+            var snapshots = new List<SimAlarmStateBackend>();
 
-            lock (this.Alarms)
+            lock (Alarms)
             {
-                foreach (var alarm in this.Alarms.Values)
+                foreach (var alarm in Alarms.Values)
                 {
                     snapshots.Add(alarm.CreateSnapshot());
                 }

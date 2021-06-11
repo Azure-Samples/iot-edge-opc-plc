@@ -7,7 +7,7 @@ This makes it possible to create more deterministic tests of Alarms.
 This is done by using a script that defines Alarms and execute them.
 
 ## Script
-The script have two sections.
+The script has two sections.
 * Definition of the Folders, Sources of alarms, and the Alarms themselves.
 * The replay steps 
 ```
