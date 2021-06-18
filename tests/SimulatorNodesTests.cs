@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace OpcPlc.Tests
 {
     using System;
@@ -56,6 +58,46 @@ namespace OpcPlc.Tests
                 .And.HaveCount(10)
                 .And.ContainInOrder(expectedValues)
                 .And.ContainItemsAssignableTo<UInt32>();
+        }
+
+        [TestCase]
+        public void Telemetry_FastNode()
+        {
+            var nodeId = GetOpcPlcNodeId("FastUInt1");
+
+            var lastValue = 0u;
+            for (int i = 0; i < 10; i++)
+            {
+                var value = ReadValue<uint>(nodeId);
+                if (lastValue == 0)
+                {
+                    lastValue = value;
+                }
+                else
+                {
+                    Assert.AreEqual(lastValue + 1, value);
+                    lastValue = value;
+                }
+
+                FireTimersWithPeriod(TimeSpan.FromSeconds(1), 1);
+            }
+
+            lastValue++;
+
+            CallMethod("StopUpdateFastAndSlowNodes");
+
+            var nextValue = ReadValue<uint>(nodeId);
+            Assert.AreEqual(lastValue, nextValue);
+            FireTimersWithPeriod(TimeSpan.FromSeconds(1), 1);
+            nextValue = ReadValue<uint>(nodeId);
+            Assert.AreEqual(lastValue, nextValue);
+            FireTimersWithPeriod(TimeSpan.FromSeconds(1), 1);
+
+            CallMethod("StartUpdateFastAndSlowNodes");
+            FireTimersWithPeriod(TimeSpan.FromSeconds(1), 1);
+
+            nextValue = ReadValue<uint>(nodeId);
+            Assert.AreEqual(lastValue + 1, nextValue);
         }
 
         [TestCase("DipData", -1000)]
