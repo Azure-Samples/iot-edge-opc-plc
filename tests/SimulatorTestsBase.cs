@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace OpcPlc.Tests
 {
@@ -147,6 +149,14 @@ namespace OpcPlc.Tests
                 out _);
 
             return results;
+        }
+
+        /// <summary>
+        /// Calls OPC UA method over active session
+        /// </summary>
+        protected IList<object> CallMethod(string methodName, string objectName = "Methods", params object[] args)
+        {
+            return Session.Call(GetOpcPlcNodeId(objectName), GetOpcPlcNodeId(methodName), args);
         }
     }
 }
