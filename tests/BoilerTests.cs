@@ -4,6 +4,7 @@ namespace OpcPlc.Tests
     using FluentAssertions;
     using NUnit.Framework;
     using Opc.Ua;
+    using static System.TimeSpan;
 
     /// <summary>
     /// Tests for the Boiler, which is a complex type.
@@ -11,7 +12,9 @@ namespace OpcPlc.Tests
     [TestFixture]
     public class BoilerTests : SimulatorTestsBase
     {
-        public BoilerTests() : base(new[] { "--ctb" }) { }
+        public BoilerTests() : base(new[] { "--ctb" })
+        {
+        }
 
         [TearDown]
         public new virtual void TearDown()
@@ -22,7 +25,7 @@ namespace OpcPlc.Tests
         [TestCase]
         public void Heater_AtStartUp_IsTurnedOn()
         {
-            FireTimersWithPeriod(1000u, 1000);
+            FireTimersWithPeriod(FromSeconds(1), 1000);
 
             BoilerDataType model = GetBoilerModel();
 
@@ -41,11 +44,11 @@ namespace OpcPlc.Tests
         public void Heater_CanBeTurnedOff()
         {
             // let heater run for a few seconds to make temperature rise
-            FireTimersWithPeriod(1000u, 1000);
+            FireTimersWithPeriod(FromSeconds(1), 1000);
 
             TurnHeaterOff();
 
-            FireTimersWithPeriod(1000u, 1000);
+            FireTimersWithPeriod(FromSeconds(1), 1000);
 
             BoilerDataType model = GetBoilerModel();
 
@@ -66,7 +69,7 @@ namespace OpcPlc.Tests
             int previousPressure = 0;
             for (int i = 0; i < 5; i++)
             {
-                FireTimersWithPeriod(1000u, 1000);
+                FireTimersWithPeriod(FromSeconds(1), 1000);
                 BoilerDataType model = GetBoilerModel();
                 int pressure = model.Pressure;
 
@@ -81,7 +84,7 @@ namespace OpcPlc.Tests
             int previousPressure = 0;
             for (int i = 0; i < 10; i++)
             {
-                FireTimersWithPeriod(1000u, 1000);
+                FireTimersWithPeriod(FromSeconds(1), 1000);
                 BoilerDataType model = GetBoilerModel();
                 int pressure = model.Pressure;
 
@@ -93,7 +96,7 @@ namespace OpcPlc.Tests
 
             for (int i = 0; i < 5; i++)
             {
-                FireTimersWithPeriod(1000u, 1000);
+                FireTimersWithPeriod(FromSeconds(1), 1000);
                 BoilerDataType model = GetBoilerModel();
                 int pressure = model.Pressure;
 

@@ -1,9 +1,10 @@
 namespace OpcPlc
 {
     using AlarmCondition;
-    using OpcPlc.Reference;
     using Opc.Ua;
     using Opc.Ua.Server;
+    using OpcPlc.DeterministicAlarms;
+    using OpcPlc.Reference;
     using SimpleEvents;
     using System;
     using System.Collections.Generic;
@@ -18,6 +19,7 @@ namespace OpcPlc
         public AlarmConditionServerNodeManager AlarmNodeManager = null;
         public SimpleEventsNodeManager SimpleEventsNodeManager = null;
         public ReferenceNodeManager SimulationNodeManager = null;
+        public DeterministicAlarmsNodeManager DeterministicAlarmsNodeManager = null;
         public readonly TimeService TimeService;
 
         public PlcServer(TimeService timeService)
@@ -79,6 +81,26 @@ namespace OpcPlc
             {
                 SimulationNodeManager = new ReferenceNodeManager(server, configuration);
                 nodeManagers.Add(SimulationNodeManager);
+            }
+
+            if(PlcSimulation.DeterministicAlarmSimulationFile != null)
+            {
+                var scriptFileName = PlcSimulation.DeterministicAlarmSimulationFile;
+                if(string.IsNullOrWhiteSpace(scriptFileName))
+                {
+                    string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";
+                    Logger.Error(errorMessage);
+                    throw new Exception(errorMessage);
+                }
+                if(!File.Exists(scriptFileName))
+                {
+                    string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist.";
+                    Logger.Error(errorMessage);
+                    throw new Exception(errorMessage);
+                }
+
+                DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, scriptFileName);
+                nodeManagers.Add(DeterministicAlarmsNodeManager);
             }
 
             var masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());

@@ -14,7 +14,7 @@ namespace OpcPlc.Tests
         private NodeId _scalarStaticNode;
 
         // Set any cmd params needed for the plc server explicitly.
-        public VariableTests() : base(new[] { "--ref", "--str=false" })
+        public VariableTests() : base(new[] { "--ref" })
         {
         }
 

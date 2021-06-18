@@ -392,6 +392,7 @@
                 { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", h => AddAlarmSimulation = h != null },
                 { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", h => AddSimpleEventsSimulation = h != null },
                 { "ref|referencetest", $"add reference test simulation node manager to address space.\nDefault: {AddReferenceTestSimulation}", h => AddReferenceTestSimulation = h != null },
+                { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (string h) => DeterministicAlarmSimulationFile = h },
 
                 // misc
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
@@ -557,6 +558,9 @@
             Logger.Information($"Data generation is {(GenerateData ? "enabled" : "disabled")}");
             Logger.Information($"Complex type (boiler) is {(AddComplexTypeBoiler ? "enabled" : "disabled")}");
             Logger.Information($"Reference Test Simulation is {(AddReferenceTestSimulation ? "enabled" : "disabled")}");
+            Logger.Information($"Simple Events is {(AddSimpleEventsSimulation ? "enabled" : "disabled")}");
+            Logger.Information($"Alarms is {(AddAlarmSimulation ? "enabled" : "disabled")}");
+            Logger.Information($"Deterministic Alarms is {(DeterministicAlarmSimulationFile != null ? "enabled" : "disabled")}");
 
             Logger.Information($"Anonymous authentication: {(DisableAnonymousAuth ? "disabled" : "enabled")}");
             Logger.Information($"Username/Password authentication: {(DisableUsernamePasswordAuth ? "disabled" : "enabled")}");

@@ -1,7 +1,6 @@
 namespace OpcPlc.Tests
 {
     using System.Collections.Generic;
-    using System.Linq;
     using FluentAssertions;
     using NUnit.Framework;
     using Opc.Ua;
@@ -39,15 +38,8 @@ namespace OpcPlc.Tests
             // Arrange
             ClearEvents();
 
-            // Act
-            // Event is fired every 3 seconds
-            FireTimersWithPeriod(3000, 5);
-
             // Assert
-            var events = ReceiveEvents(6);
-            var values = events
-                .Select(a => (EventFieldList)a.NotificationValue)
-                .Select(EventFieldListToDictionary);
+            var values = ReceiveEventsAsDictionary(6);
             foreach (var value in values)
             {
                 value.Should().Contain(new Dictionary<string, object>

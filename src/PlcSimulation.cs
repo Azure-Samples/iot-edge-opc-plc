@@ -41,6 +41,7 @@ namespace OpcPlc
         public static bool AddAlarmSimulation { get; set; }
         public static bool AddSimpleEventsSimulation { get; set; }
         public static bool AddReferenceTestSimulation { get; set; }
+        public static string DeterministicAlarmSimulationFile { get; set; }
 
         public static uint EventInstanceCount { get; set; } = 0;
         public static uint EventInstanceRate { get; set; } = 1000; // ms.

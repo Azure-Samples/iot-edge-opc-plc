@@ -1,3 +1,5 @@
+using System;
+
 namespace OpcPlc.Tests
 {
     using System.Linq;
@@ -89,8 +91,8 @@ namespace OpcPlc.Tests
         /// </summary>
         /// <param name="periodInMilliseconds">Defines the timers to fire: only timers with this interval are fired.</param>
         /// <param name="numberOfTimes">Number of times the timer should be fired.</param>
-        protected void FireTimersWithPeriod(uint periodInMilliseconds, int numberOfTimes)
-            => _simulator.FireTimersWithPeriod(periodInMilliseconds, numberOfTimes);
+        protected void FireTimersWithPeriod(TimeSpan periodInMilliseconds, int numberOfTimes)
+            => _simulator.FireTimersWithPeriod((uint)periodInMilliseconds.TotalMilliseconds, numberOfTimes);
 
         private NodeId FindNode(NodeId startingNode, string relativePath)
         {
@@ -110,9 +112,9 @@ namespace OpcPlc.Tests
                 out _);
 
             var nodeId = results
-                .Should().ContainSingle()
+                .Should().ContainSingle("search should retain a result")
                 .Subject.Targets
-                .Should().ContainSingle()
+                .Should().ContainSingle("search for {0} should retain a result target", relativePath)
                 .Subject.TargetId;
             return ToNodeId(nodeId);
         }

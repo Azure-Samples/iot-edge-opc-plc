@@ -45,5 +45,9 @@ namespace OpcPlc
         /// </summary>
         public const string OpcPlcReferenceTest = "http://microsoft.com/Opc/OpcPlc/ReferenceTest";
 
+        /// <summary>
+        /// The namespace for the nodes provided by the plc server for alarm instance.
+        /// </summary>
+        public const string OpcPlcDeterministicAlarmsInstance = "http://microsoft.com/Opc/OpcPlc/DetermAlarmsInstance";
     }
 }

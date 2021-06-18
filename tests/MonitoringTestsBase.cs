@@ -6,6 +6,7 @@ namespace OpcPlc.Tests
     using System.Diagnostics;
     using System.Linq;
     using System.Threading;
+    using System.Text;
     using FluentAssertions;
     using NUnit.Framework;
     using Opc.Ua;
@@ -102,17 +103,37 @@ namespace OpcPlc.Tests
         /// Wait until a given number of events have been received, and return them.
         /// </summary>
         /// <param name="expectedCount">Number of events to receive.</param>
-        protected List<MonitoredItemNotificationEventArgs> ReceiveEvents(int expectedCount)
+        protected IEnumerable<MonitoredItemNotificationEventArgs> ReceiveEvents(int expectedCount)
         {
+            var events = new List<MonitoredItemNotificationEventArgs>();
+
             var sw = Stopwatch.StartNew();
             do
             {
                 Thread.Sleep(TimeSpan.FromMilliseconds(100));
+                while (_receivedEvents.TryDequeue(out var item))
+                {
+                    events.Add(item);
+                }
             } while (_receivedEvents.Count < expectedCount && sw.Elapsed < TimeSpan.FromSeconds(10));
 
-            var events = _receivedEvents.ToList();
             events.Should().HaveCount(expectedCount);
             return events;
+        }
+
+        protected IEnumerable<Dictionary<string, object>> ReceiveEventsAsDictionary(int expectedCount)
+        {
+            var events = ReceiveEvents(expectedCount);
+            var values = events
+                .Select(a => (EventFieldList)a.NotificationValue)
+                .Select(EventFieldListToDictionary);
+            return values;
+        }
+
+        protected IEnumerable<Dictionary<string, object>> FireTimersWithPeriodAndReceiveEvents(TimeSpan period, int expectedCount)
+        {
+            FireTimersWithPeriod(period, 1);
+            return ReceiveEventsAsDictionary(expectedCount);
         }
 
         /// <summary>
@@ -145,7 +166,16 @@ namespace OpcPlc.Tests
                 .Zip(arg.EventFields) // values of retrieved fields
                 .ToDictionary(
                     p => SimpleAttributeOperand.Format(p.First.BrowsePath), // e.g. "/EventId"
-                    p => p.Second.Value);
+                    p => ConvertByteArrayToString(p.Second.Value));
+        }
+
+        private static object ConvertByteArrayToString(object value)
+        {
+            return value switch
+            {
+                byte[] byteArray => Encoding.UTF8.GetString(byteArray),
+                _ => value
+            };
         }
 
         private void MonitoredItem_Notification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)

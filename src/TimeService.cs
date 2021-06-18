@@ -93,6 +93,8 @@ namespace OpcPlc
         bool AutoReset { get; set; }
         
         double Interval { get; set; }
+
+        void Close();
     }
 
     public class FastTimerElapsedEventArgs : EventArgs 
@@ -153,6 +155,11 @@ namespace OpcPlc
         /// The event handler we call when the timer is triggered
         /// </summary>
         public event FastTimerElapsedEventHandler Elapsed;
+
+        public void Close()
+        {
+            Enabled = false;
+        }
 
         /// <summary>
         /// Starts the timer 
