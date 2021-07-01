@@ -190,6 +190,17 @@ More information about this feature can be found [here](deterministic-alarms.md)
   - `0`: Slow and Fast nodes are not updated
   - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
 
+## OPC UA Methods
+
+| Name | Description | Prerequisite
+---|---|---
+ResetTrend | Reset the trend values to their baseline value | Generate positive or negative trends activated
+ResetStepUp | Resets the StepUp counter to 0 | Generate data activated
+StartStepUp | Starts the StepUp counter | Generate data activated
+StopStepUp | Stops the StepUp counter | Generate data activated
+StopUpdateFastAndSlowNodes | Stops the increase of value of fast and slow nodes | slow nodes or fast nodes activated
+StartUpdateFastAndSlowNodes | Start the increase of value of fast and slow nodes | slow nodes or fast nodes activated
+
 ## Build
 
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR you need to:
