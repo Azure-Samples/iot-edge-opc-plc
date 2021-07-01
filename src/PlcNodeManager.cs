@@ -442,7 +442,7 @@ namespace OpcPlc
                 SetStopStepUpMethodProperties(ref stopStepUpMethod);
             }
 
-            if (PlcSimulation.SlowNodeType > 0 || PlcSimulation.FastNodeCount > 0)
+            if (PlcSimulation.SlowNodeCount > 0 || PlcSimulation.FastNodeCount > 0)
             {
                 MethodState stopUpdateFastAndSlowNodesMethod = CreateMethod(methodsFolder, "StopUpdateFastAndSlowNodes", "StopUpdateFastAndSlowNodes", "Stops the increase of value of fast and slow nodes", NamespaceType.OpcPlcApplications);
                 SetStopUpdateFastAndSlowNodesProperties(ref stopUpdateFastAndSlowNodesMethod);
