@@ -171,6 +171,7 @@
             ApplicationConfiguration.ServerConfiguration.MaxMessageQueueSize = MAX_MESSAGE_QUEUE_SIZE;
             ApplicationConfiguration.ServerConfiguration.MaxNotificationsPerPublish = MAX_NOTIFICATIONS_PER_PUBLISH;
             ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount = MAX_SUBSCRIPTION_COUNT;
+            ApplicationConfiguration.ServerConfiguration.MaxPublishRequestCount = MAX_PUBLISH_REQUEST_COUNT;
 
             return ApplicationConfiguration;
         }
@@ -228,6 +229,7 @@
         private const int MAX_MESSAGE_QUEUE_SIZE = 200000;
         private const int MAX_NOTIFICATIONS_PER_PUBLISH = 200000;
         private const int MAX_SUBSCRIPTION_COUNT = 200;
+        private const int MAX_PUBLISH_REQUEST_COUNT = 200;
 
         private static string _hostname = $"{Utils.GetHostName().ToLowerInvariant()}";
     }
