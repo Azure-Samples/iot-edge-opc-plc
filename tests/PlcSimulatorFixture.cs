@@ -117,13 +117,16 @@ namespace OpcPlc.Tests
             mock.Setup(f => f.UtcNow())
                 .Returns(() => _now);
 
-            // The simulator program command line.            
+            // The simulator program command line.
             _serverTask = Task.Run(() => Program.MainAsync(
                     _args.Concat(
                             new[]
                             {
                                 "--autoaccept",
                                 $"--portnum={Port}",
+                                "--fn=25",
+                                "--fr=1",
+                                "--ft=uint"
                             })
                         .ToArray(),
                     _serverCancellationTokenSource.Token)

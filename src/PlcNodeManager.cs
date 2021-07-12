@@ -67,7 +67,7 @@ namespace OpcPlc
         public void UpdateSlowNodes(object state, ElapsedEventArgs elapsedEventArgs)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
-            if (!ShouldUpdateNodes(_slowNumberOfUpdates))
+            if (!ShouldUpdateNodes(_slowNumberOfUpdates) || !_updateFastAndSlowNodes)
             {
                 return;
             }
@@ -100,7 +100,7 @@ namespace OpcPlc
 
         private void UpdateNodes()
         {
-            if (!ShouldUpdateNodes(_fastNumberOfUpdates))
+            if (!ShouldUpdateNodes(_fastNumberOfUpdates) || !_updateFastAndSlowNodes)
             {
                 return;
             }
@@ -442,6 +442,14 @@ namespace OpcPlc
                 SetStopStepUpMethodProperties(ref stopStepUpMethod);
             }
 
+            if (PlcSimulation.SlowNodeCount > 0 || PlcSimulation.FastNodeCount > 0)
+            {
+                MethodState stopUpdateFastAndSlowNodesMethod = CreateMethod(methodsFolder, "StopUpdateFastAndSlowNodes", "StopUpdateFastAndSlowNodes", "Stops the increase of value of fast and slow nodes", NamespaceType.OpcPlcApplications);
+                SetStopUpdateFastAndSlowNodesProperties(ref stopUpdateFastAndSlowNodesMethod);
+                MethodState startUpdateFastAndSlowNodesMethod = CreateMethod(methodsFolder, "StartUpdateFastAndSlowNodes", "StartUpdateFastAndSlowNodes", "Start the increase of value of fast and slow nodes", NamespaceType.OpcPlcApplications);
+                SetStartUpdateFastAndSlowNodesProperties(ref startUpdateFastAndSlowNodesMethod);
+            }
+
             return methodsFolder;
         }
 
@@ -697,6 +705,22 @@ namespace OpcPlc
         private void SetStopStepUpMethodProperties(ref MethodState method)
         {
             method.OnCallMethod = new GenericMethodCalledEventHandler(OnStopStepUpCall);
+        }
+
+        /// <summary>
+        /// Sets properties of the StopUpdateFastAndSlowNodes method.
+        /// </summary>
+        private void SetStopUpdateFastAndSlowNodesProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStopUpdateFastAndSlowNodes);
+        }
+
+        /// <summary>
+        /// Sets properties of the StartUpdateFastAndSlowNodes method.
+        /// </summary>
+        private void SetStartUpdateFastAndSlowNodesProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStartUpdateFastAndSlowNodes);
         }
 
         /// <summary>
@@ -1048,6 +1072,26 @@ namespace OpcPlc
         }
 
         /// <summary>
+        /// Method to stop updating the fast and slow nodes
+        /// </summary>
+        private ServiceResult OnStopUpdateFastAndSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            _updateFastAndSlowNodes = false;
+            Logger.Debug("StopUpdateFastAndSlowNodes method called");
+            return ServiceResult.Good;
+        }
+
+        /// <summary>
+        /// Method to stop updating the fast and slow nodes
+        /// </summary>
+        private ServiceResult OnStartUpdateFastAndSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            _updateFastAndSlowNodes = true;
+            Logger.Debug("StartUpdateFastAndSlowNodes method called");
+            return ServiceResult.Good;
+        }
+
+        /// <summary>
         /// Method to turn the heater on. Executes synchronously.
         /// </summary>
         private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
@@ -1121,6 +1165,7 @@ namespace OpcPlc
         private readonly string _fastNodeMinValue;
         private readonly string _fastNodeMaxValue;
         private readonly Random _random;
+        private bool _updateFastAndSlowNodes = true;
 
         /// <summary>
         /// File name for user configurable nodes.
