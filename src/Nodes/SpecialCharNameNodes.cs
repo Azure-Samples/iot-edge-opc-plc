@@ -54,16 +54,16 @@
             string SpecialChars = HttpUtility.HtmlDecode(@"&quot;!&#167;$%&amp;/()=?`&#180;\+~*&#39;#_-:.;,&lt;&gt;|@^&#176;€&#181;{[]}");
 
             _node = _plcNodeManager.CreateVariableNode<uint>(
-                    _plcNodeManager.CreateBaseVariable(
-                        folder,
-                        path: "Special_" + SpecialChars,
-                        name: SpecialChars,
-                        new NodeId((uint)BuiltInType.UInt32),
-                        ValueRanks.Scalar,
-                        AccessLevels.CurrentReadOrWrite,
-                        "Constantly increasing value",
-                        NamespaceType.OpcPlcApplications,
-                        defaultValue: (uint)0));
+                _plcNodeManager.CreateBaseVariable(
+                    folder,
+                    path: "Special_" + SpecialChars,
+                    name: SpecialChars,
+                    new NodeId((uint)BuiltInType.UInt32),
+                    ValueRanks.Scalar,
+                    AccessLevels.CurrentReadOrWrite,
+                    "Constantly increasing value",
+                    NamespaceType.OpcPlcApplications,
+                    defaultValue: (uint)0));
 
             NodeIDs = new List<string>
             {
