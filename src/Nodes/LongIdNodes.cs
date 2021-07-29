@@ -1,28 +1,33 @@
 ﻿namespace OpcPlc.Nodes
 {
     using Opc.Ua;
-    using System;
     using System.Collections.Generic;
     using System.Text;
 
-    public class LongIdNodes : INodes<string>
+    /// <summary>
+    /// Node with ID of 3950 chars.
+    /// </summary>
+    public class LongIdNodes : INodes
     {
-        // Command line option.
-        public string Prototype { get; } = "lid|longid";
-        public string Description { get; } = $"add node with ID of 3950 chars.\nDefault: {_isEnabled}";
-        public Action<string> Action { get; } = (string p) => _isEnabled = p != null;
-        public bool IsEnabled { get => _isEnabled; }
         public IReadOnlyCollection<string> NodeIDs { get; private set; }
 
         private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
         private SimulatedVariableNode<uint> _node;
 
+        public void AddOption(Mono.Options.OptionSet optionSet)
+        {
+            optionSet.Add(
+                "lid|longid",
+                $"add node with ID of 3950 chars.\nDefault: {_isEnabled}",
+                (string p) => _isEnabled = p != null);
+        }
+
         public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
         {
             _plcNodeManager = plcNodeManager;
 
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 AddNodes(parentFolder);
             }
@@ -30,7 +35,7 @@
 
         public void StartSimulation(PlcServer server)
         {
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 _node.Start(value => value + 1, periodMs: 1000);
             }
@@ -38,7 +43,7 @@
 
         public void StopSimulation()
         {
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 _node.Stop();
             }

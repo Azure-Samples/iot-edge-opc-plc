@@ -1,28 +1,33 @@
 ﻿namespace OpcPlc.Nodes
 {
     using Opc.Ua;
-    using System;
     using System.Collections.Generic;
     using System.Web;
 
-    public class SpecialCharNameNodes : INodes<string>
+    /// <summary>
+    /// Node with special chars in name and ID.
+    /// </summary>
+    public class SpecialCharNameNodes : INodes
     {
-        // Command line option.
-        public string Prototype { get; } = "scn|specialcharname";
-        public string Description { get; } = $"add node with special characters in name.\nDefault: {_isEnabled}";
-        public Action<string> Action { get; } = (string p) => _isEnabled = p != null;
-        public bool IsEnabled { get => _isEnabled; }
         public IReadOnlyCollection<string> NodeIDs { get; private set; }
 
         private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
         private SimulatedVariableNode<uint> _node;
 
+        public void AddOption(Mono.Options.OptionSet optionSet)
+        {
+            optionSet.Add(
+                "scn|specialcharname",
+                $"add node with special characters in name.\nDefault: {_isEnabled}",
+                (string p) => _isEnabled = p != null);
+        }
+
         public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
         {
             _plcNodeManager = plcNodeManager;
 
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 AddNodes(parentFolder);
             }
@@ -30,7 +35,7 @@
 
         public void StartSimulation(PlcServer server)
         {
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 _node.Start(value => value + 1, periodMs: 1000);
             }
@@ -38,7 +43,7 @@
 
         public void StopSimulation()
         {
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 _node.Stop();
             }

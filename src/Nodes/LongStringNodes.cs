@@ -5,13 +5,11 @@
     using System.Collections.Generic;
     using System.Text;
 
-    public class LongStringNodes : INodes<string>
+    /// <summary>
+    /// Nodes that change value every second to string containing single repeated uppercase letter.
+    /// </summary>
+    public class LongStringNodes : INodes
     {
-        // Command line option.
-        public string Prototype { get; } = "lsn|longstringnodes";
-        public string Description { get; } = $"add nodes with string values of 10/50/100/200 kB.\nDefault: {_isEnabled}";
-        public Action<string> Action { get; } = (string p) => _isEnabled = p != null;
-        public bool IsEnabled { get => _isEnabled; }
         public IReadOnlyCollection<string> NodeIDs { get; private set; }
 
         private static bool _isEnabled;
@@ -22,11 +20,19 @@
         private SimulatedVariableNode<byte[]> _longStringIdNode200;
         private readonly Random _random = new Random();
 
+        public void AddOption(Mono.Options.OptionSet optionSet)
+        {
+            optionSet.Add(
+                "lsn|longstringnodes",
+                $"add nodes with string values of 10/50/100/200 kB.\nDefault: {_isEnabled}",
+                (string p) => _isEnabled = p != null);
+        }
+
         public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
         {
             _plcNodeManager = plcNodeManager;
 
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 AddNodes(parentFolder);
             }
@@ -34,7 +40,7 @@
 
         public void StartSimulation(PlcServer server)
         {
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 // Change value every second to string containing single repeated uppercase letter.
                 const int A = 65, Z = 90 + 1;
@@ -48,7 +54,7 @@
 
         public void StopSimulation()
         {
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 _longStringIdNode10.Stop();
                 _longStringIdNode50.Stop();

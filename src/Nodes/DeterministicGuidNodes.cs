@@ -2,21 +2,17 @@
 {
     using Opc.Ua;
     using OpcPlc.Helpers;
-    using System;
     using System.Collections.Generic;
     using System.Timers;
     using static OpcPlc.Program;
 
-    public class DeterministicGuidNodes : INodes<uint>
+    /// <summary>
+    /// Nodes with deterministic GUIDs as ID.
+    /// </summary>
+    public class DeterministicGuidNodes : INodes
     {
-        // Command line option.
-        public string Prototype { get; } = "gn|guidnodes=";
-        public string Description { get; } = $"number of nodes with deterministic GUID IDs\nDefault: {NodeCount}";
-        public Action<uint> Action { get; } = (uint i) => NodeCount = i;
-        public bool IsEnabled { get => NodeCount > 0; }
         public IReadOnlyCollection<string> NodeIDs { get; private set; }
 
-        // Node count, rate and type.
         private static uint NodeCount { get; set; } = 1;
         private uint NodeRate { get; set; } = 1000; // ms.
         private NodeType NodeType { get; set; } = NodeType.UInt;
@@ -24,6 +20,14 @@
         private PlcNodeManager _plcNodeManager;
         private BaseDataVariableState[] _nodes;
         private ITimer _timer;
+
+        public void AddOption(Mono.Options.OptionSet optionSet)
+        {
+            optionSet.Add(
+                "gn|guidnodes=",
+                $"number of nodes with deterministic GUID IDs\nDefault: {NodeCount}",
+                (uint i) => NodeCount = i);
+        }
 
         public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
         {
