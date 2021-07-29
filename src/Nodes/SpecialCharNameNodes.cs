@@ -56,7 +56,7 @@ namespace OpcPlc.Nodes
                         AccessLevels.CurrentReadOrWrite,
                         "Constantly increasing value",
                         NamespaceType.OpcPlcApplications,
-                        defaultValue: (uint)42));
+                        defaultValue: (uint)0));
         }
     }
 }
