@@ -1,10 +1,10 @@
+using System;
+using System.Diagnostics;
+using System.Text;
+using static OpcPlc.Program;
+
 namespace OpcPlc
 {
-    using System;
-    using System.Diagnostics;
-    using System.Text;
-    using static Program;
-
     public class PlcSimulation
     {
         /// <summary>
@@ -35,7 +35,6 @@ namespace OpcPlc
         public static uint FastNodeSamplingInterval { get; set; } // ms.
 
         public static bool AddComplexTypeBoiler { get; set; }
-        public static bool AddSpecialCharName { get; set; }
         public static bool AddLongId { get; set; }
         public static bool AddLongStringNodes { get; set; }
         public static bool AddAlarmSimulation { get; set; }
@@ -122,26 +121,9 @@ namespace OpcPlc
                 _boiler1Generator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
             }
 
-            if (AddSpecialCharName)
-            {
-                _plcServer.PlcNodeManager.SpecialCharNameNode.Start(value => value + 1, periodMs: 1000);
-            }
-
-            if (AddLongId)
-            {
-                _plcServer.PlcNodeManager.LongIdNode.Start(value => value + 1, periodMs: 1000);
-            }
-
-            if (AddLongStringNodes)
-            {
-                const int A = 65, Z = 90 + 1;
-                // Change value every second to string containing single repeated uppercase letter.
-                _plcServer.PlcNodeManager.LongStringIdNode10.Start(value => new string((char)_random.Next(A, Z), 10 * 1024), periodMs: 1000);
-                _plcServer.PlcNodeManager.LongStringIdNode50.Start(value => new string((char)_random.Next(A, Z), 50 * 1024), periodMs: 1000);
-                _plcServer.PlcNodeManager.LongStringIdNode100.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 100 * 1024)), periodMs: 1000);
-                _plcServer.PlcNodeManager.LongStringIdNode200.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 200 * 1024)), periodMs: 1000);
-            }
-
+            SpecialCharNameNodes.StartSimulation(_plcServer);
+            LongIdNodes.StartSimulation(_plcServer);
+            LongStringNodes.StartSimulation(_plcServer);
             DeterministicGuidNodes.StartSimulation(_plcServer);
         }
 
@@ -158,12 +140,15 @@ namespace OpcPlc
             _plcServer.PlcNodeManager.StepUpNode?.Stop();
             _plcServer.PlcNodeManager.RandomSignedInt32?.Stop();
             _plcServer.PlcNodeManager.RandomUnsignedInt32?.Stop();
-            _plcServer.PlcNodeManager.SpecialCharNameNode?.Stop();
 
             Disable(_slowNodeGenerator);
             Disable(_fastNodeGenerator);
             Disable(_eventInstanceGenerator);
             Disable(_boiler1Generator);
+
+            SpecialCharNameNodes.StopSimulation();
+            LongIdNodes.StopSimulation();
+            LongStringNodes.StopSimulation();
             DeterministicGuidNodes.StopSimulation();
         }
 

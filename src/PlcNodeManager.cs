@@ -1,20 +1,17 @@
+using Newtonsoft.Json;
+
+using Opc.Ua;
+using Opc.Ua.Server;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Timers;
+
+using static OpcPlc.Program;
+
 namespace OpcPlc
 {
-    using Newtonsoft.Json;
-
-    using Opc.Ua;
-    using Opc.Ua.Server;
-    using OpcPlc.Helpers;
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Reflection;
-    using System.Text;
-    using System.Timers;
-    using System.Web;
-
-    using static Program;
-
     public class PlcNodeManager : CustomNodeManager2
     {
         private const string NumberOfUpdates = "NumberOfUpdates";
@@ -35,15 +32,6 @@ namespace OpcPlc
         public SimulatedVariableNode<bool> AlternatingBooleanNode { get; set; }
 
         public SimulatedVariableNode<uint> StepUpNode { get; set; }
-
-        public SimulatedVariableNode<uint> SpecialCharNameNode { get; set; }
-
-        public SimulatedVariableNode<uint> LongIdNode { get; set; }
-
-        public SimulatedVariableNode<string> LongStringIdNode10 { get; set; }
-        public SimulatedVariableNode<string> LongStringIdNode50 { get; set; }
-        public SimulatedVariableNode<byte[]> LongStringIdNode100 { get; set; }
-        public SimulatedVariableNode<byte[]> LongStringIdNode200 { get; set; }
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue, string nodeFileName = null)
@@ -250,8 +238,13 @@ namespace OpcPlc
 
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
-                    AddSpecialNodes(dataFolder);
-
+                    // Node with special chars in name and ID.
+                    SpecialCharNameNodes.AddToAddressSpace(root, plcNodeManager: this);
+                    // Node with ID of 3950 chars.
+                    LongIdNodes.AddToAddressSpace(root, plcNodeManager: this);
+                    // Change value every second to string containing single repeated uppercase letter.
+                    LongStringNodes.AddToAddressSpace(root, plcNodeManager: this);
+                    // Nodes with deterministic GUIDs as ID.
                     DeterministicGuidNodes.AddToAddressSpace(root, plcNodeManager: this);
                 }
                 catch (Exception e)
@@ -260,53 +253,6 @@ namespace OpcPlc
                 }
 
                 AddPredefinedNode(SystemContext, root);
-            }
-        }
-
-        private void AddSpecialNodes(FolderState dataFolder)
-        {
-            if (PlcSimulation.AddSpecialCharName)
-            {
-                string SpecialChars = HttpUtility.HtmlDecode(@"&quot;!&#167;$%&amp;/()=?`&#180;\+~*&#39;#_-:.;,&lt;&gt;|@^&#176;€&#181;{[]}");
-
-                SpecialCharNameNode = CreateVariableNode<uint>(
-                    CreateBaseVariable(dataFolder, "Special_" + SpecialChars, SpecialChars, new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
-            }
-
-            if (PlcSimulation.AddLongId)
-            {
-                // Repeat A-Z until 3950 chars are collected.
-                var sb = new StringBuilder(4000);
-                for (int i = 0; i < 3950; i++)
-                {
-                    sb.Append((char)(65 + (i % 26)));
-                }
-
-                LongIdNode = CreateVariableNode<uint>(
-                    CreateBaseVariable(dataFolder, sb.ToString(), "LongId3950", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
-            }
-
-            if (PlcSimulation.AddLongStringNodes)
-            {
-                // 10 kB.
-                string initialString = new string('A', 10 * 1024);
-                LongStringIdNode10 = CreateVariableNode<string>(
-                    CreateBaseVariable(dataFolder, "LongString10kB", "LongString10kB", new NodeId((uint)BuiltInType.String), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialString));
-
-                // 50 kB.
-                initialString = new string('A', 50 * 1024);
-                LongStringIdNode50 = CreateVariableNode<string>(
-                    CreateBaseVariable(dataFolder, "LongString50kB", "LongString50kB", new NodeId((uint)BuiltInType.String), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialString));
-
-                // 100 kB.
-                var initialByteArray = Encoding.UTF8.GetBytes(new string('A', 100 * 1024));
-                LongStringIdNode100 = CreateVariableNode<byte[]>(
-                    CreateBaseVariable(dataFolder, "LongString100kB", "LongString100kB", new NodeId((uint)BuiltInType.ByteString), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialByteArray));
-
-                // 200 kB.
-                initialByteArray = Encoding.UTF8.GetBytes(new string('A', 200 * 1024));
-                LongStringIdNode200 = CreateVariableNode<byte[]>(
-                    CreateBaseVariable(dataFolder, "LongString200kB", "LongString200kB", new NodeId((uint)BuiltInType.Byte), ValueRanks.OneDimension, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialByteArray));
             }
         }
 
@@ -325,7 +271,7 @@ namespace OpcPlc
             if (PlcSimulation.GenerateNegTrend) NegTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));
         }
 
-        private SimulatedVariableNode<T> CreateVariableNode<T>(BaseDataVariableState variable)
+        public SimulatedVariableNode<T> CreateVariableNode<T>(BaseDataVariableState variable)
         {
             return new SimulatedVariableNode<T>(SystemContext, variable, _timeService);
         }
@@ -760,7 +706,7 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
+        public BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
         {
             var baseDataVariableState = new BaseDataVariableState(parent)
             {
