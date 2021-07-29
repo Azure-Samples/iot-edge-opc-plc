@@ -55,6 +55,7 @@
         /// Nodes to extend the address space.
         /// </summary>
         public static INodes<uint> DeterministicGuidNodes { get; } = new DeterministicGuidNodes();
+        public static INodes<string> SpecialCharNameNodes { get; } = new SpecialCharNameNodes();
 
         public static bool DisableAnonymousAuth { get; set; } = false;
 
@@ -392,7 +393,6 @@
 
                 // Special nodes
                 { "ctb|complextypeboiler", $"add complex type (boiler) to address space.\nDefault: {AddComplexTypeBoiler}", h => AddComplexTypeBoiler = h != null },
-                { "scn|specialcharname", $"add node with special characters in name.\nDefault: {AddSpecialCharName}", h => AddSpecialCharName = h != null },
                 { "lid|longid", $"add node with ID of 3950 chars.\nDefault: {AddLongId}", h => AddLongId = h != null },
                 { "lsn|longstringnodes", $"add nodes with string values of 10/50/100/200 kB.\nDefault: {AddLongStringNodes}", h => AddLongStringNodes = h != null },
                 { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", h => AddAlarmSimulation = h != null },
@@ -408,6 +408,7 @@
                 { "h|help", "show this message and exit", h => ShowHelp = h != null },
             };
 
+            options.Add(SpecialCharNameNodes.Prototype, SpecialCharNameNodes.Description, SpecialCharNameNodes.Action);
             options.Add(DeterministicGuidNodes.Prototype, DeterministicGuidNodes.Description, DeterministicGuidNodes.Action);
 
             return options;
@@ -474,7 +475,7 @@
             if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}StepUp\" }},");
 
             const string SpecialChars = @"\""!§$%&/()=?`´\\+~*'#_-:.;,<>|@^°€µ{[]}";
-            if (AddSpecialCharName) sb.AppendLine($"      {{ \"Id\": \"{NSS}Special_{SpecialChars}\" }},");
+            if (SpecialCharNameNodes.IsEnabled) sb.AppendLine($"      {{ \"Id\": \"{NSS}Special_{SpecialChars}\" }},");
             if (AddLongStringNodes)
             {
                 sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString10kB\" }},");
