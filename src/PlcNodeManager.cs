@@ -34,8 +34,6 @@ namespace OpcPlc
 
         public SimulatedVariableNode<uint> StepUpNode { get; set; }
 
-        public SimulatedVariableNode<uint> LongIdNode { get; set; }
-
         public SimulatedVariableNode<string> LongStringIdNode10 { get; set; }
         public SimulatedVariableNode<string> LongStringIdNode50 { get; set; }
         public SimulatedVariableNode<byte[]> LongStringIdNode100 { get; set; }
@@ -249,6 +247,7 @@ namespace OpcPlc
                     AddSpecialNodes(dataFolder);
 
                     SpecialCharNameNodes.AddToAddressSpace(root, plcNodeManager: this);
+                    LongIdNodes.AddToAddressSpace(root, plcNodeManager: this);
                     DeterministicGuidNodes.AddToAddressSpace(root, plcNodeManager: this);
                 }
                 catch (Exception e)
@@ -262,19 +261,6 @@ namespace OpcPlc
 
         private void AddSpecialNodes(FolderState dataFolder)
         {
-            if (PlcSimulation.AddLongId)
-            {
-                // Repeat A-Z until 3950 chars are collected.
-                var sb = new StringBuilder(4000);
-                for (int i = 0; i < 3950; i++)
-                {
-                    sb.Append((char)(65 + (i % 26)));
-                }
-
-                LongIdNode = CreateVariableNode<uint>(
-                    CreateBaseVariable(dataFolder, sb.ToString(), "LongId3950", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications, defaultValue: (uint)0));
-            }
-
             if (PlcSimulation.AddLongStringNodes)
             {
                 // 10 kB.

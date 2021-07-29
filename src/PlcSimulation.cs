@@ -121,11 +121,6 @@ namespace OpcPlc
                 _boiler1Generator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
             }
 
-            if (AddLongId)
-            {
-                _plcServer.PlcNodeManager.LongIdNode.Start(value => value + 1, periodMs: 1000);
-            }
-
             if (AddLongStringNodes)
             {
                 const int A = 65, Z = 90 + 1;
@@ -137,6 +132,7 @@ namespace OpcPlc
             }
 
             SpecialCharNameNodes.StartSimulation(_plcServer);
+            LongIdNodes.StartSimulation(_plcServer);
             DeterministicGuidNodes.StartSimulation(_plcServer);
         }
 
@@ -160,6 +156,7 @@ namespace OpcPlc
             Disable(_boiler1Generator);
 
             SpecialCharNameNodes.StopSimulation();
+            LongIdNodes.StopSimulation();
             DeterministicGuidNodes.StopSimulation();
         }
 
