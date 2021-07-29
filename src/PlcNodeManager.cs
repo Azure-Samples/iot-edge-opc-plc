@@ -238,9 +238,13 @@ namespace OpcPlc
 
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
+                    // Node with special chars in name and ID.
                     SpecialCharNameNodes.AddToAddressSpace(root, plcNodeManager: this);
+                    // Node with ID of 3950 chars.
                     LongIdNodes.AddToAddressSpace(root, plcNodeManager: this);
+                    // Change value every second to string containing single repeated uppercase letter.
                     LongStringNodes.AddToAddressSpace(root, plcNodeManager: this);
+                    // Nodes with deterministic GUIDs as ID.
                     DeterministicGuidNodes.AddToAddressSpace(root, plcNodeManager: this);
                 }
                 catch (Exception e)

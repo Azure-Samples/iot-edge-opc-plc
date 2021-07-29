@@ -34,6 +34,7 @@
         {
             if (IsEnabled)
             {
+                // Change value every second to string containing single repeated uppercase letter.
                 const int A = 65, Z = 90 + 1;
 
                 _longStringIdNode10.Start(value => new string((char)_random.Next(A, Z), 10 * 1024), periodMs: 1000);

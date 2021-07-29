@@ -121,13 +121,9 @@ namespace OpcPlc
                 _boiler1Generator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
             }
 
-            // Node with special chars in name and ID.
             SpecialCharNameNodes.StartSimulation(_plcServer);
-            // Node with ID of 3950 chars.
             LongIdNodes.StartSimulation(_plcServer);
-            // Change value every second to string containing single repeated uppercase letter.
             LongStringNodes.StartSimulation(_plcServer);
-            // Nodes with deterministic GUIDs as ID.
             DeterministicGuidNodes.StartSimulation(_plcServer);
         }
 
