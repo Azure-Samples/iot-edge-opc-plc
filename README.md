@@ -189,6 +189,7 @@ More information about this feature can be found [here](deterministic-alarms.md)
   - `< 0` (default): Slow and Fast nodes are updated indefinitely
   - `0`: Slow and Fast nodes are not updated
   - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
+- Nodes with deterministic random GUIDs as node IDs: `--gn=<number_of_nodes>`
 
 ## OPC UA Methods
 

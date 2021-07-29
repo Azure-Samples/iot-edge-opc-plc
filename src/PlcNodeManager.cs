@@ -4,7 +4,7 @@ namespace OpcPlc
 
     using Opc.Ua;
     using Opc.Ua.Server;
-
+    using OpcPlc.Helpers;
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -251,6 +251,8 @@ namespace OpcPlc
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
                     AddSpecialNodes(dataFolder);
+
+                    DeterministicGuidNodes.AddToAddressSpace(root, plcNodeManager: this);
                 }
                 catch (Exception e)
                 {
@@ -453,7 +455,7 @@ namespace OpcPlc
             return methodsFolder;
         }
 
-        private void UpdateNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
+        public void UpdateNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
         {
             if (nodes == null || nodes.Length == 0)
             {
@@ -553,6 +555,7 @@ namespace OpcPlc
                             }
                             value = arrayValue;
                             break;
+
                         case NodeType.UInt:
                         default:
                             var minUIntValue = (uint)extendedNode.MinValue;
@@ -620,7 +623,7 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new folder.
         /// </summary>
-        private FolderState CreateFolder(NodeState parent, string path, string name, NamespaceType namespaceType)
+        public FolderState CreateFolder(NodeState parent, string path, string name, NamespaceType namespaceType)
         {
             ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
 
@@ -664,7 +667,7 @@ namespace OpcPlc
             return nodes;
         }
 
-        private static (NodeId dataType, int valueRank, object defaultValue, object stepSize, object minValue, object maxValue) GetNodeType(NodeType nodeType, string stepSize, string minValue, string maxValue)
+        public static (NodeId dataType, int valueRank, object defaultValue, object stepSize, object minValue, object maxValue) GetNodeType(NodeType nodeType, string stepSize, string minValue, string maxValue)
         {
             return nodeType switch
             {
@@ -742,7 +745,7 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new extended variable.
         /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, bool randomize, object stepSizeValue, object minTypeValue, object maxTypeValue, object defaultValue = null)
+        public BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, bool randomize, object stepSizeValue, object minTypeValue, object maxTypeValue, object defaultValue = null)
         {
             var baseDataVariableState = new BaseDataVariableStateExtended(parent, randomize, stepSizeValue, minTypeValue, maxTypeValue)
             {
@@ -1116,13 +1119,6 @@ namespace OpcPlc
             variable.Value = value;
             variable.Timestamp = _timeService.Now();
             variable.ClearChangeMasks(SystemContext, false);
-        }
-
-        private enum NamespaceType
-        {
-            OpcPlcApplications,
-            Boiler,
-            BoilerInstance,
         }
 
         private readonly (StatusCode, bool)[] BadStatusSequence = new (StatusCode, bool)[]

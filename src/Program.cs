@@ -17,6 +17,7 @@
     using static OpcPlc.PlcSimulation;
     using System.Net;
     using Microsoft.Extensions.Hosting;
+    using OpcPlc.Nodes;
 
     public static class Program
     {
@@ -49,6 +50,11 @@
         /// A flag indicating when the server is up and ready to accept connections.
         /// </summary>
         public static volatile bool Ready = false;
+
+        /// <summary>
+        /// Nodes to extend the address space.
+        /// </summary>
+        public static INodes<uint> DeterministicGuidNodes { get; } = new DeterministicGuidNodes();
 
         public static bool DisableAnonymousAuth { get; set; } = false;
 
@@ -188,7 +194,7 @@
 
         private static Mono.Options.OptionSet InitCommandLineOptions()
         {
-            return new Mono.Options.OptionSet {
+            var options = new Mono.Options.OptionSet {
                 // log configuration
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
                 { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {_logFileFlushTimeSpanSec} sec", (int s) => {
@@ -401,6 +407,10 @@
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint i) => WebServerPort = i },
                 { "h|help", "show this message and exit", h => ShowHelp = h != null },
             };
+
+            options.Add(DeterministicGuidNodes.Prototype, DeterministicGuidNodes.Description, DeterministicGuidNodes.Action);
+
+            return options;
         }
 
         /// <summary>
@@ -435,9 +445,7 @@
                     ip = hostEntry.AddressList[0].ToString();
                 }
             }
-            catch
-            {
-            }
+            catch { }
 
             return ip;
         }

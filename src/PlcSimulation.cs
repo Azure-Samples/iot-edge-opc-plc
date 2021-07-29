@@ -141,6 +141,8 @@ namespace OpcPlc
                 _plcServer.PlcNodeManager.LongStringIdNode100.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 100 * 1024)), periodMs: 1000);
                 _plcServer.PlcNodeManager.LongStringIdNode200.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 200 * 1024)), periodMs: 1000);
             }
+
+            DeterministicGuidNodes.StartSimulation(_plcServer);
         }
 
         /// <summary>
@@ -162,6 +164,7 @@ namespace OpcPlc
             Disable(_fastNodeGenerator);
             Disable(_eventInstanceGenerator);
             Disable(_boiler1Generator);
+            DeterministicGuidNodes.StopSimulation();
         }
 
         private void Disable(ITimer timer)

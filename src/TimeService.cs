@@ -89,15 +89,15 @@ namespace OpcPlc
     public interface ITimer : IDisposable
     {
         bool Enabled { get; set; }
-        
+
         bool AutoReset { get; set; }
-        
+
         double Interval { get; set; }
 
         void Close();
     }
 
-    public class FastTimerElapsedEventArgs : EventArgs 
+    public class FastTimerElapsedEventArgs : EventArgs
     {
     }
 
@@ -162,16 +162,16 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Starts the timer 
+        /// Starts the timer
         /// </summary>
         private void Start()
         {
             var isRunning = Interlocked.Exchange(ref _isRunning, 1);
             if (isRunning == 0)
             {
-                var thread = new Thread(Runner) 
-                { 
-                    Priority = ThreadPriority.Highest 
+                var thread = new Thread(Runner)
+                {
+                    Priority = ThreadPriority.Highest
                 };
                 thread.Start();
             }
