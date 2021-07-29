@@ -193,16 +193,6 @@ namespace OpcPlc
             _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
         }
 
-#pragma warning disable IDE0060 // Remove unused parameter
-        public void UpdateGuidNodes(object state, ElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
-        {
-            if (_guidNodes != null)
-            {
-                UpdateNodes(_guidNodes, PlcSimulation.GuidNodeType, StatusCodes.Good, false);
-            }
-        }
-
         /// <summary>
         /// Creates the NodeId for the specified node.
         /// </summary>
@@ -262,8 +252,7 @@ namespace OpcPlc
 
                     AddSpecialNodes(dataFolder);
 
-                    FolderState guidFolder = CreateFolder(root, "Deterministic GUIDs", "Deterministic GUIDs", NamespaceType.OpcPlcApplications);
-                    AddGuidNodes(guidFolder);
+                    DeterministicGuidNodes.AddToAddressSpace(root, plcNodeManager: this);
                 }
                 catch (Exception e)
                 {
@@ -319,32 +308,6 @@ namespace OpcPlc
                 LongStringIdNode200 = CreateVariableNode<byte[]>(
                     CreateBaseVariable(dataFolder, "LongString200kB", "LongString200kB", new NodeId((uint)BuiltInType.Byte), ValueRanks.OneDimension, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialByteArray));
             }
-        }
-
-        private void AddGuidNodes(FolderState folder)
-        {
-            _guidNodes = CreateGuidNodes(PlcSimulation.GuidNodeType, PlcSimulation.GuidNodeCount, folder);
-        }
-
-        private BaseDataVariableState[] CreateGuidNodes(NodeType nodeType, uint count, FolderState folder)
-        {
-            var nodes = new BaseDataVariableState[count];
-
-            if (count > 0)
-            {
-                Logger.Information($"Creating {count} GUID nodes of type: {nodeType}");
-                Logger.Information($"Node values will change every {PlcSimulation.GuidNodeRate} ms");
-            }
-
-            for (int i = 0; i < count; i++)
-            {
-                var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) = GetNodeType(nodeType, stepSize: "1", minValue: null, maxValue: null);
-
-                string id = DeterministicGuid.NewGuid().ToString();
-                nodes[i] = CreateBaseVariable(folder, id, id, dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)", NamespaceType.OpcPlcApplications, randomize: false, stepTypeSize, minTypeValue, maxTypeValue, defaultValue);
-            }
-
-            return nodes;
         }
 
         private void AddChangingNodes(FolderState dataFolder)
@@ -492,7 +455,7 @@ namespace OpcPlc
             return methodsFolder;
         }
 
-        private void UpdateNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
+        public void UpdateNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
         {
             if (nodes == null || nodes.Length == 0)
             {
@@ -660,7 +623,7 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new folder.
         /// </summary>
-        private FolderState CreateFolder(NodeState parent, string path, string name, NamespaceType namespaceType)
+        public FolderState CreateFolder(NodeState parent, string path, string name, NamespaceType namespaceType)
         {
             ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
 
@@ -704,7 +667,7 @@ namespace OpcPlc
             return nodes;
         }
 
-        private static (NodeId dataType, int valueRank, object defaultValue, object stepSize, object minValue, object maxValue) GetNodeType(NodeType nodeType, string stepSize, string minValue, string maxValue)
+        public static (NodeId dataType, int valueRank, object defaultValue, object stepSize, object minValue, object maxValue) GetNodeType(NodeType nodeType, string stepSize, string minValue, string maxValue)
         {
             return nodeType switch
             {
@@ -782,7 +745,7 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new extended variable.
         /// </summary>
-        private BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, bool randomize, object stepSizeValue, object minTypeValue, object maxTypeValue, object defaultValue = null)
+        public BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, bool randomize, object stepSizeValue, object minTypeValue, object maxTypeValue, object defaultValue = null)
         {
             var baseDataVariableState = new BaseDataVariableStateExtended(parent, randomize, stepSizeValue, minTypeValue, maxTypeValue)
             {
@@ -1158,13 +1121,6 @@ namespace OpcPlc
             variable.ClearChangeMasks(SystemContext, false);
         }
 
-        private enum NamespaceType
-        {
-            OpcPlcApplications,
-            Boiler,
-            BoilerInstance,
-        }
-
         private readonly (StatusCode, bool)[] BadStatusSequence = new (StatusCode, bool)[]
         {
             ( StatusCodes.Good, true ),
@@ -1196,7 +1152,6 @@ namespace OpcPlc
         protected BoilerModel.BoilerState _boiler1 = null;
         protected BaseDataVariableState[] _slowBadNodes = null;
         protected BaseDataVariableState[] _fastBadNodes = null;
-        protected BaseDataVariableState[] _guidNodes = null;
         private readonly bool _slowNodeRandomization;
         private readonly string _slowNodeStepSize;
         private readonly string _slowNodeMinValue;
