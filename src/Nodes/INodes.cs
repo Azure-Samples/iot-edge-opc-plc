@@ -8,6 +8,7 @@ namespace OpcPlc.Nodes
         string Prototype { get; set; }
         string Description { get; set; }
         Action<TParam> Action { get; set; }
+        bool IsEnabled { get; }
 
         void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager);
         void StartSimulation(PlcServer server);

@@ -12,6 +12,7 @@ namespace OpcPlc.Nodes
         public string Prototype { get; set; } = "gn|guidnodes=";
         public string Description { get; set; } = $"number of nodes with deterministic GUID IDs\nDefault: {NodeCount}";
         public Action<uint> Action { get; set; } = (uint i) => NodeCount = i;
+        public bool IsEnabled { get => NodeCount > 0; }
 
         // Node count, rate and type.
         private static uint NodeCount { get; set; } = 1;
