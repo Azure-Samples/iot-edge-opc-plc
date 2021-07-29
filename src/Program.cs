@@ -476,14 +476,21 @@
             if (GenerateSpikes) sb.AppendLine($"      {{ \"Id\": \"{NSS}SpikeData\" }},");
             if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}StepUp\" }},");
 
-            const string SpecialChars = @"\""!§$%&/()=?`´\\+~*'#_-:.;,<>|@^°€µ{[]}";
-            if (SpecialCharNameNodes.IsEnabled) sb.AppendLine($"      {{ \"Id\": \"{NSS}Special_{SpecialChars}\" }},");
-            if (AddLongStringNodes)
+            foreach (var nodeId in SpecialCharNameNodes.NodeIDs)
             {
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString10kB\" }},");
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString50kB\" }},");
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString100kB\" }},");
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString200kB\" }},");
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}{nodeId}\" }},");
+            }
+            foreach (var nodeId in LongIdNodes.NodeIDs)
+            {
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}{nodeId}\" }},");
+            }
+            foreach (var nodeId in LongStringNodes.NodeIDs)
+            {
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}{nodeId}\" }},");
+            }
+            foreach (var nodeId in DeterministicGuidNodes.NodeIDs)
+            {
+                sb.AppendLine($"      {{ \"Id\": \"{NSS}{nodeId}\" }},");
             }
 
             string slowPublishingInterval = SlowNodeRate > 1000

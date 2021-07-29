@@ -2,15 +2,17 @@
 {
     using Opc.Ua;
     using System;
+    using System.Collections.Generic;
     using System.Text;
 
     public class LongStringNodes : INodes<string>
     {
         // Command line option.
-        public string Prototype { get; set; } = "lsn|longstringnodes";
-        public string Description { get; set; } = $"add nodes with string values of 10/50/100/200 kB.\nDefault: {_isEnabled}";
-        public Action<string> Action { get; set; } = (string p) => _isEnabled = p != null;
+        public string Prototype { get; } = "lsn|longstringnodes";
+        public string Description { get; } = $"add nodes with string values of 10/50/100/200 kB.\nDefault: {_isEnabled}";
+        public Action<string> Action { get; } = (string p) => _isEnabled = p != null;
         public bool IsEnabled { get => _isEnabled; }
+        public IReadOnlyCollection<string> NodeIDs { get; private set; }
 
         private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
@@ -62,8 +64,8 @@
             _longStringIdNode10 = _plcNodeManager.CreateVariableNode<string>(
                 _plcNodeManager.CreateBaseVariable(
                     folder,
-                    "LongString10kB",
-                    "LongString10kB",
+                    path: "LongString10kB",
+                    name: "LongString10kB",
                     new NodeId((uint)BuiltInType.String),
                     ValueRanks.Scalar,
                     AccessLevels.CurrentReadOrWrite,
@@ -76,8 +78,8 @@
             _longStringIdNode50 = _plcNodeManager.CreateVariableNode<string>(
                 _plcNodeManager.CreateBaseVariable(
                     folder,
-                    "LongString50kB",
-                    "LongString50kB",
+                    path: "LongString50kB",
+                    name: "LongString50kB",
                     new NodeId((uint)BuiltInType.String),
                     ValueRanks.Scalar,
                     AccessLevels.CurrentReadOrWrite,
@@ -89,8 +91,9 @@
             var initialByteArray = Encoding.UTF8.GetBytes(new string('A', 100 * 1024));
             _longStringIdNode100 = _plcNodeManager.CreateVariableNode<byte[]>(
                 _plcNodeManager.CreateBaseVariable(
-                    folder, "LongString100kB",
-                    "LongString100kB",
+                    folder,
+                    path: "LongString100kB",
+                    name: "LongString100kB",
                     new NodeId((uint)BuiltInType.ByteString),
                     ValueRanks.Scalar,
                     AccessLevels.CurrentReadOrWrite,
@@ -103,14 +106,22 @@
             _longStringIdNode200 = _plcNodeManager.CreateVariableNode<byte[]>(
                 _plcNodeManager.CreateBaseVariable(
                     folder,
-                    "LongString200kB",
-                    "LongString200kB",
+                    path: "LongString200kB",
+                    name: "LongString200kB",
                     new NodeId((uint)BuiltInType.Byte),
                     ValueRanks.OneDimension,
                     AccessLevels.CurrentReadOrWrite,
                     "Long string",
                     NamespaceType.OpcPlcApplications,
                     initialByteArray));
+
+            NodeIDs = new List<string>
+            {
+                "LongString10kB",
+                "LongString50kB",
+                "LongString100kB",
+                "LongString200kB",
+            };
         }
     }
 }

@@ -3,16 +3,18 @@
     using Opc.Ua;
     using OpcPlc.Helpers;
     using System;
+    using System.Collections.Generic;
     using System.Timers;
     using static OpcPlc.Program;
 
     public class DeterministicGuidNodes : INodes<uint>
     {
         // Command line option.
-        public string Prototype { get; set; } = "gn|guidnodes=";
-        public string Description { get; set; } = $"number of nodes with deterministic GUID IDs\nDefault: {NodeCount}";
-        public Action<uint> Action { get; set; } = (uint i) => NodeCount = i;
+        public string Prototype { get; } = "gn|guidnodes=";
+        public string Description { get; } = $"number of nodes with deterministic GUID IDs\nDefault: {NodeCount}";
+        public Action<uint> Action { get; } = (uint i) => NodeCount = i;
         public bool IsEnabled { get => NodeCount > 0; }
+        public IReadOnlyCollection<string> NodeIDs { get; private set; }
 
         // Node count, rate and type.
         private static uint NodeCount { get; set; } = 1;
@@ -63,6 +65,7 @@
         private void AddNodes(FolderState folder)
         {
             _nodes = new BaseDataVariableState[NodeCount];
+            var nodeIDs = new List<string>((int)NodeCount);
 
             if (NodeCount > 0)
             {
@@ -78,7 +81,8 @@
                 string id = DeterministicGuid.NewGuid().ToString();
                 _nodes[i] = _plcNodeManager.CreateBaseVariable(
                     folder,
-                    id, id,
+                    path: id,
+                    name: id,
                     dataType,
                     valueRank,
                     AccessLevels.CurrentReadOrWrite,
@@ -89,7 +93,11 @@
                     minTypeValue,
                     maxTypeValue,
                     defaultValue);
+
+                nodeIDs.Add(id);
             }
+
+            NodeIDs = nodeIDs;
         }
     }
 }
