@@ -12,9 +12,9 @@
         public Action<string> Action { get; set; } = (string p) => _isEnabled = p != null;
         public bool IsEnabled { get => _isEnabled; }
 
+        private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
         private SimulatedVariableNode<uint> _node;
-        private static bool _isEnabled;
 
         public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
         {
