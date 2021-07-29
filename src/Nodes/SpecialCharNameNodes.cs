@@ -9,7 +9,7 @@ namespace OpcPlc.Nodes
         // Command line option.
         public string Prototype { get; set; } = "scn|specialcharname";
         public string Description { get; set; } = $"add node with special characters in name.\nDefault: {_isEnabled}";
-        public Action<string> Action { get; set; } = (string h) => _isEnabled = h != null;
+        public Action<string> Action { get; set; } = (string p) => _isEnabled = p != null;
         public bool IsEnabled { get => _isEnabled; }
 
         private PlcNodeManager _plcNodeManager;
