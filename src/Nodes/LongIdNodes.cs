@@ -1,9 +1,9 @@
-﻿using Opc.Ua;
-using System;
-using System.Text;
-
-namespace OpcPlc.Nodes
+﻿namespace OpcPlc.Nodes
 {
+    using Opc.Ua;
+    using System;
+    using System.Text;
+
     public class LongIdNodes : INodes<string>
     {
         // Command line option.

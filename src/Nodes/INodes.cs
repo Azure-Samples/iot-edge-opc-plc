@@ -1,8 +1,8 @@
-﻿using Opc.Ua;
-using System;
-
-namespace OpcPlc.Nodes
+﻿namespace OpcPlc.Nodes
 {
+    using Opc.Ua;
+    using System;
+
     public interface INodes<TParam>
     {
         string Prototype { get; set; }

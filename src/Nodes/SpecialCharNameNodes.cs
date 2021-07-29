@@ -1,9 +1,9 @@
-﻿using Opc.Ua;
-using System;
-using System.Web;
-
-namespace OpcPlc.Nodes
+﻿namespace OpcPlc.Nodes
 {
+    using Opc.Ua;
+    using System;
+    using System.Web;
+
     public class SpecialCharNameNodes : INodes<string>
     {
         // Command line option.

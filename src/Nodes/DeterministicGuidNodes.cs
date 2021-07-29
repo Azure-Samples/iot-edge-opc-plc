@@ -1,11 +1,11 @@
-﻿using Opc.Ua;
-using OpcPlc.Helpers;
-using System;
-using System.Timers;
-using static OpcPlc.Program;
-
-namespace OpcPlc.Nodes
+﻿namespace OpcPlc.Nodes
 {
+    using Opc.Ua;
+    using OpcPlc.Helpers;
+    using System;
+    using System.Timers;
+    using static OpcPlc.Program;
+
     public class DeterministicGuidNodes : INodes<uint>
     {
         // Command line option.
