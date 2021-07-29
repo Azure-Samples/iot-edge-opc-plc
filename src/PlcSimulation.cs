@@ -1,10 +1,10 @@
+using System;
+using System.Diagnostics;
+using System.Text;
+using static OpcPlc.Program;
+
 namespace OpcPlc
 {
-    using System;
-    using System.Diagnostics;
-    using System.Text;
-    using static Program;
-
     public class PlcSimulation
     {
         /// <summary>
