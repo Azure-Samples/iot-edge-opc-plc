@@ -262,7 +262,7 @@ namespace OpcPlc
 
                     AddSpecialNodes(dataFolder);
 
-                    FolderState guidFolder = CreateFolder(root, "GUID", "GUID", NamespaceType.OpcPlcApplications);
+                    FolderState guidFolder = CreateFolder(root, "Deterministic GUIDs", "Deterministic GUIDs", NamespaceType.OpcPlcApplications);
                     AddGuidNodes(guidFolder);
                 }
                 catch (Exception e)

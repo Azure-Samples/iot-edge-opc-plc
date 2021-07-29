@@ -393,7 +393,7 @@
                 { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", h => AddSimpleEventsSimulation = h != null },
                 { "ref|referencetest", $"add reference test simulation node manager to address space.\nDefault: {AddReferenceTestSimulation}", h => AddReferenceTestSimulation = h != null },
                 { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (string h) => DeterministicAlarmSimulationFile = h },
-                { "gn|guidnodes=", $"number of nodes with GUID IDs\nDefault: {GuidNodeCount}", (uint i) => GuidNodeCount = i },
+                { "gn|guidnodes=", $"number of nodes with deterministic GUID IDs\nDefault: {GuidNodeCount}", (uint i) => GuidNodeCount = i },
 
                 // misc
                 { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
