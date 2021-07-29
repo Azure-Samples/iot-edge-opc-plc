@@ -54,9 +54,10 @@
         /// <summary>
         /// Nodes to extend the address space.
         /// </summary>
-        public static INodes<uint> DeterministicGuidNodes { get; } = new DeterministicGuidNodes();
         public static INodes<string> SpecialCharNameNodes { get; } = new SpecialCharNameNodes();
         public static INodes<string> LongIdNodes { get; } = new LongIdNodes();
+        public static INodes<string> LongStringNodes { get; } = new LongStringNodes();
+        public static INodes<uint> DeterministicGuidNodes { get; } = new DeterministicGuidNodes();
 
         public static bool DisableAnonymousAuth { get; set; } = false;
 
@@ -394,7 +395,6 @@
 
                 // Special nodes
                 { "ctb|complextypeboiler", $"add complex type (boiler) to address space.\nDefault: {AddComplexTypeBoiler}", h => AddComplexTypeBoiler = h != null },
-                { "lsn|longstringnodes", $"add nodes with string values of 10/50/100/200 kB.\nDefault: {AddLongStringNodes}", h => AddLongStringNodes = h != null },
                 { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", h => AddAlarmSimulation = h != null },
                 { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", h => AddSimpleEventsSimulation = h != null },
                 { "ref|referencetest", $"add reference test simulation node manager to address space.\nDefault: {AddReferenceTestSimulation}", h => AddReferenceTestSimulation = h != null },
@@ -410,6 +410,7 @@
 
             options.Add(SpecialCharNameNodes.Prototype, SpecialCharNameNodes.Description, SpecialCharNameNodes.Action);
             options.Add(LongIdNodes.Prototype, LongIdNodes.Description, LongIdNodes.Action);
+            options.Add(LongStringNodes.Prototype, LongStringNodes.Description, LongStringNodes.Action);
             options.Add(DeterministicGuidNodes.Prototype, DeterministicGuidNodes.Description, DeterministicGuidNodes.Action);
 
             return options;

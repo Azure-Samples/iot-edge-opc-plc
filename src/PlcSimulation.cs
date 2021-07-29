@@ -121,18 +121,13 @@ namespace OpcPlc
                 _boiler1Generator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
             }
 
-            if (AddLongStringNodes)
-            {
-                const int A = 65, Z = 90 + 1;
-                // Change value every second to string containing single repeated uppercase letter.
-                _plcServer.PlcNodeManager.LongStringIdNode10.Start(value => new string((char)_random.Next(A, Z), 10 * 1024), periodMs: 1000);
-                _plcServer.PlcNodeManager.LongStringIdNode50.Start(value => new string((char)_random.Next(A, Z), 50 * 1024), periodMs: 1000);
-                _plcServer.PlcNodeManager.LongStringIdNode100.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 100 * 1024)), periodMs: 1000);
-                _plcServer.PlcNodeManager.LongStringIdNode200.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 200 * 1024)), periodMs: 1000);
-            }
-
+            // Node with special chars in name and ID.
             SpecialCharNameNodes.StartSimulation(_plcServer);
+            // Node with ID of 3950 chars.
             LongIdNodes.StartSimulation(_plcServer);
+            // Change value every second to string containing single repeated uppercase letter.
+            LongStringNodes.StartSimulation(_plcServer);
+            // Nodes with deterministic GUIDs as ID.
             DeterministicGuidNodes.StartSimulation(_plcServer);
         }
 
@@ -157,6 +152,7 @@ namespace OpcPlc
 
             SpecialCharNameNodes.StopSimulation();
             LongIdNodes.StopSimulation();
+            LongStringNodes.StopSimulation();
             DeterministicGuidNodes.StopSimulation();
         }
 
