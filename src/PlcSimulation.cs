@@ -42,6 +42,9 @@ namespace OpcPlc
         public static bool AddSimpleEventsSimulation { get; set; }
         public static bool AddReferenceTestSimulation { get; set; }
         public static string DeterministicAlarmSimulationFile { get; set; }
+        public static uint GuidNodeCount { get; set; } = 1;
+        public static uint GuidNodeRate { get; set; } = 1000; // ms.
+        public static NodeType GuidNodeType { get; set; } = NodeType.UInt;
 
         public static uint EventInstanceCount { get; set; } = 0;
         public static uint EventInstanceRate { get; set; } = 1000; // ms.
@@ -140,6 +143,11 @@ namespace OpcPlc
                 _plcServer.PlcNodeManager.LongStringIdNode50.Start(value => new string((char)_random.Next(A, Z), 50 * 1024), periodMs: 1000);
                 _plcServer.PlcNodeManager.LongStringIdNode100.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 100 * 1024)), periodMs: 1000);
                 _plcServer.PlcNodeManager.LongStringIdNode200.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 200 * 1024)), periodMs: 1000);
+            }
+
+            if (GuidNodeCount > 0)
+            {
+                _guidNodeGenerator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateGuidNodes, GuidNodeRate);
             }
         }
 
@@ -391,5 +399,6 @@ namespace OpcPlc
         private ITimer _eventInstanceGenerator;
 
         private ITimer _boiler1Generator;
+        private ITimer _guidNodeGenerator;
     }
 }

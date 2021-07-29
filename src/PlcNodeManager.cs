@@ -4,7 +4,7 @@ namespace OpcPlc
 
     using Opc.Ua;
     using Opc.Ua.Server;
-
+    using OpcPlc.Helpers;
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -193,6 +193,16 @@ namespace OpcPlc
             _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
         }
 
+#pragma warning disable IDE0060 // Remove unused parameter
+        public void UpdateGuidNodes(object state, ElapsedEventArgs elapsedEventArgs)
+#pragma warning restore IDE0060 // Remove unused parameter
+        {
+            if (_guidNodes != null)
+            {
+                UpdateNodes(_guidNodes, PlcSimulation.GuidNodeType, StatusCodes.Good, false);
+            }
+        }
+
         /// <summary>
         /// Creates the NodeId for the specified node.
         /// </summary>
@@ -251,6 +261,9 @@ namespace OpcPlc
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
                     AddSpecialNodes(dataFolder);
+
+                    FolderState guidFolder = CreateFolder(root, "GUID", "GUID", NamespaceType.OpcPlcApplications);
+                    AddGuidNodes(guidFolder);
                 }
                 catch (Exception e)
                 {
@@ -306,6 +319,32 @@ namespace OpcPlc
                 LongStringIdNode200 = CreateVariableNode<byte[]>(
                     CreateBaseVariable(dataFolder, "LongString200kB", "LongString200kB", new NodeId((uint)BuiltInType.Byte), ValueRanks.OneDimension, AccessLevels.CurrentReadOrWrite, "Long string", NamespaceType.OpcPlcApplications, initialByteArray));
             }
+        }
+
+        private void AddGuidNodes(FolderState folder)
+        {
+            _guidNodes = CreateGuidNodes(PlcSimulation.GuidNodeType, PlcSimulation.GuidNodeCount, folder);
+        }
+
+        private BaseDataVariableState[] CreateGuidNodes(NodeType nodeType, uint count, FolderState folder)
+        {
+            var nodes = new BaseDataVariableState[count];
+
+            if (count > 0)
+            {
+                Logger.Information($"Creating {count} GUID nodes of type: {nodeType}");
+                Logger.Information($"Node values will change every {PlcSimulation.GuidNodeRate} ms");
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) = GetNodeType(nodeType, stepSize: "1", minValue: null, maxValue: null);
+
+                string id = DeterministicGuid.NewGuid().ToString();
+                nodes[i] = CreateBaseVariable(folder, id, id, dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)", NamespaceType.OpcPlcApplications, randomize: false, stepTypeSize, minTypeValue, maxTypeValue, defaultValue);
+            }
+
+            return nodes;
         }
 
         private void AddChangingNodes(FolderState dataFolder)
@@ -553,6 +592,7 @@ namespace OpcPlc
                             }
                             value = arrayValue;
                             break;
+
                         case NodeType.UInt:
                         default:
                             var minUIntValue = (uint)extendedNode.MinValue;
@@ -1156,6 +1196,7 @@ namespace OpcPlc
         protected BoilerModel.BoilerState _boiler1 = null;
         protected BaseDataVariableState[] _slowBadNodes = null;
         protected BaseDataVariableState[] _fastBadNodes = null;
+        protected BaseDataVariableState[] _guidNodes = null;
         private readonly bool _slowNodeRandomization;
         private readonly string _slowNodeStepSize;
         private readonly string _slowNodeMinValue;
