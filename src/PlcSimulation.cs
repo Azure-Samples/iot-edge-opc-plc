@@ -1,9 +1,8 @@
-using System;
-using System.Diagnostics;
-using static OpcPlc.Program;
-
 namespace OpcPlc
 {
+    using System.Diagnostics;
+    using static OpcPlc.Program;
+
     public class PlcSimulation
     {
         /// <summary>
@@ -51,7 +50,6 @@ namespace OpcPlc
         public PlcSimulation(PlcServer plcServer)
         {
             _plcServer = plcServer;
-            _random = new Random();
         }
 
         /// <summary>
@@ -124,7 +122,6 @@ namespace OpcPlc
         private const double SIMULATION_MAXAMPLITUDE_DEFAULT = 100.0;
 
         private readonly PlcServer _plcServer;
-        private readonly Random _random;
 
         private ITimer _slowNodeGenerator;
         private ITimer _fastNodeGenerator;
