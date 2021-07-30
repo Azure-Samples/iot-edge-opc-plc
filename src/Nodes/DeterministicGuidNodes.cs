@@ -3,7 +3,6 @@
     using Opc.Ua;
     using OpcPlc.Helpers;
     using System.Collections.Generic;
-    using System.Timers;
     using static OpcPlc.Program;
 
     /// <summary>
@@ -18,8 +17,7 @@
         private NodeType NodeType { get; set; } = NodeType.UInt;
 
         private PlcNodeManager _plcNodeManager;
-        private BaseDataVariableState[] _nodes;
-        private ITimer _timer;
+        private SimulatedVariableNode<uint>[] _nodes;
 
         public void AddOption(Mono.Options.OptionSet optionSet)
         {
@@ -44,31 +42,23 @@
 
         public void StartSimulation(PlcServer server)
         {
-            if (NodeCount > 0)
+            foreach (var node in _nodes)
             {
-                _timer = server.TimeService.NewTimer(UpdateNodes, NodeRate);
+                node.Start(value => value + 1, periodMs: 1000);
             }
         }
 
         public void StopSimulation()
         {
-            if (_timer != null)
+            foreach (var node in _nodes)
             {
-                _timer.Enabled = false;
-            }
-        }
-
-        private void UpdateNodes(object state, ElapsedEventArgs elapsedEventArgs)
-        {
-            if (_nodes != null)
-            {
-                _plcNodeManager.UpdateNodes(_nodes, NodeType, StatusCodes.Good, addBadValue: false);
+                node.Stop();
             }
         }
 
         private void AddNodes(FolderState folder)
         {
-            _nodes = new BaseDataVariableState[NodeCount];
+            _nodes = new SimulatedVariableNode<uint>[NodeCount];
             var nodeIDs = new List<string>((int)NodeCount);
 
             if (NodeCount > 0)
@@ -79,24 +69,19 @@
 
             for (int i = 0; i < NodeCount; i++)
             {
-                var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) =
-                    PlcNodeManager.GetNodeType(NodeType, stepSize: "1", minValue: null, maxValue: null);
-
                 string id = DeterministicGuid.NewGuid().ToString();
-                _nodes[i] = _plcNodeManager.CreateBaseVariable(
-                    folder,
-                    path: id,
-                    name: id,
-                    dataType,
-                    valueRank,
-                    AccessLevels.CurrentReadOrWrite,
-                    "Constantly increasing value(s)",
-                    NamespaceType.OpcPlcApplications,
-                    randomize: false,
-                    stepTypeSize,
-                    minTypeValue,
-                    maxTypeValue,
-                    defaultValue);
+
+                _nodes[i] = _plcNodeManager.CreateVariableNode<uint>(
+                    _plcNodeManager.CreateBaseVariable(
+                        folder,
+                        path: id,
+                        name: id,
+                        new NodeId((uint)BuiltInType.UInt32),
+                        ValueRanks.Scalar,
+                        AccessLevels.CurrentReadOrWrite,
+                        "Constantly increasing value(s)",
+                        NamespaceType.OpcPlcApplications,
+                        defaultValue: (uint)0));
 
                 nodeIDs.Add(id);
             }
