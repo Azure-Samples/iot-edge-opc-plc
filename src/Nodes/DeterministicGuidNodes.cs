@@ -40,7 +40,7 @@
             AddNodes(folder);
         }
 
-        public void StartSimulation(PlcServer server)
+        public void StartSimulation()
         {
             foreach (var node in _nodes)
             {

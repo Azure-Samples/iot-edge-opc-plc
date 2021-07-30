@@ -42,7 +42,7 @@
             }
         }
 
-        public void StartSimulation(PlcServer server)
+        public void StartSimulation()
         {
             if (_isEnabled)
             {

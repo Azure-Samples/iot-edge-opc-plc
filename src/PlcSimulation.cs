@@ -86,7 +86,7 @@ namespace OpcPlc
             // Start simulation of nodes from node list.
             foreach (var nodes in NodesList)
             {
-                nodes.StartSimulation(_plcServer);
+                nodes.StartSimulation();
             }
         }
 
