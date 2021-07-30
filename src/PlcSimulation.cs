@@ -27,8 +27,6 @@ namespace OpcPlc
         public static uint FastNodeSamplingInterval { get; set; } // ms.
 
         public static bool AddComplexTypeBoiler { get; set; }
-        public static bool AddLongId { get; set; }
-        public static bool AddLongStringNodes { get; set; }
         public static bool AddAlarmSimulation { get; set; }
         public static bool AddSimpleEventsSimulation { get; set; }
         public static bool AddReferenceTestSimulation { get; set; }
