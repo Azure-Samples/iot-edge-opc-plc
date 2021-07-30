@@ -28,13 +28,13 @@
                 (string p) => _isEnabled = p != null);
         }
 
-        public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
+        public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
         {
             _plcNodeManager = plcNodeManager;
 
             if (_isEnabled)
             {
-                AddNodes(parentFolder);
+                AddNodes(telemetryFolder);
             }
         }
 

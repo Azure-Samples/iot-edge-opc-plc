@@ -27,12 +27,12 @@
                 (uint i) => NodeCount = i);
         }
 
-        public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
+        public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
         {
             _plcNodeManager = plcNodeManager;
 
             FolderState folder = _plcNodeManager.CreateFolder(
-                parentFolder,
+                telemetryFolder,
                 path: "Deterministic GUIDs",
                 name: "Deterministic GUIDs",
                 NamespaceType.OpcPlcApplications);

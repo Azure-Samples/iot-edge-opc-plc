@@ -31,14 +31,14 @@
                 (string p) => _isEnabled = p == null);
         }
 
-        public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
+        public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
         {
             _plcNodeManager = plcNodeManager;
 
             if (_isEnabled)
             {
-                AddNodes(parentFolder);
-                AddMethods(parentFolder);
+                AddNodes(telemetryFolder);
+                AddMethods(methodsFolder);
             }
         }
 
@@ -125,15 +125,13 @@
 
         private void AddMethods(FolderState parentFolder)
         {
-            FolderState methodsFolder = _plcNodeManager.CreateFolder(parentFolder, "Methods", "Methods", NamespaceType.OpcPlcApplications);
-
-            MethodState resetStepUpMethod = _plcNodeManager.CreateMethod(methodsFolder, "ResetStepUp", "ResetStepUp", "Resets the StepUp counter to 0", NamespaceType.OpcPlcApplications);
+            MethodState resetStepUpMethod = _plcNodeManager.CreateMethod(parentFolder, "ResetStepUp", "ResetStepUp", "Resets the StepUp counter to 0", NamespaceType.OpcPlcApplications);
             SetResetStepUpMethodProperties(ref resetStepUpMethod);
 
-            MethodState startStepUpMethod = _plcNodeManager.CreateMethod(methodsFolder, "StartStepUp", "StartStepUp", "Starts the StepUp counter", NamespaceType.OpcPlcApplications);
+            MethodState startStepUpMethod = _plcNodeManager.CreateMethod(parentFolder, "StartStepUp", "StartStepUp", "Starts the StepUp counter", NamespaceType.OpcPlcApplications);
             SetStartStepUpMethodProperties(ref startStepUpMethod);
 
-            MethodState stopStepUpMethod = _plcNodeManager.CreateMethod(methodsFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter", NamespaceType.OpcPlcApplications);
+            MethodState stopStepUpMethod = _plcNodeManager.CreateMethod(parentFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter", NamespaceType.OpcPlcApplications);
             SetStopStepUpMethodProperties(ref stopStepUpMethod);
         }
 
