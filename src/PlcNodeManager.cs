@@ -17,8 +17,6 @@ namespace OpcPlc
         private const string NumberOfUpdates = "NumberOfUpdates";
 
         #region Properties
-        public SimulatedVariableNode<double> PosTrendNode { get; set; }
-
         public SimulatedVariableNode<double> NegTrendNode { get; set; }
         #endregion
 
@@ -242,7 +240,6 @@ namespace OpcPlc
 
         private void AddChangingNodes(FolderState dataFolder)
         {
-            if (PlcSimulation.GeneratePosTrend) PosTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend", NamespaceType.OpcPlcApplications));
             if (PlcSimulation.GenerateNegTrend) NegTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));
         }
 
@@ -349,12 +346,6 @@ namespace OpcPlc
 
         private FolderState AddMethods(FolderState methodsFolder)
         {
-            if (PlcSimulation.GeneratePosTrend || PlcSimulation.GenerateNegTrend)
-            {
-                MethodState resetTrendMethod = CreateMethod(methodsFolder, "ResetTrend", "ResetTrend", "Reset the trend values to their baseline value", NamespaceType.OpcPlcApplications);
-                SetResetTrendMethodProperties(ref resetTrendMethod);
-            }
-
             if (PlcSimulation.SlowNodeCount > 0 || PlcSimulation.FastNodeCount > 0)
             {
                 MethodState stopUpdateFastAndSlowNodesMethod = CreateMethod(methodsFolder, "StopUpdateFastAndSlowNodes", "StopUpdateFastAndSlowNodes", "Stops the increase of value of fast and slow nodes", NamespaceType.OpcPlcApplications);
@@ -587,14 +578,6 @@ namespace OpcPlc
                 NodeType.UIntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32], null, null, null),
                 _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, (uint)0, uint.Parse(stepSize), minValue == null ? uint.MinValue : uint.Parse(minValue), maxValue == null ? uint.MaxValue : uint.Parse(maxValue)),
             };
-        }
-
-        /// <summary>
-        /// Sets properties of the ResetTrend method.
-        /// </summary>
-        private void SetResetTrendMethodProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnResetTrendCall);
         }
 
         /// <summary>
@@ -919,16 +902,6 @@ namespace OpcPlc
             parent?.AddChild(method);
 
             return method;
-        }
-
-        /// <summary>
-        /// Method to reset the trend values. Executes synchronously.
-        /// </summary>
-        private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            Program.PlcSimulation.ResetTrendData();
-            Logger.Debug("ResetTrend method called");
-            return ServiceResult.Good;
         }
 
         /// <summary>

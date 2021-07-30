@@ -9,7 +9,6 @@ namespace OpcPlc
         /// <summary>
         /// Flags for node generation.
         /// </summary>
-        public static bool GeneratePosTrend { get; set; } = true;
         public static bool GenerateNegTrend { get; set; } = true;
 
         public static bool SlowNodeRandomization { get; set; } = false;
@@ -56,9 +55,6 @@ namespace OpcPlc
             _plcServer = plcServer;
             _random = new Random();
 
-            _posTrendAnomalyPhase = _random.Next(10);
-            _posTrendCycleInPhase = SimulationCycleCount;
-            Logger.Verbose($"First pos trend anomaly phase: {_posTrendAnomalyPhase}");
             _negTrendAnomalyPhase = _random.Next(10);
             _negTrendCycleInPhase = SimulationCycleCount;
             Logger.Verbose($"First neg trend anomaly phase: {_negTrendAnomalyPhase}");
@@ -69,7 +65,6 @@ namespace OpcPlc
         /// </summary>
         public void Start()
         {
-            if (GeneratePosTrend) _plcServer.PlcNodeManager.PosTrendNode.Start(PosTrendGenerator, SimulationCycleLength);
             if (GenerateNegTrend) _plcServer.PlcNodeManager.NegTrendNode.Start(NegTrendGenerator, SimulationCycleLength);
 
             if (SlowNodeCount > 0)
@@ -110,7 +105,6 @@ namespace OpcPlc
         /// </summary>
         public void Stop()
         {
-            _plcServer.PlcNodeManager.PosTrendNode?.Stop();
             _plcServer.PlcNodeManager.NegTrendNode?.Stop();
 
             Disable(_slowNodeGenerator);
@@ -139,31 +133,6 @@ namespace OpcPlc
         /// Generates a sine wave with spikes at a configurable cycle in the phase.
         /// Called each SimulationCycleLength msec.
         /// </summary>
-        private double PosTrendGenerator(double value)
-        {
-            // calculate next value
-            double nextValue = TREND_BASEVALUE;
-            if (GeneratePosTrend && _posTrendPhase >= _posTrendAnomalyPhase)
-            {
-                nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10d);
-                Logger.Verbose("Generate postrend anomaly");
-            }
-
-            // end of cycle: reset cycle count and calc next anomaly cycle
-            if (--_posTrendCycleInPhase == 0)
-            {
-                _posTrendCycleInPhase = SimulationCycleCount;
-                _posTrendPhase++;
-                Logger.Verbose($"pos trend phase: {_posTrendPhase}, data: {nextValue}");
-            }
-
-            return nextValue;
-        }
-
-        /// <summary>
-        /// Generates a sine wave with spikes at a configurable cycle in the phase.
-        /// Called each SimulationCycleLength msec.
-        /// </summary>
         private double NegTrendGenerator(double value)
         {
             // calculate next value
@@ -185,30 +154,13 @@ namespace OpcPlc
             return nextValue;
         }
 
-        /// <summary>
-        /// Method implementation to reset the trend data.
-        /// </summary>
-        public void ResetTrendData()
-        {
-            _posTrendAnomalyPhase = _random.Next(10);
-            _posTrendCycleInPhase = SimulationCycleCount;
-            _posTrendPhase = 0;
-            _negTrendAnomalyPhase = _random.Next(10);
-            _negTrendCycleInPhase = SimulationCycleCount;
-            _negTrendPhase = 0;
-        }
-
         private const int SIMULATION_CYCLECOUNT_DEFAULT = 50;          // in cycles
         private const int SIMULATION_CYCLELENGTH_DEFAULT = 100;        // in msec
         private const double SIMULATION_MAXAMPLITUDE_DEFAULT = 100.0;
-        private const double TREND_BASEVALUE = 100.0;
 
         private readonly PlcServer _plcServer;
         private readonly Random _random;
 
-        private int _posTrendAnomalyPhase;
-        private int _posTrendCycleInPhase;
-        private int _posTrendPhase;
         private int _negTrendAnomalyPhase;
         private int _negTrendCycleInPhase;
         private int _negTrendPhase;
