@@ -41,6 +41,7 @@
         {
             if (_isEnabled)
             {
+                _spikeCycleInPhase = PlcSimulation.SimulationCycleCount;
                 _spikeAnomalyCycle = _random.Next(PlcSimulation.SimulationCycleCount);
                 Logger.Verbose($"First spike anomaly cycle: {_spikeAnomalyCycle}");
 
