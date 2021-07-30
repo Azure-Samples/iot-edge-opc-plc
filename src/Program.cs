@@ -54,10 +54,13 @@
         /// <summary>
         /// Nodes to extend the address space.
         /// </summary>
-        public static INodes<string> SpecialCharNameNodes { get; } = new SpecialCharNameNodes();
-        public static INodes<string> LongIdNodes { get; } = new LongIdNodes();
-        public static INodes<string> LongStringNodes { get; } = new LongStringNodes();
-        public static INodes<uint> DeterministicGuidNodes { get; } = new DeterministicGuidNodes();
+        public static List<INodes> NodesList = new List<INodes>
+        {
+            new SpecialCharNameNodes(),
+            new LongIdNodes(),
+            new LongStringNodes(),
+            new DeterministicGuidNodes(),
+        };
 
         public static bool DisableAnonymousAuth { get; set; } = false;
 
@@ -408,10 +411,11 @@
                 { "h|help", "show this message and exit", h => ShowHelp = h != null },
             };
 
-            options.Add(SpecialCharNameNodes.Prototype, SpecialCharNameNodes.Description, SpecialCharNameNodes.Action);
-            options.Add(LongIdNodes.Prototype, LongIdNodes.Description, LongIdNodes.Action);
-            options.Add(LongStringNodes.Prototype, LongStringNodes.Description, LongStringNodes.Action);
-            options.Add(DeterministicGuidNodes.Prototype, DeterministicGuidNodes.Description, DeterministicGuidNodes.Action);
+            // Add options from node list.
+            foreach (var nodes in NodesList)
+            {
+                nodes.AddOption(options);
+            }
 
             return options;
         }
@@ -476,14 +480,13 @@
             if (GenerateSpikes) sb.AppendLine($"      {{ \"Id\": \"{NSS}SpikeData\" }},");
             if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}StepUp\" }},");
 
-            const string SpecialChars = @"\""!§$%&/()=?`´\\+~*'#_-:.;,<>|@^°€µ{[]}";
-            if (SpecialCharNameNodes.IsEnabled) sb.AppendLine($"      {{ \"Id\": \"{NSS}Special_{SpecialChars}\" }},");
-            if (AddLongStringNodes)
+            // Print config from node list.
+            foreach (var nodes in NodesList)
             {
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString10kB\" }},");
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString50kB\" }},");
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString100kB\" }},");
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}LongString200kB\" }},");
+                foreach (var nodeId in nodes.NodeIDs)
+                {
+                    sb.AppendLine($"      {{ \"Id\": \"{NSS}{nodeId}\" }},");
+                }
             }
 
             string slowPublishingInterval = SlowNodeRate > 1000

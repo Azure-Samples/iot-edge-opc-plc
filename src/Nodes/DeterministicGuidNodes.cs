@@ -2,26 +2,30 @@
 {
     using Opc.Ua;
     using OpcPlc.Helpers;
-    using System;
-    using System.Timers;
+    using System.Collections.Generic;
     using static OpcPlc.Program;
 
-    public class DeterministicGuidNodes : INodes<uint>
+    /// <summary>
+    /// Nodes with deterministic GUIDs as ID.
+    /// </summary>
+    public class DeterministicGuidNodes : INodes
     {
-        // Command line option.
-        public string Prototype { get; set; } = "gn|guidnodes=";
-        public string Description { get; set; } = $"number of nodes with deterministic GUID IDs\nDefault: {NodeCount}";
-        public Action<uint> Action { get; set; } = (uint i) => NodeCount = i;
-        public bool IsEnabled { get => NodeCount > 0; }
+        public IReadOnlyCollection<string> NodeIDs { get; private set; }
 
-        // Node count, rate and type.
         private static uint NodeCount { get; set; } = 1;
         private uint NodeRate { get; set; } = 1000; // ms.
         private NodeType NodeType { get; set; } = NodeType.UInt;
 
         private PlcNodeManager _plcNodeManager;
-        private BaseDataVariableState[] _nodes;
-        private ITimer _timer;
+        private SimulatedVariableNode<uint>[] _nodes;
+
+        public void AddOption(Mono.Options.OptionSet optionSet)
+        {
+            optionSet.Add(
+                "gn|guidnodes=",
+                $"number of nodes with deterministic GUID IDs\nDefault: {NodeCount}",
+                (uint i) => NodeCount = i);
+        }
 
         public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
         {
@@ -38,31 +42,24 @@
 
         public void StartSimulation(PlcServer server)
         {
-            if (NodeCount > 0)
+            foreach (var node in _nodes)
             {
-                _timer = server.TimeService.NewTimer(UpdateNodes, NodeRate);
+                node.Start(value => value + 1, periodMs: 1000);
             }
         }
 
         public void StopSimulation()
         {
-            if (_timer != null)
+            foreach (var node in _nodes)
             {
-                _timer.Enabled = false;
-            }
-        }
-
-        private void UpdateNodes(object state, ElapsedEventArgs elapsedEventArgs)
-        {
-            if (_nodes != null)
-            {
-                _plcNodeManager.UpdateNodes(_nodes, NodeType, StatusCodes.Good, addBadValue: false);
+                node.Stop();
             }
         }
 
         private void AddNodes(FolderState folder)
         {
-            _nodes = new BaseDataVariableState[NodeCount];
+            _nodes = new SimulatedVariableNode<uint>[NodeCount];
+            var nodeIDs = new List<string>((int)NodeCount);
 
             if (NodeCount > 0)
             {
@@ -72,24 +69,24 @@
 
             for (int i = 0; i < NodeCount; i++)
             {
-                var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) =
-                    PlcNodeManager.GetNodeType(NodeType, stepSize: "1", minValue: null, maxValue: null);
-
                 string id = DeterministicGuid.NewGuid().ToString();
-                _nodes[i] = _plcNodeManager.CreateBaseVariable(
-                    folder,
-                    id, id,
-                    dataType,
-                    valueRank,
-                    AccessLevels.CurrentReadOrWrite,
-                    "Constantly increasing value(s)",
-                    NamespaceType.OpcPlcApplications,
-                    randomize: false,
-                    stepTypeSize,
-                    minTypeValue,
-                    maxTypeValue,
-                    defaultValue);
+
+                _nodes[i] = _plcNodeManager.CreateVariableNode<uint>(
+                    _plcNodeManager.CreateBaseVariable(
+                        folder,
+                        path: id,
+                        name: id,
+                        new NodeId((uint)BuiltInType.UInt32),
+                        ValueRanks.Scalar,
+                        AccessLevels.CurrentReadOrWrite,
+                        "Constantly increasing value(s)",
+                        NamespaceType.OpcPlcApplications,
+                        defaultValue: (uint)0));
+
+                nodeIDs.Add(id);
             }
+
+            NodeIDs = nodeIDs;
         }
     }
 }

@@ -238,14 +238,11 @@ namespace OpcPlc
 
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
-                    // Node with special chars in name and ID.
-                    SpecialCharNameNodes.AddToAddressSpace(root, plcNodeManager: this);
-                    // Node with ID of 3950 chars.
-                    LongIdNodes.AddToAddressSpace(root, plcNodeManager: this);
-                    // Change value every second to string containing single repeated uppercase letter.
-                    LongStringNodes.AddToAddressSpace(root, plcNodeManager: this);
-                    // Nodes with deterministic GUIDs as ID.
-                    DeterministicGuidNodes.AddToAddressSpace(root, plcNodeManager: this);
+                    // Add nodes to address space from node list.
+                    foreach (var nodes in NodesList)
+                    {
+                        nodes.AddToAddressSpace(root, plcNodeManager: this);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -613,7 +610,7 @@ namespace OpcPlc
             return nodes;
         }
 
-        public static (NodeId dataType, int valueRank, object defaultValue, object stepSize, object minValue, object maxValue) GetNodeType(NodeType nodeType, string stepSize, string minValue, string maxValue)
+        private static (NodeId dataType, int valueRank, object defaultValue, object stepSize, object minValue, object maxValue) GetNodeType(NodeType nodeType, string stepSize, string minValue, string maxValue)
         {
             return nodeType switch
             {

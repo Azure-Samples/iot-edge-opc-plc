@@ -1,26 +1,33 @@
 ﻿namespace OpcPlc.Nodes
 {
     using Opc.Ua;
-    using System;
+    using System.Collections.Generic;
     using System.Web;
 
-    public class SpecialCharNameNodes : INodes<string>
+    /// <summary>
+    /// Node with special chars in name and ID.
+    /// </summary>
+    public class SpecialCharNameNodes : INodes
     {
-        // Command line option.
-        public string Prototype { get; set; } = "scn|specialcharname";
-        public string Description { get; set; } = $"add node with special characters in name.\nDefault: {_isEnabled}";
-        public Action<string> Action { get; set; } = (string p) => _isEnabled = p != null;
-        public bool IsEnabled { get => _isEnabled; }
+        public IReadOnlyCollection<string> NodeIDs { get; private set; }
 
         private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
         private SimulatedVariableNode<uint> _node;
 
+        public void AddOption(Mono.Options.OptionSet optionSet)
+        {
+            optionSet.Add(
+                "scn|specialcharname",
+                $"add node with special characters in name.\nDefault: {_isEnabled}",
+                (string p) => _isEnabled = p != null);
+        }
+
         public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
         {
             _plcNodeManager = plcNodeManager;
 
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 AddNodes(parentFolder);
             }
@@ -28,7 +35,7 @@
 
         public void StartSimulation(PlcServer server)
         {
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 _node.Start(value => value + 1, periodMs: 1000);
             }
@@ -36,7 +43,7 @@
 
         public void StopSimulation()
         {
-            if (IsEnabled)
+            if (_isEnabled)
             {
                 _node.Stop();
             }
@@ -47,16 +54,21 @@
             string SpecialChars = HttpUtility.HtmlDecode(@"&quot;!&#167;$%&amp;/()=?`&#180;\+~*&#39;#_-:.;,&lt;&gt;|@^&#176;€&#181;{[]}");
 
             _node = _plcNodeManager.CreateVariableNode<uint>(
-                    _plcNodeManager.CreateBaseVariable(
-                        folder,
-                        "Special_" + SpecialChars,
-                        SpecialChars,
-                        new NodeId((uint)BuiltInType.UInt32),
-                        ValueRanks.Scalar,
-                        AccessLevels.CurrentReadOrWrite,
-                        "Constantly increasing value",
-                        NamespaceType.OpcPlcApplications,
-                        defaultValue: (uint)0));
+                _plcNodeManager.CreateBaseVariable(
+                    folder,
+                    path: "Special_" + SpecialChars,
+                    name: SpecialChars,
+                    new NodeId((uint)BuiltInType.UInt32),
+                    ValueRanks.Scalar,
+                    AccessLevels.CurrentReadOrWrite,
+                    "Constantly increasing value",
+                    NamespaceType.OpcPlcApplications,
+                    defaultValue: (uint)0));
+
+            NodeIDs = new List<string>
+            {
+                "Special_" + SpecialChars,
+            };
         }
     }
 }
