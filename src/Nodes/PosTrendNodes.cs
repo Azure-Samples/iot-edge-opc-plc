@@ -6,7 +6,7 @@
     using static OpcPlc.Program;
 
     /// <summary>
-    /// Nodes that change value every second to string containing single repeated uppercase letter.
+    /// Node with a value that shows a positive trend.
     /// </summary>
     public class PosTrendNodes : INodes
     {

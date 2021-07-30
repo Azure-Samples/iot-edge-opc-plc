@@ -6,7 +6,7 @@
     using static OpcPlc.Program;
 
     /// <summary>
-    /// Nodes that change value every second to string containing single repeated uppercase letter.
+    /// Node with a sine wave value with a dip anomaly.
     /// </summary>
     public class GenerateDipsNodes : INodes
     {

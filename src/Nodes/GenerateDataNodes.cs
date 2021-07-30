@@ -6,7 +6,7 @@
     using static OpcPlc.Program;
 
     /// <summary>
-    /// Nodes that change value every second to string containing single repeated uppercase letter.
+    /// Nodes with values: Cycling step-up, alternating boolean, random signed 32-bit integer and random unsigend 32-bit integer.
     /// </summary>
     public class GenerateDataNodes : INodes
     {
