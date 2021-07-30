@@ -93,14 +93,14 @@
             {
                 nextValue = PlcSimulation.SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / PlcSimulation.SimulationCycleCount) * _spikeCycleInPhase);
             }
-            Logger.Verbose($"spike cycle: {_spikeCycleInPhase} data: {nextValue}");
+            Logger.Verbose($"Spike cycle: {_spikeCycleInPhase} data: {nextValue}");
 
             // end of cycle: reset cycle count and calc next anomaly cycle
             if (--_spikeCycleInPhase == 0)
             {
                 _spikeCycleInPhase = PlcSimulation.SimulationCycleCount;
                 _spikeAnomalyCycle = _random.Next(PlcSimulation.SimulationCycleCount);
-                Logger.Verbose($"next spike anomaly cycle: {_spikeAnomalyCycle}");
+                Logger.Verbose($"Next spike anomaly cycle: {_spikeAnomalyCycle}");
             }
 
             return nextValue;

@@ -104,7 +104,7 @@
             {
                 _negTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
                 _negTrendPhase++;
-                Logger.Verbose($"neg trend phase: {_negTrendPhase}, data: {nextValue}");
+                Logger.Verbose($"Neg trend phase: {_negTrendPhase}, data: {nextValue}");
             }
 
             return nextValue;

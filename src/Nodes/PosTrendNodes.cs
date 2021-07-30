@@ -136,9 +136,6 @@
             _posTrendAnomalyPhase = _random.Next(10);
             _posTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
             _posTrendPhase = 0;
-            //_negTrendAnomalyPhase = _random.Next(10);
-            //_negTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
-            //_negTrendPhase = 0;
         }
     }
 }
