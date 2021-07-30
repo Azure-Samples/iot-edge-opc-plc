@@ -10,7 +10,7 @@
     /// </summary>
     public class GenerateDataNodes : INodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; }
+        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
         private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
@@ -222,7 +222,7 @@
             bool nextAlternatingBoolean = _alternatingBooleanCycleInPhase % PlcSimulation.SimulationCycleCount == 0 ? !value : value;
             if (value != nextAlternatingBoolean)
             {
-                Logger.Verbose($"data change to: {nextAlternatingBoolean}");
+                Logger.Verbose($"Data change to: {nextAlternatingBoolean}");
             }
 
             // end of cycle: reset cycle count

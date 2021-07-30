@@ -10,7 +10,7 @@
     /// </summary>
     public class DeterministicGuidNodes : INodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; }
+        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
         private static uint NodeCount { get; set; } = 1;
         private uint NodeRate { get; set; } = 1000; // ms.

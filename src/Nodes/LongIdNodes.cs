@@ -9,7 +9,7 @@
     /// </summary>
     public class LongIdNodes : INodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; }
+        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
         private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
