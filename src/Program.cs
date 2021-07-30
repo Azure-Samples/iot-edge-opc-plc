@@ -56,6 +56,7 @@
         /// </summary>
         public static List<INodes> NodesList = new List<INodes>
         {
+            new GenerateDataNodes(),
             new SpecialCharNameNodes(),
             new LongIdNodes(),
             new LongStringNodes(),
@@ -234,7 +235,6 @@
                 { "nd|nodips", $"do not generate dip data\nDefault: {!GenerateDips}", a => GenerateDips = a == null },
                 { "np|nopostrend", $"do not generate positive trend data\nDefault: {!GeneratePosTrend}", a => GeneratePosTrend = a == null },
                 { "nn|nonegtrend", $"do not generate negative trend data\nDefault: {!GenerateNegTrend}", a => GenerateNegTrend = a == null },
-                { "nv|nodatavalues", $"do not generate data values\nDefault: {!GenerateData}", a => GenerateData = a == null },
 
                 // Slow and fast nodes.
                 { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodeCount}", (uint i) => SlowNodeCount = i },
@@ -471,14 +471,10 @@
             sb.AppendLine("    \"UseSecurity\": false,");
             sb.AppendLine("    \"OpcNodes\": [");
 
-            if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}AlternatingBoolean\" }},");
             if (GenerateDips) sb.AppendLine($"      {{ \"Id\": \"{NSS}DipData\" }},");
             if (GenerateNegTrend) sb.AppendLine($"      {{ \"Id\": \"{NSS}NegativeTrendData\" }},");
             if (GeneratePosTrend) sb.AppendLine($"      {{ \"Id\": \"{NSS}PositiveTrendData\" }},");
-            if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}RandomSignedInt32\" }},");
-            if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}RandomUnsignedInt32\" }},");
             if (GenerateSpikes) sb.AppendLine($"      {{ \"Id\": \"{NSS}SpikeData\" }},");
-            if (GenerateData) sb.AppendLine($"      {{ \"Id\": \"{NSS}StepUp\" }},");
 
             // Print config from node list.
             foreach (var nodes in NodesList)
@@ -569,7 +565,6 @@
             Logger.Information($"One simulation phase consists of {SimulationCycleCount} cycles");
             Logger.Information($"One cycle takes {SimulationCycleLength} milliseconds");
             Logger.Information($"Spike generation is {(GenerateSpikes ? "enabled" : "disabled")}");
-            Logger.Information($"Data generation is {(GenerateData ? "enabled" : "disabled")}");
             Logger.Information($"Complex type (boiler) is {(AddComplexTypeBoiler ? "enabled" : "disabled")}");
             Logger.Information($"Reference Test Simulation is {(AddReferenceTestSimulation ? "enabled" : "disabled")}");
             Logger.Information($"Simple Events is {(AddSimpleEventsSimulation ? "enabled" : "disabled")}");

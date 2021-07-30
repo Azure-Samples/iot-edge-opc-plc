@@ -60,8 +60,6 @@ namespace OpcPlc
             _plcServer = plcServer;
             _random = new Random();
 
-            _stepUpCycleInPhase = SimulationCycleCount;
-            _alternatingBooleanCycleInPhase = SimulationCycleCount;
             _spikeCycleInPhase = SimulationCycleCount;
             _spikeAnomalyCycle = _random.Next(SimulationCycleCount);
             Logger.Verbose($"first spike anomaly cycle: {_spikeAnomalyCycle}");
@@ -74,7 +72,6 @@ namespace OpcPlc
             _negTrendAnomalyPhase = _random.Next(10);
             _negTrendCycleInPhase = SimulationCycleCount;
             Logger.Verbose($"first neg trend anomaly phase: {_negTrendAnomalyPhase}");
-            _stepUpStarted = true;
         }
 
         /// <summary>
@@ -82,14 +79,6 @@ namespace OpcPlc
         /// </summary>
         public void Start()
         {
-            if (GenerateData)
-            {
-                _plcServer.PlcNodeManager.RandomSignedInt32.Start(value => _random.Next(int.MinValue, int.MaxValue), SimulationCycleLength);
-                _plcServer.PlcNodeManager.RandomUnsignedInt32.Start(value => (uint)_random.Next(), SimulationCycleLength);
-                _plcServer.PlcNodeManager.StepUpNode.Start(StepUpGenerator, SimulationCycleLength);
-                _plcServer.PlcNodeManager.AlternatingBooleanNode.Start(AlternatingBooleanGenerator, SimulationCycleLength);
-            }
-
             if (GenerateSpikes) _plcServer.PlcNodeManager.SpikeNode.Start(SpikeGenerator, SimulationCycleLength);
             if (GenerateDips) _plcServer.PlcNodeManager.DipNode.Start(DipGenerator, SimulationCycleLength);
             if (GeneratePosTrend) _plcServer.PlcNodeManager.PosTrendNode.Start(PosTrendGenerator, SimulationCycleLength);
@@ -137,10 +126,6 @@ namespace OpcPlc
             _plcServer.PlcNodeManager.DipNode?.Stop();
             _plcServer.PlcNodeManager.PosTrendNode?.Stop();
             _plcServer.PlcNodeManager.NegTrendNode?.Stop();
-            _plcServer.PlcNodeManager.AlternatingBooleanNode?.Stop();
-            _plcServer.PlcNodeManager.StepUpNode?.Stop();
-            _plcServer.PlcNodeManager.RandomSignedInt32?.Stop();
-            _plcServer.PlcNodeManager.RandomUnsignedInt32?.Stop();
 
             Disable(_slowNodeGenerator);
             Disable(_fastNodeGenerator);
@@ -276,49 +261,6 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Updates simulation values. Called each SimulationCycleLength msec.
-        /// Using SimulationCycleCount cycles per simulation phase.
-        /// </summary>
-        private uint StepUpGenerator(uint value)
-        {
-            // increase step up value
-            if (_stepUpStarted && (_stepUpCycleInPhase % (SimulationCycleCount / 50) == 0))
-            {
-                value++;
-            }
-
-            // end of cycle: reset cycle count
-            if (--_stepUpCycleInPhase == 0)
-            {
-                _stepUpCycleInPhase = SimulationCycleCount;
-            }
-
-            return value;
-        }
-
-        /// <summary>
-        /// Updates simulation values. Called each SimulationCycleLength msec.
-        /// Using SimulationCycleCount cycles per simulation phase.
-        /// </summary>
-        private bool AlternatingBooleanGenerator(bool value)
-        {
-            // calculate next boolean value
-            bool nextAlternatingBoolean = _alternatingBooleanCycleInPhase % SimulationCycleCount == 0 ? !value : value;
-            if (value != nextAlternatingBoolean)
-            {
-                Logger.Verbose($"data change to: {nextAlternatingBoolean}");
-            }
-
-            // end of cycle: reset cycle count
-            if (--_alternatingBooleanCycleInPhase == 0)
-            {
-                _alternatingBooleanCycleInPhase = SimulationCycleCount;
-            }
-
-            return nextAlternatingBoolean;
-        }
-
-        /// <summary>
         /// Method implementation to reset the trend data.
         /// </summary>
         public void ResetTrendData()
@@ -331,30 +273,6 @@ namespace OpcPlc
             _negTrendPhase = 0;
         }
 
-        /// <summary>
-        /// Method implementation to reset the StepUp data.
-        /// </summary>
-        public void ResetStepUpData()
-        {
-            _plcServer.PlcNodeManager.StepUpNode.Value = 0;
-        }
-
-        /// <summary>
-        /// Method implementation to start the StepUp.
-        /// </summary>
-        public void StartStepUp()
-        {
-            _stepUpStarted = true;
-        }
-
-        /// <summary>
-        /// Method implementation to stop the StepUp.
-        /// </summary>
-        public void StopStepUp()
-        {
-            _stepUpStarted = false;
-        }
-
         private const int SIMULATION_CYCLECOUNT_DEFAULT = 50;          // in cycles
         private const int SIMULATION_CYCLELENGTH_DEFAULT = 100;        // in msec
         private const double SIMULATION_MAXAMPLITUDE_DEFAULT = 100.0;
@@ -362,8 +280,7 @@ namespace OpcPlc
 
         private readonly PlcServer _plcServer;
         private readonly Random _random;
-        private int _stepUpCycleInPhase;
-        private int _alternatingBooleanCycleInPhase;
+
         private int _spikeAnomalyCycle;
         private int _spikeCycleInPhase;
         private int _dipAnomalyCycle;
@@ -374,12 +291,10 @@ namespace OpcPlc
         private int _negTrendAnomalyPhase;
         private int _negTrendCycleInPhase;
         private int _negTrendPhase;
-        private bool _stepUpStarted;
 
         private ITimer _slowNodeGenerator;
         private ITimer _fastNodeGenerator;
         private ITimer _eventInstanceGenerator;
-
         private ITimer _boiler1Generator;
     }
 }
