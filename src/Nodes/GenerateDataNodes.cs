@@ -12,7 +12,7 @@
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
-        private static bool _isEnabled;
+        private static bool _isEnabled = true;
         private PlcNodeManager _plcNodeManager;
         private SimulatedVariableNode<uint> _stepUpNode;
         private SimulatedVariableNode<bool> _alternatingBooleanNode;
