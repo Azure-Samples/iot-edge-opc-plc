@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Text;
 using static OpcPlc.Program;
 
 namespace OpcPlc
@@ -10,7 +9,6 @@ namespace OpcPlc
         /// <summary>
         /// Flags for node generation.
         /// </summary>
-        public static bool GenerateDips { get; set; } = true;
         public static bool GeneratePosTrend { get; set; } = true;
         public static bool GenerateNegTrend { get; set; } = true;
 
@@ -58,15 +56,12 @@ namespace OpcPlc
             _plcServer = plcServer;
             _random = new Random();
 
-            _dipCycleInPhase = SimulationCycleCount;
-            _dipAnomalyCycle = _random.Next(SimulationCycleCount);
-            Logger.Verbose($"first dip anomaly cycle: {_dipAnomalyCycle}");
             _posTrendAnomalyPhase = _random.Next(10);
             _posTrendCycleInPhase = SimulationCycleCount;
-            Logger.Verbose($"first pos trend anomaly phase: {_posTrendAnomalyPhase}");
+            Logger.Verbose($"First pos trend anomaly phase: {_posTrendAnomalyPhase}");
             _negTrendAnomalyPhase = _random.Next(10);
             _negTrendCycleInPhase = SimulationCycleCount;
-            Logger.Verbose($"first neg trend anomaly phase: {_negTrendAnomalyPhase}");
+            Logger.Verbose($"First neg trend anomaly phase: {_negTrendAnomalyPhase}");
         }
 
         /// <summary>
@@ -74,7 +69,6 @@ namespace OpcPlc
         /// </summary>
         public void Start()
         {
-            if (GenerateDips) _plcServer.PlcNodeManager.DipNode.Start(DipGenerator, SimulationCycleLength);
             if (GeneratePosTrend) _plcServer.PlcNodeManager.PosTrendNode.Start(PosTrendGenerator, SimulationCycleLength);
             if (GenerateNegTrend) _plcServer.PlcNodeManager.NegTrendNode.Start(NegTrendGenerator, SimulationCycleLength);
 
@@ -116,7 +110,6 @@ namespace OpcPlc
         /// </summary>
         public void Stop()
         {
-            _plcServer.PlcNodeManager.DipNode?.Stop();
             _plcServer.PlcNodeManager.PosTrendNode?.Stop();
             _plcServer.PlcNodeManager.NegTrendNode?.Stop();
 
@@ -140,36 +133,6 @@ namespace OpcPlc
             }
 
             timer.Enabled = false;
-        }
-
-        /// <summary>
-        /// Generates a sine wave with dips at a random cycle in the phase.
-        /// Called each SimulationCycleLength msec.
-        /// </summary>
-        private double DipGenerator(double value)
-        {
-            // calculate next value
-            double nextValue;
-            if (GenerateDips && _dipCycleInPhase == _dipAnomalyCycle)
-            {
-                nextValue = SimulationMaxAmplitude * -10;
-                Logger.Verbose("Generate dip anomaly");
-            }
-            else
-            {
-                nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / SimulationCycleCount) * _dipCycleInPhase);
-            }
-            Logger.Verbose($"spike cycle: {_dipCycleInPhase} data: {nextValue}");
-
-            // end of cycle: reset cycle count and calc next anomaly cycle
-            if (--_dipCycleInPhase == 0)
-            {
-                _dipCycleInPhase = SimulationCycleCount;
-                _dipAnomalyCycle = _random.Next(SimulationCycleCount);
-                Logger.Verbose($"next dip anomaly cycle: {_dipAnomalyCycle}");
-            }
-
-            return nextValue;
         }
 
         /// <summary>
@@ -243,8 +206,6 @@ namespace OpcPlc
         private readonly PlcServer _plcServer;
         private readonly Random _random;
 
-        private int _dipAnomalyCycle;
-        private int _dipCycleInPhase;
         private int _posTrendAnomalyPhase;
         private int _posTrendCycleInPhase;
         private int _posTrendPhase;

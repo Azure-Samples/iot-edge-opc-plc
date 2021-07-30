@@ -17,8 +17,6 @@ namespace OpcPlc
         private const string NumberOfUpdates = "NumberOfUpdates";
 
         #region Properties
-        public SimulatedVariableNode<double> DipNode { get; set; }
-
         public SimulatedVariableNode<double> PosTrendNode { get; set; }
 
         public SimulatedVariableNode<double> NegTrendNode { get; set; }
@@ -244,7 +242,6 @@ namespace OpcPlc
 
         private void AddChangingNodes(FolderState dataFolder)
         {
-            if (PlcSimulation.GenerateDips) DipNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips", NamespaceType.OpcPlcApplications));
             if (PlcSimulation.GeneratePosTrend) PosTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend", NamespaceType.OpcPlcApplications));
             if (PlcSimulation.GenerateNegTrend) NegTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));
         }

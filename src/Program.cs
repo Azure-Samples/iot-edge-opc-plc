@@ -58,6 +58,7 @@
         {
             new GenerateDataNodes(),
             new GenerateSpikesNodes(),
+            new GenerateDipsNodes(),
             new SpecialCharNameNodes(),
             new LongIdNodes(),
             new LongStringNodes(),
@@ -232,7 +233,6 @@
                 // simulation configuration
                 { "sc|simulationcyclecount=", $"count of cycles in one simulation phase\nDefault:  {SimulationCycleCount} cycles", (int i) => SimulationCycleCount = i },
                 { "ct|cycletime=", $"length of one cycle time in milliseconds\nDefault:  {SimulationCycleLength} msec", (int i) => SimulationCycleLength = i },
-                { "nd|nodips", $"do not generate dip data\nDefault: {!GenerateDips}", a => GenerateDips = a == null },
                 { "np|nopostrend", $"do not generate positive trend data\nDefault: {!GeneratePosTrend}", a => GeneratePosTrend = a == null },
                 { "nn|nonegtrend", $"do not generate negative trend data\nDefault: {!GenerateNegTrend}", a => GenerateNegTrend = a == null },
 
@@ -471,7 +471,6 @@
             sb.AppendLine("    \"UseSecurity\": false,");
             sb.AppendLine("    \"OpcNodes\": [");
 
-            if (GenerateDips) sb.AppendLine($"      {{ \"Id\": \"{NSS}DipData\" }},");
             if (GenerateNegTrend) sb.AppendLine($"      {{ \"Id\": \"{NSS}NegativeTrendData\" }},");
             if (GeneratePosTrend) sb.AppendLine($"      {{ \"Id\": \"{NSS}PositiveTrendData\" }},");
 
