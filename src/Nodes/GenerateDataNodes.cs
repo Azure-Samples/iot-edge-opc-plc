@@ -140,7 +140,7 @@
         /// </summary>
         private void SetResetStepUpMethodProperties(ref MethodState method)
         {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnResetStepUpCall);
+            method.OnCallMethod += OnResetStepUpCall;
         }
 
         /// <summary>
@@ -148,7 +148,7 @@
         /// </summary>
         private void SetStartStepUpMethodProperties(ref MethodState method)
         {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStartStepUpCall);
+            method.OnCallMethod += OnStartStepUpCall;
         }
 
         /// <summary>
@@ -156,7 +156,7 @@
         /// </summary>
         private void SetStopStepUpMethodProperties(ref MethodState method)
         {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStopStepUpCall);
+            method.OnCallMethod += OnStopStepUpCall;
         }
 
         /// <summary>

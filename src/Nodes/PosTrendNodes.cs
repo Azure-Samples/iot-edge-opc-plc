@@ -115,7 +115,7 @@
         /// </summary>
         private void SetResetTrendMethodProperties(ref MethodState method)
         {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnResetTrendCall);
+            method.OnCallMethod += OnResetTrendCall;
         }
 
         /// <summary>
