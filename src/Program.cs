@@ -56,9 +56,9 @@
         /// </summary>
         public static List<INodes> NodesList = new List<INodes>
         {
-            new GenerateDataNodes(),
-            new GenerateSpikesNodes(),
-            new GenerateDipsNodes(),
+            new DataNodes(),
+            new SpikeNodes(),
+            new DipNodes(),
             new PosTrendNodes(),
             new NegTrendNodes(),
             new SpecialCharNameNodes(),

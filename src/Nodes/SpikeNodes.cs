@@ -6,9 +6,9 @@
     using static OpcPlc.Program;
 
     /// <summary>
-    /// Node with a sine wave value with a dip anomaly.
+    /// Node with a sine wave value with a spike anomaly.
     /// </summary>
-    public class GenerateDipsNodes : INodes
+    public class SpikeNodes : INodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
@@ -16,14 +16,14 @@
         private PlcNodeManager _plcNodeManager;
         private SimulatedVariableNode<double> _node;
         private readonly Random _random = new Random();
-        private int _dipCycleInPhase;
-        private int _dipAnomalyCycle;
+        private int _spikeCycleInPhase;
+        private int _spikeAnomalyCycle;
 
         public void AddOption(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
-                "nd|nodips",
-                $"do not generate dip data\nDefault: {!_isEnabled}",
+                "ns|nospikes",
+                $"do not generate spike data\nDefault: {!_isEnabled}",
                 (string p) => _isEnabled = p == null);
         }
 
@@ -41,11 +41,10 @@
         {
             if (_isEnabled)
             {
-                _dipCycleInPhase = PlcSimulation.SimulationCycleCount;
-                _dipAnomalyCycle = _random.Next(PlcSimulation.SimulationCycleCount);
-                Logger.Verbose($"First dip anomaly cycle: {_dipAnomalyCycle}");
+                _spikeAnomalyCycle = _random.Next(PlcSimulation.SimulationCycleCount);
+                Logger.Verbose($"First spike anomaly cycle: {_spikeAnomalyCycle}");
 
-                _node.Start(DipGenerator, PlcSimulation.SimulationCycleLength);
+                _node.Start(SpikeGenerator, PlcSimulation.SimulationCycleLength);
             }
         }
 
@@ -62,45 +61,46 @@
             _node = _plcNodeManager.CreateVariableNode<double>(
                 _plcNodeManager.CreateBaseVariable(
                     folder,
-                    path: "DipData",
-                    name: "DipData",
+                    path: "SpikeData",
+                    name: "SpikeData",
                     new NodeId((uint)BuiltInType.Double),
                     ValueRanks.Scalar,
                     AccessLevels.CurrentRead,
-                    "Value which generates randomly dips",
+                    "Value which generates randomly spikes",
                     NamespaceType.OpcPlcApplications));
 
             NodeIDs = new List<string>
             {
-                "DipData",
+                "SpikeData",
             };
         }
 
         /// <summary>
-        /// Generates a sine wave with dips at a random cycle in the phase.
+        /// Generates a sine wave with spikes at a random cycle in the phase.
         /// Called each SimulationCycleLength msec.
         /// </summary>
-        private double DipGenerator(double value)
+        private double SpikeGenerator(double value)
         {
             // calculate next value
             double nextValue;
-            if (_isEnabled && _dipCycleInPhase == _dipAnomalyCycle)
+            if (_isEnabled && _spikeCycleInPhase == _spikeAnomalyCycle)
             {
-                nextValue = PlcSimulation.SimulationMaxAmplitude * -10;
-                Logger.Verbose("Generate dip anomaly");
+                // todo calculate
+                nextValue = PlcSimulation.SimulationMaxAmplitude * 10;
+                Logger.Verbose("Generate spike anomaly");
             }
             else
             {
-                nextValue = PlcSimulation.SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / PlcSimulation.SimulationCycleCount) * _dipCycleInPhase);
+                nextValue = PlcSimulation.SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / PlcSimulation.SimulationCycleCount) * _spikeCycleInPhase);
             }
-            Logger.Verbose($"spike cycle: {_dipCycleInPhase} data: {nextValue}");
+            Logger.Verbose($"spike cycle: {_spikeCycleInPhase} data: {nextValue}");
 
             // end of cycle: reset cycle count and calc next anomaly cycle
-            if (--_dipCycleInPhase == 0)
+            if (--_spikeCycleInPhase == 0)
             {
-                _dipCycleInPhase = PlcSimulation.SimulationCycleCount;
-                _dipAnomalyCycle = _random.Next(PlcSimulation.SimulationCycleCount);
-                Logger.Verbose($"next dip anomaly cycle: {_dipAnomalyCycle}");
+                _spikeCycleInPhase = PlcSimulation.SimulationCycleCount;
+                _spikeAnomalyCycle = _random.Next(PlcSimulation.SimulationCycleCount);
+                Logger.Verbose($"next spike anomaly cycle: {_spikeAnomalyCycle}");
             }
 
             return nextValue;

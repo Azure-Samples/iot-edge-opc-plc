@@ -8,7 +8,7 @@
     /// <summary>
     /// Nodes with values: Cycling step-up, alternating boolean, random signed 32-bit integer and random unsigend 32-bit integer.
     /// </summary>
-    public class GenerateDataNodes : INodes
+    public class DataNodes : INodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
