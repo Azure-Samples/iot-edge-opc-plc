@@ -17,8 +17,6 @@ namespace OpcPlc
         private const string NumberOfUpdates = "NumberOfUpdates";
 
         #region Properties
-        public SimulatedVariableNode<double> SpikeNode { get; set; }
-
         public SimulatedVariableNode<double> DipNode { get; set; }
 
         public SimulatedVariableNode<double> PosTrendNode { get; set; }
@@ -216,13 +214,12 @@ namespace OpcPlc
 
                 try
                 {
-                    FolderState dataFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
-
-                    AddChangingNodes(dataFolder);
-
-                    AddSlowAndFastNodes(root, dataFolder, _slowNodeRandomization, _slowNodeStepSize, _slowNodeMinValue, _slowNodeMaxValue, _fastNodeRandomization, _fastNodeStepSize, _fastNodeMinValue, _fastNodeMaxValue);
-
+                    FolderState telemetryFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
+
+                    AddChangingNodes(telemetryFolder);
+
+                    AddSlowAndFastNodes(root, telemetryFolder, _slowNodeRandomization, _slowNodeStepSize, _slowNodeMinValue, _slowNodeMaxValue, _fastNodeRandomization, _fastNodeStepSize, _fastNodeMinValue, _fastNodeMaxValue);
 
                     AddMethods(methodsFolder);
 
@@ -233,7 +230,7 @@ namespace OpcPlc
                     // Add nodes to address space from node list.
                     foreach (var nodes in NodesList)
                     {
-                        nodes.AddToAddressSpace(root, plcNodeManager: this);
+                        nodes.AddToAddressSpace(telemetryFolder, methodsFolder, plcNodeManager: this);
                     }
                 }
                 catch (Exception e)
@@ -247,7 +244,6 @@ namespace OpcPlc
 
         private void AddChangingNodes(FolderState dataFolder)
         {
-            if (PlcSimulation.GenerateSpikes) SpikeNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes", NamespaceType.OpcPlcApplications));
             if (PlcSimulation.GenerateDips) DipNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips", NamespaceType.OpcPlcApplications));
             if (PlcSimulation.GeneratePosTrend) PosTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend", NamespaceType.OpcPlcApplications));
             if (PlcSimulation.GenerateNegTrend) NegTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));

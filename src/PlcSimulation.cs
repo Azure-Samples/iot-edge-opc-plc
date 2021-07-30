@@ -10,11 +10,9 @@ namespace OpcPlc
         /// <summary>
         /// Flags for node generation.
         /// </summary>
-        public static bool GenerateSpikes { get; set; } = true;
         public static bool GenerateDips { get; set; } = true;
         public static bool GeneratePosTrend { get; set; } = true;
         public static bool GenerateNegTrend { get; set; } = true;
-        public static bool GenerateData { get; set; } = true;
 
         public static bool SlowNodeRandomization { get; set; } = false;
         public static uint SlowNodeCount { get; set; } = 1;
@@ -60,9 +58,6 @@ namespace OpcPlc
             _plcServer = plcServer;
             _random = new Random();
 
-            _spikeCycleInPhase = SimulationCycleCount;
-            _spikeAnomalyCycle = _random.Next(SimulationCycleCount);
-            Logger.Verbose($"first spike anomaly cycle: {_spikeAnomalyCycle}");
             _dipCycleInPhase = SimulationCycleCount;
             _dipAnomalyCycle = _random.Next(SimulationCycleCount);
             Logger.Verbose($"first dip anomaly cycle: {_dipAnomalyCycle}");
@@ -79,7 +74,6 @@ namespace OpcPlc
         /// </summary>
         public void Start()
         {
-            if (GenerateSpikes) _plcServer.PlcNodeManager.SpikeNode.Start(SpikeGenerator, SimulationCycleLength);
             if (GenerateDips) _plcServer.PlcNodeManager.DipNode.Start(DipGenerator, SimulationCycleLength);
             if (GeneratePosTrend) _plcServer.PlcNodeManager.PosTrendNode.Start(PosTrendGenerator, SimulationCycleLength);
             if (GenerateNegTrend) _plcServer.PlcNodeManager.NegTrendNode.Start(NegTrendGenerator, SimulationCycleLength);
@@ -122,7 +116,6 @@ namespace OpcPlc
         /// </summary>
         public void Stop()
         {
-            _plcServer.PlcNodeManager.SpikeNode?.Stop();
             _plcServer.PlcNodeManager.DipNode?.Stop();
             _plcServer.PlcNodeManager.PosTrendNode?.Stop();
             _plcServer.PlcNodeManager.NegTrendNode?.Stop();
@@ -147,37 +140,6 @@ namespace OpcPlc
             }
 
             timer.Enabled = false;
-        }
-
-        /// <summary>
-        /// Generates a sine wave with spikes at a random cycle in the phase.
-        /// Called each SimulationCycleLength msec.
-        /// </summary>
-        private double SpikeGenerator(double value)
-        {
-            // calculate next value
-            double nextValue;
-            if (GenerateSpikes && _spikeCycleInPhase == _spikeAnomalyCycle)
-            {
-                // todo calculate
-                nextValue = SimulationMaxAmplitude * 10;
-                Logger.Verbose("Generate spike anomaly");
-            }
-            else
-            {
-                nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / SimulationCycleCount) * _spikeCycleInPhase);
-            }
-            Logger.Verbose($"spike cycle: {_spikeCycleInPhase} data: {nextValue}");
-
-            // end of cycle: reset cycle count and calc next anomaly cycle
-            if (--_spikeCycleInPhase == 0)
-            {
-                _spikeCycleInPhase = SimulationCycleCount;
-                _spikeAnomalyCycle = _random.Next(SimulationCycleCount);
-                Logger.Verbose($"next spike anomaly cycle: {_spikeAnomalyCycle}");
-            }
-
-            return nextValue;
         }
 
         /// <summary>
@@ -281,8 +243,6 @@ namespace OpcPlc
         private readonly PlcServer _plcServer;
         private readonly Random _random;
 
-        private int _spikeAnomalyCycle;
-        private int _spikeCycleInPhase;
         private int _dipAnomalyCycle;
         private int _dipCycleInPhase;
         private int _posTrendAnomalyPhase;

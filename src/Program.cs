@@ -57,6 +57,7 @@
         public static List<INodes> NodesList = new List<INodes>
         {
             new GenerateDataNodes(),
+            new GenerateSpikesNodes(),
             new SpecialCharNameNodes(),
             new LongIdNodes(),
             new LongStringNodes(),
@@ -231,7 +232,6 @@
                 // simulation configuration
                 { "sc|simulationcyclecount=", $"count of cycles in one simulation phase\nDefault:  {SimulationCycleCount} cycles", (int i) => SimulationCycleCount = i },
                 { "ct|cycletime=", $"length of one cycle time in milliseconds\nDefault:  {SimulationCycleLength} msec", (int i) => SimulationCycleLength = i },
-                { "ns|nospikes", $"do not generate spike data\nDefault: {!GenerateSpikes}", a => GenerateSpikes = a == null },
                 { "nd|nodips", $"do not generate dip data\nDefault: {!GenerateDips}", a => GenerateDips = a == null },
                 { "np|nopostrend", $"do not generate positive trend data\nDefault: {!GeneratePosTrend}", a => GeneratePosTrend = a == null },
                 { "nn|nonegtrend", $"do not generate negative trend data\nDefault: {!GenerateNegTrend}", a => GenerateNegTrend = a == null },
@@ -474,7 +474,6 @@
             if (GenerateDips) sb.AppendLine($"      {{ \"Id\": \"{NSS}DipData\" }},");
             if (GenerateNegTrend) sb.AppendLine($"      {{ \"Id\": \"{NSS}NegativeTrendData\" }},");
             if (GeneratePosTrend) sb.AppendLine($"      {{ \"Id\": \"{NSS}PositiveTrendData\" }},");
-            if (GenerateSpikes) sb.AppendLine($"      {{ \"Id\": \"{NSS}SpikeData\" }},");
 
             // Print config from node list.
             foreach (var nodes in NodesList)
@@ -564,7 +563,6 @@
             Logger.Information("Simulation settings are:");
             Logger.Information($"One simulation phase consists of {SimulationCycleCount} cycles");
             Logger.Information($"One cycle takes {SimulationCycleLength} milliseconds");
-            Logger.Information($"Spike generation is {(GenerateSpikes ? "enabled" : "disabled")}");
             Logger.Information($"Complex type (boiler) is {(AddComplexTypeBoiler ? "enabled" : "disabled")}");
             Logger.Information($"Reference Test Simulation is {(AddReferenceTestSimulation ? "enabled" : "disabled")}");
             Logger.Information($"Simple Events is {(AddSimpleEventsSimulation ? "enabled" : "disabled")}");
