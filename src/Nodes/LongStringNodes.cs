@@ -10,7 +10,7 @@
     /// </summary>
     public class LongStringNodes : INodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; }
+        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
         private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
@@ -28,17 +28,17 @@
                 (string p) => _isEnabled = p != null);
         }
 
-        public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
+        public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
         {
             _plcNodeManager = plcNodeManager;
 
             if (_isEnabled)
             {
-                AddNodes(parentFolder);
+                AddNodes(telemetryFolder);
             }
         }
 
-        public void StartSimulation(PlcServer server)
+        public void StartSimulation()
         {
             if (_isEnabled)
             {

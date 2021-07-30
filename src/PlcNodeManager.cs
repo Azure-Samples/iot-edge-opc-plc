@@ -17,21 +17,6 @@ namespace OpcPlc
         private const string NumberOfUpdates = "NumberOfUpdates";
 
         #region Properties
-        public SimulatedVariableNode<uint> RandomUnsignedInt32 { get; set; }
-
-        public SimulatedVariableNode<int> RandomSignedInt32 { get; set; }
-
-        public SimulatedVariableNode<double> SpikeNode { get; set; }
-
-        public SimulatedVariableNode<double> DipNode { get; set; }
-
-        public SimulatedVariableNode<double> PosTrendNode { get; set; }
-
-        public SimulatedVariableNode<double> NegTrendNode { get; set; }
-
-        public SimulatedVariableNode<bool> AlternatingBooleanNode { get; set; }
-
-        public SimulatedVariableNode<uint> StepUpNode { get; set; }
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue, string nodeFileName = null)
@@ -224,13 +209,10 @@ namespace OpcPlc
 
                 try
                 {
-                    FolderState dataFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
-
-                    AddChangingNodes(dataFolder);
-
-                    AddSlowAndFastNodes(root, dataFolder, _slowNodeRandomization, _slowNodeStepSize, _slowNodeMinValue, _slowNodeMaxValue, _fastNodeRandomization, _fastNodeStepSize, _fastNodeMinValue, _fastNodeMaxValue);
-
+                    FolderState telemetryFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
+
+                    AddSlowAndFastNodes(root, telemetryFolder, _slowNodeRandomization, _slowNodeStepSize, _slowNodeMinValue, _slowNodeMaxValue, _fastNodeRandomization, _fastNodeStepSize, _fastNodeMinValue, _fastNodeMaxValue);
 
                     AddMethods(methodsFolder);
 
@@ -241,7 +223,7 @@ namespace OpcPlc
                     // Add nodes to address space from node list.
                     foreach (var nodes in NodesList)
                     {
-                        nodes.AddToAddressSpace(root, plcNodeManager: this);
+                        nodes.AddToAddressSpace(telemetryFolder, methodsFolder, plcNodeManager: this);
                     }
                 }
                 catch (Exception e)
@@ -251,21 +233,6 @@ namespace OpcPlc
 
                 AddPredefinedNode(SystemContext, root);
             }
-        }
-
-        private void AddChangingNodes(FolderState dataFolder)
-        {
-            if (PlcSimulation.GenerateData)
-            {
-                StepUpNode = CreateVariableNode<uint>(CreateBaseVariable(dataFolder, "StepUp", "StepUp", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentReadOrWrite, "Constantly increasing value", NamespaceType.OpcPlcApplications));
-                AlternatingBooleanNode = CreateVariableNode<bool>(CreateBaseVariable(dataFolder, "AlternatingBoolean", "AlternatingBoolean", new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, AccessLevels.CurrentRead, "Alternating boolean value", NamespaceType.OpcPlcApplications));
-                RandomSignedInt32 = CreateVariableNode<int>(CreateBaseVariable(dataFolder, "RandomSignedInt32", "RandomSignedInt32", new NodeId((uint)BuiltInType.Int32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random signed 32 bit integer value", NamespaceType.OpcPlcApplications));
-                RandomUnsignedInt32 = CreateVariableNode<uint>(CreateBaseVariable(dataFolder, "RandomUnsignedInt32", "RandomUnsignedInt32", new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, AccessLevels.CurrentRead, "Random unsigned 32 bit integer value", NamespaceType.OpcPlcApplications));
-            }
-            if (PlcSimulation.GenerateSpikes) SpikeNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "SpikeData", "SpikeData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly spikes", NamespaceType.OpcPlcApplications));
-            if (PlcSimulation.GenerateDips) DipNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "DipData", "DipData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value which generates randomly dips", NamespaceType.OpcPlcApplications));
-            if (PlcSimulation.GeneratePosTrend) PosTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "PositiveTrendData", "PositiveTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow positive trend", NamespaceType.OpcPlcApplications));
-            if (PlcSimulation.GenerateNegTrend) NegTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));
         }
 
         public SimulatedVariableNode<T> CreateVariableNode<T>(BaseDataVariableState variable)
@@ -371,22 +338,6 @@ namespace OpcPlc
 
         private FolderState AddMethods(FolderState methodsFolder)
         {
-            if (PlcSimulation.GeneratePosTrend || PlcSimulation.GenerateNegTrend)
-            {
-                MethodState resetTrendMethod = CreateMethod(methodsFolder, "ResetTrend", "ResetTrend", "Reset the trend values to their baseline value", NamespaceType.OpcPlcApplications);
-                SetResetTrendMethodProperties(ref resetTrendMethod);
-            }
-
-            if (PlcSimulation.GenerateData)
-            {
-                MethodState resetStepUpMethod = CreateMethod(methodsFolder, "ResetStepUp", "ResetStepUp", "Resets the StepUp counter to 0", NamespaceType.OpcPlcApplications);
-                SetResetStepUpMethodProperties(ref resetStepUpMethod);
-                MethodState startStepUpMethod = CreateMethod(methodsFolder, "StartStepUp", "StartStepUp", "Starts the StepUp counter", NamespaceType.OpcPlcApplications);
-                SetStartStepUpMethodProperties(ref startStepUpMethod);
-                MethodState stopStepUpMethod = CreateMethod(methodsFolder, "StopStepUp", "StopStepUp", "Stops the StepUp counter", NamespaceType.OpcPlcApplications);
-                SetStopStepUpMethodProperties(ref stopStepUpMethod);
-            }
-
             if (PlcSimulation.SlowNodeCount > 0 || PlcSimulation.FastNodeCount > 0)
             {
                 MethodState stopUpdateFastAndSlowNodesMethod = CreateMethod(methodsFolder, "StopUpdateFastAndSlowNodes", "StopUpdateFastAndSlowNodes", "Stops the increase of value of fast and slow nodes", NamespaceType.OpcPlcApplications);
@@ -619,38 +570,6 @@ namespace OpcPlc
                 NodeType.UIntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32], null, null, null),
                 _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, (uint)0, uint.Parse(stepSize), minValue == null ? uint.MinValue : uint.Parse(minValue), maxValue == null ? uint.MaxValue : uint.Parse(maxValue)),
             };
-        }
-
-        /// <summary>
-        /// Sets properties of the ResetTrend method.
-        /// </summary>
-        private void SetResetTrendMethodProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnResetTrendCall);
-        }
-
-        /// <summary>
-        /// Sets properties of the ResetStepUp method.
-        /// </summary>
-        private void SetResetStepUpMethodProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnResetStepUpCall);
-        }
-
-        /// <summary>
-        /// Sets properties of the StartStepUp method.
-        /// </summary>
-        private void SetStartStepUpMethodProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStartStepUpCall);
-        }
-
-        /// <summary>
-        /// Sets properties of the StopStepUp method.
-        /// </summary>
-        private void SetStopStepUpMethodProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStopStepUpCall);
         }
 
         /// <summary>
@@ -954,7 +873,7 @@ namespace OpcPlc
         /// <summary>
         /// Creates a new method.
         /// </summary>
-        private MethodState CreateMethod(NodeState parent, string path, string name, string description, NamespaceType namespaceType)
+        public MethodState CreateMethod(NodeState parent, string path, string name, string description, NamespaceType namespaceType)
         {
             ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
 
@@ -975,46 +894,6 @@ namespace OpcPlc
             parent?.AddChild(method);
 
             return method;
-        }
-
-        /// <summary>
-        /// Method to reset the trend values. Executes synchronously.
-        /// </summary>
-        private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            Program.PlcSimulation.ResetTrendData();
-            Logger.Debug("ResetTrend method called");
-            return ServiceResult.Good;
-        }
-
-        /// <summary>
-        /// Method to reset the stepup value. Executes synchronously.
-        /// </summary>
-        private ServiceResult OnResetStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            Program.PlcSimulation.ResetStepUpData();
-            Logger.Debug("ResetStepUp method called");
-            return ServiceResult.Good;
-        }
-
-        /// <summary>
-        /// Method to start the stepup value. Executes synchronously.
-        /// </summary>
-        private ServiceResult OnStartStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            Program.PlcSimulation.StartStepUp();
-            Logger.Debug("StartStepUp method called");
-            return ServiceResult.Good;
-        }
-
-        /// <summary>
-        /// Method to stop the stepup value. Executes synchronously.
-        /// </summary>
-        private ServiceResult OnStopStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            Program.PlcSimulation.StopStepUp();
-            Logger.Debug("StopStepUp method called");
-            return ServiceResult.Good;
         }
 
         /// <summary>

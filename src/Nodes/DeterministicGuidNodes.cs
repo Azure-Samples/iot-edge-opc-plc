@@ -10,7 +10,7 @@
     /// </summary>
     public class DeterministicGuidNodes : INodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; }
+        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
         private static uint NodeCount { get; set; } = 1;
         private uint NodeRate { get; set; } = 1000; // ms.
@@ -27,12 +27,12 @@
                 (uint i) => NodeCount = i);
         }
 
-        public void AddToAddressSpace(FolderState parentFolder, PlcNodeManager plcNodeManager)
+        public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
         {
             _plcNodeManager = plcNodeManager;
 
             FolderState folder = _plcNodeManager.CreateFolder(
-                parentFolder,
+                telemetryFolder,
                 path: "Deterministic GUIDs",
                 name: "Deterministic GUIDs",
                 NamespaceType.OpcPlcApplications);
@@ -40,7 +40,7 @@
             AddNodes(folder);
         }
 
-        public void StartSimulation(PlcServer server)
+        public void StartSimulation()
         {
             foreach (var node in _nodes)
             {
@@ -79,7 +79,7 @@
                         new NodeId((uint)BuiltInType.UInt32),
                         ValueRanks.Scalar,
                         AccessLevels.CurrentReadOrWrite,
-                        "Constantly increasing value(s)",
+                        "Constantly increasing value",
                         NamespaceType.OpcPlcApplications,
                         defaultValue: (uint)0));
 
