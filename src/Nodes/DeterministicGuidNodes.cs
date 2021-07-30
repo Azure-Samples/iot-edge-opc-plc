@@ -79,7 +79,7 @@
                         new NodeId((uint)BuiltInType.UInt32),
                         ValueRanks.Scalar,
                         AccessLevels.CurrentReadOrWrite,
-                        "Constantly increasing value(s)",
+                        "Constantly increasing value",
                         NamespaceType.OpcPlcApplications,
                         defaultValue: (uint)0));
 

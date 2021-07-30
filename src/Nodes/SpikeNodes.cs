@@ -66,7 +66,7 @@
                     new NodeId((uint)BuiltInType.Double),
                     ValueRanks.Scalar,
                     AccessLevels.CurrentRead,
-                    "Value which generates randomly spikes",
+                    "Value with random spikes",
                     NamespaceType.OpcPlcApplications));
 
             NodeIDs = new List<string>
