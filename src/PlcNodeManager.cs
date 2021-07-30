@@ -17,7 +17,6 @@ namespace OpcPlc
         private const string NumberOfUpdates = "NumberOfUpdates";
 
         #region Properties
-        public SimulatedVariableNode<double> NegTrendNode { get; set; }
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue, string nodeFileName = null)
@@ -213,8 +212,6 @@ namespace OpcPlc
                     FolderState telemetryFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
 
-                    AddChangingNodes(telemetryFolder);
-
                     AddSlowAndFastNodes(root, telemetryFolder, _slowNodeRandomization, _slowNodeStepSize, _slowNodeMinValue, _slowNodeMaxValue, _fastNodeRandomization, _fastNodeStepSize, _fastNodeMinValue, _fastNodeMaxValue);
 
                     AddMethods(methodsFolder);
@@ -236,11 +233,6 @@ namespace OpcPlc
 
                 AddPredefinedNode(SystemContext, root);
             }
-        }
-
-        private void AddChangingNodes(FolderState dataFolder)
-        {
-            if (PlcSimulation.GenerateNegTrend) NegTrendNode = CreateVariableNode<double>(CreateBaseVariable(dataFolder, "NegativeTrendData", "NegativeTrendData", new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, AccessLevels.CurrentRead, "Value with a slow negative trend", NamespaceType.OpcPlcApplications));
         }
 
         public SimulatedVariableNode<T> CreateVariableNode<T>(BaseDataVariableState variable)

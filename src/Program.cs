@@ -60,6 +60,7 @@
             new GenerateSpikesNodes(),
             new GenerateDipsNodes(),
             new PosTrendNodes(),
+            new NegTrendNodes(),
             new SpecialCharNameNodes(),
             new LongIdNodes(),
             new LongStringNodes(),
@@ -234,7 +235,6 @@
                 // simulation configuration
                 { "sc|simulationcyclecount=", $"count of cycles in one simulation phase\nDefault:  {SimulationCycleCount} cycles", (int i) => SimulationCycleCount = i },
                 { "ct|cycletime=", $"length of one cycle time in milliseconds\nDefault:  {SimulationCycleLength} msec", (int i) => SimulationCycleLength = i },
-                { "nn|nonegtrend", $"do not generate negative trend data\nDefault: {!GenerateNegTrend}", a => GenerateNegTrend = a == null },
 
                 // Slow and fast nodes.
                 { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodeCount}", (uint i) => SlowNodeCount = i },
@@ -470,8 +470,6 @@
             sb.AppendLine($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",");
             sb.AppendLine("    \"UseSecurity\": false,");
             sb.AppendLine("    \"OpcNodes\": [");
-
-            if (GenerateNegTrend) sb.AppendLine($"      {{ \"Id\": \"{NSS}NegativeTrendData\" }},");
 
             // Print config from node list.
             foreach (var nodes in NodesList)

@@ -9,8 +9,6 @@ namespace OpcPlc
         /// <summary>
         /// Flags for node generation.
         /// </summary>
-        public static bool GenerateNegTrend { get; set; } = true;
-
         public static bool SlowNodeRandomization { get; set; } = false;
         public static uint SlowNodeCount { get; set; } = 1;
         public static uint SlowNodeRate { get; set; } = 10000; // s.
@@ -54,10 +52,6 @@ namespace OpcPlc
         {
             _plcServer = plcServer;
             _random = new Random();
-
-            _negTrendAnomalyPhase = _random.Next(10);
-            _negTrendCycleInPhase = SimulationCycleCount;
-            Logger.Verbose($"First neg trend anomaly phase: {_negTrendAnomalyPhase}");
         }
 
         /// <summary>
@@ -65,8 +59,6 @@ namespace OpcPlc
         /// </summary>
         public void Start()
         {
-            if (GenerateNegTrend) _plcServer.PlcNodeManager.NegTrendNode.Start(NegTrendGenerator, SimulationCycleLength);
-
             if (SlowNodeCount > 0)
             {
                 _slowNodeGenerator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateSlowNodes, SlowNodeRate);
@@ -105,8 +97,6 @@ namespace OpcPlc
         /// </summary>
         public void Stop()
         {
-            _plcServer.PlcNodeManager.NegTrendNode?.Stop();
-
             Disable(_slowNodeGenerator);
             Disable(_fastNodeGenerator);
             Disable(_eventInstanceGenerator);
@@ -129,41 +119,12 @@ namespace OpcPlc
             timer.Enabled = false;
         }
 
-        /// <summary>
-        /// Generates a sine wave with spikes at a configurable cycle in the phase.
-        /// Called each SimulationCycleLength msec.
-        /// </summary>
-        private double NegTrendGenerator(double value)
-        {
-            // calculate next value
-            double nextValue = TREND_BASEVALUE;
-            if (GenerateNegTrend && _negTrendPhase >= _negTrendAnomalyPhase)
-            {
-                nextValue = TREND_BASEVALUE - ((_negTrendPhase - _negTrendAnomalyPhase) / 10d);
-                Logger.Verbose("Generate negtrend anomaly");
-            }
-
-            // end of cycle: reset cycle count and calc next anomaly cycle
-            if (--_negTrendCycleInPhase == 0)
-            {
-                _negTrendCycleInPhase = SimulationCycleCount;
-                _negTrendPhase++;
-                Logger.Verbose($"neg trend phase: {_negTrendPhase}, data: {nextValue}");
-            }
-
-            return nextValue;
-        }
-
         private const int SIMULATION_CYCLECOUNT_DEFAULT = 50;          // in cycles
         private const int SIMULATION_CYCLELENGTH_DEFAULT = 100;        // in msec
         private const double SIMULATION_MAXAMPLITUDE_DEFAULT = 100.0;
 
         private readonly PlcServer _plcServer;
         private readonly Random _random;
-
-        private int _negTrendAnomalyPhase;
-        private int _negTrendCycleInPhase;
-        private int _negTrendPhase;
 
         private ITimer _slowNodeGenerator;
         private ITimer _fastNodeGenerator;
