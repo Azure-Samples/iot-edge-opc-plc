@@ -37,7 +37,13 @@
 
             if (_isEnabled)
             {
-                AddNodes(telemetryFolder);
+                FolderState folder = _plcNodeManager.CreateFolder(
+                    (FolderState)telemetryFolder.Parent, // Root.
+                    path: "Special Nodes",
+                    name: "Special Nodes",
+                    NamespaceType.OpcPlcApplications);
+
+                AddNodes(folder);
                 AddMethods(methodsFolder);
             }
         }
