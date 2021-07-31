@@ -33,7 +33,6 @@ namespace OpcPlc
 
 #pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateSlowNodes(object state, ElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             if (!ShouldUpdateNodes(_slowNumberOfUpdates) || !_updateFastAndSlowNodes)
             {
@@ -52,82 +51,27 @@ namespace OpcPlc
             }
         }
 
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateFastNodes(object state, ElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             UpdateNodes();
         }
 
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateVeryFastNodes(object state, FastTimerElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             UpdateNodes();
         }
 
-        private void UpdateNodes()
-        {
-            if (!ShouldUpdateNodes(_fastNumberOfUpdates) || !_updateFastAndSlowNodes)
-            {
-                return;
-            }
-
-            if (_fastNodes != null)
-            {
-                UpdateNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
-            }
-
-            if (_fastBadNodes != null)
-            {
-                (StatusCode status, bool addBadValue) = BadStatusSequence[_fastBadNodesCycle++ % BadStatusSequence.Length];
-                UpdateNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
-            }
-        }
-
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateEventInstances(object state, ElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             UpdateEventInstances();
         }
 
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateVeryFastEventInstances(object state, FastTimerElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             UpdateEventInstances();
         }
 
-        private void UpdateEventInstances()
-        {
-            uint eventInstanceCycle = _eventInstanceCycle++;
-
-            for (uint i = 0; i < PlcSimulation.EventInstanceCount; i++)
-            {
-                var e = new BaseEventState(null);
-                var info = new TranslationInfo(
-                    "EventInstanceCycleEventKey",
-                    "en-us",
-                    "Event with index '{0}' and event cycle '{1}'",
-                    i, eventInstanceCycle);
-
-                e.Initialize(
-                    SystemContext,
-                    source: null,
-                    EventSeverity.Medium,
-                    new LocalizedText(info));
-
-                e.SetChildValue(SystemContext, BrowseNames.SourceName, "System", false);
-                e.SetChildValue(SystemContext, BrowseNames.SourceNode, ObjectIds.Server, false);
-
-                Server.ReportEvent(e);
-            };
-        }
-
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             var newValue = new BoilerModel.BoilerDataType
             {
@@ -159,6 +103,52 @@ namespace OpcPlc
             // Change complex value in one atomic step.
             _boiler1.BoilerStatus.Value = newValue;
             _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
+        }
+#pragma warning restore IDE0060 // Remove unused parameter
+
+        private void UpdateNodes()
+        {
+            if (!ShouldUpdateNodes(_fastNumberOfUpdates) || !_updateFastAndSlowNodes)
+            {
+                return;
+            }
+
+            if (_fastNodes != null)
+            {
+                UpdateNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
+            }
+
+            if (_fastBadNodes != null)
+            {
+                (StatusCode status, bool addBadValue) = BadStatusSequence[_fastBadNodesCycle++ % BadStatusSequence.Length];
+                UpdateNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
+            }
+        }
+
+        private void UpdateEventInstances()
+        {
+            uint eventInstanceCycle = _eventInstanceCycle++;
+
+            for (uint i = 0; i < PlcSimulation.EventInstanceCount; i++)
+            {
+                var e = new BaseEventState(null);
+                var info = new TranslationInfo(
+                    "EventInstanceCycleEventKey",
+                    "en-us",
+                    "Event with index '{0}' and event cycle '{1}'",
+                    i, eventInstanceCycle);
+
+                e.Initialize(
+                    SystemContext,
+                    source: null,
+                    EventSeverity.Medium,
+                    new LocalizedText(info));
+
+                e.SetChildValue(SystemContext, BrowseNames.SourceName, "System", false);
+                e.SetChildValue(SystemContext, BrowseNames.SourceNode, ObjectIds.Server, false);
+
+                Server.ReportEvent(e);
+            };
         }
 
         /// <summary>
