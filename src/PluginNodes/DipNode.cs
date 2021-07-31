@@ -18,6 +18,7 @@
         private readonly Random _random = new Random();
         private int _dipCycleInPhase;
         private int _dipAnomalyCycle;
+        private const double SimulationMaxAmplitude = 100.0;
 
         public void AddOption(Mono.Options.OptionSet optionSet)
         {
@@ -86,12 +87,12 @@
             double nextValue;
             if (_isEnabled && _dipCycleInPhase == _dipAnomalyCycle)
             {
-                nextValue = PlcSimulation.SimulationMaxAmplitude * -10;
+                nextValue = SimulationMaxAmplitude * -10;
                 Logger.Verbose("Generate dip anomaly");
             }
             else
             {
-                nextValue = PlcSimulation.SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / PlcSimulation.SimulationCycleCount) * _dipCycleInPhase);
+                nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / PlcSimulation.SimulationCycleCount) * _dipCycleInPhase);
             }
             Logger.Verbose($"Spike cycle: {_dipCycleInPhase} data: {nextValue}");
 

@@ -18,6 +18,7 @@
         private readonly Random _random = new Random();
         private int _spikeCycleInPhase;
         private int _spikeAnomalyCycle;
+        private const double SimulationMaxAmplitude = 100.0;
 
         public void AddOption(Mono.Options.OptionSet optionSet)
         {
@@ -87,12 +88,12 @@
             if (_isEnabled && _spikeCycleInPhase == _spikeAnomalyCycle)
             {
                 // todo calculate
-                nextValue = PlcSimulation.SimulationMaxAmplitude * 10;
+                nextValue = SimulationMaxAmplitude * 10;
                 Logger.Verbose("Generate spike anomaly");
             }
             else
             {
-                nextValue = PlcSimulation.SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / PlcSimulation.SimulationCycleCount) * _spikeCycleInPhase);
+                nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / PlcSimulation.SimulationCycleCount) * _spikeCycleInPhase);
             }
             Logger.Verbose($"Spike cycle: {_spikeCycleInPhase} data: {nextValue}");
 

@@ -40,7 +40,6 @@ namespace OpcPlc
         /// </summary>
         public static int SimulationCycleCount { get; set; } = SIMULATION_CYCLECOUNT_DEFAULT;
         public static int SimulationCycleLength { get; set; } = SIMULATION_CYCLELENGTH_DEFAULT;
-        public static double SimulationMaxAmplitude { get; set; } = SIMULATION_MAXAMPLITUDE_DEFAULT;
 
         /// <summary>
         /// Ctor for simulation server.
@@ -117,7 +116,6 @@ namespace OpcPlc
 
         private const int SIMULATION_CYCLECOUNT_DEFAULT = 50;          // in cycles
         private const int SIMULATION_CYCLELENGTH_DEFAULT = 100;        // in msec
-        private const double SIMULATION_MAXAMPLITUDE_DEFAULT = 100.0;
 
         private readonly PlcServer _plcServer;
 
