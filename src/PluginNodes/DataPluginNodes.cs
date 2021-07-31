@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.Nodes
+﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
     using System;
@@ -8,7 +8,7 @@
     /// <summary>
     /// Nodes with values: Cycling step-up, alternating boolean, random signed 32-bit integer and random unsigend 32-bit integer.
     /// </summary>
-    public class DataNodes : INodes
+    public class DataPluginNodes : IPluginNodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 

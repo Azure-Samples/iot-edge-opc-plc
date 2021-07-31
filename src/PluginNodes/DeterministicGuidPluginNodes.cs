@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.Nodes
+﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
     using OpcPlc.Helpers;
@@ -8,7 +8,7 @@
     /// <summary>
     /// Nodes with deterministic GUIDs as ID.
     /// </summary>
-    public class DeterministicGuidNodes : INodes
+    public class DeterministicGuidPluginNodes : IPluginNodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
@@ -32,7 +32,7 @@
             _plcNodeManager = plcNodeManager;
 
             FolderState folder = _plcNodeManager.CreateFolder(
-                telemetryFolder,
+                (FolderState)telemetryFolder.Parent, // Root.
                 path: "Deterministic GUIDs",
                 name: "Deterministic GUIDs",
                 NamespaceType.OpcPlcApplications);

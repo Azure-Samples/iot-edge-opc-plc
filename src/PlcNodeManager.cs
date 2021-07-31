@@ -1,17 +1,13 @@
-using Newtonsoft.Json;
-
-using Opc.Ua;
-using Opc.Ua.Server;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
-using System.Timers;
-
-using static OpcPlc.Program;
-
 namespace OpcPlc
 {
+    using Opc.Ua;
+    using Opc.Ua.Server;
+    using System;
+    using System.Collections.Generic;
+    using System.Reflection;
+    using System.Timers;
+    using static OpcPlc.Program;
+
     public class PlcNodeManager : CustomNodeManager2
     {
         private const string NumberOfUpdates = "NumberOfUpdates";
@@ -19,7 +15,7 @@ namespace OpcPlc
         #region Properties
         #endregion
 
-        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue, string nodeFileName = null)
+        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue)
             : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
         {
             _timeService = timeService;
@@ -31,14 +27,12 @@ namespace OpcPlc
             _slowNodeMaxValue = slowNodeMaxValue;
             _fastNodeMinValue = fastNodeMinValue;
             _fastNodeMaxValue = fastNodeMaxValue;
-            _nodeFileName = nodeFileName;
             _random = new Random();
             SystemContext.NodeIdFactory = this;
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateSlowNodes(object state, ElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             if (!ShouldUpdateNodes(_slowNumberOfUpdates) || !_updateFastAndSlowNodes)
             {
@@ -57,82 +51,27 @@ namespace OpcPlc
             }
         }
 
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateFastNodes(object state, ElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             UpdateNodes();
         }
 
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateVeryFastNodes(object state, FastTimerElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             UpdateNodes();
         }
 
-        private void UpdateNodes()
-        {
-            if (!ShouldUpdateNodes(_fastNumberOfUpdates) || !_updateFastAndSlowNodes)
-            {
-                return;
-            }
-
-            if (_fastNodes != null)
-            {
-                UpdateNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
-            }
-
-            if (_fastBadNodes != null)
-            {
-                (StatusCode status, bool addBadValue) = BadStatusSequence[_fastBadNodesCycle++ % BadStatusSequence.Length];
-                UpdateNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
-            }
-        }
-
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateEventInstances(object state, ElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             UpdateEventInstances();
         }
 
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateVeryFastEventInstances(object state, FastTimerElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             UpdateEventInstances();
         }
 
-        private void UpdateEventInstances()
-        {
-            uint eventInstanceCycle = _eventInstanceCycle++;
-
-            for (uint i = 0; i < PlcSimulation.EventInstanceCount; i++)
-            {
-                var e = new BaseEventState(null);
-                var info = new TranslationInfo(
-                    "EventInstanceCycleEventKey",
-                    "en-us",
-                    "Event with index '{0}' and event cycle '{1}'",
-                    i, eventInstanceCycle);
-
-                e.Initialize(
-                    SystemContext,
-                    null,
-                    (EventSeverity)EventSeverity.Medium,
-                    new LocalizedText(info));
-
-                e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceName, "System", false);
-                e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, false);
-
-                Server.ReportEvent(e);
-            };
-        }
-
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
-#pragma warning restore IDE0060 // Remove unused parameter
         {
             var newValue = new BoilerModel.BoilerDataType
             {
@@ -164,6 +103,52 @@ namespace OpcPlc
             // Change complex value in one atomic step.
             _boiler1.BoilerStatus.Value = newValue;
             _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
+        }
+#pragma warning restore IDE0060 // Remove unused parameter
+
+        private void UpdateNodes()
+        {
+            if (!ShouldUpdateNodes(_fastNumberOfUpdates) || !_updateFastAndSlowNodes)
+            {
+                return;
+            }
+
+            if (_fastNodes != null)
+            {
+                UpdateNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
+            }
+
+            if (_fastBadNodes != null)
+            {
+                (StatusCode status, bool addBadValue) = BadStatusSequence[_fastBadNodesCycle++ % BadStatusSequence.Length];
+                UpdateNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
+            }
+        }
+
+        private void UpdateEventInstances()
+        {
+            uint eventInstanceCycle = _eventInstanceCycle++;
+
+            for (uint i = 0; i < PlcSimulation.EventInstanceCount; i++)
+            {
+                var e = new BaseEventState(null);
+                var info = new TranslationInfo(
+                    "EventInstanceCycleEventKey",
+                    "en-us",
+                    "Event with index '{0}' and event cycle '{1}'",
+                    i, eventInstanceCycle);
+
+                e.Initialize(
+                    SystemContext,
+                    source: null,
+                    EventSeverity.Medium,
+                    new LocalizedText(info));
+
+                e.SetChildValue(SystemContext, BrowseNames.SourceName, "System", false);
+                e.SetChildValue(SystemContext, BrowseNames.SourceNode, ObjectIds.Server, false);
+
+                Server.ReportEvent(e);
+            };
         }
 
         /// <summary>
@@ -216,19 +201,17 @@ namespace OpcPlc
 
                     AddMethods(methodsFolder);
 
-                    AddUserConfigurableNodes(root);
-
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
-                    // Add nodes to address space from node list.
-                    foreach (var nodes in NodesList)
+                    // Add nodes to address space from plugin node list.
+                    foreach (var nodes in Program.PluginNodes)
                     {
                         nodes.AddToAddressSpace(telemetryFolder, methodsFolder, plcNodeManager: this);
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Error creating the address space.");
+                    Logger.Error(e, "Error creating address space.");
                 }
 
                 AddPredefinedNode(SystemContext, root);
@@ -294,45 +277,6 @@ namespace OpcPlc
                 SetHeaterOnMethodProperties(ref heaterOnMethod);
                 MethodState heaterOffMethod = CreateMethod(methodsFolder, "HeaterOff", "HeaterOff", "Turn the heater off", NamespaceType.Boiler);
                 SetHeaterOffMethodProperties(ref heaterOffMethod);
-            }
-        }
-
-        private void AddUserConfigurableNodes(FolderState root)
-        {
-            if (!string.IsNullOrEmpty(_nodeFileName))
-            {
-                string json = File.ReadAllText(_nodeFileName);
-
-                var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
-                {
-                    TypeNameHandling = TypeNameHandling.All
-                });
-
-                Logger.Information($"Processing node information configured in {_nodeFileName}");
-                Logger.Debug($"Create folder {cfgFolder.Folder}");
-                FolderState userNodesFolder = CreateFolder(root, cfgFolder.Folder, cfgFolder.Folder, NamespaceType.OpcPlcApplications);
-
-                foreach (var node in cfgFolder.NodeList)
-                {
-                    if (node.NodeId.GetType() != Type.GetType("System.Int64") && node.NodeId.GetType() != Type.GetType("System.String"))
-                    {
-                        Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal and string are supported. Default to string.");
-                        node.NodeId = node.NodeId.ToString();
-                    }
-                    string typedNodeId = $"{(node.NodeId.GetType() == Type.GetType("System.Int64") ? "i=" : "s=")}{node.NodeId.ToString()}";
-                    if (string.IsNullOrEmpty(node.Name))
-                    {
-                        node.Name = typedNodeId;
-                    }
-                    if (string.IsNullOrEmpty(node.Description))
-                    {
-                        node.Description = node.Name;
-                    }
-                    Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]}'");
-                    CreateBaseVariable(userNodesFolder, node);
-                }
-
-                Logger.Information("Processing node information completed.");
             }
         }
 
@@ -677,33 +621,7 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Creates a new variable.
-        /// </summary>
-        private void CreateBaseVariable(NodeState parent, ConfigNode node)
-        {
-            if (!Enum.TryParse(node.DataType, out BuiltInType nodeDataType))
-            {
-                Logger.Error($"Value '{node.DataType}' of node '{node.NodeId}' cannot be parsed. Defaulting to 'Int32'");
-                node.DataType = "Int32";
-            }
-
-            // We have to hard code conversion here, because AccessLevel is defined as byte in OPCUA lib.
-            byte accessLevel;
-            try
-            {
-                accessLevel = (byte)(typeof(AccessLevels).GetField(node.AccessLevel).GetValue(null));
-            }
-            catch
-            {
-                Logger.Error($"AccessLevel '{node.AccessLevel}' of node '{node.Name}' is not supported. Defaulting to 'CurrentReadOrWrite'");
-                node.AccessLevel = "CurrentRead";
-                accessLevel = AccessLevels.CurrentReadOrWrite;
-            }
-            CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications);
-        }
-
-        /// <summary>
-        /// Loads a node set from a file or resource and addes them to the set of predefined nodes.
+        /// Loads a node set from a file or resource and adds them to the set of predefined nodes.
         /// </summary>
         protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
         {
@@ -984,10 +902,5 @@ namespace OpcPlc
         private readonly string _fastNodeMaxValue;
         private readonly Random _random;
         private bool _updateFastAndSlowNodes = true;
-
-        /// <summary>
-        /// File name for user configurable nodes.
-        /// </summary>
-        protected string _nodeFileName = null;
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.Nodes
+﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
     using System;
@@ -8,7 +8,7 @@
     /// <summary>
     /// Node with a value that shows a positive trend.
     /// </summary>
-    public class PosTrendNodes : INodes
+    public class PosTrendPluginNode : IPluginNodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 

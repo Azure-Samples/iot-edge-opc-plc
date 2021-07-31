@@ -1,9 +1,9 @@
-﻿namespace OpcPlc.Nodes
+﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
     using System.Collections.Generic;
 
-    public interface INodes
+    public interface IPluginNodes
     {
         IReadOnlyCollection<string> NodeIDs { get; }
 

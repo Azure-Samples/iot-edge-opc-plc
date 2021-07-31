@@ -17,7 +17,7 @@
     using static OpcPlc.PlcSimulation;
     using System.Net;
     using Microsoft.Extensions.Hosting;
-    using OpcPlc.Nodes;
+    using OpcPlc.PluginNodes;
 
     public static class Program
     {
@@ -54,17 +54,18 @@
         /// <summary>
         /// Nodes to extend the address space.
         /// </summary>
-        public static List<INodes> NodesList = new List<INodes>
+        public static List<IPluginNodes> PluginNodes = new List<IPluginNodes>
         {
-            new DataNodes(),
-            new SpikeNodes(),
-            new DipNodes(),
-            new PosTrendNodes(),
-            new NegTrendNodes(),
-            new SpecialCharNameNodes(),
-            new LongIdNodes(),
-            new LongStringNodes(),
-            new DeterministicGuidNodes(),
+            new DataPluginNodes(),
+            new SpikePluginNode(),
+            new DipPluginNode(),
+            new PosTrendPluginNode(),
+            new NegTrendPluginNode(),
+            new SpecialCharNamePluginNode(),
+            new LongIdPluginNode(),
+            new LongStringPluginNodes(),
+            new DeterministicGuidPluginNodes(),
+            new UserDefinedPluginNodes(),
         };
 
         public static bool DisableAnonymousAuth { get; set; } = false;
@@ -92,11 +93,6 @@
         /// Default user password.
         /// </summary>
         public static string DefaultPassword { get; set; } = "password";
-
-        /// <summary>
-        /// User node configuration file name.
-        /// </summary>
-        public static string NodesFileName { get; set; }
 
         /// <summary>
         /// Show OPC Publisher configuration file using IP address as EndpointUrl.
@@ -259,9 +255,6 @@
                 { "ei|eventinstances=", $"number of event instances\nDefault: {EventInstanceCount}", (uint i) => EventInstanceCount = i },
                 { "er|eventrate=", $"rate in milliseconds to send events\nDefault: {EventInstanceRate}", (uint i) => EventInstanceRate = i },
 
-                // user defined nodes configuration
-                { "nf|nodesfile=", "the filename which contains the list of nodes to be created in the OPC UA address space.", (string l) => NodesFileName = l },
-
                 // opc configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
                 { "op|path=", $"the enpoint URL path part of the OPC server endpoint.\nDefault: '{ServerPath}'", (string a) => ServerPath = a },
@@ -411,8 +404,8 @@
                 { "h|help", "show this message and exit", h => ShowHelp = h != null },
             };
 
-            // Add options from node list.
-            foreach (var nodes in NodesList)
+            // Add options from plugin node list.
+            foreach (var nodes in PluginNodes)
             {
                 nodes.AddOption(options);
             }
@@ -471,8 +464,8 @@
             sb.AppendLine("    \"UseSecurity\": false,");
             sb.AppendLine("    \"OpcNodes\": [");
 
-            // Print config from node list.
-            foreach (var nodes in NodesList)
+            // Print config from plugin node list.
+            foreach (var nodes in PluginNodes)
             {
                 foreach (var nodeId in nodes.NodeIDs)
                 {

@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.Nodes
+﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
     using System;
@@ -8,7 +8,7 @@
     /// <summary>
     /// Nodes that change value every second to string containing single repeated uppercase letter.
     /// </summary>
-    public class LongStringNodes : INodes
+    public class LongStringPluginNodes : IPluginNodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
