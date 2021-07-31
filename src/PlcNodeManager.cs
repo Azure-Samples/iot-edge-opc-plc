@@ -211,7 +211,7 @@ namespace OpcPlc
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Error creating the address space.");
+                    Logger.Error(e, "Error creating address space.");
                 }
 
                 AddPredefinedNode(SystemContext, root);
