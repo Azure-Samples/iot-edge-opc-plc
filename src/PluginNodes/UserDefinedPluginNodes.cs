@@ -31,7 +31,7 @@
 
             if (!string.IsNullOrEmpty(_nodesFileName))
             {
-                AddNodes(telemetryFolder);
+                AddNodes((FolderState)telemetryFolder.Parent); // Root.
             }
         }
 
