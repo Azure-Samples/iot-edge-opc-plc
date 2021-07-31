@@ -114,12 +114,12 @@ namespace OpcPlc
 
                 e.Initialize(
                     SystemContext,
-                    null,
-                    (EventSeverity)EventSeverity.Medium,
+                    source: null,
+                    EventSeverity.Medium,
                     new LocalizedText(info));
 
-                e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceName, "System", false);
-                e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, false);
+                e.SetChildValue(SystemContext, BrowseNames.SourceName, "System", false);
+                e.SetChildValue(SystemContext, BrowseNames.SourceNode, ObjectIds.Server, false);
 
                 Server.ReportEvent(e);
             };
@@ -631,7 +631,7 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Loads a node set from a file or resource and addes them to the set of predefined nodes.
+        /// Loads a node set from a file or resource and adds them to the set of predefined nodes.
         /// </summary>
         protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
         {
