@@ -17,7 +17,7 @@
     using static OpcPlc.PlcSimulation;
     using System.Net;
     using Microsoft.Extensions.Hosting;
-    using OpcPlc.Nodes;
+    using OpcPlc.PluginNodes;
 
     public static class Program
     {
@@ -54,15 +54,15 @@
         /// <summary>
         /// Nodes to extend the address space.
         /// </summary>
-        public static List<INodes> NodesList = new List<INodes>
+        public static List<IPluginNodes> PluginNodes = new List<IPluginNodes>
         {
             new DataNodes(),
-            new SpikeNodes(),
-            new DipNodes(),
-            new PosTrendNodes(),
-            new NegTrendNodes(),
-            new SpecialCharNameNodes(),
-            new LongIdNodes(),
+            new SpikeNode(),
+            new DipNode(),
+            new PosTrendNode(),
+            new NegTrendNode(),
+            new SpecialCharNameNode(),
+            new LongIdNode(),
             new LongStringNodes(),
             new DeterministicGuidNodes(),
         };
@@ -411,8 +411,8 @@
                 { "h|help", "show this message and exit", h => ShowHelp = h != null },
             };
 
-            // Add options from node list.
-            foreach (var nodes in NodesList)
+            // Add options from plugin node list.
+            foreach (var nodes in PluginNodes)
             {
                 nodes.AddOption(options);
             }
@@ -471,8 +471,8 @@
             sb.AppendLine("    \"UseSecurity\": false,");
             sb.AppendLine("    \"OpcNodes\": [");
 
-            // Print config from node list.
-            foreach (var nodes in NodesList)
+            // Print config from plugin node list.
+            foreach (var nodes in PluginNodes)
             {
                 foreach (var nodeId in nodes.NodeIDs)
                 {

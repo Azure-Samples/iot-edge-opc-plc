@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.Nodes
+﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
     using System;
@@ -6,9 +6,9 @@
     using static OpcPlc.Program;
 
     /// <summary>
-    /// Node with a value that shows a negative trend.
+    /// Node with a value that shows a positive trend.
     /// </summary>
-    public class NegTrendNodes : INodes
+    public class PosTrendNode : IPluginNodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
@@ -16,16 +16,16 @@
         private PlcNodeManager _plcNodeManager;
         private SimulatedVariableNode<double> _node;
         private readonly Random _random = new Random();
-        private int _negTrendCycleInPhase;
-        private int _negTrendPhase;
-        private int _negTrendAnomalyPhase;
+        private int _posTrendCycleInPhase;
+        private int _posTrendPhase;
+        private int _posTrendAnomalyPhase;
         private const double TREND_BASEVALUE = 100.0;
 
         public void AddOption(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
-                "nn|nonegtrend",
-                $"do not generate negative trend data\nDefault: {!_isEnabled}",
+                "np|nopostrend",
+                $"do not generate positive trend data\nDefault: {!_isEnabled}",
                 (string p) => _isEnabled = p == null);
         }
 
@@ -44,11 +44,11 @@
         {
             if (_isEnabled)
             {
-                _negTrendAnomalyPhase = _random.Next(10);
-                _negTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
-                Logger.Verbose($"First neg trend anomaly phase: {_negTrendAnomalyPhase}");
+                _posTrendAnomalyPhase = _random.Next(10);
+                _posTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
+                Logger.Verbose($"First pos trend anomaly phase: {_posTrendAnomalyPhase}");
 
-                _node.Start(NegTrendGenerator, PlcSimulation.SimulationCycleLength);
+                _node.Start(PosTrendGenerator, PlcSimulation.SimulationCycleLength);
             }
         }
 
@@ -65,23 +65,23 @@
             _node = _plcNodeManager.CreateVariableNode<double>(
                 _plcNodeManager.CreateBaseVariable(
                     folder,
-                    path: "NegativeTrendData",
-                    name: "NegativeTrendData",
+                    path: "PositiveTrendData",
+                    name: "PositiveTrendData",
                     new NodeId((uint)BuiltInType.Double),
                     ValueRanks.Scalar,
                     AccessLevels.CurrentRead,
-                    "Value with a slow negative trend",
+                    "Value with a slow positive trend",
                     NamespaceType.OpcPlcApplications));
 
             NodeIDs = new List<string>
             {
-                "NegativeTrendData",
+                "PositiveTrendData",
             };
         }
 
         private void AddMethods(FolderState methodsFolder)
         {
-            MethodState resetTrendMethod = _plcNodeManager.CreateMethod(methodsFolder, "ResetNegTrend", "ResetNegTrend", "Reset the negativetrend values to their baseline value", NamespaceType.OpcPlcApplications);
+            MethodState resetTrendMethod = _plcNodeManager.CreateMethod(methodsFolder, "ResetPosTrend", "ResetPosTrend", "Reset the positive trend values to their baseline value", NamespaceType.OpcPlcApplications);
             SetResetTrendMethodProperties(ref resetTrendMethod);
         }
 
@@ -89,22 +89,22 @@
         /// Generates a sine wave with spikes at a configurable cycle in the phase.
         /// Called each SimulationCycleLength msec.
         /// </summary>
-        private double NegTrendGenerator(double value)
+        private double PosTrendGenerator(double value)
         {
             // calculate next value
             double nextValue = TREND_BASEVALUE;
-            if (_isEnabled && _negTrendPhase >= _negTrendAnomalyPhase)
+            if (_isEnabled && _posTrendPhase >= _posTrendAnomalyPhase)
             {
-                nextValue = TREND_BASEVALUE - ((_negTrendPhase - _negTrendAnomalyPhase) / 10d);
-                Logger.Verbose("Generate negtrend anomaly");
+                nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10d);
+                Logger.Verbose("Generate postrend anomaly");
             }
 
             // end of cycle: reset cycle count and calc next anomaly cycle
-            if (--_negTrendCycleInPhase == 0)
+            if (--_posTrendCycleInPhase == 0)
             {
-                _negTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
-                _negTrendPhase++;
-                Logger.Verbose($"Neg trend phase: {_negTrendPhase}, data: {nextValue}");
+                _posTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
+                _posTrendPhase++;
+                Logger.Verbose($"Pos trend phase: {_posTrendPhase}, data: {nextValue}");
             }
 
             return nextValue;
@@ -124,7 +124,7 @@
         private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
         {
             ResetTrendData();
-            Logger.Debug("ResetNegTrend method called");
+            Logger.Debug("ResetPosTrend method called");
             return ServiceResult.Good;
         }
 
@@ -133,9 +133,9 @@
         /// </summary>
         public void ResetTrendData()
         {
-            _negTrendAnomalyPhase = _random.Next(10);
-            _negTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
-            _negTrendPhase = 0;
+            _posTrendAnomalyPhase = _random.Next(10);
+            _posTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
+            _posTrendPhase = 0;
         }
     }
 }

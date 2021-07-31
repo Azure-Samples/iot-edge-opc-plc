@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.Nodes
+﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
     using OpcPlc.Helpers;
@@ -8,7 +8,7 @@
     /// <summary>
     /// Nodes with deterministic GUIDs as ID.
     /// </summary>
-    public class DeterministicGuidNodes : INodes
+    public class DeterministicGuidNodes : IPluginNodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
