@@ -8,7 +8,7 @@
     /// <summary>
     /// Nodes with deterministic GUIDs as ID.
     /// </summary>
-    public class DeterministicGuidNodes : IPluginNodes
+    public class DeterministicGuidPluginNodes : IPluginNodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 

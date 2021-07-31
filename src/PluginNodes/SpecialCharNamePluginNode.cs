@@ -7,7 +7,7 @@
     /// <summary>
     /// Node with special chars in name and ID.
     /// </summary>
-    public class SpecialCharNameNode : IPluginNodes
+    public class SpecialCharNamePluginNode : IPluginNodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 

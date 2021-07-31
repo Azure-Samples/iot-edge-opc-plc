@@ -56,15 +56,15 @@
         /// </summary>
         public static List<IPluginNodes> PluginNodes = new List<IPluginNodes>
         {
-            new DataNodes(),
-            new SpikeNode(),
-            new DipNode(),
-            new PosTrendNode(),
-            new NegTrendNode(),
-            new SpecialCharNameNode(),
-            new LongIdNode(),
-            new LongStringNodes(),
-            new DeterministicGuidNodes(),
+            new DataPluginNodes(),
+            new SpikePluginNode(),
+            new DipPluginNode(),
+            new PosTrendPluginNode(),
+            new NegTrendPluginNode(),
+            new SpecialCharNamePluginNode(),
+            new LongIdPluginNode(),
+            new LongStringPluginNodes(),
+            new DeterministicGuidPluginNodes(),
         };
 
         public static bool DisableAnonymousAuth { get; set; } = false;

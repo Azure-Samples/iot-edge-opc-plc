@@ -7,7 +7,7 @@
     /// <summary>
     /// Node with ID of 3950 chars.
     /// </summary>
-    public class LongIdNode : IPluginNodes
+    public class LongIdPluginNode : IPluginNodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 

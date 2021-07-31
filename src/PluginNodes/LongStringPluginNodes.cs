@@ -8,7 +8,7 @@
     /// <summary>
     /// Nodes that change value every second to string containing single repeated uppercase letter.
     /// </summary>
-    public class LongStringNodes : IPluginNodes
+    public class LongStringPluginNodes : IPluginNodes
     {
         public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
 
