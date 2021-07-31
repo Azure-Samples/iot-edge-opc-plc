@@ -65,6 +65,7 @@
             new LongIdPluginNode(),
             new LongStringPluginNodes(),
             new DeterministicGuidPluginNodes(),
+            new UserDefinedPluginNodes(),
         };
 
         public static bool DisableAnonymousAuth { get; set; } = false;
@@ -92,11 +93,6 @@
         /// Default user password.
         /// </summary>
         public static string DefaultPassword { get; set; } = "password";
-
-        /// <summary>
-        /// User node configuration file name.
-        /// </summary>
-        public static string NodesFileName { get; set; }
 
         /// <summary>
         /// Show OPC Publisher configuration file using IP address as EndpointUrl.
@@ -258,9 +254,6 @@
                 // events
                 { "ei|eventinstances=", $"number of event instances\nDefault: {EventInstanceCount}", (uint i) => EventInstanceCount = i },
                 { "er|eventrate=", $"rate in milliseconds to send events\nDefault: {EventInstanceRate}", (uint i) => EventInstanceRate = i },
-
-                // user defined nodes configuration
-                { "nf|nodesfile=", "the filename which contains the list of nodes to be created in the OPC UA address space.", (string l) => NodesFileName = l },
 
                 // opc configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },

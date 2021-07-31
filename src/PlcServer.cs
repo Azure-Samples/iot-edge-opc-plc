@@ -39,13 +39,6 @@ namespace OpcPlc
         {
             var nodeManagers = new List<INodeManager>();
 
-            if (!string.IsNullOrEmpty(NodesFileName) && !File.Exists(NodesFileName))
-            {
-                string errorMessage = $"The user node configuration file {NodesFileName} does not exist.";
-                Logger.Error(errorMessage);
-                throw new Exception(errorMessage);
-            }
-
             // Add encodable complex types.
             server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
 
@@ -60,8 +53,7 @@ namespace OpcPlc
                 PlcSimulation.FastNodeRandomization,
                 PlcSimulation.FastNodeStepSize,
                 PlcSimulation.FastNodeMinValue,
-                PlcSimulation.FastNodeMaxValue,
-                NodesFileName);
+                PlcSimulation.FastNodeMaxValue);
 
             nodeManagers.Add(PlcNodeManager);
 

@@ -1,17 +1,13 @@
-using Newtonsoft.Json;
-
-using Opc.Ua;
-using Opc.Ua.Server;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
-using System.Timers;
-
-using static OpcPlc.Program;
-
 namespace OpcPlc
 {
+    using Opc.Ua;
+    using Opc.Ua.Server;
+    using System;
+    using System.Collections.Generic;
+    using System.Reflection;
+    using System.Timers;
+    using static OpcPlc.Program;
+
     public class PlcNodeManager : CustomNodeManager2
     {
         private const string NumberOfUpdates = "NumberOfUpdates";
@@ -19,7 +15,7 @@ namespace OpcPlc
         #region Properties
         #endregion
 
-        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue, string nodeFileName = null)
+        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue)
             : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
         {
             _timeService = timeService;
@@ -31,7 +27,6 @@ namespace OpcPlc
             _slowNodeMaxValue = slowNodeMaxValue;
             _fastNodeMinValue = fastNodeMinValue;
             _fastNodeMaxValue = fastNodeMaxValue;
-            _nodeFileName = nodeFileName;
             _random = new Random();
             SystemContext.NodeIdFactory = this;
         }
@@ -216,8 +211,6 @@ namespace OpcPlc
 
                     AddMethods(methodsFolder);
 
-                    AddUserConfigurableNodes(root);
-
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
                     // Add nodes to address space from plugin node list.
@@ -294,45 +287,6 @@ namespace OpcPlc
                 SetHeaterOnMethodProperties(ref heaterOnMethod);
                 MethodState heaterOffMethod = CreateMethod(methodsFolder, "HeaterOff", "HeaterOff", "Turn the heater off", NamespaceType.Boiler);
                 SetHeaterOffMethodProperties(ref heaterOffMethod);
-            }
-        }
-
-        private void AddUserConfigurableNodes(FolderState root)
-        {
-            if (!string.IsNullOrEmpty(_nodeFileName))
-            {
-                string json = File.ReadAllText(_nodeFileName);
-
-                var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
-                {
-                    TypeNameHandling = TypeNameHandling.All
-                });
-
-                Logger.Information($"Processing node information configured in {_nodeFileName}");
-                Logger.Debug($"Create folder {cfgFolder.Folder}");
-                FolderState userNodesFolder = CreateFolder(root, cfgFolder.Folder, cfgFolder.Folder, NamespaceType.OpcPlcApplications);
-
-                foreach (var node in cfgFolder.NodeList)
-                {
-                    if (node.NodeId.GetType() != Type.GetType("System.Int64") && node.NodeId.GetType() != Type.GetType("System.String"))
-                    {
-                        Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal and string are supported. Default to string.");
-                        node.NodeId = node.NodeId.ToString();
-                    }
-                    string typedNodeId = $"{(node.NodeId.GetType() == Type.GetType("System.Int64") ? "i=" : "s=")}{node.NodeId.ToString()}";
-                    if (string.IsNullOrEmpty(node.Name))
-                    {
-                        node.Name = typedNodeId;
-                    }
-                    if (string.IsNullOrEmpty(node.Description))
-                    {
-                        node.Description = node.Name;
-                    }
-                    Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]}'");
-                    CreateBaseVariable(userNodesFolder, node);
-                }
-
-                Logger.Information("Processing node information completed.");
             }
         }
 
@@ -677,32 +631,6 @@ namespace OpcPlc
         }
 
         /// <summary>
-        /// Creates a new variable.
-        /// </summary>
-        private void CreateBaseVariable(NodeState parent, ConfigNode node)
-        {
-            if (!Enum.TryParse(node.DataType, out BuiltInType nodeDataType))
-            {
-                Logger.Error($"Value '{node.DataType}' of node '{node.NodeId}' cannot be parsed. Defaulting to 'Int32'");
-                node.DataType = "Int32";
-            }
-
-            // We have to hard code conversion here, because AccessLevel is defined as byte in OPCUA lib.
-            byte accessLevel;
-            try
-            {
-                accessLevel = (byte)(typeof(AccessLevels).GetField(node.AccessLevel).GetValue(null));
-            }
-            catch
-            {
-                Logger.Error($"AccessLevel '{node.AccessLevel}' of node '{node.Name}' is not supported. Defaulting to 'CurrentReadOrWrite'");
-                node.AccessLevel = "CurrentRead";
-                accessLevel = AccessLevels.CurrentReadOrWrite;
-            }
-            CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications);
-        }
-
-        /// <summary>
         /// Loads a node set from a file or resource and addes them to the set of predefined nodes.
         /// </summary>
         protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
@@ -984,10 +912,5 @@ namespace OpcPlc
         private readonly string _fastNodeMaxValue;
         private readonly Random _random;
         private bool _updateFastAndSlowNodes = true;
-
-        /// <summary>
-        /// File name for user configurable nodes.
-        /// </summary>
-        protected string _nodeFileName = null;
     }
 }
