@@ -463,6 +463,12 @@ namespace OpcPlc
         /// </summary>
         public FolderState CreateFolder(NodeState parent, string path, string name, NamespaceType namespaceType)
         {
+            var existingFolder = parent?.FindChildBySymbolicName(SystemContext, name);
+            if(existingFolder != null)
+            {
+                return (FolderState)existingFolder;
+            }
+
             ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
 
             var folder = new FolderState(parent)
