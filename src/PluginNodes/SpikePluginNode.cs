@@ -20,7 +20,7 @@
         private int _spikeAnomalyCycle;
         private const double SimulationMaxAmplitude = 100.0;
 
-        public void AddOption(Mono.Options.OptionSet optionSet)
+        public void AddOptions(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
                 "ns|nospikes",

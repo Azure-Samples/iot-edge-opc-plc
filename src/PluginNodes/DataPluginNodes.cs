@@ -23,7 +23,7 @@
         private int _stepUpCycleInPhase;
         private int _alternatingBooleanCycleInPhase;
 
-        public void AddOption(Mono.Options.OptionSet optionSet)
+        public void AddOptions(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
                 "nv|nodatavalues",

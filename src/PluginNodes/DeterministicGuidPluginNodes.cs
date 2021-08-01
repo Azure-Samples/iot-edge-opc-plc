@@ -19,7 +19,7 @@
         private PlcNodeManager _plcNodeManager;
         private SimulatedVariableNode<uint>[] _nodes;
 
-        public void AddOption(Mono.Options.OptionSet optionSet)
+        public void AddOptions(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
                 "gn|guidnodes=",

@@ -15,7 +15,7 @@
         private PlcNodeManager _plcNodeManager;
         private SimulatedVariableNode<uint> _node;
 
-        public void AddOption(Mono.Options.OptionSet optionSet)
+        public void AddOptions(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
                 "scn|specialcharname",

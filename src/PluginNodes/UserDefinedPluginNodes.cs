@@ -17,7 +17,7 @@
         private static string _nodesFileName;
         private PlcNodeManager _plcNodeManager;
 
-        public void AddOption(Mono.Options.OptionSet optionSet)
+        public void AddOptions(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
                 "nf|nodesfile=",

@@ -20,7 +20,7 @@
         private SimulatedVariableNode<byte[]> _longStringIdNode200;
         private readonly Random _random = new Random();
 
-        public void AddOption(Mono.Options.OptionSet optionSet)
+        public void AddOptions(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
                 "lsn|longstringnodes",
