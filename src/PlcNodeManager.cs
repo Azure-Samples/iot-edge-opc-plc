@@ -198,12 +198,11 @@ namespace OpcPlc
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
 
                     AddSlowAndFastNodes(root, telemetryFolder, _slowNodeRandomization, _slowNodeStepSize, _slowNodeMinValue, _slowNodeMaxValue, _fastNodeRandomization, _fastNodeStepSize, _fastNodeMinValue, _fastNodeMaxValue);
-
-                    AddMethods(methodsFolder);
+                    AddSlowAndFastMethods(methodsFolder);
 
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
-                    // Add nodes to address space from plugin node list.
+                    // Add nodes to address space from plugin nodes list.
                     foreach (var nodes in Program.PluginNodes)
                     {
                         nodes.AddToAddressSpace(telemetryFolder, methodsFolder, plcNodeManager: this);
@@ -280,7 +279,7 @@ namespace OpcPlc
             }
         }
 
-        private FolderState AddMethods(FolderState methodsFolder)
+        private FolderState AddSlowAndFastMethods(FolderState methodsFolder)
         {
             if (PlcSimulation.SlowNodeCount > 0 || PlcSimulation.FastNodeCount > 0)
             {
