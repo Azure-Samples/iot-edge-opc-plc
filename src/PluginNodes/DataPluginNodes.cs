@@ -23,7 +23,7 @@
         private int _stepUpCycleInPhase;
         private int _alternatingBooleanCycleInPhase;
 
-        public void AddOption(Mono.Options.OptionSet optionSet)
+        public void AddOptions(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
                 "nv|nodatavalues",
@@ -37,7 +37,13 @@
 
             if (_isEnabled)
             {
-                AddNodes(telemetryFolder);
+                FolderState folder = _plcNodeManager.CreateFolder(
+                    (FolderState)telemetryFolder.Parent, // Root.
+                    path: "Special Nodes",
+                    name: "Special Nodes",
+                    NamespaceType.OpcPlcApplications);
+
+                AddNodes(folder);
                 AddMethods(methodsFolder);
             }
         }

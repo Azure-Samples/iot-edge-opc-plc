@@ -15,7 +15,7 @@
         private PlcNodeManager _plcNodeManager;
         private SimulatedVariableNode<uint> _node;
 
-        public void AddOption(Mono.Options.OptionSet optionSet)
+        public void AddOptions(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
                 "lid|longid",
@@ -29,7 +29,13 @@
 
             if (_isEnabled)
             {
-                AddNodes(telemetryFolder);
+                FolderState folder = _plcNodeManager.CreateFolder(
+                    (FolderState)telemetryFolder.Parent, // Root.
+                    path: "Special Nodes",
+                    name: "Special Nodes",
+                    NamespaceType.OpcPlcApplications);
+
+                AddNodes(folder);
             }
         }
 

@@ -407,7 +407,7 @@
             // Add options from plugin node list.
             foreach (var nodes in PluginNodes)
             {
-                nodes.AddOption(options);
+                nodes.AddOptions(options);
             }
 
             return options;

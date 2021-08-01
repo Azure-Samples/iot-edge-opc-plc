@@ -21,7 +21,7 @@
         private int _posTrendAnomalyPhase;
         private const double TREND_BASEVALUE = 100.0;
 
-        public void AddOption(Mono.Options.OptionSet optionSet)
+        public void AddOptions(Mono.Options.OptionSet optionSet)
         {
             optionSet.Add(
                 "np|nopostrend",
@@ -35,7 +35,13 @@
 
             if (_isEnabled)
             {
-                AddNodes(telemetryFolder);
+                FolderState folder = _plcNodeManager.CreateFolder(
+                    (FolderState)telemetryFolder.Parent, // Root.
+                    path: "Special Nodes",
+                    name: "Special Nodes",
+                    NamespaceType.OpcPlcApplications);
+
+                AddNodes(folder);
                 AddMethods(methodsFolder);
             }
         }
