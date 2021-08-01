@@ -404,7 +404,7 @@
                 { "h|help", "show this message and exit", h => ShowHelp = h != null },
             };
 
-            // Add options from plugin node list.
+            // Add options from plugin nodes list.
             foreach (var nodes in PluginNodes)
             {
                 nodes.AddOptions(options);
@@ -464,7 +464,7 @@
             sb.AppendLine("    \"UseSecurity\": false,");
             sb.AppendLine("    \"OpcNodes\": [");
 
-            // Print config from plugin node list.
+            // Print config from plugin nodes list.
             foreach (var nodes in PluginNodes)
             {
                 foreach (var nodeId in nodes.NodeIDs)

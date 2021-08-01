@@ -80,7 +80,7 @@ namespace OpcPlc
                 _boiler1Generator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
             }
 
-            // Start simulation of nodes from plugin node list.
+            // Start simulation of nodes from plugin nodes list.
             foreach (var nodes in Program.PluginNodes)
             {
                 nodes.StartSimulation();
@@ -97,7 +97,7 @@ namespace OpcPlc
             Disable(_eventInstanceGenerator);
             Disable(_boiler1Generator);
 
-            // Stop simulation of nodes from plugin node list.
+            // Stop simulation of nodes from plugin nodes list.
             foreach (var nodes in Program.PluginNodes)
             {
                 nodes.StopSimulation();
