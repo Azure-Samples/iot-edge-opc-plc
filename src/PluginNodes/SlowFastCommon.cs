@@ -8,6 +8,7 @@
     {
         private PlcNodeManager _plcNodeManager;
         private readonly Random _random = new Random();
+        private BaseDataVariableState _numberOfUpdates;
         private uint _badNodesCycle = 0;
 
         private const string NumberOfUpdates = "NumberOfUpdates";
@@ -17,13 +18,13 @@
             _plcNodeManager = plcNodeManager ?? throw new ArgumentNullException(nameof(plcNodeManager));
         }
 
-        public (BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes, BaseDataVariableState numberOfUpdatesVariable) CreateNodes(NodeType nodeType, string name, uint count, FolderState folder, FolderState simulatorFolder, bool nodeRandomization, string nodeStepSize, string nodeMinValue, string nodeMaxValue, uint nodeRate, uint nodeSamplingInterval)
+        public (BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes) CreateNodes(NodeType nodeType, string name, uint count, FolderState folder, FolderState simulatorFolder, bool nodeRandomization, string nodeStepSize, string nodeMinValue, string nodeMaxValue, uint nodeRate, uint nodeSamplingInterval)
         {
             var nodes = CreateBaseLoadNodes(folder, name, count, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
             var badNodes = CreateBaseLoadNodes(folder, $"Bad{name}", count: 1, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
-            var numberOfUpdatesVariable = CreateNumberOfUpdatesVariable(name, simulatorFolder);
+            _numberOfUpdates = CreateNumberOfUpdatesVariable(name, simulatorFolder);
 
-            return (nodes, badNodes, numberOfUpdatesVariable);
+            return (nodes, badNodes);
         }
 
         private BaseDataVariableState[] CreateBaseLoadNodes(FolderState folder, string name, uint count, NodeType type, bool randomize, string stepSize, string minValue, string maxValue, uint nodeRate, uint nodeSamplingInterval)
@@ -107,9 +108,9 @@
             };
         }
 
-        public void UpdateNodes(BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes, BaseDataVariableState numberOfUpdates, NodeType nodeType, bool updateNodes)
+        public void UpdateNodes(BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes, NodeType nodeType, bool updateNodes)
         {
-            if (!ShouldUpdateNodes(numberOfUpdates) || !updateNodes)
+            if (!ShouldUpdateNodes(_numberOfUpdates) || !updateNodes)
             {
                 return;
             }

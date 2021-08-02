@@ -27,7 +27,6 @@
         private SlowFastCommon _slowFastCommon;
         protected BaseDataVariableState[] _nodes = null;
         protected BaseDataVariableState[] _badNodes = null;
-        private BaseDataVariableState _numberOfUpdates;
         private ITimer _nodeGenerator;
         private bool _updateNodes = true;
 
@@ -102,23 +101,36 @@
 
         private void AddMethods(FolderState methodsFolder)
         {
+            string stopMethod = "StopUpdateFastNodes";
+            string startMethod = "StartUpdateFastNodes";
+
             MethodState stopUpdateMethod = _plcNodeManager.CreateMethod(
                 methodsFolder,
-                path: "StopUpdateFastNodes",
-                name: "StopUpdateFastNodes",
+                path: stopMethod,
+                name: stopMethod,
                 "Stop the increase of value of fast nodes",
                 NamespaceType.OpcPlcApplications);
 
-            SetStopUpdateProperties(ref stopUpdateMethod);
+            stopUpdateMethod.OnCallMethod += (context, method, inputArguments, outputArguments) =>
+            {
+                _updateNodes = false;
+                Logger.Debug($"{stopMethod} method called");
+                return ServiceResult.Good;
+            };
 
             MethodState startUpdateMethod = _plcNodeManager.CreateMethod(
                 methodsFolder,
-                path: "StartUpdateFastNodes",
-                name: "StartUpdateFastNodes",
+                path: startMethod,
+                name: startMethod,
                 "Start the increase of value of fast nodes",
                 NamespaceType.OpcPlcApplications);
 
-            SetStartUpdateProperties(ref startUpdateMethod);
+            startUpdateMethod.OnCallMethod += (context, method, inputArguments, outputArguments) =>
+            {
+                _updateNodes = true;
+                Logger.Debug($"{startMethod} method called");
+                return ServiceResult.Good;
+            };
         }
 
         public void StartSimulation()
@@ -140,7 +152,7 @@
 
         private void AddNodes(FolderState folder, FolderState simulatorFolder)
         {
-            (_nodes, _badNodes, _numberOfUpdates) = _slowFastCommon.CreateNodes(NodeType, "Fast", NodeCount, folder, simulatorFolder, NodeRandomization, NodeStepSize, NodeMinValue, NodeMaxValue, NodeRate, NodeSamplingInterval);
+            (_nodes, _badNodes) = _slowFastCommon.CreateNodes(NodeType, "Fast", NodeCount, folder, simulatorFolder, NodeRandomization, NodeStepSize, NodeMinValue, NodeMaxValue, NodeRate, NodeSamplingInterval);
 
             ExposeNodeInfo();
         }
@@ -177,48 +189,12 @@
 
         private void UpdateNodes(object state, ElapsedEventArgs elapsedEventArgs)
         {
-            _slowFastCommon.UpdateNodes(_nodes, _badNodes, _numberOfUpdates, NodeType, _updateNodes);
+            _slowFastCommon.UpdateNodes(_nodes, _badNodes, NodeType, _updateNodes);
         }
 
         private void UpdateVeryFastNodes(object state, FastTimerElapsedEventArgs elapsedEventArgs)
         {
-            _slowFastCommon.UpdateNodes(_nodes, _badNodes, _numberOfUpdates, NodeType, _updateNodes);
-        }
-
-        /// <summary>
-        /// Sets properties of the StopUpdateFastNodes method.
-        /// </summary>
-        private void SetStopUpdateProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStopUpdateFastNodes);
-        }
-
-        /// <summary>
-        /// Sets properties of the StartUpdateFastNodes method.
-        /// </summary>
-        private void SetStartUpdateProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStartUpdateFastNodes);
-        }
-
-        /// <summary>
-        /// Method to stop updating the fast nodes.
-        /// </summary>
-        private ServiceResult OnStopUpdateFastNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            _updateNodes = false;
-            Logger.Debug("StopUpdateFastNodes method called");
-            return ServiceResult.Good;
-        }
-
-        /// <summary>
-        /// Method to stop updating the fast nodes.
-        /// </summary>
-        private ServiceResult OnStartUpdateFastNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            _updateNodes = true;
-            Logger.Debug("StartUpdateFastNodes method called");
-            return ServiceResult.Good;
+            _slowFastCommon.UpdateNodes(_nodes, _badNodes, NodeType, _updateNodes);
         }
     }
 }

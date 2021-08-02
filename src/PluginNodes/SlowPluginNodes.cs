@@ -26,7 +26,6 @@
         private SlowFastCommon _slowFastCommon;
         protected BaseDataVariableState[] _nodes = null;
         protected BaseDataVariableState[] _badNodes = null;
-        private BaseDataVariableState _numberOfUpdates;
         private ITimer _nodeGenerator;
         private bool _updateNodes = true;
 
@@ -96,23 +95,36 @@
 
         private void AddMethods(FolderState methodsFolder)
         {
+            string stopMethod = "StopUpdateSlowNodes";
+            string startMethod = "StartUpdateSlowNodes";
+
             MethodState stopUpdateMethod = _plcNodeManager.CreateMethod(
                 methodsFolder,
-                path: "StopUpdateSlowNodes",
-                name: "StopUpdateSlowNodes",
+                path: stopMethod,
+                name: stopMethod,
                 "Stop the increase of value of slow nodes",
                 NamespaceType.OpcPlcApplications);
 
-            SetStopUpdateProperties(ref stopUpdateMethod);
+            stopUpdateMethod.OnCallMethod += (context, method, inputArguments, outputArguments) =>
+            {
+                _updateNodes = false;
+                Logger.Debug($"{stopMethod} method called");
+                return ServiceResult.Good;
+            };
 
             MethodState startUpdateMethod = _plcNodeManager.CreateMethod(
                 methodsFolder,
-                path: "StartUpdateSlowNodes",
-                name: "StartUpdateSlowNodes",
+                path: startMethod,
+                name: startMethod,
                 "Start the increase of value of slow nodes",
                 NamespaceType.OpcPlcApplications);
 
-            SetStartUpdateProperties(ref startUpdateMethod);
+            startUpdateMethod.OnCallMethod += (context, method, inputArguments, outputArguments) =>
+            {
+                _updateNodes = true;
+                Logger.Debug($"{startMethod} method called");
+                return ServiceResult.Good;
+            };
         }
 
         public void StartSimulation()
@@ -130,7 +142,7 @@
 
         private void AddNodes(FolderState folder, FolderState simulatorFolder)
         {
-            (_nodes, _badNodes, _numberOfUpdates) = _slowFastCommon.CreateNodes(NodeType, "Slow", NodeCount, folder, simulatorFolder, NodeRandomization, NodeStepSize, NodeMinValue, NodeMaxValue, NodeRate, NodeSamplingInterval);
+            (_nodes, _badNodes) = _slowFastCommon.CreateNodes(NodeType, "Slow", NodeCount, folder, simulatorFolder, NodeRandomization, NodeStepSize, NodeMinValue, NodeMaxValue, NodeRate, NodeSamplingInterval);
 
             ExposeNodeInfo();
         }
@@ -167,43 +179,7 @@
 
         private void UpdateNodes(object state, ElapsedEventArgs elapsedEventArgs)
         {
-            _slowFastCommon.UpdateNodes(_nodes, _badNodes, _numberOfUpdates, NodeType, _updateNodes);
-        }
-
-        /// <summary>
-        /// Sets properties of the StopUpdateSlowNodes method.
-        /// </summary>
-        private void SetStopUpdateProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStopUpdateSlowNodes);
-        }
-
-        /// <summary>
-        /// Sets properties of the StartUpdateSlowNodes method.
-        /// </summary>
-        private void SetStartUpdateProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStartUpdateSlowNodes);
-        }
-
-        /// <summary>
-        /// Method to stop updating the slow nodes.
-        /// </summary>
-        private ServiceResult OnStopUpdateSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            _updateNodes = false;
-            Logger.Debug("StopUpdateSlowNodes method called");
-            return ServiceResult.Good;
-        }
-
-        /// <summary>
-        /// Method to stop updating the slow nodes.
-        /// </summary>
-        private ServiceResult OnStartUpdateSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            _updateNodes = true;
-            Logger.Debug("StartUpdateSlowNodes method called");
-            return ServiceResult.Good;
+            _slowFastCommon.UpdateNodes(_nodes, _badNodes, NodeType, _updateNodes);
         }
     }
 }
