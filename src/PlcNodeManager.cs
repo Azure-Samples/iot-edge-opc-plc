@@ -222,11 +222,15 @@ namespace OpcPlc
             return new SimulatedVariableNode<T>(SystemContext, variable, _timeService);
         }
 
-        private void AddSlowAndFastNodes(FolderState root, FolderState dataFolder, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue)
+        private void AddSlowAndFastNodes(FolderState root, FolderState telemetryFolder, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue)
         {
             var simulatorFolder = CreateFolder(root, "SimulatorConfiguration", "SimulatorConfiguration", NamespaceType.OpcPlcApplications);
-            (_slowNodes, _slowBadNodes, _slowNumberOfUpdates) = CreateSlowOrFastNodes(PlcSimulation.SlowNodeType, "Slow", PlcSimulation.SlowNodeCount, dataFolder, simulatorFolder, slowNodeRandomization, slowNodeStepSize, slowNodeMinValue, slowNodeMaxValue);
-            (_fastNodes, _fastBadNodes, _fastNumberOfUpdates) = CreateSlowOrFastNodes(PlcSimulation.FastNodeType, "Fast", PlcSimulation.FastNodeCount, dataFolder, simulatorFolder, fastNodeRandomization, fastNodeStepSize, fastNodeMinValue, fastNodeMaxValue);
+
+            FolderState slowFolder = CreateFolder(telemetryFolder, "Slow", "Slow", NamespaceType.OpcPlcApplications);
+            (_slowNodes, _slowBadNodes, _slowNumberOfUpdates) = CreateSlowOrFastNodes(PlcSimulation.SlowNodeType, "Slow", PlcSimulation.SlowNodeCount, slowFolder, simulatorFolder, slowNodeRandomization, slowNodeStepSize, slowNodeMinValue, slowNodeMaxValue);
+
+            FolderState fastFolder = CreateFolder(telemetryFolder, "Fast", "Fast", NamespaceType.OpcPlcApplications);
+            (_fastNodes, _fastBadNodes, _fastNumberOfUpdates) = CreateSlowOrFastNodes(PlcSimulation.FastNodeType, "Fast", PlcSimulation.FastNodeCount, fastFolder, simulatorFolder, fastNodeRandomization, fastNodeStepSize, fastNodeMinValue, fastNodeMaxValue);
         }
 
         private (BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes, BaseDataVariableState numberOfUpdatesVariable) CreateSlowOrFastNodes(NodeType nodeType, string name, uint count, FolderState dataFolder, FolderState simulatorFolder, bool nodeRandomization, string nodeStepSize, string nodeMinValue, string nodeMaxValue)
