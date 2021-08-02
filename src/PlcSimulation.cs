@@ -8,24 +8,6 @@ namespace OpcPlc
         /// <summary>
         /// Flags for node generation.
         /// </summary>
-        public static bool SlowNodeRandomization { get; set; } = false;
-        public static uint SlowNodeCount { get; set; } = 1;
-        public static uint SlowNodeRate { get; set; } = 10000; // s.
-        public static string SlowNodeMinValue { get; set; }
-        public static string SlowNodeMaxValue { get; set; }
-        public static string SlowNodeStepSize { get; set; } = "1";
-        public static NodeType SlowNodeType { get; set; } = NodeType.UInt;
-        public static uint SlowNodeSamplingInterval { get; set; } // ms.
-
-        public static bool FastNodeRandomization { get; set; } = false;
-        public static uint FastNodeCount { get; set; } = 1;
-        public static uint FastNodeRate { get; set; } = 1000; // ms.
-        public static string FastNodeMinValue { get; set; }
-        public static string FastNodeMaxValue { get; set; }
-        public static string FastNodeStepSize { get; set; } = "1";
-        public static NodeType FastNodeType { get; set; } = NodeType.UInt;
-        public static uint FastNodeSamplingInterval { get; set; } // ms.
-
         public static bool AddComplexTypeBoiler { get; set; }
         public static bool AddAlarmSimulation { get; set; }
         public static bool AddSimpleEventsSimulation { get; set; }
@@ -54,20 +36,6 @@ namespace OpcPlc
         /// </summary>
         public void Start()
         {
-            if (SlowNodeCount > 0)
-            {
-                _slowNodeGenerator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateSlowNodes, SlowNodeRate);
-            }
-
-            if (FastNodeCount > 0)
-            {
-                // only use the fast timers when we need to go really fast,
-                // since they consume more resources and create an own thread.
-                _fastNodeGenerator = FastNodeRate >= 50 || !Stopwatch.IsHighResolution ?
-                    _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateFastNodes, FastNodeRate) :
-                    _plcServer.TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastNodes, FastNodeRate);
-            }
-
             if (EventInstanceCount > 0)
             {
                 _eventInstanceGenerator = EventInstanceRate >= 50 || !Stopwatch.IsHighResolution ?
@@ -81,9 +49,9 @@ namespace OpcPlc
             }
 
             // Start simulation of nodes from plugin nodes list.
-            foreach (var nodes in Program.PluginNodes)
+            foreach (var pluginNodes in Program.PluginNodes)
             {
-                nodes.StartSimulation();
+                pluginNodes.StartSimulation();
             }
         }
 
@@ -92,15 +60,13 @@ namespace OpcPlc
         /// </summary>
         public void Stop()
         {
-            Disable(_slowNodeGenerator);
-            Disable(_fastNodeGenerator);
             Disable(_eventInstanceGenerator);
             Disable(_boiler1Generator);
 
             // Stop simulation of nodes from plugin nodes list.
-            foreach (var nodes in Program.PluginNodes)
+            foreach (var pluginNodes in Program.PluginNodes)
             {
-                nodes.StopSimulation();
+                pluginNodes.StopSimulation();
             }
         }
 
@@ -119,8 +85,6 @@ namespace OpcPlc
 
         private readonly PlcServer _plcServer;
 
-        private ITimer _slowNodeGenerator;
-        private ITimer _fastNodeGenerator;
         private ITimer _eventInstanceGenerator;
         private ITimer _boiler1Generator;
     }
