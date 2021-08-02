@@ -10,7 +10,7 @@
     /// </summary>
     public class PosTrendPluginNode : IPluginNodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
+        public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
         private static bool _isEnabled = true;
         private PlcNodeManager _plcNodeManager;
@@ -79,9 +79,9 @@
                     "Value with a slow positive trend",
                     NamespaceType.OpcPlcApplications));
 
-            NodeIDs = new List<string>
+            Nodes = new List<NodeWithIntervals>
             {
-                "PositiveTrendData",
+                new NodeWithIntervals { NodeId = "PositiveTrendData" },
             };
         }
 

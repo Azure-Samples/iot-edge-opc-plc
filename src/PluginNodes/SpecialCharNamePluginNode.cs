@@ -9,7 +9,7 @@
     /// </summary>
     public class SpecialCharNamePluginNode : IPluginNodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
+        public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
         private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
@@ -71,9 +71,9 @@
                     NamespaceType.OpcPlcApplications,
                     defaultValue: (uint)0));
 
-            NodeIDs = new List<string>
+            Nodes = new List<NodeWithIntervals>
             {
-                "Special_" + SpecialChars,
+                new NodeWithIntervals { NodeId = "Special_" + SpecialChars },
             };
         }
     }

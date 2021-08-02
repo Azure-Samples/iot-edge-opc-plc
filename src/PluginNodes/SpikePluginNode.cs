@@ -10,7 +10,7 @@
     /// </summary>
     public class SpikePluginNode : IPluginNodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
+        public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
         private static bool _isEnabled = true;
         private PlcNodeManager _plcNodeManager;
@@ -77,9 +77,9 @@
                     "Value with random spikes",
                     NamespaceType.OpcPlcApplications));
 
-            NodeIDs = new List<string>
+            Nodes = new List<NodeWithIntervals>
             {
-                "SpikeData",
+                new NodeWithIntervals { NodeId = "SpikeData" },
             };
         }
 
