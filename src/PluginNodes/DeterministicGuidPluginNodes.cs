@@ -32,9 +32,9 @@
             _plcNodeManager = plcNodeManager;
 
             FolderState folder = _plcNodeManager.CreateFolder(
-                (FolderState)telemetryFolder.Parent, // Root.
-                path: "Deterministic GUIDs",
-                name: "Deterministic GUIDs",
+                telemetryFolder,
+                path: "Deterministic GUID",
+                name: "Deterministic GUID",
                 NamespaceType.OpcPlcApplications);
 
             AddNodes(folder);
