@@ -129,9 +129,7 @@
         /// </summary>
         public static void Main(string[] args)
         {
-            InitAppLocation();
-
-            // Start OPC UA server
+            // Start OPC UA server.
             MainAsync(args).Wait();
         }
 
@@ -142,21 +140,8 @@
         {
             Mono.Options.OptionSet options = InitCommandLineOptions();
 
-            List<string> extraArgs;
-            try
-            {
-                // parse the command line
-                extraArgs = options.Parse(args);
-            }
-            catch (OptionException e)
-            {
-                // show message
-                Logger.Fatal(e, "Error in command line options");
-                Logger.Error($"Command line arguments: {string.Join(" ", args)}");
-                // show usage
-                Usage(options);
-                return;
-            }
+                // Parse the command line
+            List<string> extraArgs = options.Parse(args);
 
             InitLogging();
 
@@ -175,6 +160,14 @@
                 Usage(options);
                 return;
             }
+
+            LogLogo();
+
+            Logger.Information($"Current directory is: {Directory.GetCurrentDirectory()}");
+            Logger.Information($"Log file is: {Path.GetFullPath(_logFileName)}");
+            Logger.Information($"Log level is: {_logLevel}");
+
+            InitAppLocation();
 
             //show version
             var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
@@ -685,9 +678,7 @@
             }
 
             Logger = loggerConfiguration.CreateLogger();
-            Logger.Information($"Current directory is: {Directory.GetCurrentDirectory()}");
-            Logger.Information($"Log file is: {Path.GetFullPath(_logFileName)}");
-            Logger.Information($"Log level is: {_logLevel}");
+
             return;
         }
 
@@ -805,6 +796,19 @@
 
             // ASP.NET Core 3.1 uses src as default current directory.
             Directory.SetCurrentDirectory(appFolder);
+        }
+
+        private static void LogLogo()
+        {
+            Logger.Information(
+                @"
+ ██████╗ ██████╗  ██████╗    ██████╗ ██╗      ██████╗
+██╔═══██╗██╔══██╗██╔════╝    ██╔══██╗██║     ██╔════╝
+██║   ██║██████╔╝██║         ██████╔╝██║     ██║
+██║   ██║██╔═══╝ ██║         ██╔═══╝ ██║     ██║
+╚██████╔╝██║     ╚██████╗    ██║     ███████╗╚██████╗
+ ╚═════╝ ╚═╝      ╚═════╝    ╚═╝     ╚══════╝ ╚═════╝
+");
         }
 
         private static string _logFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
