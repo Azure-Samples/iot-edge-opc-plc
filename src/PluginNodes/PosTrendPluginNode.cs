@@ -87,7 +87,13 @@
 
         private void AddMethods(FolderState methodsFolder)
         {
-            MethodState resetTrendMethod = _plcNodeManager.CreateMethod(methodsFolder, "ResetPosTrend", "ResetPosTrend", "Reset the positive trend values to their baseline value", NamespaceType.OpcPlcApplications);
+            MethodState resetTrendMethod = _plcNodeManager.CreateMethod(
+                methodsFolder,
+                path: "ResetPosTrend",
+                name: "ResetPosTrend",
+                "Reset the positive trend values to their baseline value",
+                NamespaceType.OpcPlcApplications);
+
             SetResetTrendMethodProperties(ref resetTrendMethod);
         }
 
