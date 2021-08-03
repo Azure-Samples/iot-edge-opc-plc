@@ -18,7 +18,7 @@
         }
 
         [Test]
-        public void CreateMonitoredItem()
+        public void TestDeterministicNodes()
         {
             var guidNode1 = GetOpcPlcNodeId("65e451f1-56f1-ce84-a44f-6addf176beaf");
             guidNode1.Should().NotBeNull();

@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
+    using OpcPlc.PluginNodes.Models;
     using System;
     using System.Collections.Generic;
     using static OpcPlc.Program;
@@ -10,7 +11,7 @@
     /// </summary>
     public class PosTrendPluginNode : IPluginNodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
+        public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
         private static bool _isEnabled = true;
         private PlcNodeManager _plcNodeManager;
@@ -79,15 +80,21 @@
                     "Value with a slow positive trend",
                     NamespaceType.OpcPlcApplications));
 
-            NodeIDs = new List<string>
+            Nodes = new List<NodeWithIntervals>
             {
-                "PositiveTrendData",
+                new NodeWithIntervals { NodeId = "PositiveTrendData" },
             };
         }
 
         private void AddMethods(FolderState methodsFolder)
         {
-            MethodState resetTrendMethod = _plcNodeManager.CreateMethod(methodsFolder, "ResetPosTrend", "ResetPosTrend", "Reset the positive trend values to their baseline value", NamespaceType.OpcPlcApplications);
+            MethodState resetTrendMethod = _plcNodeManager.CreateMethod(
+                methodsFolder,
+                path: "ResetPosTrend",
+                name: "ResetPosTrend",
+                "Reset the positive trend values to their baseline value",
+                NamespaceType.OpcPlcApplications);
+
             SetResetTrendMethodProperties(ref resetTrendMethod);
         }
 

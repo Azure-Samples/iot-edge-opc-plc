@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace OpcPlc.Tests
 {
     using System;
@@ -17,7 +15,7 @@ namespace OpcPlc.Tests
     public class SimulatorNodesTests : SimulatorTestsBase
     {
         // Set any cmd params needed for the plc server explicitly.
-        public SimulatorNodesTests() : base(new string[] { })
+        public SimulatorNodesTests() : base(new string[] { "--str=false" })
         {
         }
 
@@ -79,22 +77,22 @@ namespace OpcPlc.Tests
                     lastValue = value;
                 }
 
-                FireTimersWithPeriod(TimeSpan.FromSeconds(1), 1);
+                FireTimersWithPeriod(FromSeconds(1), 1);
             }
 
             lastValue++;
 
-            CallMethod("StopUpdateFastAndSlowNodes");
+            CallMethod("StopUpdateFastNodes");
 
             var nextValue = ReadValue<uint>(nodeId);
             Assert.AreEqual(lastValue, nextValue);
-            FireTimersWithPeriod(TimeSpan.FromSeconds(1), 1);
+            FireTimersWithPeriod(FromSeconds(1), 1);
             nextValue = ReadValue<uint>(nodeId);
             Assert.AreEqual(lastValue, nextValue);
-            FireTimersWithPeriod(TimeSpan.FromSeconds(1), 1);
+            FireTimersWithPeriod(FromSeconds(1), 1);
 
-            CallMethod("StartUpdateFastAndSlowNodes");
-            FireTimersWithPeriod(TimeSpan.FromSeconds(1), 1);
+            CallMethod("StartUpdateFastNodes");
+            FireTimersWithPeriod(FromSeconds(1), 1);
 
             nextValue = ReadValue<uint>(nodeId);
             Assert.AreEqual(lastValue + 1, nextValue);

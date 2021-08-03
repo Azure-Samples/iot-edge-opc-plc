@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
+    using OpcPlc.PluginNodes.Models;
     using System;
     using System.Collections.Generic;
     using System.Text;
@@ -10,7 +11,7 @@
     /// </summary>
     public class LongStringPluginNodes : IPluginNodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
+        public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
         private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
@@ -127,12 +128,12 @@
                     NamespaceType.OpcPlcApplications,
                     initialByteArray));
 
-            NodeIDs = new List<string>
+            Nodes = new List<NodeWithIntervals>
             {
-                "LongString10kB",
-                "LongString50kB",
-                "LongString100kB",
-                "LongString200kB",
+                new NodeWithIntervals { NodeId = "LongString10kB" },
+                new NodeWithIntervals { NodeId = "LongString50kB" },
+                new NodeWithIntervals { NodeId = "LongString100kB" },
+                new NodeWithIntervals { NodeId = "LongString200kB" },
             };
         }
     }

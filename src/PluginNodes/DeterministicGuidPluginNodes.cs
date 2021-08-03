@@ -2,6 +2,7 @@
 {
     using Opc.Ua;
     using OpcPlc.Helpers;
+    using OpcPlc.PluginNodes.Models;
     using System.Collections.Generic;
     using static OpcPlc.Program;
 
@@ -10,7 +11,7 @@
     /// </summary>
     public class DeterministicGuidPluginNodes : IPluginNodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
+        public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
         private static uint NodeCount { get; set; } = 1;
         private uint NodeRate { get; set; } = 1000; // ms.
@@ -59,7 +60,7 @@
         private void AddNodes(FolderState folder)
         {
             _nodes = new SimulatedVariableNode<uint>[NodeCount];
-            var nodeIDs = new List<string>((int)NodeCount);
+            var nodes = new List<NodeWithIntervals>((int)NodeCount);
 
             if (NodeCount > 0)
             {
@@ -83,10 +84,10 @@
                         NamespaceType.OpcPlcApplications,
                         defaultValue: (uint)0));
 
-                nodeIDs.Add(id);
+                nodes.Add(new NodeWithIntervals { NodeId = id });
             }
 
-            NodeIDs = nodeIDs;
+            Nodes = nodes;
         }
     }
 }

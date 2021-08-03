@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
+    using OpcPlc.PluginNodes.Models;
     using System;
     using System.Collections.Generic;
     using static OpcPlc.Program;
@@ -10,7 +11,7 @@
     /// </summary>
     public class DipPluginNode : IPluginNodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
+        public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
         private static bool _isEnabled = true;
         private PlcNodeManager _plcNodeManager;
@@ -77,9 +78,9 @@
                     "Value with random dips",
                     NamespaceType.OpcPlcApplications));
 
-            NodeIDs = new List<string>
+            Nodes = new List<NodeWithIntervals>
             {
-                "DipData",
+                new NodeWithIntervals { NodeId = "DipData" },
             };
         }
 

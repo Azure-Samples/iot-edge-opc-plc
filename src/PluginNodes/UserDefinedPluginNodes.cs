@@ -6,13 +6,14 @@
     using System.IO;
     using static OpcPlc.Program;
     using Newtonsoft.Json;
+    using OpcPlc.PluginNodes.Models;
 
     /// <summary>
     /// Nodes that are configuration via JSON file.
     /// </summary>
     public class UserDefinedPluginNodes : IPluginNodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
+        public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
         private static string _nodesFileName;
         private PlcNodeManager _plcNodeManager;
@@ -52,7 +53,6 @@
                 throw new Exception(error);
             }
 
-            var nodeIDs = new List<string>();
             string json = File.ReadAllText(_nodesFileName);
 
             var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
@@ -64,9 +64,11 @@
             Logger.Debug($"Create folder {cfgFolder.Folder}");
             FolderState userNodesFolder = _plcNodeManager.CreateFolder(
                 folder,
-                cfgFolder.Folder,
-                cfgFolder.Folder,
+                path: cfgFolder.Folder,
+                name: cfgFolder.Folder,
                 NamespaceType.OpcPlcApplications);
+
+            var nodes = new List<NodeWithIntervals>();
 
             foreach (var node in cfgFolder.NodeList)
             {
@@ -89,12 +91,12 @@
 
                 Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{_plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]}'");
                 CreateBaseVariable(userNodesFolder, node);
-                nodeIDs.Add(node.NodeId.ToString());
+                nodes.Add(new NodeWithIntervals { NodeId = node.NodeId.ToString() });
             }
 
             Logger.Information("Processing node information completed.");
 
-            NodeIDs = nodeIDs;
+            Nodes = nodes;
         }
 
         /// <summary>

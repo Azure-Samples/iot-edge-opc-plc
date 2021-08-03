@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
+    using OpcPlc.PluginNodes.Models;
     using System.Collections.Generic;
     using System.Text;
 
@@ -9,7 +10,7 @@
     /// </summary>
     public class LongIdPluginNode : IPluginNodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
+        public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
         private static bool _isEnabled;
         private PlcNodeManager _plcNodeManager;
@@ -76,9 +77,9 @@
                     NamespaceType.OpcPlcApplications,
                     defaultValue: (uint)0));
 
-            NodeIDs = new List<string>
+            Nodes = new List<NodeWithIntervals>
             {
-                id.ToString(),
+                new NodeWithIntervals { NodeId = id.ToString() },
             };
         }
     }

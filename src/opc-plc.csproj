@@ -24,8 +24,8 @@
     <PackageReference Include="Mono.Options" Version="6.6.0.161" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.1" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
-    <PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="4.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
   </ItemGroup>
 
   <Choose>
@@ -54,7 +54,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="Nerdbank.GitVersioning" Version="3.4.194" />
+    <PackageReference Update="Nerdbank.GitVersioning" Version="3.4.231" />
   </ItemGroup>
 
   <ItemGroup>

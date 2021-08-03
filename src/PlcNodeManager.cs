@@ -10,57 +10,17 @@ namespace OpcPlc
 
     public class PlcNodeManager : CustomNodeManager2
     {
-        private const string NumberOfUpdates = "NumberOfUpdates";
-
         #region Properties
         #endregion
 
-        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue)
+        public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService)
             : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
         {
             _timeService = timeService;
-            _slowNodeRandomization = slowNodeRandomization;
-            _slowNodeStepSize = slowNodeStepSize;
-            _fastNodeRandomization = fastNodeRandomization;
-            _fastNodeStepSize = fastNodeStepSize;
-            _slowNodeMinValue = slowNodeMinValue;
-            _slowNodeMaxValue = slowNodeMaxValue;
-            _fastNodeMinValue = fastNodeMinValue;
-            _fastNodeMaxValue = fastNodeMaxValue;
-            _random = new Random();
             SystemContext.NodeIdFactory = this;
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-        public void UpdateSlowNodes(object state, ElapsedEventArgs elapsedEventArgs)
-        {
-            if (!ShouldUpdateNodes(_slowNumberOfUpdates) || !_updateFastAndSlowNodes)
-            {
-                return;
-            }
-
-            if (_slowNodes != null)
-            {
-                UpdateNodes(_slowNodes, PlcSimulation.SlowNodeType, StatusCodes.Good, false);
-            }
-
-            if (_slowBadNodes != null)
-            {
-                (StatusCode status, bool addBadValue) = BadStatusSequence[_slowBadNodesCycle++ % BadStatusSequence.Length];
-                UpdateNodes(_slowBadNodes, PlcSimulation.SlowNodeType, status, addBadValue);
-            }
-        }
-
-        public void UpdateFastNodes(object state, ElapsedEventArgs elapsedEventArgs)
-        {
-            UpdateNodes();
-        }
-
-        public void UpdateVeryFastNodes(object state, FastTimerElapsedEventArgs elapsedEventArgs)
-        {
-            UpdateNodes();
-        }
-
         public void UpdateEventInstances(object state, ElapsedEventArgs elapsedEventArgs)
         {
             UpdateEventInstances();
@@ -70,60 +30,7 @@ namespace OpcPlc
         {
             UpdateEventInstances();
         }
-
-        public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
-        {
-            var newValue = new BoilerModel.BoilerDataType
-            {
-                HeaterState = _boiler1.BoilerStatus.Value.HeaterState,
-            };
-
-            int currentTemperatureBottom = _boiler1.BoilerStatus.Value.Temperature.Bottom;
-            BoilerModel.BoilerTemperatureType newTemperature = newValue.Temperature;
-
-            if (_boiler1.BoilerStatus.Value.HeaterState == BoilerModel.BoilerHeaterStateType.On)
-            {
-                // Heater on, increase by 1.
-                newTemperature.Bottom = currentTemperatureBottom + 1;
-            }
-            else
-            {
-                // Heater off, decrease down to a minimum of 20.
-                newTemperature.Bottom = currentTemperatureBottom > 20
-                    ? currentTemperatureBottom - 1
-                    : currentTemperatureBottom;
-            }
-
-            // Top is always 5 degrees less than bottom, with a minimum value of 20.
-            newTemperature.Top = Math.Max(20, newTemperature.Bottom - 5);
-
-            // Pressure is always 100_000 + bottom temperature.
-            newValue.Pressure = 100_000 + newTemperature.Bottom;
-
-            // Change complex value in one atomic step.
-            _boiler1.BoilerStatus.Value = newValue;
-            _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
-        }
 #pragma warning restore IDE0060 // Remove unused parameter
-
-        private void UpdateNodes()
-        {
-            if (!ShouldUpdateNodes(_fastNumberOfUpdates) || !_updateFastAndSlowNodes)
-            {
-                return;
-            }
-
-            if (_fastNodes != null)
-            {
-                UpdateNodes(_fastNodes, PlcSimulation.FastNodeType, StatusCodes.Good, false);
-            }
-
-            if (_fastBadNodes != null)
-            {
-                (StatusCode status, bool addBadValue) = BadStatusSequence[_fastBadNodesCycle++ % BadStatusSequence.Length];
-                UpdateNodes(_fastBadNodes, PlcSimulation.FastNodeType, status, addBadValue);
-            }
-        }
 
         private void UpdateEventInstances()
         {
@@ -197,15 +104,12 @@ namespace OpcPlc
                     FolderState telemetryFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
 
-                    AddSlowAndFastNodes(root, telemetryFolder, _slowNodeRandomization, _slowNodeStepSize, _slowNodeMinValue, _slowNodeMaxValue, _fastNodeRandomization, _fastNodeStepSize, _fastNodeMinValue, _fastNodeMaxValue);
-                    AddSlowAndFastMethods(methodsFolder);
-
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
                     // Add nodes to address space from plugin nodes list.
-                    foreach (var nodes in Program.PluginNodes)
+                    foreach (var pluginNodes in Program.PluginNodes)
                     {
-                        nodes.AddToAddressSpace(telemetryFolder, methodsFolder, plcNodeManager: this);
+                        pluginNodes.AddToAddressSpace(telemetryFolder, methodsFolder, plcNodeManager: this);
                     }
                 }
                 catch (Exception e)
@@ -220,245 +124,6 @@ namespace OpcPlc
         public SimulatedVariableNode<T> CreateVariableNode<T>(BaseDataVariableState variable)
         {
             return new SimulatedVariableNode<T>(SystemContext, variable, _timeService);
-        }
-
-        private void AddSlowAndFastNodes(FolderState root, FolderState telemetryFolder, bool slowNodeRandomization, string slowNodeStepSize, string slowNodeMinValue, string slowNodeMaxValue, bool fastNodeRandomization, string fastNodeStepSize, string fastNodeMinValue, string fastNodeMaxValue)
-        {
-            var simulatorFolder = CreateFolder(root, "SimulatorConfiguration", "SimulatorConfiguration", NamespaceType.OpcPlcApplications);
-
-            FolderState slowFolder = CreateFolder(telemetryFolder, "Slow", "Slow", NamespaceType.OpcPlcApplications);
-            (_slowNodes, _slowBadNodes, _slowNumberOfUpdates) = CreateSlowOrFastNodes(PlcSimulation.SlowNodeType, "Slow", PlcSimulation.SlowNodeCount, slowFolder, simulatorFolder, slowNodeRandomization, slowNodeStepSize, slowNodeMinValue, slowNodeMaxValue);
-
-            FolderState fastFolder = CreateFolder(telemetryFolder, "Fast", "Fast", NamespaceType.OpcPlcApplications);
-            (_fastNodes, _fastBadNodes, _fastNumberOfUpdates) = CreateSlowOrFastNodes(PlcSimulation.FastNodeType, "Fast", PlcSimulation.FastNodeCount, fastFolder, simulatorFolder, fastNodeRandomization, fastNodeStepSize, fastNodeMinValue, fastNodeMaxValue);
-        }
-
-        private (BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes, BaseDataVariableState numberOfUpdatesVariable) CreateSlowOrFastNodes(NodeType nodeType, string name, uint count, FolderState dataFolder, FolderState simulatorFolder, bool nodeRandomization, string nodeStepSize, string nodeMinValue, string nodeMaxValue)
-        {
-            var nodes = CreateBaseLoadNodes(dataFolder, name, count, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue);
-            var badNodes = CreateBaseLoadNodes(dataFolder, $"Bad{name}", count: 1, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue);
-            var numberOfUpdatesVariable = CreateNumberOfUpdatesVariable(name, simulatorFolder);
-            return (nodes, badNodes, numberOfUpdatesVariable);
-        }
-
-        private BaseDataVariableState CreateNumberOfUpdatesVariable(string baseName, FolderState simulatorFolder)
-        {
-            // Create property to hold NumberOfUpdates (to stop simulated updates after a given count)
-            var variable = new BaseDataVariableState(simulatorFolder);
-            var name = $"{baseName}{NumberOfUpdates}";
-            variable.NodeId = new NodeId(name, NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]);
-            variable.DataType = DataTypeIds.Int32;
-            variable.Value = -1; // a value < 0 means to update nodes indefinitely.
-            variable.ValueRank = ValueRanks.Scalar;
-            variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.BrowseName = name;
-            variable.DisplayName = name;
-            variable.Description = new LocalizedText("The number of times to update the {name} nodes. Set to -1 to update indefinitely.");
-            simulatorFolder.AddChild(variable);
-            return variable;
-        }
-
-        private void AddComplexTypeBoiler(FolderState methodsFolder, IDictionary<NodeId, IList<IReference>> externalReferences)
-        {
-            if (PlcSimulation.AddComplexTypeBoiler)
-            {
-                // Load complex types from binary uanodes file.
-                base.LoadPredefinedNodes(SystemContext, externalReferences);
-
-                // Find the Boiler1 node that was created when the model was loaded.
-                var passiveNode = (BaseObjectState)FindPredefinedNode(new NodeId(BoilerModel.Objects.Boiler1, NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
-
-                // Convert to node that can be manipulated within the server.
-                _boiler1 = new BoilerModel.BoilerState(null);
-                _boiler1.Create(SystemContext, passiveNode);
-
-                base.AddPredefinedNode(SystemContext, _boiler1);
-
-                // Create heater on/off methods.
-                MethodState heaterOnMethod = CreateMethod(methodsFolder, "HeaterOn", "HeaterOn", "Turn the heater on", NamespaceType.Boiler);
-                SetHeaterOnMethodProperties(ref heaterOnMethod);
-                MethodState heaterOffMethod = CreateMethod(methodsFolder, "HeaterOff", "HeaterOff", "Turn the heater off", NamespaceType.Boiler);
-                SetHeaterOffMethodProperties(ref heaterOffMethod);
-            }
-        }
-
-        private FolderState AddSlowAndFastMethods(FolderState methodsFolder)
-        {
-            if (PlcSimulation.SlowNodeCount > 0 || PlcSimulation.FastNodeCount > 0)
-            {
-                MethodState stopUpdateFastAndSlowNodesMethod = CreateMethod(methodsFolder, "StopUpdateFastAndSlowNodes", "StopUpdateFastAndSlowNodes", "Stops the increase of value of fast and slow nodes", NamespaceType.OpcPlcApplications);
-                SetStopUpdateFastAndSlowNodesProperties(ref stopUpdateFastAndSlowNodesMethod);
-                MethodState startUpdateFastAndSlowNodesMethod = CreateMethod(methodsFolder, "StartUpdateFastAndSlowNodes", "StartUpdateFastAndSlowNodes", "Start the increase of value of fast and slow nodes", NamespaceType.OpcPlcApplications);
-                SetStartUpdateFastAndSlowNodesProperties(ref startUpdateFastAndSlowNodesMethod);
-            }
-
-            return methodsFolder;
-        }
-
-        public void UpdateNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
-        {
-            if (nodes == null || nodes.Length == 0)
-            {
-                Logger.Warning("Invalid argument {argument} provided.", nodes);
-                return;
-            }
-
-            for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
-            {
-                var extendedNode = (BaseDataVariableStateExtended)nodes[nodeIndex];
-
-                object value = null;
-                if (StatusCode.IsNotBad(status) || addBadValue)
-                {
-                    switch (type)
-                    {
-                        case NodeType.Double:
-                            var minDoubleValue = (double)extendedNode.MinValue;
-                            var maxDoubleValue = (double)extendedNode.MaxValue;
-                            var extendedDoubleNodeValue = (double)(extendedNode.Value ?? minDoubleValue);
-
-                            if (extendedNode.Randomize)
-                            {
-                                if (minDoubleValue != maxDoubleValue)
-                                {
-                                    // Hybrid range case (e.g. -5.0 to 5.0).
-                                    if (minDoubleValue < 0 && maxDoubleValue > 0)
-                                    {
-                                        // If new random value is same as previous one, generate a new one until it is not.
-                                        while (value == null || extendedDoubleNodeValue == (double)value)
-                                        {
-                                            // Split the range from 0 on both sides.
-                                            var value1 = _random.NextDouble() * maxDoubleValue;
-                                            var value2 = _random.NextDouble() * minDoubleValue;
-
-                                            // Return random value from postive or negative range, randomly.
-                                            value = _random.Next(10) % 2 == 0 ? value1 : value2;
-                                        }
-                                    }
-                                    else // Negative and positive only range cases (e.g. -5.0 to -8.0 or 0 to 9.5).
-                                    {
-                                        // If new random value is same as previous one, generate a new one until it is not.
-                                        while (value == null || extendedDoubleNodeValue == (double)value)
-                                        {
-                                            value = minDoubleValue + (_random.NextDouble() * (maxDoubleValue - minDoubleValue));
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    throw new ArgumentException($"Range {minDoubleValue} to {maxDoubleValue}does not have provision for randomness.");
-                                }
-                            }
-                            else
-                            {
-                                // Positive only range cases (e.g. 0 to 9.5).
-                                if (minDoubleValue >= 0 && maxDoubleValue > 0)
-                                {
-                                    value = (extendedDoubleNodeValue % maxDoubleValue) < minDoubleValue
-                                         ? minDoubleValue
-                                             : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize) > maxDoubleValue
-                                                 ? minDoubleValue
-                                                     : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
-                                }
-                                else if (maxDoubleValue <= 0 && minDoubleValue < 0) // Negative only range cases (e.g. 0 to -9.5).
-                                {
-                                    value = (extendedDoubleNodeValue % minDoubleValue) > maxDoubleValue
-                                    ? maxDoubleValue
-                                     : ((extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize) < minDoubleValue
-                                                 ? maxDoubleValue
-                                                 : (extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize;
-                                }
-                                else
-                                {
-                                    // This is to prevent infinte loop while attempting to create a different random number than previous one if no range is provided.
-                                    throw new ArgumentException($"Negative to positive range {minDoubleValue} to {maxDoubleValue} for sequential node values is not supported currently.");
-                                }
-                            }
-                            break;
-                        case NodeType.Bool:
-                            value = extendedNode.Value != null
-                                ? !(bool)extendedNode.Value
-                                : true;
-                            break;
-                        case NodeType.UIntArray:
-                            uint[] arrayValue = (uint[])extendedNode.Value;
-                            if (arrayValue != null)
-                            {
-                                for (int arrayIndex = 0; arrayIndex < arrayValue?.Length; arrayIndex++)
-                                {
-                                    arrayValue[arrayIndex]++;
-                                }
-                            }
-                            else
-                            {
-                                arrayValue = new uint[32];
-                            }
-                            value = arrayValue;
-                            break;
-
-                        case NodeType.UInt:
-                        default:
-                            var minUIntValue = (uint)extendedNode.MinValue;
-                            var maxUIntValue = (uint)extendedNode.MaxValue;
-                            var extendedUIntNodeValue = (uint)(extendedNode.Value ?? minUIntValue);
-
-                            if (extendedNode.Randomize)
-                            {
-                                if (minUIntValue != maxUIntValue)
-                                {
-                                    // If new random value is same as previous one, generate a new one until it is not.
-                                    while (value == null || extendedUIntNodeValue == (uint)value)
-                                    {
-                                        // uint.MaxValue + 1 cycles back to 0 which causes infinte loop here hence a check maxUIntValue == uint.MaxValue to prevent it.
-                                        value = (uint)(minUIntValue + (_random.NextDouble() * ((maxUIntValue == uint.MaxValue ? maxUIntValue : maxUIntValue + 1) - minUIntValue)));
-                                    }
-                                }
-                                else
-                                {
-                                    // This is to prevent infinte loop while attempting to create a different random number than previous one if no range is provided.
-                                    throw new ArgumentException($"Range {minUIntValue} to {maxUIntValue} does not have provision for randomness.");
-                                }
-                            }
-                            else
-                            {
-                                value = (extendedUIntNodeValue % maxUIntValue) < minUIntValue
-                                            ? minUIntValue
-                                                : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize) > maxUIntValue
-                                                    ? minUIntValue
-                                                        : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize);
-                            }
-
-                            break;
-                    }
-                }
-
-                extendedNode.StatusCode = status;
-                SetValue(extendedNode, value);
-            }
-        }
-
-        /// <summary>
-        /// Determines whether the values of simulated nodes should be updated, based
-        /// on the value of the corresponding <see cref="NumberOfUpdates"/> variable.
-        /// Decrements the NumberOfUpdates variable value and returns true if the NumberOfUpdates variable value if greater than zero,
-        /// returns false if the NumberOfUpdates variable value is zero,
-        /// returns true if the NumberOfUpdates variable value is less than zero.
-        /// </summary>
-        /// <param name="numberOfUpdatesVariable">Node that contains the setting of the number of updates to apply.</param>
-        /// <returns>True if the value of the node should be updated by the simulator, false otherwise.</returns>
-        private bool ShouldUpdateNodes(BaseDataVariableState numberOfUpdatesVariable)
-        {
-            var value = (int)numberOfUpdatesVariable.Value;
-            if (value == 0)
-            {
-                return false;
-            }
-            if (value > 0)
-            {
-                SetValue(numberOfUpdatesVariable, value - 1);
-            }
-            return true;
         }
 
         /// <summary>
@@ -492,71 +157,6 @@ namespace OpcPlc
             return folder;
         }
 
-        private BaseDataVariableState[] CreateBaseLoadNodes(FolderState dataFolder, string name, uint count, NodeType type, bool randomize, string stepSize, string minValue, string maxValue)
-        {
-            var nodes = new BaseDataVariableState[count];
-
-            if (count > 0)
-            {
-                Logger.Information($"Creating {count} {name} nodes of type: {type}");
-                Logger.Information("Node values will change every " + (name.Contains("Fast") ? PlcSimulation.FastNodeRate : PlcSimulation.SlowNodeRate) + " ms");
-                Logger.Information("Node values sampling rate is " + (name.Contains("Fast") ? PlcSimulation.FastNodeSamplingInterval : PlcSimulation.SlowNodeSamplingInterval) + " ms");
-            }
-
-            for (int i = 0; i < count; i++)
-            {
-                var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) = GetNodeType(type, stepSize, minValue, maxValue);
-
-                string id = (i + 1).ToString();
-                nodes[i] = CreateBaseVariable(dataFolder, $"{name}{type}{id}", $"{name}{type}{id}", dataType, valueRank, AccessLevels.CurrentReadOrWrite, "Constantly increasing value(s)", NamespaceType.OpcPlcApplications, randomize, stepTypeSize, minTypeValue, maxTypeValue, defaultValue);
-            }
-
-            return nodes;
-        }
-
-        private static (NodeId dataType, int valueRank, object defaultValue, object stepSize, object minValue, object maxValue) GetNodeType(NodeType nodeType, string stepSize, string minValue, string maxValue)
-        {
-            return nodeType switch
-            {
-                NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, true, null, null, null),
-                NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, (double)0.0, double.Parse(stepSize), minValue == null ? 0.0 : double.Parse(minValue), maxValue == null ? double.MaxValue : double.Parse(maxValue)),
-                NodeType.UIntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32], null, null, null),
-                _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, (uint)0, uint.Parse(stepSize), minValue == null ? uint.MinValue : uint.Parse(minValue), maxValue == null ? uint.MaxValue : uint.Parse(maxValue)),
-            };
-        }
-
-        /// <summary>
-        /// Sets properties of the StopUpdateFastAndSlowNodes method.
-        /// </summary>
-        private void SetStopUpdateFastAndSlowNodesProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStopUpdateFastAndSlowNodes);
-        }
-
-        /// <summary>
-        /// Sets properties of the StartUpdateFastAndSlowNodes method.
-        /// </summary>
-        private void SetStartUpdateFastAndSlowNodesProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnStartUpdateFastAndSlowNodes);
-        }
-
-        /// <summary>
-        /// Sets properties of the HeaterOn method.
-        /// </summary>
-        private void SetHeaterOnMethodProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnHeaterOnCall);
-        }
-
-        /// <summary>
-        /// Sets properties of the HeaterOff method.
-        /// </summary>
-        private void SetHeaterOffMethodProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnHeaterOffCall);
-        }
-
         /// <summary>
         /// Creates a new extended variable.
         /// </summary>
@@ -585,6 +185,32 @@ namespace OpcPlc
             };
 
             return CreateBaseVariable(baseDataVariableState, parent, path, name, dataType, valueRank, accessLevel, description, namespaceType, defaultValue);
+        }
+
+        /// <summary>
+        /// Creates a new method.
+        /// </summary>
+        public MethodState CreateMethod(NodeState parent, string path, string name, string description, NamespaceType namespaceType)
+        {
+            ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
+
+            var method = new MethodState(parent)
+            {
+                SymbolicName = name,
+                ReferenceTypeId = ReferenceTypeIds.HasComponent,
+                NodeId = new NodeId(path, namespaceIndex),
+                BrowseName = new QualifiedName(path, namespaceIndex),
+                DisplayName = new LocalizedText("en", name),
+                WriteMask = AttributeWriteMask.None,
+                UserWriteMask = AttributeWriteMask.None,
+                Executable = true,
+                UserExecutable = true,
+                Description = new LocalizedText(description),
+            };
+
+            parent?.AddChild(method);
+
+            return method;
         }
 
         private BaseDataVariableState CreateBaseVariable(BaseDataVariableState baseDataVariableState, NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
@@ -629,6 +255,81 @@ namespace OpcPlc
             return baseDataVariableState;
         }
 
+        #region Complex type boiler
+        private void AddComplexTypeBoiler(FolderState methodsFolder, IDictionary<NodeId, IList<IReference>> externalReferences)
+        {
+            if (PlcSimulation.AddComplexTypeBoiler)
+            {
+                // Load complex types from binary uanodes file.
+                base.LoadPredefinedNodes(SystemContext, externalReferences);
+
+                // Find the Boiler1 node that was created when the model was loaded.
+                var passiveNode = (BaseObjectState)FindPredefinedNode(new NodeId(BoilerModel.Objects.Boiler1, NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+
+                // Convert to node that can be manipulated within the server.
+                _boiler1 = new BoilerModel.BoilerState(null);
+                _boiler1.Create(SystemContext, passiveNode);
+
+                base.AddPredefinedNode(SystemContext, _boiler1);
+
+                // Create heater on/off methods.
+                MethodState heaterOnMethod = CreateMethod(methodsFolder, "HeaterOn", "HeaterOn", "Turn the heater on", NamespaceType.Boiler);
+                SetHeaterOnMethodProperties(ref heaterOnMethod);
+                MethodState heaterOffMethod = CreateMethod(methodsFolder, "HeaterOff", "HeaterOff", "Turn the heater off", NamespaceType.Boiler);
+                SetHeaterOffMethodProperties(ref heaterOffMethod);
+            }
+        }
+
+        public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
+        {
+            var newValue = new BoilerModel.BoilerDataType
+            {
+                HeaterState = _boiler1.BoilerStatus.Value.HeaterState,
+            };
+
+            int currentTemperatureBottom = _boiler1.BoilerStatus.Value.Temperature.Bottom;
+            BoilerModel.BoilerTemperatureType newTemperature = newValue.Temperature;
+
+            if (_boiler1.BoilerStatus.Value.HeaterState == BoilerModel.BoilerHeaterStateType.On)
+            {
+                // Heater on, increase by 1.
+                newTemperature.Bottom = currentTemperatureBottom + 1;
+            }
+            else
+            {
+                // Heater off, decrease down to a minimum of 20.
+                newTemperature.Bottom = currentTemperatureBottom > 20
+                    ? currentTemperatureBottom - 1
+                    : currentTemperatureBottom;
+            }
+
+            // Top is always 5 degrees less than bottom, with a minimum value of 20.
+            newTemperature.Top = Math.Max(20, newTemperature.Bottom - 5);
+
+            // Pressure is always 100_000 + bottom temperature.
+            newValue.Pressure = 100_000 + newTemperature.Bottom;
+
+            // Change complex value in one atomic step.
+            _boiler1.BoilerStatus.Value = newValue;
+            _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
+        }
+
+        /// <summary>
+        /// Sets properties of the HeaterOn method.
+        /// </summary>
+        private void SetHeaterOnMethodProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnHeaterOnCall);
+        }
+
+        /// <summary>
+        /// Sets properties of the HeaterOff method.
+        /// </summary>
+        private void SetHeaterOffMethodProperties(ref MethodState method)
+        {
+            method.OnCallMethod = new GenericMethodCalledEventHandler(OnHeaterOffCall);
+        }
+
         /// <summary>
         /// Loads a node set from a file or resource and adds them to the set of predefined nodes.
         /// </summary>
@@ -643,6 +344,27 @@ namespace OpcPlc
 
             return predefinedNodes;
         }
+
+        /// <summary>
+        /// Method to turn the heater on. Executes synchronously.
+        /// </summary>
+        private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            _boiler1.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.On;
+            Logger.Debug("OnHeaterOnCall method called");
+            return ServiceResult.Good;
+        }
+
+        /// <summary>
+        /// Method to turn the heater off. Executes synchronously.
+        /// </summary>
+        private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            _boiler1.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.Off;
+            Logger.Debug("OnHeaterOffCall method called");
+            return ServiceResult.Good;
+        }
+        #endregion
 
         ///// <summary>
         ///// Creates a new variable.
@@ -797,119 +519,13 @@ namespace OpcPlc
         //    return variable;
         //}
 
-        /// <summary>
-        /// Creates a new method.
-        /// </summary>
-        public MethodState CreateMethod(NodeState parent, string path, string name, string description, NamespaceType namespaceType)
-        {
-            ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
-
-            var method = new MethodState(parent)
-            {
-                SymbolicName = name,
-                ReferenceTypeId = ReferenceTypeIds.HasComponent,
-                NodeId = new NodeId(path, namespaceIndex),
-                BrowseName = new QualifiedName(path, namespaceIndex),
-                DisplayName = new LocalizedText("en", name),
-                WriteMask = AttributeWriteMask.None,
-                UserWriteMask = AttributeWriteMask.None,
-                Executable = true,
-                UserExecutable = true,
-                Description = new LocalizedText(description),
-            };
-
-            parent?.AddChild(method);
-
-            return method;
-        }
-
-        /// <summary>
-        /// Method to stop updating the fast and slow nodes
-        /// </summary>
-        private ServiceResult OnStopUpdateFastAndSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            _updateFastAndSlowNodes = false;
-            Logger.Debug("StopUpdateFastAndSlowNodes method called");
-            return ServiceResult.Good;
-        }
-
-        /// <summary>
-        /// Method to stop updating the fast and slow nodes
-        /// </summary>
-        private ServiceResult OnStartUpdateFastAndSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            _updateFastAndSlowNodes = true;
-            Logger.Debug("StartUpdateFastAndSlowNodes method called");
-            return ServiceResult.Good;
-        }
-
-        /// <summary>
-        /// Method to turn the heater on. Executes synchronously.
-        /// </summary>
-        private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            _boiler1.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.On;
-            Logger.Debug("OnHeaterOnCall method called");
-            return ServiceResult.Good;
-        }
-
-        /// <summary>
-        /// Method to turn the heater off. Executes synchronously.
-        /// </summary>
-        private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            _boiler1.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.Off;
-            Logger.Debug("OnHeaterOffCall method called");
-            return ServiceResult.Good;
-        }
-
-        private void SetValue<T>(BaseVariableState variable, T value)
-        {
-            variable.Value = value;
-            variable.Timestamp = _timeService.Now();
-            variable.ClearChangeMasks(SystemContext, false);
-        }
-
-        private readonly (StatusCode, bool)[] BadStatusSequence = new (StatusCode, bool)[]
-        {
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.UncertainLastUsableValue, true),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.UncertainLastUsableValue, true),
-            ( StatusCodes.BadDataLost, true),
-            ( StatusCodes.BadNoCommunication, false)
-        };
-
         private readonly TimeService _timeService;
 
-        private uint _slowBadNodesCycle = 0;
-        private uint _fastBadNodesCycle = 0;
         private uint _eventInstanceCycle = 0;
-
-        private BaseDataVariableState _slowNumberOfUpdates;
-        private BaseDataVariableState _fastNumberOfUpdates;
 
         /// <summary>
         /// Following variables listed here are simulated.
         /// </summary>
-        protected BaseDataVariableState[] _slowNodes = null;
-        protected BaseDataVariableState[] _fastNodes = null;
         protected BoilerModel.BoilerState _boiler1 = null;
-        protected BaseDataVariableState[] _slowBadNodes = null;
-        protected BaseDataVariableState[] _fastBadNodes = null;
-        private readonly bool _slowNodeRandomization;
-        private readonly string _slowNodeStepSize;
-        private readonly string _slowNodeMinValue;
-        private readonly string _slowNodeMaxValue;
-        private readonly bool _fastNodeRandomization;
-        private readonly string _fastNodeStepSize;
-        private readonly string _fastNodeMinValue;
-        private readonly string _fastNodeMaxValue;
-        private readonly Random _random;
-        private bool _updateFastAndSlowNodes = true;
     }
 }

@@ -18,6 +18,7 @@
     using System.Net;
     using Microsoft.Extensions.Hosting;
     using OpcPlc.PluginNodes;
+    using OpcPlc.PluginNodes.Models;
 
     public static class Program
     {
@@ -30,6 +31,25 @@
         /// Logging object.
         /// </summary>
         public static Serilog.Core.Logger Logger = null;
+
+        /// <summary>
+        /// Nodes to extend the address space.
+        /// </summary>
+        public static List<IPluginNodes> PluginNodes = new List<IPluginNodes>
+        {
+            new DataPluginNodes(),
+            new SpikePluginNode(),
+            new DipPluginNode(),
+            new PosTrendPluginNode(),
+            new NegTrendPluginNode(),
+            new SpecialCharNamePluginNode(),
+            new LongIdPluginNode(),
+            new LongStringPluginNodes(),
+            new DeterministicGuidPluginNodes(),
+            new UserDefinedPluginNodes(),
+            new SlowPluginNodes(),
+            new FastPluginNodes(),
+        };
 
         /// <summary>
         /// OPC UA server object.
@@ -50,23 +70,6 @@
         /// A flag indicating when the server is up and ready to accept connections.
         /// </summary>
         public static volatile bool Ready = false;
-
-        /// <summary>
-        /// Nodes to extend the address space.
-        /// </summary>
-        public static List<IPluginNodes> PluginNodes = new List<IPluginNodes>
-        {
-            new DataPluginNodes(),
-            new SpikePluginNode(),
-            new DipPluginNode(),
-            new PosTrendPluginNode(),
-            new NegTrendPluginNode(),
-            new SpecialCharNamePluginNode(),
-            new LongIdPluginNode(),
-            new LongStringPluginNodes(),
-            new DeterministicGuidPluginNodes(),
-            new UserDefinedPluginNodes(),
-        };
 
         public static bool DisableAnonymousAuth { get; set; } = false;
 
@@ -129,6 +132,8 @@
         /// </summary>
         public static void Main(string[] args)
         {
+            InitAppLocation();
+
             // Start OPC UA server.
             MainAsync(args).Wait();
         }
@@ -140,7 +145,7 @@
         {
             Mono.Options.OptionSet options = InitCommandLineOptions();
 
-                // Parse the command line
+            // Parse the command line
             List<string> extraArgs = options.Parse(args);
 
             InitLogging();
@@ -166,8 +171,6 @@
             Logger.Information($"Current directory is: {Directory.GetCurrentDirectory()}");
             Logger.Information($"Log file is: {Path.GetFullPath(_logFileName)}");
             Logger.Information($"Log level is: {_logLevel}");
-
-            InitAppLocation();
 
             //show version
             var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
@@ -224,25 +227,6 @@
                 // simulation configuration
                 { "sc|simulationcyclecount=", $"count of cycles in one simulation phase\nDefault:  {SimulationCycleCount} cycles", (int i) => SimulationCycleCount = i },
                 { "ct|cycletime=", $"length of one cycle time in milliseconds\nDefault:  {SimulationCycleLength} msec", (int i) => SimulationCycleLength = i },
-
-                // Slow and fast nodes.
-                { "sn|slownodes=", $"number of slow nodes\nDefault: {SlowNodeCount}", (uint i) => SlowNodeCount = i },
-                { "sr|slowrate=", $"rate in seconds to change slow nodes\nDefault: {SlowNodeRate / 1000}", (uint i) => SlowNodeRate = i * 1000 },
-                { "st|slowtype=", $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeType}", a => SlowNodeType = ParseNodeType(a) },
-                { "stl|slowtypelowerbound=", $"lower bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.", a => SlowNodeMinValue = a },
-                { "stu|slowtypeupperbound=", $"upper bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.", a => SlowNodeMaxValue = a },
-                { "str|slowtyperandomization=", $"randomization of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeRandomization}", a => SlowNodeRandomization = bool.Parse(a) },
-                { "sts|slowtypestepsize=", $"step or increment size of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {SlowNodeStepSize}", a => SlowNodeStepSize = ParseStepSize(a) },
-                { "ssi|slownodesamplinginterval=", $"rate in milliseconds to sample slow nodes\nDefault: {SlowNodeSamplingInterval}", (uint i) => SlowNodeSamplingInterval = i },
-                { "fn|fastnodes=", $"number of fast nodes\nDefault: {FastNodeCount}", (uint i) => FastNodeCount = i },
-                { "fr|fastrate=", $"rate in seconds to change fast nodes\nDefault: {FastNodeRate / 1000}", (uint i) => FastNodeRate = i * 1000 },
-                { "ft|fasttype=", $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeType}", a => FastNodeType = ParseNodeType(a) },
-                { "ftl|fasttypelowerbound=", $"lower bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.", a => FastNodeMinValue = a },
-                { "ftu|fasttypeupperbound=", $"upper bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.", a => FastNodeMaxValue = a },
-                { "ftr|fasttyperandomization=", $"randomization of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeRandomization}", a => FastNodeRandomization = bool.Parse(a) },
-                { "fts|fasttypestepsize=", $"step or increment size of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {FastNodeStepSize}", a => FastNodeStepSize = ParseStepSize(a) },
-                { "fsi|fastnodesamplinginterval=", $"rate in milliseconds to sample fast nodes\nDefault: {FastNodeSamplingInterval}", (uint i) => FastNodeSamplingInterval = i },
-                { "vfr|veryfastrate=", $"rate in milliseconds to change fast nodes\nDefault: {FastNodeRate}", (uint i) => FastNodeRate = i },
 
                 // events
                 { "ei|eventinstances=", $"number of event instances\nDefault: {EventInstanceCount}", (uint i) => EventInstanceCount = i },
@@ -398,9 +382,9 @@
             };
 
             // Add options from plugin nodes list.
-            foreach (var nodes in PluginNodes)
+            foreach (var pluginNodes in PluginNodes)
             {
-                nodes.AddOptions(options);
+                pluginNodes.AddOptions(options);
             }
 
             return options;
@@ -458,34 +442,21 @@
             sb.AppendLine("    \"OpcNodes\": [");
 
             // Print config from plugin nodes list.
-            foreach (var nodes in PluginNodes)
+            foreach (var pluginNodes in PluginNodes)
             {
-                foreach (var nodeId in nodes.NodeIDs)
+                foreach (var node in pluginNodes.Nodes)
                 {
-                    sb.AppendLine($"      {{ \"Id\": \"{NSS}{nodeId}\" }},");
+                    // Show only if > 1000 ms.
+                    string publishingInterval = node.PublishingInterval > 1000
+                        ? $", \"OpcPublishingInterval\": {node.PublishingInterval}"
+                        : "";
+                    // Show only if > 0 ms.
+                    string samplingInterval = node.SamplingInterval > 0
+                        ? $", \"OpcSamplingInterval\": {node.SamplingInterval}"
+                        : "";
+
+                    sb.AppendLine($"      {{ \"Id\": \"{NSS}{node.NodeId}\"{publishingInterval}{samplingInterval} }},");
                 }
-            }
-
-            string slowPublishingInterval = SlowNodeRate > 1000
-                ? $", \"OpcPublishingInterval\": {SlowNodeRate}" // ms
-                : "";
-            string slowSamplingInterval = SlowNodeSamplingInterval > 0
-                ? $", \"OpcSamplingInterval\": {SlowNodeSamplingInterval}" // ms
-                : "";
-            for (int i = 0; i < SlowNodeCount; i++)
-            {
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}Slow{SlowNodeType}{i + 1}\"{slowPublishingInterval}{slowSamplingInterval} }},");
-            }
-
-            string fastPublishingInterval = FastNodeRate > 1000
-               ? $", \"OpcPublishingInterval\": {FastNodeRate}" // ms
-               : "";
-            string fastSamplingInterval = FastNodeSamplingInterval > 0
-                ? $", \"OpcSamplingInterval\": {FastNodeSamplingInterval}" // ms
-                : "";
-            for (int i = 0; i < FastNodeCount; i++)
-            {
-                sb.AppendLine($"      {{ \"Id\": \"{NSS}Fast{FastNodeType}{i + 1}\"{fastPublishingInterval}{fastSamplingInterval} }},");
             }
 
             int trimLen = Environment.NewLine.Length + 1;
@@ -499,36 +470,6 @@
             Logger.Information($"OPC Publisher configuration file: {PnJson}" + pnJson);
 
             await File.WriteAllTextAsync(PnJson, pnJson.Trim()).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Parse node data type, default to Int.
-        /// </summary>
-        private static NodeType ParseNodeType(string type)
-        {
-            return Enum.TryParse(type, ignoreCase: true, out NodeType nodeType)
-                ? nodeType
-                : NodeType.UInt;
-        }
-
-        /// <summary>
-        /// Parse step size.
-        /// </summary>
-        private static string ParseStepSize(string stepSize)
-        {
-            if (double.TryParse(stepSize, out double stepSizeResult))
-            {
-                if (stepSizeResult < 0)
-                {
-                    throw new ArgumentException($"Step size cannot be specified as negative value, current value is {stepSize}.");
-                }
-            }
-            else
-            {
-                throw new ArgumentException($"Step size {stepSize} cannot be parsed as numeric value.");
-            }
-
-            return stepSize;
         }
 
         /// <summary>

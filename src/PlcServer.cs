@@ -45,15 +45,7 @@ namespace OpcPlc
             PlcNodeManager = new PlcNodeManager(
                 server,
                 configuration,
-                TimeService,
-                PlcSimulation.SlowNodeRandomization,
-                PlcSimulation.SlowNodeStepSize,
-                PlcSimulation.SlowNodeMinValue,
-                PlcSimulation.SlowNodeMaxValue,
-                PlcSimulation.FastNodeRandomization,
-                PlcSimulation.FastNodeStepSize,
-                PlcSimulation.FastNodeMinValue,
-                PlcSimulation.FastNodeMaxValue);
+                TimeService);
 
             nodeManagers.Add(PlcNodeManager);
 

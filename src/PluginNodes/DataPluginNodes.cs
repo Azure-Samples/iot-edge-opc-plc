@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes
 {
     using Opc.Ua;
+    using OpcPlc.PluginNodes.Models;
     using System;
     using System.Collections.Generic;
     using static OpcPlc.Program;
@@ -10,7 +11,7 @@
     /// </summary>
     public class DataPluginNodes : IPluginNodes
     {
-        public IReadOnlyCollection<string> NodeIDs { get; private set; } = new List<string>();
+        public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
         private static bool _isEnabled = true;
         private PlcNodeManager _plcNodeManager;
@@ -120,12 +121,12 @@
                     "Random unsigned 32 bit integer value",
                     NamespaceType.OpcPlcApplications));
 
-            NodeIDs = new List<string>
+            Nodes = new List<NodeWithIntervals>
             {
-                "StepUp",
-                "AlternatingBoolean",
-                "RandomSignedInt32",
-                "RandomUnsignedInt32",
+                new NodeWithIntervals { NodeId = "StepUp" },
+                new NodeWithIntervals { NodeId = "AlternatingBoolean" },
+                new NodeWithIntervals { NodeId = "RandomSignedInt32" },
+                new NodeWithIntervals { NodeId = "RandomUnsignedInt32" },
             };
         }
 

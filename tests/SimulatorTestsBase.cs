@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace OpcPlc.Tests
@@ -19,10 +18,10 @@ namespace OpcPlc.Tests
     public abstract class SimulatorTestsBase
     {
         /// <summary>The identifier for the Server Object.</summary>
-        protected static readonly NodeId Server = Opc.Ua.ObjectIds.Server;
+        protected static readonly NodeId Server = ObjectIds.Server;
 
         /// <summary>The identifier for the ObjectsFolder Object.</summary>
-        protected static readonly NodeId ObjectsFolder = Opc.Ua.ObjectIds.ObjectsFolder;
+        protected static readonly NodeId ObjectsFolder = ObjectIds.ObjectsFolder;
 
         /// <summary>A Bogus data generator.</summary>
         protected static readonly Faker Fake = new Faker();
@@ -103,7 +102,7 @@ namespace OpcPlc.Tests
                 new BrowsePath
                 {
                     StartingNode = startingNode,
-                    RelativePath = Opc.Ua.RelativePath.Parse(relativePath, Session.TypeTree)
+                    RelativePath = RelativePath.Parse(relativePath, Session.TypeTree)
                 }
             };
 

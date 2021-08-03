@@ -54,7 +54,7 @@ The tags of the container match the tags of this repository and the containers a
 ## User node configuration via JSON configuration file
 If the module (application) is started with the argument **--nodesfile** then the specified JSON configuration file is loaded.
 Nodes defined in the JSON file will be published by the server. This enables another OPC-UA client application to set the state/value of the node. Please note that nodes specified in the JSON file are NOT part of the simulation. They remain visible in an unchanged state until an OPC UA client changes their status.
-The following command shows how to start the application on a Windows host:
+The following command shows how to start the application on Windows:
 ~~~
 dotnet opcplc.dll --at X509Store --nodesfile nodesfile.json
 ~~~
@@ -115,7 +115,7 @@ A number of changing nodes can be simulated with the following options. The node
 - Bool: Alternates
 - UIntArray: 32 values that increase by 1
 
-Sample start command on a Windows host:
+Sample start command for Windows:
 ~~~
 dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --nospikes --nodips --nopostrend --nonegtrend --nodatavalues --sph --sn=25 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint
 ~~~
@@ -197,10 +197,12 @@ More information about this feature can be found [here](deterministic-alarms.md)
 ---|---|---
 ResetTrend | Reset the trend values to their baseline value | Generate positive or negative trends activated
 ResetStepUp | Resets the StepUp counter to 0 | Generate data activated
-StartStepUp | Starts the StepUp counter | Generate data activated
 StopStepUp | Stops the StepUp counter | Generate data activated
-StopUpdateFastAndSlowNodes | Stops the increase of value of fast and slow nodes | slow nodes or fast nodes activated
-StartUpdateFastAndSlowNodes | Start the increase of value of fast and slow nodes | slow nodes or fast nodes activated
+StartStepUp | Starts the StepUp counter | Generate data activated
+StopUpdateSlowNodes | Stops the increase of value of slow nodes | slow nodes activated
+StopUpdateFastNodes | Stops the increase of value of fast nodes | fast nodes activated
+StartUpdateSlowNodes | Start the increase of value of slow nodes | slow nodes activated
+StartUpdateFastNodes | Start the increase of value of fast nodes | fast nodes activated
 
 ## Build
 
