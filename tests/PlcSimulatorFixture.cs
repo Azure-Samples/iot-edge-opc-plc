@@ -212,8 +212,6 @@ namespace OpcPlc.Tests
             Program.Ready = false;
             PlcSimulation.AddAlarmSimulation = false;
             PlcSimulation.DeterministicAlarmSimulationFile = null;
-            PlcSimulation.FastNodeRandomization = false;
-            PlcSimulation.SlowNodeRandomization = false;
         }
 
         private static bool CloseTo(double a, double b) => Math.Abs(a - b) <= Math.Abs(a * .00001);
