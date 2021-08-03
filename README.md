@@ -199,8 +199,10 @@ ResetTrend | Reset the trend values to their baseline value | Generate positive 
 ResetStepUp | Resets the StepUp counter to 0 | Generate data activated
 StartStepUp | Starts the StepUp counter | Generate data activated
 StopStepUp | Stops the StepUp counter | Generate data activated
-StopUpdateFastAndSlowNodes | Stops the increase of value of fast and slow nodes | slow nodes or fast nodes activated
-StartUpdateFastAndSlowNodes | Start the increase of value of fast and slow nodes | slow nodes or fast nodes activated
+StopUpdateSlowNodes | Stops the increase of value of slow nodes | slow nodes activated
+StopUpdateFastNodes | Stops the increase of value of fast nodes | fast nodes activated
+StartUpdateSlowNodes | Start the increase of value of slow nodes | slow nodes activated
+StartUpdateFastNodes | Start the increase of value of fast nodes | fast nodes activated
 
 ## Build
 
