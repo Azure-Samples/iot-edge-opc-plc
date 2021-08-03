@@ -32,6 +32,25 @@
         public static Serilog.Core.Logger Logger = null;
 
         /// <summary>
+        /// Nodes to extend the address space.
+        /// </summary>
+        public static List<IPluginNodes> PluginNodes = new List<IPluginNodes>
+        {
+            new DataPluginNodes(),
+            new SpikePluginNode(),
+            new DipPluginNode(),
+            new PosTrendPluginNode(),
+            new NegTrendPluginNode(),
+            new SpecialCharNamePluginNode(),
+            new LongIdPluginNode(),
+            new LongStringPluginNodes(),
+            new DeterministicGuidPluginNodes(),
+            new UserDefinedPluginNodes(),
+            new SlowPluginNodes(),
+            new FastPluginNodes(),
+        };
+
+        /// <summary>
         /// OPC UA server object.
         /// </summary>
         public static PlcServer PlcServer = null;
@@ -50,25 +69,6 @@
         /// A flag indicating when the server is up and ready to accept connections.
         /// </summary>
         public static volatile bool Ready = false;
-
-        /// <summary>
-        /// Nodes to extend the address space.
-        /// </summary>
-        public static List<IPluginNodes> PluginNodes = new List<IPluginNodes>
-        {
-            new DataPluginNodes(),
-            new SpikePluginNode(),
-            new DipPluginNode(),
-            new PosTrendPluginNode(),
-            new NegTrendPluginNode(),
-            new SpecialCharNamePluginNode(),
-            new LongIdPluginNode(),
-            new LongStringPluginNodes(),
-            new DeterministicGuidPluginNodes(),
-            new UserDefinedPluginNodes(),
-            new SlowPluginNodes(),
-            new FastPluginNodes(),
-        };
 
         public static bool DisableAnonymousAuth { get; set; } = false;
 
