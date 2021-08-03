@@ -6,6 +6,7 @@
     using System.IO;
     using static OpcPlc.Program;
     using Newtonsoft.Json;
+    using OpcPlc.PluginNodes.Models;
 
     /// <summary>
     /// Nodes that are configuration via JSON file.

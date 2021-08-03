@@ -2,6 +2,7 @@
 {
     using Opc.Ua;
     using OpcPlc.Helpers;
+    using OpcPlc.PluginNodes.Models;
     using System.Collections.Generic;
     using static OpcPlc.Program;
 

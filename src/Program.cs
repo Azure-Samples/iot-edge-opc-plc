@@ -18,6 +18,7 @@
     using System.Net;
     using Microsoft.Extensions.Hosting;
     using OpcPlc.PluginNodes;
+    using OpcPlc.PluginNodes.Models;
 
     public static class Program
     {

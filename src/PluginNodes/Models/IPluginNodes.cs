@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes
+﻿namespace OpcPlc.PluginNodes.Models
 {
     using Opc.Ua;
     using System.Collections.Generic;
