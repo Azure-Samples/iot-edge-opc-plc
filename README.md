@@ -197,8 +197,8 @@ More information about this feature can be found [here](deterministic-alarms.md)
 ---|---|---
 ResetTrend | Reset the trend values to their baseline value | Generate positive or negative trends activated
 ResetStepUp | Resets the StepUp counter to 0 | Generate data activated
-StartStepUp | Starts the StepUp counter | Generate data activated
 StopStepUp | Stops the StepUp counter | Generate data activated
+StartStepUp | Starts the StepUp counter | Generate data activated
 StopUpdateSlowNodes | Stops the increase of value of slow nodes | slow nodes activated
 StopUpdateFastNodes | Stops the increase of value of fast nodes | fast nodes activated
 StartUpdateSlowNodes | Start the increase of value of slow nodes | slow nodes activated
