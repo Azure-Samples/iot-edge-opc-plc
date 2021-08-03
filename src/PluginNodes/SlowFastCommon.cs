@@ -10,7 +10,6 @@
         private readonly Random _random = new Random();
         private BaseDataVariableState _numberOfUpdates;
         private uint _badNodesCycle = 0;
-
         private const string NumberOfUpdates = "NumberOfUpdates";
 
         public SlowFastCommon(PlcNodeManager plcNodeManager)

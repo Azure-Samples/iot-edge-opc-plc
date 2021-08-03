@@ -90,6 +90,7 @@
                 name: "Fast",
                 NamespaceType.OpcPlcApplications);
 
+            // Used for methods to limit the number of updates to a fixed count.
             FolderState simulatorFolder = _plcNodeManager.CreateFolder(
                 telemetryFolder.Parent, // Root.
                 path: "SimulatorConfiguration",
