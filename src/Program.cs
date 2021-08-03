@@ -432,7 +432,7 @@
         /// </summary>
         private static async Task DumpPublisherConfigJsonAsync(string serverPath)
         {
-            const string NSS = "ns=2;s=";
+            const string NamespacePrefix = "ns=2;s=";
             var sb = new StringBuilder();
 
             sb.AppendLine(Environment.NewLine + "[");
@@ -455,7 +455,7 @@
                         ? $", \"OpcSamplingInterval\": {node.SamplingInterval}"
                         : "";
 
-                    sb.AppendLine($"      {{ \"Id\": \"{NSS}{node.NodeId}\"{publishingInterval}{samplingInterval} }},");
+                    sb.AppendLine($"      {{ \"Id\": \"{NamespacePrefix}{node.NodeId}\"{publishingInterval}{samplingInterval} }},");
                 }
             }
 
