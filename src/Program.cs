@@ -132,6 +132,8 @@
         /// </summary>
         public static void Main(string[] args)
         {
+            InitAppLocation();
+
             // Start OPC UA server.
             MainAsync(args).Wait();
         }
@@ -169,8 +171,6 @@
             Logger.Information($"Current directory is: {Directory.GetCurrentDirectory()}");
             Logger.Information($"Log file is: {Path.GetFullPath(_logFileName)}");
             Logger.Information($"Log level is: {_logLevel}");
-
-            InitAppLocation();
 
             //show version
             var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
