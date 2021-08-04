@@ -446,14 +446,15 @@
             {
                 foreach (var node in pluginNodes.Nodes)
                 {
-                    // Show only if > 1000 ms.
-                    string publishingInterval = node.PublishingInterval > 1000
+                    // Show only if > 0 and != 1000 ms.
+                    string publishingInterval = node.PublishingInterval > 0 &&
+                                                node.PublishingInterval != 1000
                         ? $", \"OpcPublishingInterval\": {node.PublishingInterval}"
-                        : "";
+                        : string.Empty;
                     // Show only if > 0 ms.
                     string samplingInterval = node.SamplingInterval > 0
                         ? $", \"OpcSamplingInterval\": {node.SamplingInterval}"
-                        : "";
+                        : string.Empty;
 
                     sb.AppendLine($"      {{ \"Id\": \"{NamespacePrefix}{node.NodeId}\"{publishingInterval}{samplingInterval} }},");
                 }
