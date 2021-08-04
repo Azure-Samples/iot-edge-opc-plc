@@ -156,13 +156,13 @@
         {
             (_nodes, _badNodes) = _slowFastCommon.CreateNodes(NodeType, "Fast", NodeCount, folder, simulatorFolder, NodeRandomization, NodeStepSize, NodeMinValue, NodeMaxValue, NodeRate, NodeSamplingInterval);
 
-            ExposeNodeInfo();
+            ExposeNodesWithIntervals();
         }
 
         /// <summary>
         /// Expose node information for dumping pn.json.
         /// </summary>
-        private void ExposeNodeInfo()
+        private void ExposeNodesWithIntervals()
         {
             var nodes = new List<NodeWithIntervals>();
 
