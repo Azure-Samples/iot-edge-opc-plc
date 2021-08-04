@@ -45,27 +45,27 @@
             optionSet.Add(
                 "st|slowtype=",
                 $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeType}",
-                (string p) => NodeType = SlowFastCommon.ParseNodeType(p));
+                (string s) => NodeType = SlowFastCommon.ParseNodeType(s));
 
             optionSet.Add(
                 "stl|slowtypelowerbound=",
                 $"lower bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.",
-                (string p) => NodeMinValue = p);
+                (string s) => NodeMinValue = s);
 
             optionSet.Add(
                 "stu|slowtypeupperbound=",
                 $"upper bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.",
-                (string p) => NodeMaxValue = p);
+                (string s) => NodeMaxValue = s);
 
             optionSet.Add(
                 "str|slowtyperandomization=",
                 $"randomization of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeRandomization}",
-                (string p) => NodeRandomization = bool.Parse(p));
+                (string s) => NodeRandomization = bool.Parse(s));
 
             optionSet.Add(
                 "sts|slowtypestepsize=",
                 $"step or increment size of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeStepSize}",
-                (string p) => NodeStepSize = SlowFastCommon.ParseStepSize(p));
+                (string s) => NodeStepSize = SlowFastCommon.ParseStepSize(s));
 
             optionSet.Add(
                 "ssi|slownodesamplinginterval=",

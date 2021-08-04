@@ -26,7 +26,7 @@
             optionSet.Add(
                 "lsn|longstringnodes",
                 $"add nodes with string values of 10/50/100/200 kB.\nDefault: {_isEnabled}",
-                (string p) => _isEnabled = p != null);
+                (string s) => _isEnabled = s != null);
         }
 
         public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)

@@ -27,7 +27,7 @@
             optionSet.Add(
                 "nn|nonegtrend",
                 $"do not generate negative trend data\nDefault: {!_isEnabled}",
-                (string p) => _isEnabled = p == null);
+                (string s) => _isEnabled = s == null);
         }
 
         public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)

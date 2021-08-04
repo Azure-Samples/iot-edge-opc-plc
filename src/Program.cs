@@ -199,11 +199,11 @@
         {
             var options = new Mono.Options.OptionSet {
                 // log configuration
-                { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string l) => _logFileName = l },
-                { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {_logFileFlushTimeSpanSec} sec", (int s) => {
-                        if (s > 0)
+                { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{_logFileName}'", (string s) => _logFileName = s },
+                { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {_logFileFlushTimeSpanSec} sec", (int i) => {
+                        if (i > 0)
                         {
-                            _logFileFlushTimeSpanSec = TimeSpan.FromSeconds(s);
+                            _logFileFlushTimeSpanSec = TimeSpan.FromSeconds(i);
                         }
                         else
                         {
@@ -211,11 +211,11 @@
                         }
                     }
                 },
-                { "ll|loglevel=", "the loglevel to use (allowed: fatal, error, warn, info, debug, verbose).\nDefault: info", (string l) => {
+                { "ll|loglevel=", "the loglevel to use (allowed: fatal, error, warn, info, debug, verbose).\nDefault: info", (string s) => {
                         var logLevels = new List<string> {"fatal", "error", "warn", "info", "debug", "verbose"};
-                        if (logLevels.Contains(l.ToLowerInvariant()))
+                        if (logLevels.Contains(s.ToLowerInvariant()))
                         {
-                            _logLevel = l.ToLowerInvariant();
+                            _logLevel = s.ToLowerInvariant();
                         }
                         else
                         {
@@ -233,9 +233,9 @@
                 { "er|eventrate=", $"rate in milliseconds to send events\nDefault: {EventInstanceRate}", (uint i) => EventInstanceRate = i },
 
                 // opc configuration
-                { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort p) => ServerPort = p },
-                { "op|path=", $"the enpoint URL path part of the OPC server endpoint.\nDefault: '{ServerPath}'", (string a) => ServerPath = a },
-                { "ph|plchostname=", $"the fullqualified hostname of the plc.\nDefault: {Hostname}", (string a) => Hostname = a },
+                { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort i) => ServerPort = i },
+                { "op|path=", $"the enpoint URL path part of the OPC server endpoint.\nDefault: '{ServerPath}'", (string s) => ServerPath = s },
+                { "ph|plchostname=", $"the fullqualified hostname of the plc.\nDefault: {Hostname}", (string s) => Hostname = s },
                 { "ol|opcmaxstringlen=", $"the max length of a string opc can transmit/receive.\nDefault: {OpcMaxStringLength}", (int i) => {
                         if (i > 0)
                         {
@@ -258,11 +258,11 @@
                         }
                     }
                 },
-                { "aa|autoaccept", $"all certs are trusted when a connection is established.\nDefault: {AutoAcceptCerts}", a => AutoAcceptCerts = a != null },
+                { "aa|autoaccept", $"all certs are trusted when a connection is established.\nDefault: {AutoAcceptCerts}", (string s) => AutoAcceptCerts = s != null },
 
-                { "ut|unsecuretransport", $"enables the unsecured transport.\nDefault: {EnableUnsecureTransport}", u => EnableUnsecureTransport = u != null },
+                { "ut|unsecuretransport", $"enables the unsecured transport.\nDefault: {EnableUnsecureTransport}", (string s) => EnableUnsecureTransport = s != null },
 
-                { "to|trustowncert", $"the own certificate is put into the trusted certificate store automatically.\nDefault: {TrustMyself}", t => TrustMyself = t != null },
+                { "to|trustowncert", $"the own certificate is put into the trusted certificate store automatically.\nDefault: {TrustMyself}", (string s) => TrustMyself = s != null },
 
                 // cert store options
                 { "at|appcertstoretype=", $"the own application cert store type. \n(allowed values: Directory, X509Store)\nDefault: '{OpcOwnCertStoreType}'", (string s) => {
@@ -292,7 +292,7 @@
                 { "ip|issuercertstorepath=", $"the path of the trusted issuer cert store\nDefault '{OpcIssuerCertDirectoryStorePathDefault}'", (string s) => OpcIssuerCertStorePath = s
                 },
 
-                { "csr", $"show data to create a certificate signing request\nDefault '{ShowCreateSigningRequestInfo}'", c => ShowCreateSigningRequestInfo = c != null
+                { "csr", $"show data to create a certificate signing request\nDefault '{ShowCreateSigningRequestInfo}'", (string s) => ShowCreateSigningRequestInfo = s != null
                 },
 
                 { "ab|applicationcertbase64=", "update/set this applications certificate with the certificate passed in as bas64 string", (string s) => NewCertificateBase64String = s
@@ -356,29 +356,29 @@
                 { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (multiple thumbprints supported)", (string s) => ThumbprintsToRemove = ParseListOfStrings(s)
                 },
 
-                {"daa|disableanonymousauth", $"flag to disable anonymous authentication. \nDefault: {DisableAnonymousAuth}", d => DisableAnonymousAuth = d != null },
-                {"dua|disableusernamepasswordauth", $"flag to disable username/password authentication. \nDefault: {DisableUsernamePasswordAuth}", d=> DisableUsernamePasswordAuth = d != null },
-                {"dca|disablecertauth", $"flag to disable certificate authentication. \nDefault: {DisableCertAuth}", d => DisableCertAuth = d != null },
+                {"daa|disableanonymousauth", $"flag to disable anonymous authentication. \nDefault: {DisableAnonymousAuth}", (string s) => DisableAnonymousAuth = s != null },
+                {"dua|disableusernamepasswordauth", $"flag to disable username/password authentication. \nDefault: {DisableUsernamePasswordAuth}", (string s) => DisableUsernamePasswordAuth = s != null },
+                {"dca|disablecertauth", $"flag to disable certificate authentication. \nDefault: {DisableCertAuth}", (string s) => DisableCertAuth = s != null },
 
                 // user management
-                { "au|adminuser=", $"the username of the admin user.\nDefault: {AdminUser}", (string p) => AdminUser = p ?? AdminUser},
-                { "ac|adminpassword=", $"the password of the administrator.\nDefault: {AdminPassword}", (string p) => AdminPassword = p ?? AdminPassword},
-                { "du|defaultuser=", $"the username of the default user.\nDefault: {DefaultUser}", (string p) => DefaultUser = p ?? DefaultUser},
-                { "dc|defaultpassword=", $"the password of the default user.\nDefault: {DefaultPassword}", (string p) => DefaultPassword = p ?? DefaultPassword},
+                { "au|adminuser=", $"the username of the admin user.\nDefault: {AdminUser}", (string s) => AdminUser = s ?? AdminUser},
+                { "ac|adminpassword=", $"the password of the administrator.\nDefault: {AdminPassword}", (string s) => AdminPassword = s ?? AdminPassword},
+                { "du|defaultuser=", $"the username of the default user.\nDefault: {DefaultUser}", (string s) => DefaultUser = s ?? DefaultUser},
+                { "dc|defaultpassword=", $"the password of the default user.\nDefault: {DefaultPassword}", (string s) => DefaultPassword = s ?? DefaultPassword},
 
                 // Special nodes
-                { "ctb|complextypeboiler", $"add complex type (boiler) to address space.\nDefault: {AddComplexTypeBoiler}", h => AddComplexTypeBoiler = h != null },
-                { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", h => AddAlarmSimulation = h != null },
-                { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", h => AddSimpleEventsSimulation = h != null },
-                { "ref|referencetest", $"add reference test simulation node manager to address space.\nDefault: {AddReferenceTestSimulation}", h => AddReferenceTestSimulation = h != null },
-                { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (string h) => DeterministicAlarmSimulationFile = h },
+                { "ctb|complextypeboiler", $"add complex type (boiler) to address space.\nDefault: {AddComplexTypeBoiler}", (string s) => AddComplexTypeBoiler = s != null },
+                { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", (string s) => AddAlarmSimulation = s != null },
+                { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", (string s) => AddSimpleEventsSimulation = s != null },
+                { "ref|referencetest", $"add reference test simulation node manager to address space.\nDefault: {AddReferenceTestSimulation}", (string s) => AddReferenceTestSimulation = s != null },
+                { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (string s) => DeterministicAlarmSimulationFile = s },
 
                 // misc
-                { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", h => ShowPublisherConfigJsonIp = h != null },
-                { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {ShowPublisherConfigJsonPh}", h => ShowPublisherConfigJsonPh = h != null },
-                { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {PnJson}", (string f) => PnJson = f },
+                { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {ShowPublisherConfigJsonIp}", (string s) => ShowPublisherConfigJsonIp = s != null },
+                { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {ShowPublisherConfigJsonPh}", (string s) => ShowPublisherConfigJsonPh = s != null },
+                { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {PnJson}", (string s) => PnJson = s },
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {WebServerPort}", (uint i) => WebServerPort = i },
-                { "h|help", "show this message and exit", h => ShowHelp = h != null },
+                { "h|help", "show this message and exit", (string s) => ShowHelp = s != null },
             };
 
             // Add options from plugin nodes list.

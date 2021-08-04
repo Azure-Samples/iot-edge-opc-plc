@@ -26,7 +26,7 @@
             optionSet.Add(
                 "nd|nodips",
                 $"do not generate dip data\nDefault: {!_isEnabled}",
-                (string p) => _isEnabled = p == null);
+                (string s) => _isEnabled = s == null);
         }
 
         public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)

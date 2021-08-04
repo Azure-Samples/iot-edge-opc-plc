@@ -21,7 +21,7 @@
             optionSet.Add(
                 "scn|specialcharname",
                 $"add node with special characters in name.\nDefault: {_isEnabled}",
-                (string p) => _isEnabled = p != null);
+                (string s) => _isEnabled = s != null);
         }
 
         public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)

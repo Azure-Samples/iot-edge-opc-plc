@@ -23,7 +23,7 @@
             optionSet.Add(
                 "nf|nodesfile=",
                 "the filename which contains the list of nodes to be created in the OPC UA address space.",
-                (string f) => _nodesFileName = f);
+                (string s) => _nodesFileName = s);
         }
 
         public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)

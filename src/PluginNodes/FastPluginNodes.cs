@@ -46,27 +46,27 @@
             optionSet.Add(
                 "ft|fasttype=",
                 $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeType}",
-                (string p) => NodeType = SlowFastCommon.ParseNodeType(p));
+                (string s) => NodeType = SlowFastCommon.ParseNodeType(s));
 
             optionSet.Add(
                 "ftl|fasttypelowerbound=",
                 $"lower bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.",
-                (string p) => NodeMinValue = p);
+                (string s) => NodeMinValue = s);
 
             optionSet.Add(
                 "ftu|fasttypeupperbound=",
                 $"upper bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.",
-                (string p) => NodeMaxValue = p);
+                (string s) => NodeMaxValue = s);
 
             optionSet.Add(
                 "ftr|fasttyperandomization=",
                 $"randomization of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeRandomization}",
-                (string p) => NodeRandomization = bool.Parse(p));
+                (string s) => NodeRandomization = bool.Parse(s));
 
             optionSet.Add(
                 "fts|fasttypestepsize=",
                 $"step or increment size of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeStepSize}",
-                (string p) => NodeStepSize = SlowFastCommon.ParseStepSize(p));
+                (string s) => NodeStepSize = SlowFastCommon.ParseStepSize(s));
 
             optionSet.Add(
                 "fsi|fastnodesamplinginterval=",

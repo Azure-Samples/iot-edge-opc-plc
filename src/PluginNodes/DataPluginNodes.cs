@@ -29,7 +29,7 @@
             optionSet.Add(
                 "nv|nodatavalues",
                 $"do not generate data values\nDefault: {!_isEnabled}",
-                (string p) => _isEnabled = p == null);
+                (string s) => _isEnabled = s == null);
         }
 
         public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
