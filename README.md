@@ -39,22 +39,30 @@ Additionally to those nodes with simulated data, a JSON configuration file allow
 
 The implementation is based on .NET Core so it is cross-platform. The recommended hosting environment is Docker.
 
-### Installation
-
-There is no installation required.
-
 ### Quickstart
 
 A Docker container of the component is hosted in the Microsoft Container Registry (MCR) and can be pulled by:
 ~~~
 docker pull mcr.microsoft.com/iotedge/opc-plc:<See version.json>
 ~~~
+
 The tags of the container match the tags of this repository and the containers are available for Windows and Linux. 
 
+Sample start command for Docker:
+~~~
+docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/iotedge/opc-plc:latest --pn=50000 --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --ctb --scn --lid --lsn --ref --gn=5
+~~~
+
+Sample start command for Windows:
+~~~
+dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --ctb --scn --lid --lsn --ref --gn=5
+~~~
+
 ## User node configuration via JSON configuration file
-If the module (application) is started with the argument **--nodesfile** then the specified JSON configuration file is loaded.
+If the module (application) is started with the argument `--nodesfile` then the specified JSON configuration file is loaded.
 Nodes defined in the JSON file will be published by the server. This enables another OPC-UA client application to set the state/value of the node. Please note that nodes specified in the JSON file are NOT part of the simulation. They remain visible in an unchanged state until an OPC UA client changes their status.
-The following command shows how to start the application on Windows:
+
+The following command shows how to use a configuration file on Windows:
 ~~~
 dotnet opcplc.dll --at X509Store --nodesfile nodesfile.json
 ~~~
@@ -115,20 +123,10 @@ A number of changing nodes can be simulated with the following options. The node
 - Bool: Alternates
 - UIntArray: 32 values that increase by 1
 
-Sample start command for Windows:
-~~~
-dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --nospikes --nodips --nopostrend --nonegtrend --nodatavalues --sph --sn=25 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint
-~~~
-
-Sample start command for Docker:
-~~~
-docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/iotedge/opc-plc:latest --pn=50000 --autoaccept --nospikes --nodips --nopostrend --nonegtrend --nodatavalues --sph --sn=25 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint
-~~~
-
 ## OPC Publisher file (pn.json)
 
-The options `sph` and `sp` show and dump an OPC Publisher configuration file (default name: `pn.json`) that matches the configuration. In addition, a web server hosts the file on a configurable port (`wp`, default 8080): e.g. http://localhost:8080/pn.json
-Additionally, you can set the configuration file name via the option `spf`.
+The options `--sph` and `--sp` show and dump an OPC Publisher configuration file (default name: `pn.json`) that matches the configuration. In addition, a web server hosts the file on a configurable port (`--wp`, default 8080): e.g. http://localhost:8080/pn.json
+Additionally, you can set the configuration file name via the option `--spf`.
 
 ## Complex type (boiler)
  
