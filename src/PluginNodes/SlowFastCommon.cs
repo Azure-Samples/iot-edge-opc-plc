@@ -126,7 +126,7 @@
             }
         }
 
-        public void UpdateNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
+        private void UpdateNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
         {
             if (nodes == null || nodes.Length == 0)
             {
@@ -286,7 +286,7 @@
         /// </summary>
         /// <param name="numberOfUpdatesVariable">Node that contains the setting of the number of updates to apply.</param>
         /// <returns>True if the value of the node should be updated by the simulator, false otherwise.</returns>
-        public bool ShouldUpdateNodes(BaseDataVariableState numberOfUpdatesVariable)
+        private bool ShouldUpdateNodes(BaseDataVariableState numberOfUpdatesVariable)
         {
             var value = (int)numberOfUpdatesVariable.Value;
             if (value == 0)
