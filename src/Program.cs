@@ -127,8 +127,6 @@
         {
             InitAppLocation();
 
-            LoadPluginNodes();
-
             // Start OPC UA server.
             MainAsync(args).Wait();
         }
@@ -138,6 +136,8 @@
         /// </summary>
         public static async Task MainAsync(string[] args, CancellationToken cancellationToken = default)
         {
+            LoadPluginNodes();
+
             Mono.Options.OptionSet options = CliOptions.InitCommandLineOptions();
 
             // Parse the command line
