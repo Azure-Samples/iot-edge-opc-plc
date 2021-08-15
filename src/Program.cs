@@ -15,9 +15,10 @@
     using static OpcPlc.PlcSimulation;
     using System.Net;
     using Microsoft.Extensions.Hosting;
-    using OpcPlc.PluginNodes;
     using OpcPlc.PluginNodes.Models;
     using OpcPlc.Helpers;
+    using System.Linq;
+    using System.Collections.Immutable;
 
     public static class Program
     {
@@ -34,21 +35,7 @@
         /// <summary>
         /// Nodes to extend the address space.
         /// </summary>
-        public static List<IPluginNodes> PluginNodes = new List<IPluginNodes>
-        {
-            new DataPluginNodes(),
-            new SpikePluginNode(),
-            new DipPluginNode(),
-            new PosTrendPluginNode(),
-            new NegTrendPluginNode(),
-            new SpecialCharNamePluginNode(),
-            new LongIdPluginNode(),
-            new LongStringPluginNodes(),
-            new DeterministicGuidPluginNodes(),
-            new UserDefinedPluginNodes(),
-            new SlowPluginNodes(),
-            new FastPluginNodes(),
-        };
+        public static ImmutableList<IPluginNodes> PluginNodes;
 
         /// <summary>
         /// OPC UA server object.
@@ -140,6 +127,8 @@
         {
             InitAppLocation();
 
+            LoadPluginNodes();
+
             // Start OPC UA server.
             MainAsync(args).Wait();
         }
@@ -199,6 +188,25 @@
             }
 
             Logger.Information("OPC UA server exiting...");
+        }
+
+        /// <summary>
+        /// Load plugin nodes using reflection.
+        /// </summary>
+        private static void LoadPluginNodes()
+        {
+            var pluginNodesType = typeof(IPluginNodes);
+
+            PluginNodes = pluginNodesType.Assembly.ExportedTypes
+                .Where(t => pluginNodesType.IsAssignableFrom(t) &&
+                            !t.IsInterface &&
+                            !t.IsAbstract)
+                .Select(t =>
+                {
+                    return Activator.CreateInstance(t);
+                })
+                .Cast<IPluginNodes>()
+                .ToImmutableList();
         }
 
         /// <summary>
