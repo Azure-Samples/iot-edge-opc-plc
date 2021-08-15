@@ -49,9 +49,9 @@ namespace OpcPlc
             }
 
             // Start simulation of nodes from plugin nodes list.
-            foreach (var pluginNodes in Program.PluginNodes)
+            foreach (var plugin in Program.PluginNodes)
             {
-                pluginNodes.StartSimulation();
+                plugin.StartSimulation();
             }
         }
 
@@ -64,9 +64,9 @@ namespace OpcPlc
             Disable(_boiler1Generator);
 
             // Stop simulation of nodes from plugin nodes list.
-            foreach (var pluginNodes in Program.PluginNodes)
+            foreach (var plugin in Program.PluginNodes)
             {
-                pluginNodes.StopSimulation();
+                plugin.StopSimulation();
             }
         }
 

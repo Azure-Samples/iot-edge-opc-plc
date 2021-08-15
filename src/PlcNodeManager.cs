@@ -107,9 +107,9 @@ namespace OpcPlc
                     AddComplexTypeBoiler(methodsFolder, externalReferences);
 
                     // Add nodes to address space from plugin nodes list.
-                    foreach (var pluginNodes in Program.PluginNodes)
+                    foreach (var plugin in Program.PluginNodes)
                     {
-                        pluginNodes.AddToAddressSpace(telemetryFolder, methodsFolder, plcNodeManager: this);
+                        plugin.AddToAddressSpace(telemetryFolder, methodsFolder, plcNodeManager: this);
                     }
                 }
                 catch (Exception e)

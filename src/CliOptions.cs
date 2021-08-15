@@ -198,9 +198,9 @@
             };
 
             // Add options from plugin nodes list.
-            foreach (var pluginNodes in Program.PluginNodes)
+            foreach (var plugin in Program.PluginNodes)
             {
-                pluginNodes.AddOptions(options);
+                plugin.AddOptions(options);
             }
 
             return options;
