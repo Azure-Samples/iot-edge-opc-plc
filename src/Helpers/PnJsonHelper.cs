@@ -3,7 +3,7 @@
     using OpcPlc.PluginNodes.Models;
     using Serilog;
     using System;
-    using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.IO;
     using System.Text;
     using System.Text.Encodings.Web;
@@ -15,7 +15,7 @@
         /// <summary>
         /// Show and save pn.json
         /// </summary>
-        public static async Task DumpPublisherConfigJsonAsync(string pnJsonFileName, string serverPath, IList<IPluginNodes> pluginNodes, ILogger logger)
+        public static async Task DumpPublisherConfigJsonAsync(string pnJsonFileName, string serverPath, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
         {
             const string NamespacePrefix = "ns=2;s=";
             var sb = new StringBuilder();
