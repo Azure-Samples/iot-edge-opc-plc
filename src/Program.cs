@@ -17,8 +17,7 @@
     using Microsoft.Extensions.Hosting;
     using OpcPlc.PluginNodes;
     using OpcPlc.PluginNodes.Models;
-    using System.Text.Json;
-    using System.Text.Encodings.Web;
+    using OpcPlc.Helpers;
 
     public static class Program
     {
@@ -240,53 +239,6 @@
         }
 
         /// <summary>
-        /// Show and save pn.json
-        /// </summary>
-        private static async Task DumpPublisherConfigJsonAsync(string serverPath)
-        {
-            const string NamespacePrefix = "ns=2;s=";
-            var sb = new StringBuilder();
-
-            sb.AppendLine(Environment.NewLine + "[");
-            sb.AppendLine("  {");
-            sb.AppendLine($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",");
-            sb.AppendLine("    \"UseSecurity\": false,");
-            sb.AppendLine("    \"OpcNodes\": [");
-
-            // Print config from plugin nodes list.
-            foreach (var pluginNodes in PluginNodes)
-            {
-                foreach (var node in pluginNodes.Nodes)
-                {
-                    // Show only if > 0 and != 1000 ms.
-                    string publishingInterval = node.PublishingInterval > 0 &&
-                                                node.PublishingInterval != 1000
-                        ? $", \"OpcPublishingInterval\": {node.PublishingInterval}"
-                        : string.Empty;
-                    // Show only if > 0 ms.
-                    string samplingInterval = node.SamplingInterval > 0
-                        ? $", \"OpcSamplingInterval\": {node.SamplingInterval}"
-                        : string.Empty;
-
-                    string nodeId = JsonEncodedText.Encode(node.NodeId, JavaScriptEncoder.Default).ToString();
-                    sb.AppendLine($"      {{ \"Id\": \"{NamespacePrefix}{nodeId}\"{publishingInterval}{samplingInterval} }},");
-                }
-            }
-
-            int trimLen = Environment.NewLine.Length + 1;
-            sb.Remove(sb.Length - trimLen, trimLen); // Trim trailing ,\n.
-
-            sb.AppendLine(Environment.NewLine + "    ]");
-            sb.AppendLine("  }");
-            sb.AppendLine("]");
-
-            string pnJson = sb.ToString();
-            Logger.Information($"OPC Publisher configuration file: {PnJson}" + pnJson);
-
-            await File.WriteAllTextAsync(PnJson, pnJson.Trim()).ConfigureAwait(false);
-        }
-
-        /// <summary>
         /// Run the server.
         /// </summary>
         private static async Task ConsoleServerAsync(CancellationToken cancellationToken)
@@ -319,11 +271,19 @@
 
             if (ShowPublisherConfigJsonIp)
             {
-                await DumpPublisherConfigJsonAsync($"{GetIpAddress()}:{ServerPort}{ServerPath}").ConfigureAwait(false);
+                await PnJsonHelper.DumpPublisherConfigJsonAsync(
+                    PnJson,
+                    $"{GetIpAddress()}:{ServerPort}{ServerPath}",
+                    PluginNodes,
+                    Logger).ConfigureAwait(false);
             }
             else if (ShowPublisherConfigJsonPh)
             {
-                await DumpPublisherConfigJsonAsync($"{Hostname}:{ServerPort}{ServerPath}").ConfigureAwait(false);
+                await PnJsonHelper.DumpPublisherConfigJsonAsync(
+                    PnJson,
+                    $"{Hostname}:{ServerPort}{ServerPath}",
+                    PluginNodes,
+                    Logger).ConfigureAwait(false);
             }
 
             Ready = true;
