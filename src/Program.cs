@@ -201,10 +201,7 @@
                 .Where(t => pluginNodesType.IsAssignableFrom(t) &&
                             !t.IsInterface &&
                             !t.IsAbstract)
-                .Select(t =>
-                {
-                    return Activator.CreateInstance(t);
-                })
+                .Select(t => Activator.CreateInstance(t))
                 .Cast<IPluginNodes>()
                 .ToImmutableList();
         }
@@ -306,9 +303,11 @@
                 cancellationTokenSource.Cancel();
                 eArgs.Cancel = true;
             };
+
             while (!cancellationTokenSource.Token.WaitHandle.WaitOne(1000))
             {
             }
+
             PlcSimulation.Stop();
             PlcServer.Stop();
         }
