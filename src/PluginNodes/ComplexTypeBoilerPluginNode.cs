@@ -135,17 +135,11 @@
             _node.BoilerStatus.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: true);
         }
 
-        /// <summary>
-        /// Sets properties of the HeaterOn method.
-        /// </summary>
         private void SetHeaterOnMethodProperties(ref MethodState method)
         {
             method.OnCallMethod += OnHeaterOnCall;
         }
 
-        /// <summary>
-        /// Sets properties of the HeaterOff method.
-        /// </summary>
         private void SetHeaterOffMethodProperties(ref MethodState method)
         {
             method.OnCallMethod += OnHeaterOffCall;
