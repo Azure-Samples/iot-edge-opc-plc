@@ -257,7 +257,6 @@
             Logger.Information("Simulation settings are:");
             Logger.Information($"One simulation phase consists of {SimulationCycleCount} cycles");
             Logger.Information($"One cycle takes {SimulationCycleLength} milliseconds");
-            Logger.Information($"Complex type (boiler) is {(AddComplexTypeBoiler ? "enabled" : "disabled")}");
             Logger.Information($"Reference Test Simulation is {(AddReferenceTestSimulation ? "enabled" : "disabled")}");
             Logger.Information($"Simple Events is {(AddSimpleEventsSimulation ? "enabled" : "disabled")}");
             Logger.Information($"Alarms is {(AddAlarmSimulation ? "enabled" : "disabled")}");

@@ -4,7 +4,6 @@ namespace OpcPlc
     using Opc.Ua.Server;
     using System;
     using System.Collections.Generic;
-    using System.Reflection;
     using System.Timers;
     using static OpcPlc.Program;
 
@@ -20,7 +19,6 @@ namespace OpcPlc
             SystemContext.NodeIdFactory = this;
         }
 
-#pragma warning disable IDE0060 // Remove unused parameter
         public void UpdateEventInstances(object state, ElapsedEventArgs elapsedEventArgs)
         {
             UpdateEventInstances();
@@ -30,7 +28,6 @@ namespace OpcPlc
         {
             UpdateEventInstances();
         }
-#pragma warning restore IDE0060 // Remove unused parameter
 
         private void UpdateEventInstances()
         {
@@ -91,6 +88,8 @@ namespace OpcPlc
                     externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
                 }
 
+                _externalReferences = externalReferences;
+
                 FolderState root = CreateFolder(null, ProgramName, ProgramName, NamespaceType.OpcPlcApplications);
                 root.AddReference(ReferenceTypes.Organizes, true, ObjectIds.ObjectsFolder);
                 references.Add(new NodeStateReference(ReferenceTypes.Organizes, false, root.NodeId));
@@ -103,8 +102,6 @@ namespace OpcPlc
                 {
                     FolderState telemetryFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
-
-                    AddComplexTypeBoiler(methodsFolder, externalReferences);
 
                     // Add nodes to address space from plugin nodes list.
                     foreach (var plugin in Program.PluginNodes)
@@ -255,116 +252,28 @@ namespace OpcPlc
             return baseDataVariableState;
         }
 
-        #region Complex type boiler
-        private void AddComplexTypeBoiler(FolderState methodsFolder, IDictionary<NodeId, IList<IReference>> externalReferences)
+        /// <summary>
+        /// Loads a predefined node set by using the specified handler.
+        /// </summary>
+        public void LoadPredefinedNodes(Func<ISystemContext, NodeStateCollection> loadPredefinedNodeshandler)
         {
-            if (PlcSimulation.AddComplexTypeBoiler)
-            {
-                // Load complex types from binary uanodes file.
-                base.LoadPredefinedNodes(SystemContext, externalReferences);
+            _loadPredefinedNodeshandler = loadPredefinedNodeshandler;
 
-                // Find the Boiler1 node that was created when the model was loaded.
-                var passiveNode = (BaseObjectState)FindPredefinedNode(new NodeId(BoilerModel.Objects.Boiler1, NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
-
-                // Convert to node that can be manipulated within the server.
-                _boiler1 = new BoilerModel.BoilerState(null);
-                _boiler1.Create(SystemContext, passiveNode);
-
-                base.AddPredefinedNode(SystemContext, _boiler1);
-
-                // Create heater on/off methods.
-                MethodState heaterOnMethod = CreateMethod(methodsFolder, "HeaterOn", "HeaterOn", "Turn the heater on", NamespaceType.Boiler);
-                SetHeaterOnMethodProperties(ref heaterOnMethod);
-                MethodState heaterOffMethod = CreateMethod(methodsFolder, "HeaterOff", "HeaterOff", "Turn the heater off", NamespaceType.Boiler);
-                SetHeaterOffMethodProperties(ref heaterOffMethod);
-            }
-        }
-
-        public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
-        {
-            var newValue = new BoilerModel.BoilerDataType
-            {
-                HeaterState = _boiler1.BoilerStatus.Value.HeaterState,
-            };
-
-            int currentTemperatureBottom = _boiler1.BoilerStatus.Value.Temperature.Bottom;
-            BoilerModel.BoilerTemperatureType newTemperature = newValue.Temperature;
-
-            if (_boiler1.BoilerStatus.Value.HeaterState == BoilerModel.BoilerHeaterStateType.On)
-            {
-                // Heater on, increase by 1.
-                newTemperature.Bottom = currentTemperatureBottom + 1;
-            }
-            else
-            {
-                // Heater off, decrease down to a minimum of 20.
-                newTemperature.Bottom = currentTemperatureBottom > 20
-                    ? currentTemperatureBottom - 1
-                    : currentTemperatureBottom;
-            }
-
-            // Top is always 5 degrees less than bottom, with a minimum value of 20.
-            newTemperature.Top = Math.Max(20, newTemperature.Bottom - 5);
-
-            // Pressure is always 100_000 + bottom temperature.
-            newValue.Pressure = 100_000 + newTemperature.Bottom;
-
-            // Change complex value in one atomic step.
-            _boiler1.BoilerStatus.Value = newValue;
-            _boiler1.BoilerStatus.ClearChangeMasks(SystemContext, includeChildren: true);
+            base.LoadPredefinedNodes(SystemContext, _externalReferences);
         }
 
         /// <summary>
-        /// Sets properties of the HeaterOn method.
+        /// Adds a predefined node set.
         /// </summary>
-        private void SetHeaterOnMethodProperties(ref MethodState method)
+        public void AddPredefinedNode(NodeState node)
         {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnHeaterOnCall);
+            base.AddPredefinedNode(SystemContext, node);
         }
 
-        /// <summary>
-        /// Sets properties of the HeaterOff method.
-        /// </summary>
-        private void SetHeaterOffMethodProperties(ref MethodState method)
-        {
-            method.OnCallMethod = new GenericMethodCalledEventHandler(OnHeaterOffCall);
-        }
-
-        /// <summary>
-        /// Loads a node set from a file or resource and adds them to the set of predefined nodes.
-        /// </summary>
         protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
         {
-            var predefinedNodes = new NodeStateCollection();
-
-            predefinedNodes.LoadFromBinaryResource(context,
-                "Boiler/BoilerModel.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
-                typeof(PlcNodeManager).GetTypeInfo().Assembly,
-                updateTables: true);
-
-            return predefinedNodes;
+            return _loadPredefinedNodeshandler?.Invoke(context);
         }
-
-        /// <summary>
-        /// Method to turn the heater on. Executes synchronously.
-        /// </summary>
-        private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            _boiler1.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.On;
-            Logger.Debug("OnHeaterOnCall method called");
-            return ServiceResult.Good;
-        }
-
-        /// <summary>
-        /// Method to turn the heater off. Executes synchronously.
-        /// </summary>
-        private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-        {
-            _boiler1.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.Off;
-            Logger.Debug("OnHeaterOffCall method called");
-            return ServiceResult.Good;
-        }
-        #endregion
 
         ///// <summary>
         ///// Creates a new variable.
@@ -523,9 +432,7 @@ namespace OpcPlc
 
         private uint _eventInstanceCycle = 0;
 
-        /// <summary>
-        /// Following variables listed here are simulated.
-        /// </summary>
-        protected BoilerModel.BoilerState _boiler1 = null;
+        private IDictionary<NodeId, IList<IReference>> _externalReferences;
+        private Func<ISystemContext, NodeStateCollection> _loadPredefinedNodeshandler;
     }
 }
