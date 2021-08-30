@@ -96,8 +96,6 @@ namespace OpcPlc
                 root.EventNotifier = EventNotifiers.SubscribeToEvents;
                 AddRootNotifier(root);
 
-                var variables = new List<BaseDataVariableState>();
-
                 try
                 {
                     FolderState telemetryFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
