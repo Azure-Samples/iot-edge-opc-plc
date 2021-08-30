@@ -38,9 +38,9 @@ namespace OpcPlc
         {
             if (EventInstanceCount > 0)
             {
-                _eventInstanceGenerator = EventInstanceRate >= 50 || !Stopwatch.IsHighResolution ?
-                    _plcServer.TimeService.NewTimer(UpdateEventInstances, EventInstanceRate) :
-                    _plcServer.TimeService.NewFastTimer(UpdateVeryFastEventInstances, EventInstanceRate);
+                _eventInstanceGenerator = EventInstanceRate >= 50 || !Stopwatch.IsHighResolution
+                    ? _plcServer.TimeService.NewTimer(UpdateEventInstances, EventInstanceRate)
+                    : _plcServer.TimeService.NewFastTimer(UpdateVeryFastEventInstances, EventInstanceRate);
             }
 
             // Start simulation of nodes from plugin nodes list.
@@ -78,7 +78,7 @@ namespace OpcPlc
         {
             uint eventInstanceCycle = _eventInstanceCycle++;
 
-            for (uint i = 0; i < PlcSimulation.EventInstanceCount; i++)
+            for (uint i = 0; i < EventInstanceCount; i++)
             {
                 var e = new BaseEventState(null);
                 var info = new TranslationInfo(
