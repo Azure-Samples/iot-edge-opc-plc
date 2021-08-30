@@ -1,6 +1,8 @@
 namespace OpcPlc
 {
+    using Opc.Ua;
     using System.Diagnostics;
+    using System.Timers;
 
     public class PlcSimulation
     {
@@ -36,9 +38,9 @@ namespace OpcPlc
         {
             if (EventInstanceCount > 0)
             {
-                _eventInstanceGenerator = EventInstanceRate >= 50 || !Stopwatch.IsHighResolution ?
-                    _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateEventInstances, EventInstanceRate) :
-                    _plcServer.TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastEventInstances, EventInstanceRate);
+                _eventInstanceGenerator = EventInstanceRate >= 50 || !Stopwatch.IsHighResolution
+                    ? _plcServer.TimeService.NewTimer(UpdateEventInstances, EventInstanceRate)
+                    : _plcServer.TimeService.NewFastTimer(UpdateVeryFastEventInstances, EventInstanceRate);
             }
 
             // Start simulation of nodes from plugin nodes list.
@@ -62,6 +64,42 @@ namespace OpcPlc
             }
         }
 
+        private void UpdateEventInstances(object state, ElapsedEventArgs elapsedEventArgs)
+        {
+            UpdateEventInstances();
+        }
+
+        private void UpdateVeryFastEventInstances(object state, FastTimerElapsedEventArgs elapsedEventArgs)
+        {
+            UpdateEventInstances();
+        }
+
+        private void UpdateEventInstances()
+        {
+            uint eventInstanceCycle = _eventInstanceCycle++;
+
+            for (uint i = 0; i < EventInstanceCount; i++)
+            {
+                var e = new BaseEventState(null);
+                var info = new TranslationInfo(
+                    "EventInstanceCycleEventKey",
+                    "en-us",
+                    "Event with index '{0}' and event cycle '{1}'",
+                    i, eventInstanceCycle);
+
+                e.Initialize(
+                    _plcServer.PlcNodeManager.SystemContext,
+                    source: null,
+                    EventSeverity.Medium,
+                    new LocalizedText(info));
+
+                e.SetChildValue(_plcServer.PlcNodeManager.SystemContext, BrowseNames.SourceName, "System", false);
+                e.SetChildValue(_plcServer.PlcNodeManager.SystemContext, BrowseNames.SourceNode, ObjectIds.Server, false);
+
+                _plcServer.PlcNodeManager.Server.ReportEvent(e);
+            };
+        }
+
         private void Disable(ITimer timer)
         {
             if (timer == null)
@@ -78,5 +116,6 @@ namespace OpcPlc
         private readonly PlcServer _plcServer;
 
         private ITimer _eventInstanceGenerator;
+        private uint _eventInstanceCycle = 0;
     }
 }
