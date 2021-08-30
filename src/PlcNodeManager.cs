@@ -4,7 +4,6 @@ namespace OpcPlc
     using Opc.Ua.Server;
     using System;
     using System.Collections.Generic;
-    using System.Timers;
     using static OpcPlc.Program;
 
     public class PlcNodeManager : CustomNodeManager2
@@ -17,42 +16,6 @@ namespace OpcPlc
         {
             _timeService = timeService;
             SystemContext.NodeIdFactory = this;
-        }
-
-        public void UpdateEventInstances(object state, ElapsedEventArgs elapsedEventArgs)
-        {
-            UpdateEventInstances();
-        }
-
-        public void UpdateVeryFastEventInstances(object state, FastTimerElapsedEventArgs elapsedEventArgs)
-        {
-            UpdateEventInstances();
-        }
-
-        private void UpdateEventInstances()
-        {
-            uint eventInstanceCycle = _eventInstanceCycle++;
-
-            for (uint i = 0; i < PlcSimulation.EventInstanceCount; i++)
-            {
-                var e = new BaseEventState(null);
-                var info = new TranslationInfo(
-                    "EventInstanceCycleEventKey",
-                    "en-us",
-                    "Event with index '{0}' and event cycle '{1}'",
-                    i, eventInstanceCycle);
-
-                e.Initialize(
-                    SystemContext,
-                    source: null,
-                    EventSeverity.Medium,
-                    new LocalizedText(info));
-
-                e.SetChildValue(SystemContext, BrowseNames.SourceName, "System", false);
-                e.SetChildValue(SystemContext, BrowseNames.SourceNode, ObjectIds.Server, false);
-
-                Server.ReportEvent(e);
-            };
         }
 
         /// <summary>
@@ -427,8 +390,6 @@ namespace OpcPlc
         //}
 
         private readonly TimeService _timeService;
-
-        private uint _eventInstanceCycle = 0;
 
         private IDictionary<NodeId, IList<IReference>> _externalReferences;
         private Func<ISystemContext, NodeStateCollection> _loadPredefinedNodeshandler;
