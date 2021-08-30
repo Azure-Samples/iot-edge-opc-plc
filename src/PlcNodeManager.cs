@@ -236,6 +236,7 @@ namespace OpcPlc
             return _loadPredefinedNodeshandler?.Invoke(context);
         }
 
+        #region Commented code
         ///// <summary>
         ///// Creates a new variable.
         ///// </summary>
@@ -388,6 +389,7 @@ namespace OpcPlc
 
         //    return variable;
         //}
+        #endregion
 
         private readonly TimeService _timeService;
 
