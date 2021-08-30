@@ -123,9 +123,6 @@
             return nextValue;
         }
 
-        /// <summary>
-        /// Sets properties of the ResetTrend method.
-        /// </summary>
         private void SetResetTrendMethodProperties(ref MethodState method)
         {
             method.OnCallMethod += OnResetTrendCall;

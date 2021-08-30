@@ -142,25 +142,16 @@
             SetStopStepUpMethodProperties(ref stopStepUpMethod);
         }
 
-        /// <summary>
-        /// Sets properties of the ResetStepUp method.
-        /// </summary>
         private void SetResetStepUpMethodProperties(ref MethodState method)
         {
             method.OnCallMethod += OnResetStepUpCall;
         }
 
-        /// <summary>
-        /// Sets properties of the StartStepUp method.
-        /// </summary>
         private void SetStartStepUpMethodProperties(ref MethodState method)
         {
             method.OnCallMethod += OnStartStepUpCall;
         }
 
-        /// <summary>
-        /// Sets properties of the StopStepUp method.
-        /// </summary>
         private void SetStopStepUpMethodProperties(ref MethodState method)
         {
             method.OnCallMethod += OnStopStepUpCall;

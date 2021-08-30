@@ -183,7 +183,6 @@
                 { "dc|defaultpassword=", $"the password of the default user.\nDefault: {Program.DefaultPassword}", (string s) => Program.DefaultPassword = s ?? Program.DefaultPassword},
 
                 // Special nodes
-                { "ctb|complextypeboiler", $"add complex type (boiler) to address space.\nDefault: {AddComplexTypeBoiler}", (string s) => AddComplexTypeBoiler = s != null },
                 { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", (string s) => AddAlarmSimulation = s != null },
                 { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", (string s) => AddSimpleEventsSimulation = s != null },
                 { "ref|referencetest", $"add reference test simulation node manager to address space.\nDefault: {AddReferenceTestSimulation}", (string s) => AddReferenceTestSimulation = s != null },

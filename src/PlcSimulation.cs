@@ -1,14 +1,12 @@
 namespace OpcPlc
 {
     using System.Diagnostics;
-    using static OpcPlc.Program;
 
     public class PlcSimulation
     {
         /// <summary>
         /// Flags for node generation.
         /// </summary>
-        public static bool AddComplexTypeBoiler { get; set; }
         public static bool AddAlarmSimulation { get; set; }
         public static bool AddSimpleEventsSimulation { get; set; }
         public static bool AddReferenceTestSimulation { get; set; }
@@ -43,11 +41,6 @@ namespace OpcPlc
                     _plcServer.TimeService.NewFastTimer(_plcServer.PlcNodeManager.UpdateVeryFastEventInstances, EventInstanceRate);
             }
 
-            if (AddComplexTypeBoiler)
-            {
-                _boiler1Generator = _plcServer.TimeService.NewTimer(_plcServer.PlcNodeManager.UpdateBoiler1, 1000);
-            }
-
             // Start simulation of nodes from plugin nodes list.
             foreach (var plugin in Program.PluginNodes)
             {
@@ -61,7 +54,6 @@ namespace OpcPlc
         public void Stop()
         {
             Disable(_eventInstanceGenerator);
-            Disable(_boiler1Generator);
 
             // Stop simulation of nodes from plugin nodes list.
             foreach (var plugin in Program.PluginNodes)
@@ -86,6 +78,5 @@ namespace OpcPlc
         private readonly PlcServer _plcServer;
 
         private ITimer _eventInstanceGenerator;
-        private ITimer _boiler1Generator;
     }
 }
