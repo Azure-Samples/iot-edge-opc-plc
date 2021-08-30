@@ -97,36 +97,23 @@
 
         private void AddMethods(FolderState methodsFolder)
         {
-            string stopMethod = "StopUpdateSlowNodes";
-            string startMethod = "StartUpdateSlowNodes";
-
             MethodState stopUpdateMethod = _plcNodeManager.CreateMethod(
                 methodsFolder,
-                path: stopMethod,
-                name: stopMethod,
+                path: "StopUpdateSlowNodes",
+                name: "StopUpdateSlowNodes",
                 "Stop the increase of value of slow nodes",
                 NamespaceType.OpcPlcApplications);
 
-            stopUpdateMethod.OnCallMethod += (context, method, inputArguments, outputArguments) =>
-            {
-                _updateNodes = false;
-                Logger.Debug($"{stopMethod} method called");
-                return ServiceResult.Good;
-            };
+            SetStopUpdateSlowNodesProperties(ref stopUpdateMethod);
 
             MethodState startUpdateMethod = _plcNodeManager.CreateMethod(
                 methodsFolder,
-                path: startMethod,
-                name: startMethod,
+                path: "StartUpdateSlowNodes",
+                name: "StartUpdateSlowNodes",
                 "Start the increase of value of slow nodes",
                 NamespaceType.OpcPlcApplications);
 
-            startUpdateMethod.OnCallMethod += (context, method, inputArguments, outputArguments) =>
-            {
-                _updateNodes = true;
-                Logger.Debug($"{startMethod} method called");
-                return ServiceResult.Good;
-            };
+            SetStartUpdateSlowNodesProperties(ref startUpdateMethod);
         }
 
         public void StartSimulation()
@@ -177,6 +164,36 @@
             }
 
             Nodes = nodes;
+        }
+
+        private void SetStopUpdateSlowNodesProperties(ref MethodState method)
+        {
+            method.OnCallMethod += OnStopUpdateSlowNodes;
+        }
+
+        private void SetStartUpdateSlowNodesProperties(ref MethodState method)
+        {
+            method.OnCallMethod += OnStartUpdateSlowNodes;
+        }
+
+        /// <summary>
+        /// Method to stop updating the slow nodes.
+        /// </summary>
+        private ServiceResult OnStopUpdateSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            _updateNodes = false;
+            Logger.Debug("StopUpdateSlowNodes method called");
+            return ServiceResult.Good;
+        }
+
+        /// <summary>
+        /// Method to start updating the slow nodes.
+        /// </summary>
+        private ServiceResult OnStartUpdateSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+        {
+            _updateNodes = true;
+            Logger.Debug("StartUpdateSlowNodes method called");
+            return ServiceResult.Good;
         }
 
         private void UpdateNodes(object state, ElapsedEventArgs elapsedEventArgs)
