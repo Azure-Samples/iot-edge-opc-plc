@@ -115,11 +115,42 @@
                 Logger.Information($"OPC UA server base address: {endpoint}");
             }
 
-            // by default use high secure transport
+            ConfigureAuthenticationPolicies();
+
+            // security configuration
+            await InitApplicationSecurityAsync().ConfigureAwait(false);
+
+            // set LDS registration interval
+            ApplicationConfiguration.ServerConfiguration.MaxRegistrationInterval = LdsRegistrationInterval;
+            Logger.Information($"LDS(-ME) registration interval set to {LdsRegistrationInterval} ms (0 means no registration)");
+
+            // show certificate store information
+            await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
+
+            // Support larger number of nodes.
+            ApplicationConfiguration.ServerConfiguration.MaxMessageQueueSize = MAX_MESSAGE_QUEUE_SIZE;
+            ApplicationConfiguration.ServerConfiguration.MaxNotificationsPerPublish = MAX_NOTIFICATIONS_PER_PUBLISH;
+            ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount = MAX_SUBSCRIPTION_COUNT;
+            ApplicationConfiguration.ServerConfiguration.MaxPublishRequestCount = MAX_PUBLISH_REQUEST_COUNT;
+            ApplicationConfiguration.ServerConfiguration.MaxRequestThreadCount = MAX_REQUEST_THREAD_COUNT;
+
+            return ApplicationConfiguration;
+        }
+
+        private static void ConfigureAuthenticationPolicies()
+        {
             var newPolicy = new ServerSecurityPolicy()
             {
+                SecurityMode = MessageSecurityMode.Sign,
+                SecurityPolicyUri = SecurityPolicies.Basic256Sha256,
+            };
+            ApplicationConfiguration.ServerConfiguration.SecurityPolicies.Add(newPolicy);
+            Logger.Information($"Security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
+
+            newPolicy = new ServerSecurityPolicy()
+            {
                 SecurityMode = MessageSecurityMode.SignAndEncrypt,
-                SecurityPolicyUri = SecurityPolicies.Basic256Sha256
+                SecurityPolicyUri = SecurityPolicies.Basic256Sha256,
             };
             ApplicationConfiguration.ServerConfiguration.SecurityPolicies.Add(newPolicy);
             Logger.Information($"Security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
@@ -150,31 +181,12 @@
                 newPolicy = new ServerSecurityPolicy()
                 {
                     SecurityMode = MessageSecurityMode.None,
-                    SecurityPolicyUri = SecurityPolicies.None
+                    SecurityPolicyUri = SecurityPolicies.None,
                 };
                 ApplicationConfiguration.ServerConfiguration.SecurityPolicies.Add(newPolicy);
                 Logger.Information($"Unsecure security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
                 Logger.Warning($"Note: This is a security risk and needs to be disabled for production use");
             }
-
-            // security configuration
-            await InitApplicationSecurityAsync().ConfigureAwait(false);
-
-            // set LDS registration interval
-            ApplicationConfiguration.ServerConfiguration.MaxRegistrationInterval = LdsRegistrationInterval;
-            Logger.Information($"LDS(-ME) registration interval set to {LdsRegistrationInterval} ms (0 means no registration)");
-
-            // show certificate store information
-            await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
-
-            // Support larger number of nodes.
-            ApplicationConfiguration.ServerConfiguration.MaxMessageQueueSize = MAX_MESSAGE_QUEUE_SIZE;
-            ApplicationConfiguration.ServerConfiguration.MaxNotificationsPerPublish = MAX_NOTIFICATIONS_PER_PUBLISH;
-            ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount = MAX_SUBSCRIPTION_COUNT;
-            ApplicationConfiguration.ServerConfiguration.MaxPublishRequestCount = MAX_PUBLISH_REQUEST_COUNT;
-            ApplicationConfiguration.ServerConfiguration.MaxRequestThreadCount = MAX_REQUEST_THREAD_COUNT;
-
-            return ApplicationConfiguration;
         }
 
         /// <summary>
