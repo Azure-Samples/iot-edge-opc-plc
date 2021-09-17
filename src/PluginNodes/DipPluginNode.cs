@@ -80,7 +80,11 @@
 
             Nodes = new List<NodeWithIntervals>
             {
-                new NodeWithIntervals { NodeId = "DipData" },
+                new NodeWithIntervals
+                {
+                    NodeId = "DipData",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
             };
         }
 

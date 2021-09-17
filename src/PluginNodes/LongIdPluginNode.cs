@@ -79,7 +79,11 @@
 
             Nodes = new List<NodeWithIntervals>
             {
-                new NodeWithIntervals { NodeId = id.ToString() },
+                new NodeWithIntervals
+                {
+                    NodeId = id.ToString(),
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
             };
         }
     }

@@ -84,7 +84,11 @@
                         NamespaceType.OpcPlcApplications,
                         defaultValue: (uint)0));
 
-                nodes.Add(new NodeWithIntervals { NodeId = id });
+                nodes.Add(new NodeWithIntervals
+                {
+                    NodeId = id,
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                });
             }
 
             Nodes = nodes;

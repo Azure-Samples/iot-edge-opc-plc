@@ -158,6 +158,7 @@
                 nodes.Add(new NodeWithIntervals
                 {
                     NodeId = node.NodeId.Identifier.ToString(),
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
                     PublishingInterval = NodeRate,
                     SamplingInterval = NodeSamplingInterval,
                 });
@@ -168,6 +169,7 @@
                 nodes.Add(new NodeWithIntervals
                 {
                     NodeId = node.NodeId.Identifier.ToString(),
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
                     PublishingInterval = NodeRate,
                     SamplingInterval = NodeSamplingInterval,
                 });

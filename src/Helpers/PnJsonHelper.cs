@@ -17,7 +17,6 @@
         /// </summary>
         public static async Task DumpPublisherConfigJsonAsync(string pnJsonFileName, string serverPath, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
         {
-            const string NamespacePrefix = "ns=2;s=";
             var sb = new StringBuilder();
 
             sb.AppendLine(Environment.NewLine + "[");
@@ -42,7 +41,7 @@
                         : string.Empty;
 
                     string nodeId = JsonEncodedText.Encode(node.NodeId, JavaScriptEncoder.Default).ToString();
-                    sb.AppendLine($"      {{ \"Id\": \"{NamespacePrefix}{nodeId}\"{publishingInterval}{samplingInterval} }},");
+                    sb.AppendLine($"      {{ \"Id\": \"nsu={node.Namespace};s={nodeId}\"{publishingInterval}{samplingInterval} }},");
                 }
             }
 
