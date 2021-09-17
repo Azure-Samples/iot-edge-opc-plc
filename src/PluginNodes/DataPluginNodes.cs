@@ -123,10 +123,26 @@
 
             Nodes = new List<NodeWithIntervals>
             {
-                new NodeWithIntervals { NodeId = "StepUp", Namespace = OpcPlc.Namespaces.OpcPlcApplications },
-                new NodeWithIntervals { NodeId = "AlternatingBoolean", Namespace = OpcPlc.Namespaces.OpcPlcApplications },
-                new NodeWithIntervals { NodeId = "RandomSignedInt32", Namespace = OpcPlc.Namespaces.OpcPlcApplications },
-                new NodeWithIntervals { NodeId = "RandomUnsignedInt32", Namespace = OpcPlc.Namespaces.OpcPlcApplications },
+                new NodeWithIntervals
+                {
+                    NodeId = "StepUp",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
+                new NodeWithIntervals
+                {
+                    NodeId = "AlternatingBoolean",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
+                new NodeWithIntervals
+                {
+                    NodeId = "RandomSignedInt32",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
+                new NodeWithIntervals
+                {
+                    NodeId = "RandomUnsignedInt32",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
             };
         }
 
