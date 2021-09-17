@@ -91,7 +91,12 @@
 
                 Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{_plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]}'");
                 CreateBaseVariable(userNodesFolder, node);
-                nodes.Add(new NodeWithIntervals { NodeId = node.NodeId.ToString() });
+
+                nodes.Add(new NodeWithIntervals
+                {
+                    NodeId = node.NodeId.ToString(),
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                });
             }
 
             Logger.Information("Processing node information completed.");

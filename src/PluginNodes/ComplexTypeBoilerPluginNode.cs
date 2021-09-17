@@ -75,6 +75,7 @@
                 name: "HeaterOn",
                 "Turn the heater on",
                 NamespaceType.Boiler);
+
             SetHeaterOnMethodProperties(ref heaterOnMethod);
 
             MethodState heaterOffMethod = _plcNodeManager.CreateMethod(
@@ -83,7 +84,17 @@
                 name: "HeaterOff",
                 "Turn the heater off",
                 NamespaceType.Boiler);
+
             SetHeaterOffMethodProperties(ref heaterOffMethod);
+
+            Nodes = new List<NodeWithIntervals>
+            {
+                new NodeWithIntervals
+                {
+                    NodeId = "Boiler",
+                    Namespace = OpcPlc.Namespaces.OpcPlcBoiler,
+                },
+            };
         }
 
         /// <summary>

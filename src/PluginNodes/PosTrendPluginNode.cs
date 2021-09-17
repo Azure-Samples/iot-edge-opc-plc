@@ -82,7 +82,11 @@
 
             Nodes = new List<NodeWithIntervals>
             {
-                new NodeWithIntervals { NodeId = "PositiveTrendData" },
+                new NodeWithIntervals
+                {
+                    NodeId = "PositiveTrendData",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
             };
         }
 

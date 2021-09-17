@@ -130,10 +130,26 @@
 
             Nodes = new List<NodeWithIntervals>
             {
-                new NodeWithIntervals { NodeId = "LongString10kB" },
-                new NodeWithIntervals { NodeId = "LongString50kB" },
-                new NodeWithIntervals { NodeId = "LongString100kB" },
-                new NodeWithIntervals { NodeId = "LongString200kB" },
+                new NodeWithIntervals
+                {
+                    NodeId = "LongString10kB",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
+                new NodeWithIntervals
+                {
+                    NodeId = "LongString50kB",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
+                new NodeWithIntervals
+                {
+                    NodeId = "LongString100kB",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
+                new NodeWithIntervals
+                {
+                    NodeId = "LongString200kB",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
             };
         }
     }

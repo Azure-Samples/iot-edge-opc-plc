@@ -80,7 +80,11 @@
 
             Nodes = new List<NodeWithIntervals>
             {
-                new NodeWithIntervals { NodeId = "SpikeData" },
+                new NodeWithIntervals
+                {
+                    NodeId = "SpikeData",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                },
             };
         }
 
