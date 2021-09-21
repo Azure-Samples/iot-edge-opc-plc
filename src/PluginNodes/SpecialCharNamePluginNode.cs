@@ -75,7 +75,8 @@
             Nodes = new List<NodeWithIntervals>
             {
                 new NodeWithIntervals
-                { NodeId = "Special_" + SpecialChars,
+                {
+                    NodeId = "Special_" + SpecialChars,
                     Namespace = OpcPlc.Namespaces.OpcPlcApplications,
                 },
             };
