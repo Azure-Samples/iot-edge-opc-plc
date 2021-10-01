@@ -136,7 +136,7 @@ namespace OpcPlc.Tests
                     Value =
                     {
                         Value = newValue,
-                    }
+                    },
                 }
             };
 
