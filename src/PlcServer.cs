@@ -39,8 +39,9 @@ namespace OpcPlc
         {
             var nodeManagers = new List<INodeManager>();
 
-            // Add encodable complex types.
+            // Add encodeable complex types.
             server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
+            EncodeableFactory.GlobalFactory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
 
             PlcNodeManager = new PlcNodeManager(
                 server,
