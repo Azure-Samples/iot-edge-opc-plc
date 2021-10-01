@@ -57,7 +57,7 @@ namespace OpcPlc.Tests
                     ["/SourceNode"] = machine1,
                     ["/SourceName"] = "VendingMachine1",
                     ["/Message"] = new LocalizedText("Door Open"),
-                    ["/Severity"] = EventSeverity.High,
+                    ["/Severity"] = (int)EventSeverity.High,
                 });
 
             NodeShouldHaveStates(doorOpen1, Active, Enabled);
@@ -76,7 +76,7 @@ namespace OpcPlc.Tests
                     ["/SourceNode"] = machine2,
                     ["/SourceName"] = "VendingMachine2",
                     ["/Message"] = new LocalizedText("Light Off in machine"),
-                    ["/Severity"] = EventSeverity.Medium,
+                    ["/Severity"] = (int)EventSeverity.Medium,
                 });
 
             NodeShouldHaveStates(lightOff2, Active, Enabled);
@@ -92,7 +92,7 @@ namespace OpcPlc.Tests
                     ["/SourceNode"] = machine1,
                     ["/SourceName"] = "VendingMachine1",
                     ["/Message"] = new LocalizedText("Door Closed"),
-                    ["/Severity"] = EventSeverity.Medium,
+                    ["/Severity"] = (int)EventSeverity.Medium,
                 });
 
             NodeShouldHaveStates(doorOpen1, Inactive, Enabled);
@@ -108,7 +108,7 @@ namespace OpcPlc.Tests
                     ["/SourceNode"] = machine1,
                     ["/SourceName"] = "VendingMachine1",
                     ["/Message"] = new LocalizedText("Temperature is HIGH"),
-                    ["/Severity"] = EventSeverity.High,
+                    ["/Severity"] = (int)EventSeverity.High,
                 });
 
             NodeShouldHaveStates(tempHigh1, Active, Enabled);

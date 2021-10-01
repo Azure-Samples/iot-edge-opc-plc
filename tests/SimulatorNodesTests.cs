@@ -48,8 +48,8 @@ namespace OpcPlc.Tests
                 measurements.Add(value);
             }
 
-            List<uint> expectedValues = Enumerable.Range((int)firstValue, 10)
-                .Select<int, uint>(i => (uint)i)
+            List<object> expectedValues = Enumerable.Range((int)firstValue, 10)
+                .Select<int, object>(i => (uint)i)
                 .ToList();
 
             measurements.Should().NotBeEmpty()
@@ -206,13 +206,13 @@ namespace OpcPlc.Tests
 
             valuesByStatus
                 .Should().ContainKey(StatusCodes.Good)
-                .WhichValue
+                .WhoseValue
                 .Should().HaveCountGreaterThan(cycles * 5 / 10)
                 .And.OnlyContain(v => v.Value != null);
 
             valuesByStatus
                 .Should().ContainKey(StatusCodes.UncertainLastUsableValue)
-                .WhichValue
+                .WhoseValue
                 .Should().OnlyContain(v => v.Value != null);
         }
 
