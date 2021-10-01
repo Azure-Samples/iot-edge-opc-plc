@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="Bogus" Version="33.1.1" />
-        <PackageReference Include="FluentAssertions" Version="5.10.3" />
+        <PackageReference Include="FluentAssertions" Version="6.1.0" />
         <PackageReference Include="Moq" Version="4.16.1" />
         <PackageReference Include="NUnit" Version="3.13.2" />
         <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
@@ -19,10 +19,10 @@
 
 
     <ItemGroup>
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" Version="1.4.366.38" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.4.366.38" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.4.366.38" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes.Debug" Version="1.4.366.38" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" Version="1.4.367.39" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.4.367.39" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.4.367.39" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes.Debug" Version="1.4.367.39" />
     </ItemGroup>
 
     <ItemGroup>
