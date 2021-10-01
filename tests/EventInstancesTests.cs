@@ -15,7 +15,7 @@
     {
         private NodeId _eventType;
 
-        // Set any cmd params needed for the plc server explicitly.        
+        // Set any cmd params needed for the plc server explicitly.
         public EventInstancesTests() : base(new[] { "--ei=1", "--er=1000" })
         {
         }
@@ -59,7 +59,7 @@
                     ["/SourceName"] = "System",
                 });
                 value.Should().ContainKey("/Message")
-                    .WhichValue.Should().BeOfType<LocalizedText>()
+                    .WhoseValue.Should().BeOfType<LocalizedText>()
                     .Which.Text.Should().MatchRegex("^Event with index '0' and event cycle '\\d+'$");
             }
         }
