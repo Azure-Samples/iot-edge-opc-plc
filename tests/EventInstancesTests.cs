@@ -15,7 +15,7 @@
     {
         private NodeId _eventType;
 
-        // Set any cmd params needed for the plc server explicitly.
+        // Set any cmd params needed for the plc server explicitly.        
         public EventInstancesTests() : base(new[] { "--ei=1", "--er=1000" })
         {
         }
