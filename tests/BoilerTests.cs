@@ -121,6 +121,7 @@ namespace OpcPlc.Tests
         {
             var nodeId = NodeId.Create(BoilerModel.Variables.Boiler1_BoilerStatus, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
             var value = Session.ReadValue(nodeId).Value;
+
             return value.Should().BeOfType<ExtensionObject>().Which.Body.Should().BeOfType<BoilerDataType>().Subject;
         }
     }
