@@ -293,7 +293,7 @@ namespace OpcPlc.Tests
 
                 if (_serverTask.IsCompleted)
                 {
-                    throw new Exception("Server failed to start: " + _serverTask?.Exception?.Flatten().Message);
+                    throw new Exception("Server failed to start");
                 }
 
                 if (!Program.Ready)
