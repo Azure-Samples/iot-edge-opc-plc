@@ -48,7 +48,7 @@ namespace OpcPlc.Tests
         [OneTimeTearDown]
         public async Task TearDown()
         {
-            Session.Close();
+            Session?.Close();
             await _simulator.Stop();
         }
 
