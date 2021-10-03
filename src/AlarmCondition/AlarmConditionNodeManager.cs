@@ -2,7 +2,7 @@
  * Copyright (c) 2005-2019 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +11,7 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
@@ -29,7 +29,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using Opc.Ua;
 using Opc.Ua.Server;
@@ -41,7 +40,7 @@ namespace AlarmCondition
     /// </summary>
     /// <remarks>
     /// This node manager presumes that the information model consists of a hierachy of predefined
-    /// Areas with a number of Sources contained within them. Each individual Source is 
+    /// Areas with a number of Sources contained within them. Each individual Source is
     /// identified by a fully qualified path. The underlying system knows how to access the source
     /// configuration when it is provided the fully qualified path.
     /// </remarks>
@@ -93,7 +92,7 @@ namespace AlarmCondition
         /// <returns>The new NodeId.</returns>
         /// <remarks>
         /// This method is called by the NodeState.Create() method which initializes a Node from
-        /// the type model. During initialization a number of child nodes are created and need to 
+        /// the type model. During initialization a number of child nodes are created and need to
         /// have NodeIds assigned to them. This implementation constructs NodeIds by constructing
         /// strings. Other implementations could assign unique integers or Guids and save the new
         /// Node in a dictionary for later lookup.
@@ -111,7 +110,7 @@ namespace AlarmCondition
         /// <remarks>
         /// The externalReferences is an out parameter that allows the node manager to link to nodes
         /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
-        /// should have a reference to the root folder node(s) exposed by this node manager.  
+        /// should have a reference to the root folder node(s) exposed by this node manager.
         /// </remarks>
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
         {
@@ -120,12 +119,10 @@ namespace AlarmCondition
             {
                 if (alarmConfig != null)
                 {
-                    // Top level areas need a reference from the Server object. 
+                    // Top level areas need a reference from the Server object.
                     // These references are added to a list that is returned to the caller.
                     // The caller will update the Objects folder node.
-                    IList<IReference> references = null;
-
-                    if (!externalReferences.TryGetValue(ObjectIds.Server, out references))
+                    if (!externalReferences.TryGetValue(ObjectIds.Server, out IList<IReference> references))
                     {
                         externalReferences[ObjectIds.Server] = references = new List<IReference>();
                     }
@@ -210,7 +207,7 @@ namespace AlarmCondition
 
                 e.Initialize(
                     SystemContext,
-                    null,
+                    source: null,
                     EventSeverity.Medium,
                     new LocalizedText("Raising Events"));
 
@@ -219,20 +216,20 @@ namespace AlarmCondition
 
                 Server.ReportEvent(e);
 
-                AuditEventState ae = new AuditEventState(null);
+                var aes = new AuditEventState(null);
 
-                ae.Initialize(
+                aes.Initialize(
                     SystemContext,
-                    null,
+                    source: null,
                     EventSeverity.Medium,
                     new LocalizedText("Events Raised"),
-                    true,
+                    status: true,
                     DateTime.UtcNow);
 
-                ae.SetChildValue(SystemContext, BrowseNames.SourceNode, ObjectIds.Server, false);
-                ae.SetChildValue(SystemContext, BrowseNames.SourceName, "Internal", false);
+                aes.SetChildValue(SystemContext, BrowseNames.SourceNode, ObjectIds.Server, false);
+                aes.SetChildValue(SystemContext, BrowseNames.SourceName, "Internal", false);
 
-                Server.ReportEvent(ae);
+                Server.ReportEvent(aes);
             }
             catch (Exception e)
             {
@@ -286,7 +283,7 @@ namespace AlarmCondition
 
                     // HasEventSource and HasNotifier control the propagation of event notifications so
                     // they are not like other references. These calls set up a link between the source
-                    // and area that will cause events produced by the source to be automatically 
+                    // and area that will cause events produced by the source to be automatically
                     // propagated to the area.
                     source.AddNotifier(SystemContext, ReferenceTypeIds.HasEventSource, true, area);
                     area.AddNotifier(SystemContext, ReferenceTypeIds.HasEventSource, false, source);
