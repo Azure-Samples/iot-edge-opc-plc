@@ -2,7 +2,7 @@
  * Copyright (c) 2005-2019 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +11,7 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
@@ -30,10 +30,9 @@
 using System;
 using System.Collections.Generic;
 using Opc.Ua;
-using OpcPlc;
 
 namespace AlarmCondition
-{    
+{
     /// <summary>
     /// Maps an alarm source to a UA object node.
     /// </summary>
@@ -46,8 +45,8 @@ namespace AlarmCondition
         public SourceState(
             AlarmConditionServerNodeManager nodeManager,
             NodeId nodeId,
-            string sourcePath) 
-        : 
+            string sourcePath)
+        :
             base(null)
         {
             Initialize(nodeManager.SystemContext);
@@ -164,7 +163,7 @@ namespace AlarmCondition
                 if (alarm.RecordNumber != 0)
                 {
                     NodeId branchId = new NodeId(alarm.RecordNumber, this.NodeId.NamespaceIndex);
-                    
+
                     // find the alarm branch.
                     AlarmConditionState branch = null;
 
@@ -199,7 +198,7 @@ namespace AlarmCondition
                 ReportChanges(node);
             }
         }
-        
+
         /// <summary>
         /// Creates a new dialog condition
         /// </summary>
@@ -221,7 +220,7 @@ namespace AlarmCondition
             node.ReferenceTypeId = ReferenceTypeIds.HasComponent;
 
             // This call initializes the condition from the type model (i.e. creates all of the objects
-            // and variables requried to store its state). The information about the type model was 
+            // and variables requried to store its state). The information about the type model was
             // incorporated into the class when the class was created.
             node.Create(
                 context,
@@ -316,7 +315,7 @@ namespace AlarmCondition
 
                     break;
                 }
-                    
+
                 case "TripAlarm":
                 {
                     node = new TripAlarmState(this);
@@ -345,7 +344,7 @@ namespace AlarmCondition
                 node.ShelvingState = new ShelvedStateMachineState(node);
             }
 
-            // adding optional components to children is a little more complicated since the 
+            // adding optional components to children is a little more complicated since the
             // necessary initilization strings defined by the class that represents the child.
             // in this case we pre-create the child, add the optional components
             // and call create without assigning NodeIds. The NodeIds will be assigned when the
@@ -365,7 +364,7 @@ namespace AlarmCondition
             node.ReferenceTypeId = ReferenceTypeIds.HasComponent;
 
             // This call initializes the condition from the type model (i.e. creates all of the objects
-            // and variables requried to store its state). The information about the type model was 
+            // and variables requried to store its state). The information about the type model was
             // incorporated into the class when the class was created.
             //
             // This method also assigns new NodeIds to all of the components by calling the INodeIdFactory.New
@@ -392,7 +391,7 @@ namespace AlarmCondition
             node.Time.Value = DateTime.UtcNow;
             node.ReceiveTime.Value = node.Time.Value;
             node.BranchId.Value = branchId;
-            
+
             // set up method handlers.
             node.OnEnableDisable = OnEnableDisableAlarm;
             node.OnAcknowledge = OnAcknowledge;
@@ -427,7 +426,7 @@ namespace AlarmCondition
 
             // save the event for later lookup.
             m_events[Utils.ToHexString(node.EventId.Value)] = node;
-            
+
             // determine the retain state.
             node.Retain.Value = true;
 
@@ -511,7 +510,7 @@ namespace AlarmCondition
                 node.Retain.Value = false;
             }
         }
-        
+
         /// <summary>
         /// Called when the alarm is enabled or disabled.
         /// </summary>
@@ -734,7 +733,7 @@ namespace AlarmCondition
 
             return null;
         }
-        #endregion    
+        #endregion
 
         #region Private Fields
         private AlarmConditionServerNodeManager m_nodeManager;

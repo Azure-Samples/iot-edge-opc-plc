@@ -17,9 +17,9 @@ namespace OpcPlc.Tests
         private static readonly LocalizedText Enabled = English("Enabled");
 
         public DeterministicAlarmsTests() : base(new[]
-        {
-            "--dalm=DeterministicAlarmsTests/dalm001.json",
-        })
+            {
+                "--dalm=DeterministicAlarmsTests/dalm001.json",
+            })
         {
         }
 
@@ -57,7 +57,7 @@ namespace OpcPlc.Tests
                     ["/SourceNode"] = machine1,
                     ["/SourceName"] = "VendingMachine1",
                     ["/Message"] = new LocalizedText("Door Open"),
-                    ["/Severity"] = (int)EventSeverity.High,
+                    ["/Severity"] = EventSeverity.High,
                 });
 
             NodeShouldHaveStates(doorOpen1, Active, Enabled);
@@ -76,7 +76,7 @@ namespace OpcPlc.Tests
                     ["/SourceNode"] = machine2,
                     ["/SourceName"] = "VendingMachine2",
                     ["/Message"] = new LocalizedText("Light Off in machine"),
-                    ["/Severity"] = (int)EventSeverity.Medium,
+                    ["/Severity"] = EventSeverity.Medium,
                 });
 
             NodeShouldHaveStates(lightOff2, Active, Enabled);
@@ -92,7 +92,7 @@ namespace OpcPlc.Tests
                     ["/SourceNode"] = machine1,
                     ["/SourceName"] = "VendingMachine1",
                     ["/Message"] = new LocalizedText("Door Closed"),
-                    ["/Severity"] = (int)EventSeverity.Medium,
+                    ["/Severity"] = EventSeverity.Medium,
                 });
 
             NodeShouldHaveStates(doorOpen1, Inactive, Enabled);
@@ -108,7 +108,7 @@ namespace OpcPlc.Tests
                     ["/SourceNode"] = machine1,
                     ["/SourceName"] = "VendingMachine1",
                     ["/Message"] = new LocalizedText("Temperature is HIGH"),
-                    ["/Severity"] = (int)EventSeverity.High,
+                    ["/Severity"] = EventSeverity.High,
                 });
 
             NodeShouldHaveStates(tempHigh1, Active, Enabled);

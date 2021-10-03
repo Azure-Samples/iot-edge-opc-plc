@@ -2,7 +2,7 @@
  * Copyright (c) 2005-2019 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +11,7 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
@@ -29,16 +29,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Diagnostics;
-using System.Xml;
-using System.IO;
 using System.Threading;
 using System.Reflection;
 using Opc.Ua;
 using Opc.Ua.Server;
 
-namespace SimpleEvents { 
+namespace SimpleEvents
+{
     /// <summary>
     /// A node manager for a server that exposes several variables.
     /// </summary>
@@ -66,7 +63,7 @@ namespace SimpleEvents {
         /// An overrideable version of the Dispose.
         /// </summary>
         protected override void Dispose(bool disposing)
-        {  
+        {
             if (disposing)
             {
                 if (m_simulationTimer != null)
@@ -110,7 +107,7 @@ namespace SimpleEvents {
         /// <remarks>
         /// The externalReferences is an out parameter that allows the node manager to link to nodes
         /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
-        /// should have a reference to the root folder node(s) exposed by this node manager.  
+        /// should have a reference to the root folder node(s) exposed by this node manager.
         /// </remarks>
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
         {
@@ -164,7 +161,7 @@ namespace SimpleEvents {
                         return handle;
                     }
                 }
-                
+
                 return null;
             }
         }
@@ -188,7 +185,7 @@ namespace SimpleEvents {
             {
                 return handle.Node;
             }
-            
+
             // TBD
 
             return null;
@@ -218,7 +215,7 @@ namespace SimpleEvents {
 
                     e.Initialize(
                         SystemContext,
-                        null,
+                        source: null,
                         (EventSeverity)ii,
                         new LocalizedText(info));
 
@@ -226,7 +223,7 @@ namespace SimpleEvents {
                     e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, false);
                     e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.CycleId, NamespaceIndex), m_cycleId.ToString(), false);
 
-                    CycleStepDataType step = new CycleStepDataType();
+                    var step = new CycleStepDataType();
                     step.Name = "Step 1";
                     step.Duration = 1000;
 
