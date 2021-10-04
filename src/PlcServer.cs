@@ -41,6 +41,7 @@ namespace OpcPlc
 
             // Add encodable complex types.
             server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
+            EncodeableFactory.GlobalFactory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
 
             PlcNodeManager = new PlcNodeManager(
                 server,
@@ -67,16 +68,16 @@ namespace OpcPlc
                 nodeManagers.Add(SimulationNodeManager);
             }
 
-            if(PlcSimulation.DeterministicAlarmSimulationFile != null)
+            if (PlcSimulation.DeterministicAlarmSimulationFile != null)
             {
                 var scriptFileName = PlcSimulation.DeterministicAlarmSimulationFile;
-                if(string.IsNullOrWhiteSpace(scriptFileName))
+                if (string.IsNullOrWhiteSpace(scriptFileName))
                 {
                     string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";
                     Logger.Error(errorMessage);
                     throw new Exception(errorMessage);
                 }
-                if(!File.Exists(scriptFileName))
+                if (!File.Exists(scriptFileName))
                 {
                     string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist.";
                     Logger.Error(errorMessage);
