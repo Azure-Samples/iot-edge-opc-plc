@@ -17,9 +17,9 @@ namespace OpcPlc.Tests
         private static readonly LocalizedText Enabled = English("Enabled");
 
         public DeterministicAlarmsTests() : base(new[]
-        {
-            "--dalm=DeterministicAlarmsTests/dalm001.json",
-        })
+            {
+                "--dalm=DeterministicAlarmsTests/dalm001.json",
+            })
         {
         }
 

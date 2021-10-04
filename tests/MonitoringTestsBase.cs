@@ -74,7 +74,7 @@ namespace OpcPlc.Tests
                 NodeClass = nodeClass,
                 SamplingInterval = 0,
                 AttributeId = attributeId,
-                QueueSize = 1000
+                QueueSize = 1000,
             };
 
             MonitoredItem.Notification += MonitoredItem_Notification;
@@ -118,6 +118,7 @@ namespace OpcPlc.Tests
             } while (_receivedEvents.Count < expectedCount && sw.Elapsed < TimeSpan.FromSeconds(10));
 
             events.Should().HaveCount(expectedCount);
+
             return events;
         }
 
@@ -127,6 +128,7 @@ namespace OpcPlc.Tests
             var values = events
                 .Select(a => (EventFieldList)a.NotificationValue)
                 .Select(EventFieldListToDictionary);
+
             return values;
         }
 
@@ -150,6 +152,7 @@ namespace OpcPlc.Tests
 
             var events = _receivedEvents.Take(expectedCount).ToList();
             events.Should().HaveCount(expectedCount);
+
             return events;
         }
 
@@ -166,14 +169,15 @@ namespace OpcPlc.Tests
                 .Zip(arg.EventFields) // values of retrieved fields
                 .ToDictionary(
                     p => SimpleAttributeOperand.Format(p.First.BrowsePath), // e.g. "/EventId"
-                    p => ConvertByteArrayToString(p.Second.Value));
+                    p => ConvertValue(SimpleAttributeOperand.Format(p.First.BrowsePath), p.Second.Value));
         }
 
-        private static object ConvertByteArrayToString(object value)
+        private static object ConvertValue(string browsePath, object value)
         {
             return value switch
             {
                 byte[] byteArray => Encoding.UTF8.GetString(byteArray),
+                ushort severity when browsePath == "/Severity" => Enum.Parse(typeof(EventSeverity), severity.ToString()),
                 _ => value
             };
         }

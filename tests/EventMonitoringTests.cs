@@ -49,7 +49,7 @@ namespace OpcPlc.Tests
                     ["/SourceName"] = "System",
                 });
                 value.Should().ContainKey("/Message")
-                    .WhichValue.Should().BeOfType<LocalizedText>()
+                    .WhoseValue.Should().BeOfType<LocalizedText>()
                     .Which.Text.Should().MatchRegex("^The system cycle '\\d+' has started\\.$");
             }
         }

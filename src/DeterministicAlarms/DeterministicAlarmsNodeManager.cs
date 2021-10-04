@@ -21,7 +21,6 @@
         private Dictionary<string, SimSourceNodeState> _sourceNodes = new Dictionary<string, SimSourceNodeState>();
         private Configuration.Configuration _scriptconfiguration;
         private readonly TimeService _timeService;
-        private ScriptEngine _scriptEngine;
         private Dictionary<string, string> _scriptAlarmToSources;
         private string _scriptFileName;
 
@@ -117,7 +116,7 @@
             {
                 VerifyScriptConfiguration(scriptConfiguration);
                 Logger.Information("Script starts executing");
-                _scriptEngine = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable, _timeService);
+                var scriptEngine = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable, _timeService);
             }
             catch (ScriptException ex)
             {
@@ -353,7 +352,7 @@
         /// Subscribes or unsubscribes to events produced by all event sources.
         /// </summary>
         /// <remarks>
-        /// This method is called when a event subscription is created or deleted. The node 
+        /// This method is called when a event subscription is created or deleted. The node
         /// manager must start/stop reporting events for all objects that it manages.
         /// </remarks>
         public override ServiceResult SubscribeToAllEvents(
@@ -446,7 +445,7 @@
             monitoredNode.Add(monitoredItem);
 
             // This call recursively updates a reference count all nodes in the notifier
-            // hierarchy below the area. Sources with a reference count of 0 do not have 
+            // hierarchy below the area. Sources with a reference count of 0 do not have
             // any active subscriptions so they do not need to report events.
             source.SetAreEventsMonitored(context, !unsubscribe, true);
 
@@ -463,7 +462,7 @@
         /// <remarks>
         /// The externalReferences is an out parameter that allows the node manager to link to nodes
         /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
-        /// should have a reference to the root folder node(s) exposed by this node manager.  
+        /// should have a reference to the root folder node(s) exposed by this node manager.
         /// </remarks>
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
         {
@@ -570,7 +569,7 @@
         /// </summary>
         /// <param name="notifier">The notifier.</param>
         /// <remarks>
-        /// A root notifier is a notifier owned by the NodeManager that is not the target of a 
+        /// A root notifier is a notifier owned by the NodeManager that is not the target of a
         /// HasNotifier reference. These nodes need to be linked directly to the Server object.
         /// </remarks>
         protected override void AddRootNotifier(NodeState notifier)
@@ -628,7 +627,7 @@
         /// <returns>The new NodeId.</returns>
         /// <remarks>
         /// This method is called by the NodeState.Create() method which initializes a Node from
-        /// the type model. During initialization a number of child nodes are created and need to 
+        /// the type model. During initialization a number of child nodes are created and need to
         /// have NodeIds assigned to them. This implementation constructs NodeIds by constructing
         /// strings. Other implementations could assign unique integers or Guids and save the new
         /// Node in a dictionary for later lookup.
@@ -647,7 +646,6 @@
 
             return predefinedNodes;
         }
-
         #endregion
     }
 }
