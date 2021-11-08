@@ -3,7 +3,7 @@
     Builds multiarch containers from the container.json file in the path.
 
  .DESCRIPTION
-    The script requires az to be installed and already logged on to a 
+    The script requires az to be installed and already logged on to a
     subscription.  This means it should be run in a azcliv2 task in the
     azure pipeline or "az login" must have been performed already.
 
@@ -249,7 +249,7 @@ $definitions | ForEach-Object {
     # acr does not support arm64 as platform
     $platform = $platform.Replace("arm64", "arm")
 
-    # Create acr command line 
+    # Create acr command line
     $argumentList = @("acr", "build", "--verbose",
         "--registry", $Registry,
         "--resource-group", $resourceGroup,
@@ -272,7 +272,7 @@ $definitions | ForEach-Object {
         }
         Write-Host "... az $($argumentList | Out-String) completed for $($image)."
     }
-    
+
     # Append to manifest
     if (![string]::IsNullOrEmpty($os)) {
         $manifest +=
@@ -333,7 +333,7 @@ try {
     Write-Host
     $manifest | Out-Host
     $manifest | Out-File -Encoding ascii -FilePath $manifestFile.FullName
-    $argumentList = @( 
+    $argumentList = @(
         "--username", $user,
         "--password", $password,
         "push",
@@ -342,7 +342,7 @@ try {
     while ($true) {
         (& $manifestToolPath $argumentList) | Out-Host
         if ($LastExitCode -eq 0) {
-            break   
+            break
         }
         Write-Warning "Manifest push failed - try again."
         Start-Sleep -s 2

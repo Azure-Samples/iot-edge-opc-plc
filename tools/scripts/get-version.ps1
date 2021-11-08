@@ -16,7 +16,7 @@ try {
         throw "Error: 'nbgv get-version -f json' failed with $($LastExitCode)."
     }
 
-    return [pscustomobject] @{ 
+    return [pscustomobject] @{
         Full = $props.CloudBuildAllVars.NBGV_NuGetPackageVersion
         Prefix = $props.CloudBuildAllVars.NBGV_SimpleVersion
     }

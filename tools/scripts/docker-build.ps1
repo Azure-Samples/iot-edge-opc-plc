@@ -33,7 +33,7 @@ if ($definitions.Count -eq 0) {
     return
 }
 
-# Get currently active platform 
+# Get currently active platform
 $dockerversion = &docker @("version") 2>&1 | %{ "$_" } `
     | ConvertFrom-Csv -Delimiter ':' -Header @("Key", "Value") `
     | Where-Object { $_.Key -eq "OS/Arch" } `
@@ -47,8 +47,8 @@ if ([string]::IsNullOrEmpty($platform)) {
 }
 if ($platform -eq "windows/amd64") {
     $osVerToPlatform = @{
-        "10.0.17134" = "windows/amd64:10.0.17134.885" 
-        "10.0.17763" = "windows/amd64:10.0.17763.615" 
+        "10.0.17134" = "windows/amd64:10.0.17134.885"
+        "10.0.17763" = "windows/amd64:10.0.17763.615"
         "10.0.18362" = "windows/amd64:10.0.17134.885"
     }
     $osver = (Get-WmiObject Win32_OperatingSystem).Version
@@ -65,8 +65,8 @@ $def = $definitions `
 $dockerfile = $def.dockerfile
 $buildContext = $def.buildContext
 
-# Create docker build command line 
-$argumentList = @("build", 
+# Create docker build command line
+$argumentList = @("build",
     "-f", $dockerfile,
     "-t", "$($ImageName):latest"
 )
