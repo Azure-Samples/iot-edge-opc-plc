@@ -6,7 +6,7 @@
     The folder containing the container.json file.
 
  .PARAMETER Debug
-    Whether to build Release or Debug - default to Release.  
+    Whether to build Release or Debug - default to Release.
     Debug also includes debugger into images (where applicable).
 #>
 
@@ -46,7 +46,7 @@ if ($projFile) {
     $runtimes | ForEach-Object {
         $runtimeId = $_
 
-        # Create dotnet command line 
+        # Create dotnet command line
         $argumentList = @("publish", "-c", $configuration)
         if (![string]::IsNullOrEmpty($runtimeId)) {
             $argumentList += "-r"
@@ -86,7 +86,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
     $platforms = @{
         "linux/arm" = @{
             runtimeId = "linux-arm"
-            image = "mcr.microsoft.com/dotnet/core/runtime-deps:3.1"
+            image = "mcr.microsoft.com/dotnet/core/runtime-deps:6.0"
             platformTag = "linux-arm32v7"
             runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $installLinuxDebugger
@@ -94,7 +94,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
         }
         "linux/arm64" = @{
             runtimeId = "linux-arm64"
-            image = "mcr.microsoft.com/dotnet/core/runtime-deps:3.1"
+            image = "mcr.microsoft.com/dotnet/core/runtime-deps:6.0"
             platformTag = "linux-arm64v8"
             runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $null
@@ -102,7 +102,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
         }
         "linux/amd64" = @{
             runtimeId = "linux-x64"
-            image = "mcr.microsoft.com/dotnet/core/runtime-deps:3.1"
+            image = "mcr.microsoft.com/dotnet/core/runtime-deps:6.0"
             platformTag = "linux-amd64"
             runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $installLinuxDebugger
@@ -136,7 +136,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
 
         #
         # Check for overridden base image name - e.g. aspnet core images
-        # this script only supports portable and defaults to dotnet entry 
+        # this script only supports portable and defaults to dotnet entry
         # point
         #
         if (![string]::IsNullOrEmpty($metadata.base)) {
@@ -193,7 +193,7 @@ $($environmentVars | Out-String)
 
 ENTRYPOINT $($entryPoint)
 
-"@ 
+"@
         $imageContent = (Join-Path $output $runtimeId)
         $dockerFile = (Join-Path $imageContent "Dockerfile.$($platformTag)")
         Write-Host Writing $($dockerFile)
