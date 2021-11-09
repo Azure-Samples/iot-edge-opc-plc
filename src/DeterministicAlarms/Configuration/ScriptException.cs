@@ -1,12 +1,11 @@
-﻿namespace OpcPlc.DeterministicAlarms.Configuration
-{
-    using System;
+﻿namespace OpcPlc.DeterministicAlarms.Configuration;
 
-    class ScriptException : Exception
-    {
+using System;
+
+class ScriptException : Exception
+{
 #nullable enable
-        public ScriptException(string? message) : base(message)
-        {
-        }
+    public ScriptException(string? message) : base(message)
+    {
     }
 }

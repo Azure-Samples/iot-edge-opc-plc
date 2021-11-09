@@ -1,11 +1,10 @@
-﻿namespace OpcPlc.DeterministicAlarms.Configuration
+﻿namespace OpcPlc.DeterministicAlarms.Configuration;
+
+public enum AlarmObjectStates
 {
-    public enum AlarmObjectStates
-    {
-        TripAlarmType,
-        OffNormalAlarmType,
-        AlarmConditionType,
-        LimitAlarmType,
-        ConditionType
-    }
+    TripAlarmType,
+    OffNormalAlarmType,
+    AlarmConditionType,
+    LimitAlarmType,
+    ConditionType
 }

@@ -1,57 +1,56 @@
-namespace OpcPlc.Tests
+namespace OpcPlc.Tests;
+
+using System.Collections.Generic;
+using FluentAssertions;
+using NUnit.Framework;
+using Opc.Ua;
+
+/// <summary>
+/// Tests for OPC-UA Monitoring for Events.
+/// </summary>
+[TestFixture]
+public class EventMonitoringTests : SubscriptionTestsBase
 {
-    using System.Collections.Generic;
-    using FluentAssertions;
-    using NUnit.Framework;
-    using Opc.Ua;
+    private NodeId _eventType;
 
-    /// <summary>
-    /// Tests for OPC-UA Monitoring for Events.
-    /// </summary>
-    [TestFixture]
-    public class EventMonitoringTests : SubscriptionTestsBase
+    public EventMonitoringTests() : base(new[] { "--simpleevents" })
     {
-        private NodeId _eventType;
+    }
 
-        public EventMonitoringTests() : base(new[] { "--simpleevents" })
+    [SetUp]
+    public void CreateMonitoredItem()
+    {
+        _eventType = ToNodeId(SimpleEvents.ObjectTypeIds.SystemCycleStartedEventType);
+
+        SetUpMonitoredItem(Server, NodeClass.Object, Attributes.EventNotifier);
+
+        // add condition fields to retrieve selected event.
+        var filter = (EventFilter)MonitoredItem.Filter;
+        var whereClause = filter.WhereClause;
+        whereClause.Push(FilterOperator.OfType, _eventType);
+
+        AddMonitoredItem();
+    }
+
+    [Test]
+    public void EventSubscribed_FiresNotification()
+    {
+        // Arrange
+        ClearEvents();
+
+        // Assert
+        var values = ReceiveEventsAsDictionary(6);
+        foreach (var value in values)
         {
-        }
-
-        [SetUp]
-        public void CreateMonitoredItem()
-        {
-            _eventType = ToNodeId(SimpleEvents.ObjectTypeIds.SystemCycleStartedEventType);
-
-            SetUpMonitoredItem(Server, NodeClass.Object, Attributes.EventNotifier);
-
-            // add condition fields to retrieve selected event.
-            var filter = (EventFilter)MonitoredItem.Filter;
-            var whereClause = filter.WhereClause;
-            whereClause.Push(FilterOperator.OfType, _eventType);
-
-            AddMonitoredItem();
-        }
-
-        [Test]
-        public void EventSubscribed_FiresNotification()
-        {
-            // Arrange
-            ClearEvents();
-
-            // Assert
-            var values = ReceiveEventsAsDictionary(6);
-            foreach (var value in values)
+            value.Should().Contain(new Dictionary<string, object>
             {
-                value.Should().Contain(new Dictionary<string, object>
-                {
-                    ["/EventType"] = _eventType,
-                    ["/SourceNode"] = Server,
-                    ["/SourceName"] = "System",
-                });
-                value.Should().ContainKey("/Message")
-                    .WhoseValue.Should().BeOfType<LocalizedText>()
-                    .Which.Text.Should().MatchRegex("^The system cycle '\\d+' has started\\.$");
-            }
+                ["/EventType"] = _eventType,
+                ["/SourceNode"] = Server,
+                ["/SourceName"] = "System",
+            });
+            value.Should().ContainKey("/Message")
+                .WhoseValue.Should().BeOfType<LocalizedText>()
+                .Which.Text.Should().MatchRegex("^The system cycle '\\d+' has started\\.$");
         }
     }
 }

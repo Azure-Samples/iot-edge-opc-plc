@@ -1,7 +1,6 @@
-﻿namespace OpcPlc.DeterministicAlarms.Configuration
+﻿namespace OpcPlc.DeterministicAlarms.Configuration;
+
+public enum SourceObjectState
 {
-    public enum SourceObjectState
-    {
-        BaseObjectState
-    }
+    BaseObjectState
 }

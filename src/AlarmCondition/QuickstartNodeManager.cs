@@ -2,7 +2,7 @@
  * Copyright (c) 2005-2019 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +11,7 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
@@ -56,7 +56,7 @@ namespace AlarmCondition
             params string[] namespaceUris)
         :
             this(server, (ApplicationConfiguration)null, namespaceUris)
-        {            
+        {
         }
 
         /// <summary>
@@ -81,10 +81,10 @@ namespace AlarmCondition
             // save a reference to the UA server instance that owns the node manager.
             m_server = server;
 
-            // all operations require information about the system 
+            // all operations require information about the system
             m_systemContext = m_server.DefaultSystemContext.Copy();
 
-            // the node id factory assigns new node ids to new nodes. 
+            // the node id factory assigns new node ids to new nodes.
             // the strategy used by a NodeManager depends on what kind of information it provides.
             m_systemContext.NodeIdFactory = this;
 
@@ -111,13 +111,13 @@ namespace AlarmCondition
             m_monitoredNodes = new Dictionary<NodeId, MonitoredNode>();
         }
         #endregion
-        
+
         #region IDisposable Members
         /// <summary>
         /// Frees any unmanaged resources.
         /// </summary>
         public void Dispose()
-        {   
+        {
             Dispose(true);
         }
 
@@ -125,7 +125,7 @@ namespace AlarmCondition
         /// An overrideable version of the Dispose.
         /// </summary>
         protected virtual void Dispose(bool disposing)
-        {  
+        {
             if (disposing)
             {
                 lock (m_lock)
@@ -453,14 +453,14 @@ namespace AlarmCondition
         /// </remarks>
         public virtual IEnumerable<string> NamespaceUris
         {
-            get 
-            { 
-                return m_namespaceUris; 
+            get
+            {
+                return m_namespaceUris;
             }
 
             protected set
             {
-                if (value == null) throw new ArgumentNullException("value");
+                ArgumentNullException.ThrowIfNull(value);
                 List<string> namespaceUris = new List<string>(value);
                 SetNamespaces(namespaceUris.ToArray());
             }
@@ -472,11 +472,11 @@ namespace AlarmCondition
         /// <remarks>
         /// The externalReferences is an out parameter that allows the node manager to link to nodes
         /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
-        /// should have a reference to the root folder node(s) exposed by this node manager.  
+        /// should have a reference to the root folder node(s) exposed by this node manager.
         /// </remarks>
         public virtual void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
         {
-            LoadPredefinedNodes(m_systemContext, externalReferences);   
+            LoadPredefinedNodes(m_systemContext, externalReferences);
         }
 
         #region CreateAddressSpace Support Functions
@@ -656,7 +656,7 @@ namespace AlarmCondition
         /// </summary>
         protected virtual void OnNodeRemoved(NodeState node)
         {
-            // overridden by the sub-class.            
+            // overridden by the sub-class.
         }
 
         /// <summary>
@@ -817,7 +817,7 @@ namespace AlarmCondition
         }
 
         /// <summary>
-        /// Finds the specified and checks if it is of the expected type. 
+        /// Finds the specified and checks if it is of the expected type.
         /// </summary>
         /// <returns>Returns null if not found or not of the correct type.</returns>
         public NodeState FindPredefinedNode(NodeId nodeId, Type expectedType)
@@ -869,7 +869,7 @@ namespace AlarmCondition
         /// Returns a unique handle for the node.
         /// </summary>
         /// <remarks>
-        /// This must efficiently determine whether the node belongs to the node manager. If it does belong to 
+        /// This must efficiently determine whether the node belongs to the node manager. If it does belong to
         /// NodeManager it should return a handle that does not require the NodeId to be validated again when
         /// the handle is passed into other methods such as 'Read' or 'Write'.
         /// </remarks>
@@ -930,7 +930,7 @@ namespace AlarmCondition
                     {
                         continue;
                     }
-                    
+
                     // add reference to external target.
                     foreach (IReference reference in current.Value)
                     {
@@ -942,15 +942,15 @@ namespace AlarmCondition
                 }
             }
         }
-        
+
         /// <summary>
         /// This method is used to delete bi-directional references to nodes from other node managers.
         /// </summary>
         public virtual ServiceResult DeleteReference(
-            object         sourceHandle, 
-            NodeId         referenceTypeId, 
-            bool           isInverse, 
-            ExpandedNodeId targetId, 
+            object         sourceHandle,
+            NodeId         referenceTypeId,
+            bool           isInverse,
+            ExpandedNodeId targetId,
             bool           deleteBiDirectional)
         {
             lock (Lock)
@@ -968,7 +968,7 @@ namespace AlarmCondition
                 {
                     return StatusCodes.BadNotSupported;
                 }
-                
+
                 // only support references to Source Areas.
                 source.Node.RemoveReference(referenceTypeId, isInverse, targetId);
 
@@ -997,8 +997,8 @@ namespace AlarmCondition
         /// This method validates any placeholder handle.
         /// </remarks>
         public virtual NodeMetadata GetNodeMetadata(
-            OperationContext context, 
-            object           targetHandle, 
+            OperationContext context,
+            object           targetHandle,
             BrowseResultMask resultMask)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
@@ -1010,9 +1010,9 @@ namespace AlarmCondition
 
                 if (handle == null)
                 {
-                    return null;                
+                    return null;
                 }
-                
+
                 // validate node.
                 NodeState target = ValidateNode(systemContext, handle, null);
 
@@ -1055,7 +1055,7 @@ namespace AlarmCondition
                 }
 
                 metadata.ArrayDimensions = (IList<uint>)values[4];
-                
+
                 if (values[5] != null && values[6] != null)
                 {
                     metadata.AccessLevel = (byte)(((byte)values[5]) & ((byte)values[6]));
@@ -1093,18 +1093,18 @@ namespace AlarmCondition
         /// The node manager can store its state information in the Data and Index properties.
         /// </remarks>
         public virtual void Browse(
-            OperationContext            context, 
-            ref ContinuationPoint       continuationPoint, 
+            OperationContext            context,
+            ref ContinuationPoint       continuationPoint,
             IList<ReferenceDescription> references)
-        {            
-            if (continuationPoint == null) throw new ArgumentNullException("continuationPoint");
-            if (references == null) throw new ArgumentNullException("references");
-            
+        {
+            ArgumentNullException.ThrowIfNull(continuationPoint);
+            ArgumentNullException.ThrowIfNull(references);
+
             ServerSystemContext systemContext = m_systemContext.Copy(context);
 
             // check for valid view.
             ValidateViewDescription(systemContext, continuationPoint.View);
-            
+
             INodeBrowser browser = null;
 
             lock (Lock)
@@ -1114,9 +1114,9 @@ namespace AlarmCondition
 
                 if (handle == null)
                 {
-                    throw new ServiceResultException(StatusCodes.BadNodeIdUnknown);             
+                    throw new ServiceResultException(StatusCodes.BadNodeIdUnknown);
                 }
-                
+
                 // validate node.
                 NodeState source = ValidateNode(systemContext, handle, null);
 
@@ -1129,7 +1129,7 @@ namespace AlarmCondition
                 if (!IsNodeInView(systemContext, continuationPoint, source))
                 {
                     throw new ServiceResultException(StatusCodes.BadNodeNotInView);
-                }                
+                }
 
                 // check for previous continuation point.
                 browser = continuationPoint.Data as INodeBrowser;
@@ -1158,7 +1158,7 @@ namespace AlarmCondition
 
                 for (IReference reference = browser.Next(); reference != null; reference = browser.Next())
                 {
-                    // create the type definition reference.        
+                    // create the type definition reference.
                     ReferenceDescription description = GetReferenceDescription(systemContext, cache, reference, continuationPoint);
 
                     if (description == null)
@@ -1221,12 +1221,12 @@ namespace AlarmCondition
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
 
-            // create the type definition reference.        
+            // create the type definition reference.
             ReferenceDescription description = new ReferenceDescription();
 
             description.NodeId = reference.TargetId;
             description.SetReferenceType(continuationPoint.ResultMask, reference.ReferenceTypeId, !reference.IsInverse);
-            
+
             // check if reference is in the view.
             if (!IsReferenceInView(context, continuationPoint, reference))
             {
@@ -1259,7 +1259,7 @@ namespace AlarmCondition
             if (target == null)
             {
                 NodeHandle handle = GetManagerHandle(context, (NodeId)reference.TargetId, null) as NodeHandle;
-                
+
                 if (handle != null)
                 {
                     target = ValidateNode(context, handle, null);
@@ -1313,15 +1313,15 @@ namespace AlarmCondition
         /// Returns the target of the specified browse path fragment(s).
         /// </summary>
         /// <remarks>
-        /// If reference exists but the node manager does not know the browse name it must 
+        /// If reference exists but the node manager does not know the browse name it must
         /// return the NodeId as an unresolvedTargetIds. The caller will try to check the
-        /// browse name. 
+        /// browse name.
         /// </remarks>
         public virtual void TranslateBrowsePath(
-            OperationContext      context, 
-            object                sourceHandle, 
-            RelativePathElement   relativePath, 
-            IList<ExpandedNodeId> targetIds, 
+            OperationContext      context,
+            object                sourceHandle,
+            RelativePathElement   relativePath,
+            IList<ExpandedNodeId> targetIds,
             IList<NodeId>         unresolvedTargetIds)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
@@ -1334,9 +1334,9 @@ namespace AlarmCondition
 
                 if (handle == null)
                 {
-                    return;        
+                    return;
                 }
-                
+
                 // validate node.
                 NodeState source = ValidateNode(systemContext, handle, operationCache);
 
@@ -1421,15 +1421,15 @@ namespace AlarmCondition
                 }
             }
         }
-        
+
         /// <summary>
         /// Reads the value for the specified attribute.
         /// </summary>
         public virtual void Read(
-            OperationContext     context, 
-            double               maxAge, 
-            IList<ReadValueId>   nodesToRead, 
-            IList<DataValue>     values, 
+            OperationContext     context,
+            double               maxAge,
+            IList<ReadValueId>   nodesToRead,
+            IList<DataValue>     values,
             IList<ServiceResult> errors)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
@@ -1439,7 +1439,7 @@ namespace AlarmCondition
             lock (Lock)
             {
                 for (int ii = 0; ii < nodesToRead.Count; ii++)
-                {                    
+                {
                     ReadValueId nodeToRead = nodesToRead[ii];
 
                     // skip items that have already been processed.
@@ -1447,7 +1447,7 @@ namespace AlarmCondition
                     {
                         continue;
                     }
-                    
+
                     // check for valid handle.
                     NodeHandle handle = GetManagerHandle(systemContext, nodeToRead.NodeId, operationCache);
 
@@ -1458,10 +1458,10 @@ namespace AlarmCondition
 
                     // owned by this node manager.
                     nodeToRead.Processed = true;
-                    
+
                     // create an initial value.
                     DataValue value = values[ii] = new DataValue();
-                    
+
                     value.Value           = null;
                     value.ServerTimestamp = DateTime.UtcNow;
                     value.SourceTimestamp = DateTime.MinValue;
@@ -1471,11 +1471,11 @@ namespace AlarmCondition
                     if (handle.Node == null)
                     {
                         errors[ii] = StatusCodes.BadNodeIdUnknown;
-                        
+
                         // must validate node in a seperate operation
                         handle.Index = ii;
                         nodesToValidate.Add(handle);
-                        
+
                         continue;
                     }
 
@@ -1594,7 +1594,7 @@ namespace AlarmCondition
         /// Verifies that the specified node exists.
         /// </summary>
         protected virtual NodeState ValidateNode(
-            ServerSystemContext context, 
+            ServerSystemContext context,
             NodeHandle handle,
             IDictionary<NodeId,NodeState> cache)
         {
@@ -1662,8 +1662,8 @@ namespace AlarmCondition
         /// Writes the value for the specified attributes.
         /// </summary>
         public virtual void Write(
-            OperationContext     context, 
-            IList<WriteValue>    nodesToWrite, 
+            OperationContext     context,
+            IList<WriteValue>    nodesToWrite,
             IList<ServiceResult> errors)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
@@ -1673,7 +1673,7 @@ namespace AlarmCondition
             lock (Lock)
             {
                 for (int ii = 0; ii < nodesToWrite.Count; ii++)
-                {                    
+                {
                     WriteValue nodeToWrite = nodesToWrite[ii];
 
                     // skip items that have already been processed.
@@ -1681,7 +1681,7 @@ namespace AlarmCondition
                     {
                         continue;
                     }
-                    
+
                     // check for valid handle.
                     NodeHandle handle = GetManagerHandle(systemContext, nodeToWrite.NodeId, operationCache);
 
@@ -1702,16 +1702,16 @@ namespace AlarmCondition
                             continue;
                         }
                     }
-                    
+
                     // check if the node is a area in memory.
                     if (handle.Node == null)
                     {
                         errors[ii] = StatusCodes.BadNodeIdUnknown;
-                        
+
                         // must validate node in a seperate operation.
                         handle.Index = ii;
                         nodesToValidate.Add(handle);
-                        
+
                         continue;
                     }
 
@@ -1795,12 +1795,12 @@ namespace AlarmCondition
         /// Reads the history for the specified nodes.
         /// </summary>
         public virtual void HistoryRead(
-            OperationContext          context, 
-            HistoryReadDetails        details, 
-            TimestampsToReturn        timestampsToReturn, 
-            bool                      releaseContinuationPoints, 
-            IList<HistoryReadValueId> nodesToRead, 
-            IList<HistoryReadResult>  results, 
+            OperationContext          context,
+            HistoryReadDetails        details,
+            TimestampsToReturn        timestampsToReturn,
+            bool                      releaseContinuationPoints,
+            IList<HistoryReadValueId> nodesToRead,
+            IList<HistoryReadResult>  results,
             IList<ServiceResult>      errors)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
@@ -1897,7 +1897,7 @@ namespace AlarmCondition
                 nodesToProcess,
                 operationCache);
         }
-        
+
         #region HistoryRead Support Functions
         /// <summary>
         /// Releases the continuation points.
@@ -2046,11 +2046,11 @@ namespace AlarmCondition
         /// </summary>
         protected virtual void HistoryRead(
             ServerSystemContext context,
-            HistoryReadDetails details, 
-            TimestampsToReturn timestampsToReturn, 
-            bool releaseContinuationPoints, 
-            IList<HistoryReadValueId> nodesToRead, 
-            IList<HistoryReadResult> results, 
+            HistoryReadDetails details,
+            TimestampsToReturn timestampsToReturn,
+            bool releaseContinuationPoints,
+            IList<HistoryReadValueId> nodesToRead,
+            IList<HistoryReadResult> results,
             IList<ServiceResult> errors,
             List<NodeHandle> nodesToProcess,
             IDictionary<NodeId, NodeState> cache)
@@ -2076,7 +2076,7 @@ namespace AlarmCondition
 
             // handle raw data request.
             ReadRawModifiedDetails readRawModifiedDetails = details as ReadRawModifiedDetails;
-            
+
             if (readRawModifiedDetails != null)
             {
                 // at least one must be provided.
@@ -2109,7 +2109,7 @@ namespace AlarmCondition
 
             // handle processed data request.
             ReadProcessedDetails readProcessedDetails = details as ReadProcessedDetails;
-            
+
             if (readProcessedDetails != null)
             {
                 // check the list of aggregates.
@@ -2136,10 +2136,10 @@ namespace AlarmCondition
 
                 return;
             }
-            
+
             // handle raw data at time request.
             ReadAtTimeDetails readAtTimeDetails = details as ReadAtTimeDetails;
-            
+
             if (readAtTimeDetails != null)
             {
                 HistoryReadAtTime(
@@ -2204,9 +2204,9 @@ namespace AlarmCondition
         /// Updates the history for the specified nodes.
         /// </summary>
         public virtual void HistoryUpdate(
-            OperationContext            context, 
-            Type                        detailsType, 
-            IList<HistoryUpdateDetails> nodesToUpdate, 
+            OperationContext            context,
+            Type                        detailsType,
+            IList<HistoryUpdateDetails> nodesToUpdate,
             IList<HistoryUpdateResult>  results,
             IList<ServiceResult>        errors)
         {
@@ -2305,8 +2305,8 @@ namespace AlarmCondition
         /// </summary>
         protected virtual void HistoryUpdate(
             ServerSystemContext context,
-            Type                           detailsType, 
-            IList<HistoryUpdateDetails>    nodesToUpdate, 
+            Type                           detailsType,
+            IList<HistoryUpdateDetails>    nodesToUpdate,
             IList<HistoryUpdateResult>     results,
             IList<ServiceResult>           errors,
             List<NodeHandle>               nodesToProcess,
@@ -2623,7 +2623,7 @@ namespace AlarmCondition
                 {
                     continue;
                 }
-                
+
                 MethodState method = null;
 
                 lock (Lock)
@@ -2658,7 +2658,7 @@ namespace AlarmCondition
                         {
                             method = (MethodState)FindPredefinedNode(methodToCall.MethodId, typeof(MethodState));
                         }
-                        
+
                         if (method == null)
                         {
                             errors[ii] = StatusCodes.BadMethodInvalid;
@@ -2763,15 +2763,15 @@ namespace AlarmCondition
         /// Subscribes or unsubscribes to events produced by the specified source.
         /// </summary>
         /// <remarks>
-        /// This method is called when a event subscription is created or deletes. The node manager 
-        /// must  start/stop reporting events for the specified object and all objects below it in 
+        /// This method is called when a event subscription is created or deletes. The node manager
+        /// must  start/stop reporting events for the specified object and all objects below it in
         /// the notifier hierarchy.
         /// </remarks>
         public virtual ServiceResult SubscribeToEvents(
-            OperationContext    context, 
-            object              sourceId, 
-            uint                subscriptionId, 
-            IEventMonitoredItem monitoredItem, 
+            OperationContext    context,
+            object              sourceId,
+            uint                subscriptionId,
+            IEventMonitoredItem monitoredItem,
             bool                unsubscribe)
         {
             ServerSystemContext systemContext = SystemContext.Copy(context);
@@ -2798,18 +2798,18 @@ namespace AlarmCondition
                 return SubscribeToEvents(systemContext, source, monitoredItem, unsubscribe);
             }
         }
-        
+
         /// <summary>
         /// Subscribes or unsubscribes to events produced by all event sources.
         /// </summary>
         /// <remarks>
-        /// This method is called when a event subscription is created or deleted. The node 
+        /// This method is called when a event subscription is created or deleted. The node
         /// manager must start/stop reporting events for all objects that it manages.
         /// </remarks>
         public virtual ServiceResult SubscribeToAllEvents(
-            OperationContext    context, 
-            uint                subscriptionId, 
-            IEventMonitoredItem monitoredItem, 
+            OperationContext    context,
+            uint                subscriptionId,
+            IEventMonitoredItem monitoredItem,
             bool                unsubscribe)
         {
             ServerSystemContext systemContext = SystemContext.Copy(context);
@@ -2837,7 +2837,7 @@ namespace AlarmCondition
         /// </summary>
         /// <param name="notifier">The notifier.</param>
         /// <remarks>
-        /// A root notifier is a notifier owned by the NodeManager that is not the target of a 
+        /// A root notifier is a notifier owned by the NodeManager that is not the target of a
         /// HasNotifier reference. These nodes need to be linked directly to the Server object.
         /// </remarks>
         protected virtual void AddRootNotifier(NodeState notifier)
@@ -2856,7 +2856,7 @@ namespace AlarmCondition
             }
 
             m_rootNotifiers.Add(notifier);
-            
+
             // need to prevent recursion with the server object.
             if (notifier.NodeId != ObjectIds.Server)
             {
@@ -2928,9 +2928,9 @@ namespace AlarmCondition
         /// <param name="unsubscribe">if set to <c>true</c> [unsubscribe].</param>
         /// <returns>Any error code.</returns>
         protected virtual ServiceResult SubscribeToEvents(
-            ServerSystemContext context, 
+            ServerSystemContext context,
             NodeState           source,
-            IEventMonitoredItem monitoredItem, 
+            IEventMonitoredItem monitoredItem,
             bool                unsubscribe)
         {
             MonitoredNode monitoredNode = null;
@@ -2986,13 +2986,13 @@ namespace AlarmCondition
             monitoredNode.Add(monitoredItem);
 
             // This call recursively updates a reference count all nodes in the notifier
-            // hierarchy below the area. Sources with a reference count of 0 do not have 
+            // hierarchy below the area. Sources with a reference count of 0 do not have
             // any active subscriptions so they do not need to report events.
             source.SetAreEventsMonitored(context, !unsubscribe, true);
 
             // signal update.
             OnSubscribeToEvents(context, monitoredNode, unsubscribe);
- 
+
             // all done.
             return ServiceResult.Good;
         }
@@ -3005,7 +3005,7 @@ namespace AlarmCondition
         /// <param name="unsubscribe">if set to <c>true</c> unsubscribing.</param>
         protected virtual void OnSubscribeToEvents(
             ServerSystemContext context,
-            MonitoredNode       monitoredNode, 
+            MonitoredNode       monitoredNode,
             bool                unsubscribe)
         {
             // defined by the sub-class
@@ -3087,13 +3087,13 @@ namespace AlarmCondition
         /// This method only handles data change subscriptions. Event subscriptions are created by the SDK.
         /// </remarks>
         public virtual void CreateMonitoredItems(
-            OperationContext                  context, 
-            uint                              subscriptionId, 
-            double                            publishingInterval, 
-            TimestampsToReturn                timestampsToReturn, 
-            IList<MonitoredItemCreateRequest> itemsToCreate, 
-            IList<ServiceResult>              errors, 
-            IList<MonitoringFilterResult>     filterResults, 
+            OperationContext                  context,
+            uint                              subscriptionId,
+            double                            publishingInterval,
+            TimestampsToReturn                timestampsToReturn,
+            IList<MonitoredItemCreateRequest> itemsToCreate,
+            IList<ServiceResult>              errors,
+            IList<MonitoringFilterResult>     filterResults,
             IList<IMonitoredItem>             monitoredItems,
             ref long                          globalIdCounter)
         {
@@ -3105,7 +3105,7 @@ namespace AlarmCondition
             lock (Lock)
             {
                 for (int ii = 0; ii < itemsToCreate.Count; ii++)
-                {                    
+                {
                     MonitoredItemCreateRequest itemToCreate = itemsToCreate[ii];
 
                     // skip items that have already been processed.
@@ -3115,7 +3115,7 @@ namespace AlarmCondition
                     }
 
                     ReadValueId itemToMonitor = itemToCreate.ItemToMonitor;
-                                        
+
                     // check for valid handle.
                     NodeHandle handle = GetManagerHandle(systemContext, itemToMonitor.NodeId, operationCache);
 
@@ -3129,7 +3129,7 @@ namespace AlarmCondition
 
                     // must validate node in a seperate operation.
                     errors[ii] = StatusCodes.BadNodeIdUnknown;
-                    
+
                     handle.Index = ii;
                     nodesToValidate.Add(handle);
                 }
@@ -3139,13 +3139,13 @@ namespace AlarmCondition
                 {
                     return;
                 }
-            }            
+            }
 
             // validates the nodes (reads values from the underlying data source if required).
             for (int ii = 0; ii < nodesToValidate.Count; ii++)
             {
                 NodeHandle handle = nodesToValidate[ii];
-            
+
                 MonitoringFilterResult filterResult = null;
                 IMonitoredItem monitoredItem = null;
 
@@ -3158,7 +3158,7 @@ namespace AlarmCondition
                     {
                         continue;
                     }
-                        
+
                     MonitoredItemCreateRequest itemToCreate = itemsToCreate[handle.Index];
 
                     // create monitored item.
@@ -3383,7 +3383,7 @@ namespace AlarmCondition
         /// </summary>
         protected virtual StatusCode ValidateMonitoringFilter(
             ServerSystemContext context,
-            NodeHandle handle, 
+            NodeHandle handle,
             uint attributeId,
             double samplingInterval,
             uint queueSize,
@@ -3468,7 +3468,7 @@ namespace AlarmCondition
             {
                 return StatusCodes.BadFilterNotAllowed;
             }
-            
+
             // nothing more to do for absolute filters.
             if (deadbandFilter.DeadbandType == (uint)DeadbandType.Absolute)
             {
@@ -3485,9 +3485,9 @@ namespace AlarmCondition
                 {
                     return StatusCodes.BadFilterNotAllowed;
                 }
-                
+
                 range = property.Value as Opc.Ua.Range;
-                
+
                 if (range == null)
                 {
                     return StatusCodes.BadFilterNotAllowed;
@@ -3503,7 +3503,7 @@ namespace AlarmCondition
         }
 
         /// <summary>
-        /// Revises an aggregate filter (may require knowledge of the variable being used). 
+        /// Revises an aggregate filter (may require knowledge of the variable being used).
         /// </summary>
         /// <param name="context">The context.</param>
         /// <param name="handle">The handle.</param>
@@ -3548,11 +3548,11 @@ namespace AlarmCondition
         /// Modifies the parameters for a set of monitored items.
         /// </summary>
         public virtual void ModifyMonitoredItems(
-            OperationContext                  context, 
-            TimestampsToReturn                timestampsToReturn, 
-            IList<IMonitoredItem>             monitoredItems, 
-            IList<MonitoredItemModifyRequest> itemsToModify, 
-            IList<ServiceResult>              errors, 
+            OperationContext                  context,
+            TimestampsToReturn                timestampsToReturn,
+            IList<IMonitoredItem>             monitoredItems,
+            IList<MonitoredItemModifyRequest> itemsToModify,
+            IList<ServiceResult>              errors,
             IList<MonitoringFilterResult>     filterResults)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
@@ -3561,7 +3561,7 @@ namespace AlarmCondition
             lock (Lock)
             {
                 for (int ii = 0; ii < monitoredItems.Count; ii++)
-                {                    
+                {
                     MonitoredItemModifyRequest itemToModify = itemsToModify[ii];
 
                     // skip items that have already been processed.
@@ -3630,7 +3630,7 @@ namespace AlarmCondition
             out MonitoringFilterResult filterResult)
         {
             filterResult = null;
-            
+
             // check for valid monitored item.
             MonitoredItem datachangeItem = monitoredItem as MonitoredItem;
 
@@ -3638,7 +3638,7 @@ namespace AlarmCondition
             MonitoringParameters parameters = itemToModify.RequestedParameters;
 
             double previousSamplingInterval = datachangeItem.SamplingInterval;
-            
+
             // check if the variable needs to be sampled.
             double samplingInterval = itemToModify.RequestedParameters.SamplingInterval;
 
@@ -3703,7 +3703,7 @@ namespace AlarmCondition
                 samplingInterval,
                 queueSize,
                 itemToModify.RequestedParameters.DiscardOldest);
-            
+
             // report change.
             if (ServiceResult.IsGood(error))
             {
@@ -3732,9 +3732,9 @@ namespace AlarmCondition
         /// Deletes a set of monitored items.
         /// </summary>
         public virtual void DeleteMonitoredItems(
-            OperationContext     context, 
-            IList<IMonitoredItem> monitoredItems, 
-            IList<bool>          processedItems, 
+            OperationContext     context,
+            IList<IMonitoredItem> monitoredItems,
+            IList<bool>          processedItems,
             IList<ServiceResult> errors)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
@@ -3812,7 +3812,7 @@ namespace AlarmCondition
                     MonitoredNodes.Remove(handle.NodeId);
                 }
             }
-            
+
             // remove the monitored item.
             m_monitoredItems.Remove(monitoredItem.Id);
 
@@ -3846,10 +3846,10 @@ namespace AlarmCondition
         /// <param name="processedItems">Flags indicating which items have been processed.</param>
         /// <param name="errors">Any errors.</param>
         public virtual void SetMonitoringMode(
-            OperationContext      context, 
-            MonitoringMode        monitoringMode, 
-            IList<IMonitoredItem> monitoredItems, 
-            IList<bool>           processedItems, 
+            OperationContext      context,
+            MonitoringMode        monitoringMode,
+            IList<IMonitoredItem> monitoredItems,
+            IList<bool>           processedItems,
             IList<ServiceResult>  errors)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
@@ -3935,7 +3935,7 @@ namespace AlarmCondition
                     previousMode,
                     monitoringMode);
             }
-            
+
             return ServiceResult.Good;
         }
 

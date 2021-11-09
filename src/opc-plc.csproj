@@ -10,6 +10,14 @@
     <UserSecretsId>bdf7b209-fef3-44d4-9aba-17035fda5efd</UserSecretsId>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <LangVersion>10.0</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <LangVersion>10.0</LangVersion>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Build\**" />
     <EmbeddedResource Remove="Build\**" />

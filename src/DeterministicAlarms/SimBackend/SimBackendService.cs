@@ -1,32 +1,31 @@
-﻿namespace OpcPlc.DeterministicAlarms.SimBackend
+﻿namespace OpcPlc.DeterministicAlarms.SimBackend;
+
+using System.Collections.Generic;
+using OpcPlc.DeterministicAlarms.Configuration;
+using static OpcPlc.DeterministicAlarms.SimBackend.SimSourceNodeBackend;
+
+public class SimBackendService
 {
-    using System.Collections.Generic;
-    using OpcPlc.DeterministicAlarms.Configuration;
-    using static OpcPlc.DeterministicAlarms.SimBackend.SimSourceNodeBackend;
+    private readonly object _lock = new object();
+    public Dictionary<string, SimSourceNodeBackend> SourceNodes = new Dictionary<string, SimSourceNodeBackend>();
 
-    public class SimBackendService
+    public SimSourceNodeBackend CreateSourceNodeBackend(string name, List<Alarm> alarms, AlarmChangedEventHandler alarmChangeCallback)
     {
-        private readonly object _lock = new object();
-        public Dictionary<string, SimSourceNodeBackend> SourceNodes = new Dictionary<string, SimSourceNodeBackend>();
+        SimSourceNodeBackend simSourceNodeBackend;
 
-        public SimSourceNodeBackend CreateSourceNodeBackend(string name, List<Alarm> alarms, AlarmChangedEventHandler alarmChangeCallback)
+        lock (_lock)
         {
-            SimSourceNodeBackend simSourceNodeBackend;
-
-            lock (_lock)
+            simSourceNodeBackend = new SimSourceNodeBackend
             {
-                simSourceNodeBackend = new SimSourceNodeBackend
-                {
-                    Name = name,
-                    OnAlarmChanged = alarmChangeCallback
-                };
+                Name = name,
+                OnAlarmChanged = alarmChangeCallback
+            };
 
-                simSourceNodeBackend.CreateAlarms(alarms);
+            simSourceNodeBackend.CreateAlarms(alarms);
 
-                SourceNodes[name] = simSourceNodeBackend;
-            }
-
-            return simSourceNodeBackend;
+            SourceNodes[name] = simSourceNodeBackend;
         }
+
+        return simSourceNodeBackend;
     }
 }
