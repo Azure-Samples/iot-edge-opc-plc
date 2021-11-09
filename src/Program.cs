@@ -273,7 +273,7 @@ public static class Program
 
         if (ShowPublisherConfigJsonIp)
         {
-            await PnJsonHelper.DumpPublisherConfigJsonAsync(
+            await PnJsonHelper.PrintPublisherConfigJsonAsync(
                 PnJson,
                 $"{GetIpAddress()}:{ServerPort}{ServerPath}",
                 PluginNodes,
@@ -281,7 +281,7 @@ public static class Program
         }
         else if (ShowPublisherConfigJsonPh)
         {
-            await PnJsonHelper.DumpPublisherConfigJsonAsync(
+            await PnJsonHelper.PrintPublisherConfigJsonAsync(
                 PnJson,
                 $"{Hostname}:{ServerPort}{ServerPath}",
                 PluginNodes,

@@ -15,7 +15,7 @@ public class PnJsonHelper
     /// <summary>
     /// Show and save pn.json
     /// </summary>
-    public static async Task DumpPublisherConfigJsonAsync(string pnJsonFileName, string serverPath, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
+    public static async Task PrintPublisherConfigJsonAsync(string pnJsonFileName, string serverPath, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
         var sb = new StringBuilder();
 
