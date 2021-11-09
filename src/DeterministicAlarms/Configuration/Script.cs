@@ -1,15 +1,14 @@
-﻿namespace OpcPlc.DeterministicAlarms.Configuration
+﻿namespace OpcPlc.DeterministicAlarms.Configuration;
+
+using System.Collections.Generic;
+
+public class Script
 {
-    using System.Collections.Generic;
+    public int WaitUntilStartInSeconds { get; set; }
 
-    public class Script
-    {
-        public int WaitUntilStartInSeconds { get; set; }
+    public bool IsScriptInRepeatingLoop { get; set; }
 
-        public bool IsScriptInRepeatingLoop { get; set; }
+    public int RunningForSeconds { get; set; }
 
-        public int RunningForSeconds { get; set; }
-
-        public List<Step> Steps { get; set; }
-    }
+    public List<Step> Steps { get; set; }
 }

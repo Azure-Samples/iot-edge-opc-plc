@@ -1,15 +1,10 @@
-﻿using Opc.Ua;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿namespace AlarmCondition;
 
-namespace AlarmCondition
+using Opc.Ua;
+
+public class AreaConfiguration
 {
-    public class AreaConfiguration
-    {
-        public string Name { get; set; }
-        public AreaConfigurationCollection SubAreas { get; set; }
-        public StringCollection SourcePaths { get; set; }
-    }
+    public string Name { get; set; }
+    public AreaConfigurationCollection SubAreas { get; set; }
+    public StringCollection SourcePaths { get; set; }
 }

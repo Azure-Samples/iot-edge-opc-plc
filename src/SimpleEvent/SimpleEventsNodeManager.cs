@@ -33,6 +33,7 @@ using System.Threading;
 using System.Reflection;
 using Opc.Ua;
 using Opc.Ua.Server;
+using OpcPlc.SimpleEvent;
 
 namespace SimpleEvents
 {

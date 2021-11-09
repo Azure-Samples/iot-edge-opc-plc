@@ -1,51 +1,50 @@
-namespace OpcPlc.Tests
+namespace OpcPlc.Tests;
+
+using FluentAssertions;
+using NUnit.Framework;
+using Opc.Ua;
+using System.Collections;
+
+/// <summary>
+/// Tests for interacting with OPC-UA Variable nodes.
+/// </summary>
+[TestFixture]
+public class VariableTests : SimulatorTestsBase
 {
-    using System.Collections;
-    using FluentAssertions;
-    using NUnit.Framework;
-    using Opc.Ua;
+    private NodeId _scalarStaticNode;
 
-    /// <summary>
-    /// Tests for interacting with OPC-UA Variable nodes.
-    /// </summary>
-    [TestFixture]
-    public class VariableTests : SimulatorTestsBase
+    // Set any cmd params needed for the plc server explicitly.
+    public VariableTests() : base(new[] { "--ref" })
     {
-        private NodeId _scalarStaticNode;
+    }
 
-        // Set any cmd params needed for the plc server explicitly.
-        public VariableTests() : base(new[] { "--ref" })
+    [SetUp]
+    public void SetUp()
+    {
+        _scalarStaticNode = FindNode(ObjectsFolder, OpcPlc.Namespaces.OpcPlcReferenceTest, "ReferenceTest", "Scalar", "Scalar_Static");
+    }
+
+    public static IEnumerable NodeWriteTestCases
+    {
+        get
         {
+            yield return new TestCaseData(new[] { "Scalar_Static_Double" }, Fake.Random.Double());
+            yield return new TestCaseData(new[] { "Scalar_Static_Arrays", "Scalar_Static_Arrays_String" }, Fake.Lorem.Words());
         }
+    }
 
-        [SetUp]
-        public void SetUp()
-        {
-            _scalarStaticNode = FindNode(ObjectsFolder, OpcPlc.Namespaces.OpcPlcReferenceTest, "ReferenceTest", "Scalar", "Scalar_Static");
-        }
+    [Test]
+    [TestCaseSource(nameof(NodeWriteTestCases))]
+    public void WriteValue_UpdatesValue(string[] pathParts, object newValue)
+    {
+        var nodeId = FindNode(_scalarStaticNode, OpcPlc.Namespaces.OpcPlcReferenceTest, pathParts);
 
-        public static IEnumerable NodeWriteTestCases
-        {
-            get
-            {
-                yield return new TestCaseData(new[] { "Scalar_Static_Double" }, Fake.Random.Double());
-                yield return new TestCaseData(new[] { "Scalar_Static_Arrays", "Scalar_Static_Arrays_String" }, Fake.Lorem.Words());
-            }
-        }
+        var results = WriteValue(nodeId, newValue);
 
-        [Test]
-        [TestCaseSource(nameof(NodeWriteTestCases))]
-        public void WriteValue_UpdatesValue(string[] pathParts, object newValue)
-        {
-            var nodeId = FindNode(_scalarStaticNode, OpcPlc.Namespaces.OpcPlcReferenceTest, pathParts);
+        results.Should().BeEquivalentTo(new[] { StatusCodes.Good });
 
-            var results = WriteValue(nodeId, newValue);
-
-            results.Should().BeEquivalentTo(new[] { StatusCodes.Good });
-
-            Session.ReadValue(nodeId)
-                .Value
-                .Should().BeEquivalentTo(newValue);
-        }
+        Session.ReadValue(nodeId)
+            .Value
+            .Should().BeEquivalentTo(newValue);
     }
 }

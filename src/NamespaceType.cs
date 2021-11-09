@@ -1,9 +1,8 @@
-﻿namespace OpcPlc
+﻿namespace OpcPlc;
+
+public enum NamespaceType
 {
-    public enum NamespaceType
-    {
-        OpcPlcApplications,
-        Boiler,
-        BoilerInstance,
-    }
+    OpcPlcApplications,
+    Boiler,
+    BoilerInstance,
 }

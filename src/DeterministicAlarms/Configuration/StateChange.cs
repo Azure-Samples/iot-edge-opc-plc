@@ -1,9 +1,8 @@
-﻿namespace OpcPlc.DeterministicAlarms.Configuration
-{
-    public class StateChange
-    {
-        public ConditionStates StateType { get; set; }
+﻿namespace OpcPlc.DeterministicAlarms.Configuration;
 
-        public bool State { get; set; }
-    }
+public class StateChange
+{
+    public ConditionStates StateType { get; set; }
+
+    public bool State { get; set; }
 }

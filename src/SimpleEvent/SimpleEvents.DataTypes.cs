@@ -27,19 +27,17 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Xml;
-using System.Runtime.Serialization;
-using Opc.Ua;
-
 namespace SimpleEvents
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Runtime.Serialization;
+    using Opc.Ua;
+
     #region CycleStepDataType Class
-    #if (!OPCUA_EXCLUDE_CycleStepDataType)
+#if (!OPCUA_EXCLUDE_CycleStepDataType)
     /// <summary>
-    /// 
+    ///
     /// </summary>
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
