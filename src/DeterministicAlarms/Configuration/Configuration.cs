@@ -16,7 +16,7 @@
                 new JsonSerializerOptions
                 {
                     WriteIndented = true,
-                    IgnoreNullValues = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     Converters =
                     {
@@ -30,13 +30,12 @@
             return JsonSerializer.Deserialize<Configuration>(json,
                 new JsonSerializerOptions
                 {
-                    IgnoreNullValues = false,
                     ReadCommentHandling = JsonCommentHandling.Skip,
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     Converters =
                     {
-                        new JsonStringEnumConverter()
-                    }
+                        new JsonStringEnumConverter(),
+                    },
                 });
         }
     }
