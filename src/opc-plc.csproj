@@ -45,6 +45,12 @@
   </Choose>
 
   <ItemGroup>
+    <None Update="AggregateState\AggregateStateModel.PredefinedNodes.uanodes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="AggregationState\TemperatureModel.PredefinedNodes.uanodes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Boiler\BoilerModel.PredefinedNodes.uanodes">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

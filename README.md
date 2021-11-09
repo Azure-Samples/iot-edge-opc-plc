@@ -138,6 +138,17 @@ Features:
 - When the heater is on, the bottom temperature increases by 1 degree/s, the top temperature is always 5 degrees less than the bottom one
 - Pressure is calculated as 100000 + bottom temperature
 
+## Complex type (Aggregate State)
+
+The option `--ctas` adds a simple aggregate state to the address space.
+
+Features:
+- AggregateState is a complex type that shows: temperature and pressure
+- It changes every 5 seconds between different values for temperature and pressure leading to different aggregate states of water
+  - liquid
+  - solid
+  - fluid
+
 ## Simple Events
 
 The option `--ses` enables simple events from the [quickstart sample](https://github.com/OPCFoundation/UA-.NETStandard-Samples/tree/master/Workshop/SimpleEvents) from OPC Foundation.

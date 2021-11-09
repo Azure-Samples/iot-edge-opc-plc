@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<opc:ModelDesign
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:opc="http://opcfoundation.org/UA/ModelDesign.xsd"
+  xmlns:ua="http://opcfoundation.org/UA/"
+  xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"
+  xmlns="http://microsoft.com/Opc/OpcPlc/AggregateState"
+  TargetNamespace="http://microsoft.com/Opc/OpcPlc/AggregateState"
+>
+
+  <opc:Namespaces>
+    <opc:Namespace Name="OpcUa" Prefix="Opc.Ua" XmlNamespace="http://opcfoundation.org/UA/2008/02/Types.xsd">http://opcfoundation.org/UA/</opc:Namespace>
+    <opc:Namespace Name="AggregateState" Prefix="AggregateStateModel">http://microsoft.com/Opc/OpcPlc/AggregateState</opc:Namespace>
+  </opc:Namespaces>
+
+  <!--DataTypes -->
+  <opc:DataType SymbolicName="AggregateStateDataType" BaseType="ua:Structure">
+    <opc:Description>Temperature in °C, pressure in bar.</opc:Description>
+    <opc:Fields>
+      <opc:Field Name="Temperature" DataType="ua:Int16"/>
+      <opc:Field Name="Pressure" DataType="ua:Float"/>
+    </opc:Fields>
+  </opc:DataType>
+
+  <opc:ObjectType SymbolicName="AggregateStateType" BaseType="ua:BaseObjectType" SupportsEvents="true">
+    <opc:Children>
+      <opc:Variable SymbolicName="AggregateState" DataType="AggregateStateDataType">
+        <opc:DefaultValue>
+          <uax:ExtensionObject>
+            <uax:Body>
+              <AggregateStateDataType>
+
+                <Temperature>-5</Temperature>
+                <Pressure>1.0</Pressure>
+
+              </AggregateStateDataType>
+            </uax:Body>
+          </uax:ExtensionObject>
+        </opc:DefaultValue>
+      </opc:Variable>
+    </opc:Children>
+  </opc:ObjectType>
+
+  <opc:Object SymbolicName="AggregateState1" TypeDefinition="AggregateStateType" SupportsEvents="true">
+    <opc:BrowseName>AggregateState #1</opc:BrowseName>
+
+    <opc:Description>A instance of an aggregation state</opc:Description>
+
+    <opc:References>
+      <opc:Reference IsInverse="true">
+        <opc:ReferenceType>ua:Organizes</opc:ReferenceType>
+        <opc:TargetId>ua:ObjectsFolder</opc:TargetId>
+      </opc:Reference>
+    </opc:References>
+
+  </opc:Object>
+
+</opc:ModelDesign>

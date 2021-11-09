@@ -1,0 +1,17 @@
+<opc:TypeDictionary
+  xmlns:opc="http://opcfoundation.org/BinarySchema/"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ua="http://opcfoundation.org/UA/"
+  xmlns:tns="http://microsoft.com/Opc/OpcPlc/AggregateState"
+  DefaultByteOrder="LittleEndian"
+  TargetNamespace="http://microsoft.com/Opc/OpcPlc/AggregateState"
+>
+  <opc:Import Namespace="http://opcfoundation.org/UA/" Location="Opc.Ua.BinarySchema.bsd"/>
+
+  <opc:StructuredType Name="AggregateStateDataType" BaseType="ua:ExtensionObject">
+    <opc:Documentation>Temperature in °C, pressure in bar.</opc:Documentation>
+    <opc:Field Name="Temperature" TypeName="opc:Int16" />
+    <opc:Field Name="Pressure" TypeName="opc:Float" />
+  </opc:StructuredType>
+
+</opc:TypeDictionary>

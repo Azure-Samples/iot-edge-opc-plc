@@ -1,0 +1,28 @@
+<xs:schema
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:ua="http://opcfoundation.org/UA/2008/02/Types.xsd"
+  xmlns:tns="http://microsoft.com/Opc/OpcPlc/AggregateState"
+  targetNamespace="http://microsoft.com/Opc/OpcPlc/AggregateState"
+  elementFormDefault="qualified"
+>
+  <xs:import namespace="http://opcfoundation.org/UA/2008/02/Types.xsd" />
+
+  <xs:complexType name="AggregateStateDataType">
+    <xs:annotation>
+      <xs:documentation>Temperature in °C, pressure in bar.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="Temperature" type="xs:short" minOccurs="0" />
+      <xs:element name="Pressure" type="xs:float" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="AggregateStateDataType" type="tns:AggregateStateDataType" />
+
+  <xs:complexType name="ListOfAggregateStateDataType">
+    <xs:sequence>
+      <xs:element name="AggregateStateDataType" type="tns:AggregateStateDataType" minOccurs="0" maxOccurs="unbounded" nillable="true" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ListOfAggregateStateDataType" type="tns:ListOfAggregateStateDataType" nillable="true"></xs:element>
+
+</xs:schema>

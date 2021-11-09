@@ -5,5 +5,6 @@
         OpcPlcApplications,
         Boiler,
         BoilerInstance,
+        AggregateState,
     }
 }

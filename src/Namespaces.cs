@@ -8,6 +8,11 @@ namespace OpcPlc
         /// <summary>
         /// The namespace for the nodes provided by for boiler type.
         /// </summary>
+        public const string OpcPlcAggregateState = "http://microsoft.com/Opc/OpcPlc/AggregateState";
+
+        /// <summary>
+        /// The namespace for the nodes provided by for boiler type.
+        /// </summary>
         public const string OpcPlcBoiler = "http://microsoft.com/Opc/OpcPlc/Boiler";
 
         /// <summary>

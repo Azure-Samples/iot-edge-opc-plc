@@ -1,0 +1,263 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UANodeSet xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://microsoft.com/Opc/OpcPlc/AggregateState</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://microsoft.com/Opc/OpcPlc/AggregateState">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.04" PublicationDate="2018-02-09T00:00:00Z" />
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="SByte">i=2</Alias>
+    <Alias Alias="Byte">i=3</Alias>
+    <Alias Alias="Int16">i=4</Alias>
+    <Alias Alias="UInt16">i=5</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
+    <Alias Alias="Int64">i=8</Alias>
+    <Alias Alias="UInt64">i=9</Alias>
+    <Alias Alias="Float">i=10</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="ByteString">i=15</Alias>
+    <Alias Alias="Guid">i=14</Alias>
+    <Alias Alias="XmlElement">i=16</Alias>
+    <Alias Alias="NodeId">i=17</Alias>
+    <Alias Alias="ExpandedNodeId">i=18</Alias>
+    <Alias Alias="QualifiedName">i=20</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="StatusCode">i=19</Alias>
+    <Alias Alias="Structure">i=22</Alias>
+    <Alias Alias="Number">i=26</Alias>
+    <Alias Alias="Integer">i=27</Alias>
+    <Alias Alias="UInteger">i=28</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasEventSource">i=36</Alias>
+    <Alias Alias="HasNotifier">i=48</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasEncoding">i=38</Alias>
+    <Alias Alias="HasDescription">i=39</Alias>
+  </Aliases>
+  <UADataType NodeId="ns=1;i=15001" BrowseName="1:AggregateStateDataType">
+    <DisplayName>AggregateStateDataType</DisplayName>
+    <Description>Temperature in °C, pressure in bar.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference>
+    </References>
+    <Definition Name="AggregateStateDataType">
+      <Field Name="Temperature" DataType="i=4" />
+      <Field Name="Pressure" DataType="i=10" />
+    </Definition>
+  </UADataType>
+  <UAObjectType NodeId="ns=1;i=15002" BrowseName="1:AggregateStateType">
+    <DisplayName>AggregateStateType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=15003</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=15003" BrowseName="1:AggregateState" ParentNodeId="ns=1;i=15002" DataType="ns=1;i=15001">
+    <DisplayName>AggregateState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15002</Reference>
+    </References>
+    <Value>
+      <ExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+        <TypeId>
+          <Identifier>ns=1;i=15014</Identifier>
+        </TypeId>
+        <Body>
+          <AggregateStateDataType xmlns="http://microsoft.com/Opc/OpcPlc/AggregateState">
+            <Temperature>-5</Temperature>
+            <Pressure>1.0</Pressure>
+          </AggregateStateDataType>
+        </Body>
+      </ExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=15004" BrowseName="1:AggregateState #1" SymbolicName="AggregateState1" EventNotifier="1">
+    <DisplayName>AggregateState #1</DisplayName>
+    <Description>A instance of an aggregation state</Description>
+    <References>
+      <Reference ReferenceType="HasComponent">ns=1;i=15005</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=15002</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=15005" BrowseName="1:AggregateState" ParentNodeId="ns=1;i=15004" DataType="ns=1;i=15001">
+    <DisplayName>AggregateState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15004</Reference>
+    </References>
+    <Value>
+      <ExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+        <TypeId>
+          <Identifier>ns=1;i=15014</Identifier>
+        </TypeId>
+        <Body>
+          <AggregateStateDataType xmlns="http://microsoft.com/Opc/OpcPlc/AggregateState">
+            <Temperature>-5</Temperature>
+            <Pressure>1.0</Pressure>
+          </AggregateStateDataType>
+        </Body>
+      </ExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=15006" BrowseName="Default Binary" SymbolicName="DefaultBinary">
+    <DisplayName>Default Binary</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=15001</Reference>
+      <Reference ReferenceType="HasDescription">ns=1;i=15011</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=15007" BrowseName="1:AggregateStateModel" SymbolicName="AggregateState_BinarySchema" DataType="ByteString">
+    <DisplayName>AggregateStateModel</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=15009</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=15010</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=15011</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">i=93</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=72</Reference>
+    </References>
+    <Value>
+      <ByteString xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">PG9wYzpUeXBlRGljdGlvbmFyeQ0KICB4bWxuczpvcGM9Imh0dHA6Ly9vcGNmb3VuZGF0aW9uLm9y
+Zy9CaW5hcnlTY2hlbWEvIg0KICB4bWxuczp4c2k9Imh0dHA6Ly93d3cudzMub3JnLzIwMDEvWE1M
+U2NoZW1hLWluc3RhbmNlIg0KICB4bWxuczp1YT0iaHR0cDovL29wY2ZvdW5kYXRpb24ub3JnL1VB
+LyINCiAgeG1sbnM6dG5zPSJodHRwOi8vbWljcm9zb2Z0LmNvbS9PcGMvT3BjUGxjL0FnZ3JlZ2F0
+ZVN0YXRlIg0KICBEZWZhdWx0Qnl0ZU9yZGVyPSJMaXR0bGVFbmRpYW4iDQogIFRhcmdldE5hbWVz
+cGFjZT0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9BZ2dyZWdhdGVTdGF0ZSINCj4N
+CiAgPG9wYzpJbXBvcnQgTmFtZXNwYWNlPSJodHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvVUEvIiBM
+b2NhdGlvbj0iT3BjLlVhLkJpbmFyeVNjaGVtYS5ic2QiLz4NCg0KICA8b3BjOlN0cnVjdHVyZWRU
+eXBlIE5hbWU9IkFnZ3JlZ2F0ZVN0YXRlRGF0YVR5cGUiIEJhc2VUeXBlPSJ1YTpFeHRlbnNpb25P
+YmplY3QiPg0KICAgIDxvcGM6RG9jdW1lbnRhdGlvbj5UZW1wZXJhdHVyZSBpbiDCsEMsIHByZXNz
+dXJlIGluIGJhci48L29wYzpEb2N1bWVudGF0aW9uPg0KICAgIDxvcGM6RmllbGQgTmFtZT0iVGVt
+cGVyYXR1cmUiIFR5cGVOYW1lPSJvcGM6SW50MTYiIC8+DQogICAgPG9wYzpGaWVsZCBOYW1lPSJQ
+cmVzc3VyZSIgVHlwZU5hbWU9Im9wYzpGbG9hdCIgLz4NCiAgPC9vcGM6U3RydWN0dXJlZFR5cGU+
+DQoNCjwvb3BjOlR5cGVEaWN0aW9uYXJ5Pg==</ByteString>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15009" BrowseName="NamespaceUri" ParentNodeId="ns=1;i=15007" DataType="String">
+    <DisplayName>NamespaceUri</DisplayName>
+    <Description>A URI that uniquely identifies the dictionary.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15007</Reference>
+    </References>
+    <Value>
+      <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">http://microsoft.com/Opc/OpcPlc/AggregateState</String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15010" BrowseName="Deprecated" ParentNodeId="ns=1;i=15007" DataType="Boolean">
+    <DisplayName>Deprecated</DisplayName>
+    <Description>Indicates that all of the definitions for the dictionary are available through a DataTypeDefinition Attribute.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15007</Reference>
+    </References>
+    <Value>
+      <Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15011" BrowseName="1:AggregateStateDataType" ParentNodeId="ns=1;i=15007" DataType="String">
+    <DisplayName>AggregateStateDataType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=69</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15007</Reference>
+    </References>
+    <Value>
+      <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">AggregateStateDataType</String>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=15014" BrowseName="Default XML" SymbolicName="DefaultXml">
+    <DisplayName>Default XML</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=15001</Reference>
+      <Reference ReferenceType="HasDescription">ns=1;i=15019</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=15015" BrowseName="1:AggregateStateModel" SymbolicName="AggregateState_XmlSchema" DataType="ByteString">
+    <DisplayName>AggregateStateModel</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=1;i=15017</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=15018</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=15019</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">i=92</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=72</Reference>
+    </References>
+    <Value>
+      <ByteString xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">PHhzOnNjaGVtYQ0KICB4bWxuczp4cz0iaHR0cDovL3d3dy53My5vcmcvMjAwMS9YTUxTY2hlbWEi
+DQogIHhtbG5zOnVhPSJodHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvVUEvMjAwOC8wMi9UeXBlcy54
+c2QiDQogIHhtbG5zOnRucz0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9BZ2dyZWdh
+dGVTdGF0ZSINCiAgdGFyZ2V0TmFtZXNwYWNlPSJodHRwOi8vbWljcm9zb2Z0LmNvbS9PcGMvT3Bj
+UGxjL0FnZ3JlZ2F0ZVN0YXRlIg0KICBlbGVtZW50Rm9ybURlZmF1bHQ9InF1YWxpZmllZCINCj4N
+CiAgPHhzOmltcG9ydCBuYW1lc3BhY2U9Imh0dHA6Ly9vcGNmb3VuZGF0aW9uLm9yZy9VQS8yMDA4
+LzAyL1R5cGVzLnhzZCIgLz4NCg0KICA8eHM6Y29tcGxleFR5cGUgbmFtZT0iQWdncmVnYXRlU3Rh
+dGVEYXRhVHlwZSI+DQogICAgPHhzOmFubm90YXRpb24+DQogICAgICA8eHM6ZG9jdW1lbnRhdGlv
+bj5UZW1wZXJhdHVyZSBpbiDCsEMsIHByZXNzdXJlIGluIGJhci48L3hzOmRvY3VtZW50YXRpb24+
+DQogICAgPC94czphbm5vdGF0aW9uPg0KICAgIDx4czpzZXF1ZW5jZT4NCiAgICAgIDx4czplbGVt
+ZW50IG5hbWU9IlRlbXBlcmF0dXJlIiB0eXBlPSJ4czpzaG9ydCIgbWluT2NjdXJzPSIwIiAvPg0K
+ICAgICAgPHhzOmVsZW1lbnQgbmFtZT0iUHJlc3N1cmUiIHR5cGU9InhzOmZsb2F0IiBtaW5PY2N1
+cnM9IjAiIC8+DQogICAgPC94czpzZXF1ZW5jZT4NCiAgPC94czpjb21wbGV4VHlwZT4NCiAgPHhz
+OmVsZW1lbnQgbmFtZT0iQWdncmVnYXRlU3RhdGVEYXRhVHlwZSIgdHlwZT0idG5zOkFnZ3JlZ2F0
+ZVN0YXRlRGF0YVR5cGUiIC8+DQoNCiAgPHhzOmNvbXBsZXhUeXBlIG5hbWU9Ikxpc3RPZkFnZ3Jl
+Z2F0ZVN0YXRlRGF0YVR5cGUiPg0KICAgIDx4czpzZXF1ZW5jZT4NCiAgICAgIDx4czplbGVtZW50
+IG5hbWU9IkFnZ3JlZ2F0ZVN0YXRlRGF0YVR5cGUiIHR5cGU9InRuczpBZ2dyZWdhdGVTdGF0ZURh
+dGFUeXBlIiBtaW5PY2N1cnM9IjAiIG1heE9jY3Vycz0idW5ib3VuZGVkIiBuaWxsYWJsZT0idHJ1
+ZSIgLz4NCiAgICA8L3hzOnNlcXVlbmNlPg0KICA8L3hzOmNvbXBsZXhUeXBlPg0KICA8eHM6ZWxl
+bWVudCBuYW1lPSJMaXN0T2ZBZ2dyZWdhdGVTdGF0ZURhdGFUeXBlIiB0eXBlPSJ0bnM6TGlzdE9m
+QWdncmVnYXRlU3RhdGVEYXRhVHlwZSIgbmlsbGFibGU9InRydWUiPjwveHM6ZWxlbWVudD4NCg0K
+PC94czpzY2hlbWE+</ByteString>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15017" BrowseName="NamespaceUri" ParentNodeId="ns=1;i=15015" DataType="String">
+    <DisplayName>NamespaceUri</DisplayName>
+    <Description>A URI that uniquely identifies the dictionary.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15015</Reference>
+    </References>
+    <Value>
+      <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">http://microsoft.com/Opc/OpcPlc/AggregateState</String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15018" BrowseName="Deprecated" ParentNodeId="ns=1;i=15015" DataType="Boolean">
+    <DisplayName>Deprecated</DisplayName>
+    <Description>Indicates that all of the definitions for the dictionary are available through a DataTypeDefinition Attribute.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15015</Reference>
+    </References>
+    <Value>
+      <Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=15019" BrowseName="1:AggregateStateDataType" ParentNodeId="ns=1;i=15015" DataType="String">
+    <DisplayName>AggregateStateDataType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=69</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15015</Reference>
+    </References>
+    <Value>
+      <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">//xs:element[@name='AggregateStateDataType']</String>
+    </Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=15022" BrowseName="Default JSON" SymbolicName="DefaultJson">
+    <DisplayName>Default JSON</DisplayName>
+    <References>
+      <Reference ReferenceType="HasEncoding" IsForward="false">ns=1;i=15001</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
+    </References>
+  </UAObject>
+</UANodeSet>

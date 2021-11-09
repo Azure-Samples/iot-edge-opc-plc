@@ -12,7 +12,7 @@ namespace OpcPlc
         #endregion
 
         public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService)
-            : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
+            : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, Namespaces.OpcPlcAggregateState})
         {
             _timeService = timeService;
             SystemContext.NodeIdFactory = this;

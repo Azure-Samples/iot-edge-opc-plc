@@ -1,0 +1,529 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<uax:ListOfNodeState xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd">
+  <uax:NamespaceUris>
+    <uax:NamespaceUri>http://microsoft.com/Opc/OpcPlc/AggregateState</uax:NamespaceUri>
+  </uax:NamespaceUris>
+  <AggregateStateDataType xmlns="http://microsoft.com/Opc/OpcPlc/AggregateState">
+    <uax:NodeClass>DataType_64</uax:NodeClass>
+    <uax:NodeId>
+      <uax:Identifier>ns=1;i=15001</uax:Identifier>
+    </uax:NodeId>
+    <uax:BrowseName>
+      <uax:NamespaceIndex>1</uax:NamespaceIndex>
+      <uax:Name>AggregateStateDataType</uax:Name>
+    </uax:BrowseName>
+    <uax:Description>
+      <uax:Locale></uax:Locale>
+      <uax:Text>Temperature in °C, pressure in bar.</uax:Text>
+    </uax:Description>
+    <uax:SuperTypeId>
+      <uax:Identifier>i=22</uax:Identifier>
+    </uax:SuperTypeId>
+  </AggregateStateDataType>
+  <AggregateStateType xmlns="http://microsoft.com/Opc/OpcPlc/AggregateState">
+    <uax:NodeClass>ObjectType_8</uax:NodeClass>
+    <uax:NodeId>
+      <uax:Identifier>ns=1;i=15002</uax:Identifier>
+    </uax:NodeId>
+    <uax:BrowseName>
+      <uax:NamespaceIndex>1</uax:NamespaceIndex>
+      <uax:Name>AggregateStateType</uax:Name>
+    </uax:BrowseName>
+    <uax:SuperTypeId>
+      <uax:Identifier>i=58</uax:Identifier>
+    </uax:SuperTypeId>
+    <AggregateState>
+      <uax:NodeClass>Variable_2</uax:NodeClass>
+      <uax:NodeId>
+        <uax:Identifier>ns=1;i=15003</uax:Identifier>
+      </uax:NodeId>
+      <uax:BrowseName>
+        <uax:NamespaceIndex>1</uax:NamespaceIndex>
+        <uax:Name>AggregateState</uax:Name>
+      </uax:BrowseName>
+      <uax:ReferenceTypeId>
+        <uax:Identifier>i=47</uax:Identifier>
+      </uax:ReferenceTypeId>
+      <uax:TypeDefinitionId>
+        <uax:Identifier>i=63</uax:Identifier>
+      </uax:TypeDefinitionId>
+      <uax:ModellingRuleId>
+        <uax:Identifier>i=78</uax:Identifier>
+      </uax:ModellingRuleId>
+      <uax:NumericId>15003</uax:NumericId>
+      <uax:Value>
+        <uax:Value>
+          <uax:ExtensionObject>
+            <uax:TypeId>
+              <uax:Identifier>ns=1;i=15014</uax:Identifier>
+            </uax:TypeId>
+            <uax:Body>
+              <AggregateStateDataType xmlns="http://microsoft.com/Opc/OpcPlc/AggregateState">
+                <Temperature>-5</Temperature>
+                <Pressure>1.0</Pressure>
+              </AggregateStateDataType>
+            </uax:Body>
+          </uax:ExtensionObject>
+        </uax:Value>
+      </uax:Value>
+      <uax:DataType>
+        <uax:Identifier>ns=1;i=15001</uax:Identifier>
+      </uax:DataType>
+      <uax:ValueRank>-1</uax:ValueRank>
+      <uax:AccessLevel>1</uax:AccessLevel>
+      <uax:UserAccessLevel>1</uax:UserAccessLevel>
+    </AggregateState>
+  </AggregateStateType>
+  <AggregateState1 xmlns="http://microsoft.com/Opc/OpcPlc/AggregateState">
+    <uax:NodeClass>Object_1</uax:NodeClass>
+    <uax:NodeId>
+      <uax:Identifier>ns=1;i=15004</uax:Identifier>
+    </uax:NodeId>
+    <uax:BrowseName>
+      <uax:NamespaceIndex>1</uax:NamespaceIndex>
+      <uax:Name>AggregateState #1</uax:Name>
+    </uax:BrowseName>
+    <uax:Description>
+      <uax:Locale></uax:Locale>
+      <uax:Text>A instance of an aggregation state</uax:Text>
+    </uax:Description>
+    <uax:ReferenceTypeId>
+      <uax:Identifier>i=47</uax:Identifier>
+    </uax:ReferenceTypeId>
+    <uax:TypeDefinitionId>
+      <uax:Identifier>ns=1;i=15002</uax:Identifier>
+    </uax:TypeDefinitionId>
+    <uax:NumericId>15004</uax:NumericId>
+    <uax:EventNotifier>1</uax:EventNotifier>
+    <uax:References>
+      <uax:Reference>
+        <uax:ReferenceTypeId>
+          <uax:Identifier>i=35</uax:Identifier>
+        </uax:ReferenceTypeId>
+        <uax:IsInverse>true</uax:IsInverse>
+        <uax:TargetId>
+          <uax:Identifier>i=85</uax:Identifier>
+        </uax:TargetId>
+      </uax:Reference>
+    </uax:References>
+    <AggregateState>
+      <uax:NodeClass>Variable_2</uax:NodeClass>
+      <uax:NodeId>
+        <uax:Identifier>ns=1;i=15005</uax:Identifier>
+      </uax:NodeId>
+      <uax:BrowseName>
+        <uax:NamespaceIndex>1</uax:NamespaceIndex>
+        <uax:Name>AggregateState</uax:Name>
+      </uax:BrowseName>
+      <uax:ReferenceTypeId>
+        <uax:Identifier>i=47</uax:Identifier>
+      </uax:ReferenceTypeId>
+      <uax:TypeDefinitionId>
+        <uax:Identifier>i=63</uax:Identifier>
+      </uax:TypeDefinitionId>
+      <uax:NumericId>15005</uax:NumericId>
+      <uax:Value>
+        <uax:Value>
+          <uax:ExtensionObject>
+            <uax:TypeId>
+              <uax:Identifier>ns=1;i=15014</uax:Identifier>
+            </uax:TypeId>
+            <uax:Body>
+              <AggregateStateDataType xmlns="http://microsoft.com/Opc/OpcPlc/AggregateState">
+                <Temperature>-5</Temperature>
+                <Pressure>1.0</Pressure>
+              </AggregateStateDataType>
+            </uax:Body>
+          </uax:ExtensionObject>
+        </uax:Value>
+      </uax:Value>
+      <uax:DataType>
+        <uax:Identifier>ns=1;i=15001</uax:Identifier>
+      </uax:DataType>
+      <uax:ValueRank>-1</uax:ValueRank>
+      <uax:AccessLevel>1</uax:AccessLevel>
+      <uax:UserAccessLevel>1</uax:UserAccessLevel>
+    </AggregateState>
+  </AggregateState1>
+  <DefaultBinary xmlns="http://opcfoundation.org/UA/">
+    <uax:NodeClass>Object_1</uax:NodeClass>
+    <uax:NodeId>
+      <uax:Identifier>ns=1;i=15006</uax:Identifier>
+    </uax:NodeId>
+    <uax:BrowseName>
+      <uax:NamespaceIndex>0</uax:NamespaceIndex>
+      <uax:Name>Default Binary</uax:Name>
+    </uax:BrowseName>
+    <uax:TypeDefinitionId>
+      <uax:Identifier>i=76</uax:Identifier>
+    </uax:TypeDefinitionId>
+    <uax:NumericId>15006</uax:NumericId>
+    <uax:References>
+      <uax:Reference>
+        <uax:ReferenceTypeId>
+          <uax:Identifier>i=38</uax:Identifier>
+        </uax:ReferenceTypeId>
+        <uax:IsInverse>true</uax:IsInverse>
+        <uax:TargetId>
+          <uax:Identifier>ns=1;i=15001</uax:Identifier>
+        </uax:TargetId>
+      </uax:Reference>
+      <uax:Reference>
+        <uax:ReferenceTypeId>
+          <uax:Identifier>i=39</uax:Identifier>
+        </uax:ReferenceTypeId>
+        <uax:TargetId>
+          <uax:Identifier>ns=1;i=15011</uax:Identifier>
+        </uax:TargetId>
+      </uax:Reference>
+    </uax:References>
+  </DefaultBinary>
+  <AggregateState_BinarySchema xmlns="http://microsoft.com/Opc/OpcPlc/AggregateState">
+    <uax:NodeClass>Variable_2</uax:NodeClass>
+    <uax:NodeId>
+      <uax:Identifier>ns=1;i=15007</uax:Identifier>
+    </uax:NodeId>
+    <uax:BrowseName>
+      <uax:NamespaceIndex>1</uax:NamespaceIndex>
+      <uax:Name>AggregateStateModel</uax:Name>
+    </uax:BrowseName>
+    <uax:TypeDefinitionId>
+      <uax:Identifier>i=72</uax:Identifier>
+    </uax:TypeDefinitionId>
+    <uax:NumericId>15007</uax:NumericId>
+    <uax:Value>
+      <uax:Value>
+        <uax:ByteString>PG9wYzpUeXBlRGljdGlvbmFyeQ0KICB4bWxuczpvcGM9Imh0dHA6Ly9vcGNmb3VuZGF0aW9uLm9y
+Zy9CaW5hcnlTY2hlbWEvIg0KICB4bWxuczp4c2k9Imh0dHA6Ly93d3cudzMub3JnLzIwMDEvWE1M
+U2NoZW1hLWluc3RhbmNlIg0KICB4bWxuczp1YT0iaHR0cDovL29wY2ZvdW5kYXRpb24ub3JnL1VB
+LyINCiAgeG1sbnM6dG5zPSJodHRwOi8vbWljcm9zb2Z0LmNvbS9PcGMvT3BjUGxjL0FnZ3JlZ2F0
+ZVN0YXRlIg0KICBEZWZhdWx0Qnl0ZU9yZGVyPSJMaXR0bGVFbmRpYW4iDQogIFRhcmdldE5hbWVz
+cGFjZT0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9BZ2dyZWdhdGVTdGF0ZSINCj4N
+CiAgPG9wYzpJbXBvcnQgTmFtZXNwYWNlPSJodHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvVUEvIiBM
+b2NhdGlvbj0iT3BjLlVhLkJpbmFyeVNjaGVtYS5ic2QiLz4NCg0KICA8b3BjOlN0cnVjdHVyZWRU
+eXBlIE5hbWU9IkFnZ3JlZ2F0ZVN0YXRlRGF0YVR5cGUiIEJhc2VUeXBlPSJ1YTpFeHRlbnNpb25P
+YmplY3QiPg0KICAgIDxvcGM6RG9jdW1lbnRhdGlvbj5UZW1wZXJhdHVyZSBpbiDCsEMsIHByZXNz
+dXJlIGluIGJhci48L29wYzpEb2N1bWVudGF0aW9uPg0KICAgIDxvcGM6RmllbGQgTmFtZT0iVGVt
+cGVyYXR1cmUiIFR5cGVOYW1lPSJvcGM6SW50MTYiIC8+DQogICAgPG9wYzpGaWVsZCBOYW1lPSJQ
+cmVzc3VyZSIgVHlwZU5hbWU9Im9wYzpGbG9hdCIgLz4NCiAgPC9vcGM6U3RydWN0dXJlZFR5cGU+
+DQoNCjwvb3BjOlR5cGVEaWN0aW9uYXJ5Pg==</uax:ByteString>
+      </uax:Value>
+    </uax:Value>
+    <uax:DataType>
+      <uax:Identifier>i=15</uax:Identifier>
+    </uax:DataType>
+    <uax:ValueRank>-1</uax:ValueRank>
+    <uax:AccessLevel>1</uax:AccessLevel>
+    <uax:UserAccessLevel>1</uax:UserAccessLevel>
+    <uax:References>
+      <uax:Reference>
+        <uax:ReferenceTypeId>
+          <uax:Identifier>i=47</uax:Identifier>
+        </uax:ReferenceTypeId>
+        <uax:IsInverse>true</uax:IsInverse>
+        <uax:TargetId>
+          <uax:Identifier>i=93</uax:Identifier>
+        </uax:TargetId>
+      </uax:Reference>
+    </uax:References>
+    <NamespaceUri xmlns="http://opcfoundation.org/UA/">
+      <uax:NodeClass>Variable_2</uax:NodeClass>
+      <uax:NodeId>
+        <uax:Identifier>ns=1;i=15009</uax:Identifier>
+      </uax:NodeId>
+      <uax:BrowseName>
+        <uax:NamespaceIndex>0</uax:NamespaceIndex>
+        <uax:Name>NamespaceUri</uax:Name>
+      </uax:BrowseName>
+      <uax:Description>
+        <uax:Locale></uax:Locale>
+        <uax:Text>A URI that uniquely identifies the dictionary.</uax:Text>
+      </uax:Description>
+      <uax:ReferenceTypeId>
+        <uax:Identifier>i=46</uax:Identifier>
+      </uax:ReferenceTypeId>
+      <uax:TypeDefinitionId>
+        <uax:Identifier>i=68</uax:Identifier>
+      </uax:TypeDefinitionId>
+      <uax:NumericId>15009</uax:NumericId>
+      <uax:Value>
+        <uax:Value>
+          <uax:String>http://microsoft.com/Opc/OpcPlc/AggregateState</uax:String>
+        </uax:Value>
+      </uax:Value>
+      <uax:DataType>
+        <uax:Identifier>i=12</uax:Identifier>
+      </uax:DataType>
+      <uax:ValueRank>-1</uax:ValueRank>
+      <uax:AccessLevel>1</uax:AccessLevel>
+      <uax:UserAccessLevel>1</uax:UserAccessLevel>
+    </NamespaceUri>
+    <Deprecated xmlns="http://opcfoundation.org/UA/">
+      <uax:NodeClass>Variable_2</uax:NodeClass>
+      <uax:NodeId>
+        <uax:Identifier>ns=1;i=15010</uax:Identifier>
+      </uax:NodeId>
+      <uax:BrowseName>
+        <uax:NamespaceIndex>0</uax:NamespaceIndex>
+        <uax:Name>Deprecated</uax:Name>
+      </uax:BrowseName>
+      <uax:Description>
+        <uax:Locale></uax:Locale>
+        <uax:Text>Indicates that all of the definitions for the dictionary are available through a DataTypeDefinition Attribute.</uax:Text>
+      </uax:Description>
+      <uax:ReferenceTypeId>
+        <uax:Identifier>i=46</uax:Identifier>
+      </uax:ReferenceTypeId>
+      <uax:TypeDefinitionId>
+        <uax:Identifier>i=68</uax:Identifier>
+      </uax:TypeDefinitionId>
+      <uax:NumericId>15010</uax:NumericId>
+      <uax:Value>
+        <uax:Value>
+          <uax:Boolean>true</uax:Boolean>
+        </uax:Value>
+      </uax:Value>
+      <uax:DataType>
+        <uax:Identifier>i=1</uax:Identifier>
+      </uax:DataType>
+      <uax:ValueRank>-1</uax:ValueRank>
+      <uax:AccessLevel>1</uax:AccessLevel>
+      <uax:UserAccessLevel>1</uax:UserAccessLevel>
+    </Deprecated>
+    <AggregateStateDataType>
+      <uax:NodeClass>Variable_2</uax:NodeClass>
+      <uax:NodeId>
+        <uax:Identifier>ns=1;i=15011</uax:Identifier>
+      </uax:NodeId>
+      <uax:BrowseName>
+        <uax:NamespaceIndex>1</uax:NamespaceIndex>
+        <uax:Name>AggregateStateDataType</uax:Name>
+      </uax:BrowseName>
+      <uax:ReferenceTypeId>
+        <uax:Identifier>i=47</uax:Identifier>
+      </uax:ReferenceTypeId>
+      <uax:TypeDefinitionId>
+        <uax:Identifier>i=69</uax:Identifier>
+      </uax:TypeDefinitionId>
+      <uax:NumericId>15011</uax:NumericId>
+      <uax:Value>
+        <uax:Value>
+          <uax:String>AggregateStateDataType</uax:String>
+        </uax:Value>
+      </uax:Value>
+      <uax:DataType>
+        <uax:Identifier>i=12</uax:Identifier>
+      </uax:DataType>
+      <uax:ValueRank>-1</uax:ValueRank>
+      <uax:AccessLevel>1</uax:AccessLevel>
+      <uax:UserAccessLevel>1</uax:UserAccessLevel>
+    </AggregateStateDataType>
+  </AggregateState_BinarySchema>
+  <DefaultXml xmlns="http://opcfoundation.org/UA/">
+    <uax:NodeClass>Object_1</uax:NodeClass>
+    <uax:NodeId>
+      <uax:Identifier>ns=1;i=15014</uax:Identifier>
+    </uax:NodeId>
+    <uax:BrowseName>
+      <uax:NamespaceIndex>0</uax:NamespaceIndex>
+      <uax:Name>Default XML</uax:Name>
+    </uax:BrowseName>
+    <uax:TypeDefinitionId>
+      <uax:Identifier>i=76</uax:Identifier>
+    </uax:TypeDefinitionId>
+    <uax:NumericId>15014</uax:NumericId>
+    <uax:References>
+      <uax:Reference>
+        <uax:ReferenceTypeId>
+          <uax:Identifier>i=38</uax:Identifier>
+        </uax:ReferenceTypeId>
+        <uax:IsInverse>true</uax:IsInverse>
+        <uax:TargetId>
+          <uax:Identifier>ns=1;i=15001</uax:Identifier>
+        </uax:TargetId>
+      </uax:Reference>
+      <uax:Reference>
+        <uax:ReferenceTypeId>
+          <uax:Identifier>i=39</uax:Identifier>
+        </uax:ReferenceTypeId>
+        <uax:TargetId>
+          <uax:Identifier>ns=1;i=15019</uax:Identifier>
+        </uax:TargetId>
+      </uax:Reference>
+    </uax:References>
+  </DefaultXml>
+  <AggregateState_XmlSchema xmlns="http://microsoft.com/Opc/OpcPlc/AggregateState">
+    <uax:NodeClass>Variable_2</uax:NodeClass>
+    <uax:NodeId>
+      <uax:Identifier>ns=1;i=15015</uax:Identifier>
+    </uax:NodeId>
+    <uax:BrowseName>
+      <uax:NamespaceIndex>1</uax:NamespaceIndex>
+      <uax:Name>AggregateStateModel</uax:Name>
+    </uax:BrowseName>
+    <uax:TypeDefinitionId>
+      <uax:Identifier>i=72</uax:Identifier>
+    </uax:TypeDefinitionId>
+    <uax:NumericId>15015</uax:NumericId>
+    <uax:Value>
+      <uax:Value>
+        <uax:ByteString>PHhzOnNjaGVtYQ0KICB4bWxuczp4cz0iaHR0cDovL3d3dy53My5vcmcvMjAwMS9YTUxTY2hlbWEi
+DQogIHhtbG5zOnVhPSJodHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvVUEvMjAwOC8wMi9UeXBlcy54
+c2QiDQogIHhtbG5zOnRucz0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9BZ2dyZWdh
+dGVTdGF0ZSINCiAgdGFyZ2V0TmFtZXNwYWNlPSJodHRwOi8vbWljcm9zb2Z0LmNvbS9PcGMvT3Bj
+UGxjL0FnZ3JlZ2F0ZVN0YXRlIg0KICBlbGVtZW50Rm9ybURlZmF1bHQ9InF1YWxpZmllZCINCj4N
+CiAgPHhzOmltcG9ydCBuYW1lc3BhY2U9Imh0dHA6Ly9vcGNmb3VuZGF0aW9uLm9yZy9VQS8yMDA4
+LzAyL1R5cGVzLnhzZCIgLz4NCg0KICA8eHM6Y29tcGxleFR5cGUgbmFtZT0iQWdncmVnYXRlU3Rh
+dGVEYXRhVHlwZSI+DQogICAgPHhzOmFubm90YXRpb24+DQogICAgICA8eHM6ZG9jdW1lbnRhdGlv
+bj5UZW1wZXJhdHVyZSBpbiDCsEMsIHByZXNzdXJlIGluIGJhci48L3hzOmRvY3VtZW50YXRpb24+
+DQogICAgPC94czphbm5vdGF0aW9uPg0KICAgIDx4czpzZXF1ZW5jZT4NCiAgICAgIDx4czplbGVt
+ZW50IG5hbWU9IlRlbXBlcmF0dXJlIiB0eXBlPSJ4czpzaG9ydCIgbWluT2NjdXJzPSIwIiAvPg0K
+ICAgICAgPHhzOmVsZW1lbnQgbmFtZT0iUHJlc3N1cmUiIHR5cGU9InhzOmZsb2F0IiBtaW5PY2N1
+cnM9IjAiIC8+DQogICAgPC94czpzZXF1ZW5jZT4NCiAgPC94czpjb21wbGV4VHlwZT4NCiAgPHhz
+OmVsZW1lbnQgbmFtZT0iQWdncmVnYXRlU3RhdGVEYXRhVHlwZSIgdHlwZT0idG5zOkFnZ3JlZ2F0
+ZVN0YXRlRGF0YVR5cGUiIC8+DQoNCiAgPHhzOmNvbXBsZXhUeXBlIG5hbWU9Ikxpc3RPZkFnZ3Jl
+Z2F0ZVN0YXRlRGF0YVR5cGUiPg0KICAgIDx4czpzZXF1ZW5jZT4NCiAgICAgIDx4czplbGVtZW50
+IG5hbWU9IkFnZ3JlZ2F0ZVN0YXRlRGF0YVR5cGUiIHR5cGU9InRuczpBZ2dyZWdhdGVTdGF0ZURh
+dGFUeXBlIiBtaW5PY2N1cnM9IjAiIG1heE9jY3Vycz0idW5ib3VuZGVkIiBuaWxsYWJsZT0idHJ1
+ZSIgLz4NCiAgICA8L3hzOnNlcXVlbmNlPg0KICA8L3hzOmNvbXBsZXhUeXBlPg0KICA8eHM6ZWxl
+bWVudCBuYW1lPSJMaXN0T2ZBZ2dyZWdhdGVTdGF0ZURhdGFUeXBlIiB0eXBlPSJ0bnM6TGlzdE9m
+QWdncmVnYXRlU3RhdGVEYXRhVHlwZSIgbmlsbGFibGU9InRydWUiPjwveHM6ZWxlbWVudD4NCg0K
+PC94czpzY2hlbWE+</uax:ByteString>
+      </uax:Value>
+    </uax:Value>
+    <uax:DataType>
+      <uax:Identifier>i=15</uax:Identifier>
+    </uax:DataType>
+    <uax:ValueRank>-1</uax:ValueRank>
+    <uax:AccessLevel>1</uax:AccessLevel>
+    <uax:UserAccessLevel>1</uax:UserAccessLevel>
+    <uax:References>
+      <uax:Reference>
+        <uax:ReferenceTypeId>
+          <uax:Identifier>i=47</uax:Identifier>
+        </uax:ReferenceTypeId>
+        <uax:IsInverse>true</uax:IsInverse>
+        <uax:TargetId>
+          <uax:Identifier>i=92</uax:Identifier>
+        </uax:TargetId>
+      </uax:Reference>
+    </uax:References>
+    <NamespaceUri xmlns="http://opcfoundation.org/UA/">
+      <uax:NodeClass>Variable_2</uax:NodeClass>
+      <uax:NodeId>
+        <uax:Identifier>ns=1;i=15017</uax:Identifier>
+      </uax:NodeId>
+      <uax:BrowseName>
+        <uax:NamespaceIndex>0</uax:NamespaceIndex>
+        <uax:Name>NamespaceUri</uax:Name>
+      </uax:BrowseName>
+      <uax:Description>
+        <uax:Locale></uax:Locale>
+        <uax:Text>A URI that uniquely identifies the dictionary.</uax:Text>
+      </uax:Description>
+      <uax:ReferenceTypeId>
+        <uax:Identifier>i=46</uax:Identifier>
+      </uax:ReferenceTypeId>
+      <uax:TypeDefinitionId>
+        <uax:Identifier>i=68</uax:Identifier>
+      </uax:TypeDefinitionId>
+      <uax:NumericId>15017</uax:NumericId>
+      <uax:Value>
+        <uax:Value>
+          <uax:String>http://microsoft.com/Opc/OpcPlc/AggregateState</uax:String>
+        </uax:Value>
+      </uax:Value>
+      <uax:DataType>
+        <uax:Identifier>i=12</uax:Identifier>
+      </uax:DataType>
+      <uax:ValueRank>-1</uax:ValueRank>
+      <uax:AccessLevel>1</uax:AccessLevel>
+      <uax:UserAccessLevel>1</uax:UserAccessLevel>
+    </NamespaceUri>
+    <Deprecated xmlns="http://opcfoundation.org/UA/">
+      <uax:NodeClass>Variable_2</uax:NodeClass>
+      <uax:NodeId>
+        <uax:Identifier>ns=1;i=15018</uax:Identifier>
+      </uax:NodeId>
+      <uax:BrowseName>
+        <uax:NamespaceIndex>0</uax:NamespaceIndex>
+        <uax:Name>Deprecated</uax:Name>
+      </uax:BrowseName>
+      <uax:Description>
+        <uax:Locale></uax:Locale>
+        <uax:Text>Indicates that all of the definitions for the dictionary are available through a DataTypeDefinition Attribute.</uax:Text>
+      </uax:Description>
+      <uax:ReferenceTypeId>
+        <uax:Identifier>i=46</uax:Identifier>
+      </uax:ReferenceTypeId>
+      <uax:TypeDefinitionId>
+        <uax:Identifier>i=68</uax:Identifier>
+      </uax:TypeDefinitionId>
+      <uax:NumericId>15018</uax:NumericId>
+      <uax:Value>
+        <uax:Value>
+          <uax:Boolean>true</uax:Boolean>
+        </uax:Value>
+      </uax:Value>
+      <uax:DataType>
+        <uax:Identifier>i=1</uax:Identifier>
+      </uax:DataType>
+      <uax:ValueRank>-1</uax:ValueRank>
+      <uax:AccessLevel>1</uax:AccessLevel>
+      <uax:UserAccessLevel>1</uax:UserAccessLevel>
+    </Deprecated>
+    <AggregateStateDataType>
+      <uax:NodeClass>Variable_2</uax:NodeClass>
+      <uax:NodeId>
+        <uax:Identifier>ns=1;i=15019</uax:Identifier>
+      </uax:NodeId>
+      <uax:BrowseName>
+        <uax:NamespaceIndex>1</uax:NamespaceIndex>
+        <uax:Name>AggregateStateDataType</uax:Name>
+      </uax:BrowseName>
+      <uax:ReferenceTypeId>
+        <uax:Identifier>i=47</uax:Identifier>
+      </uax:ReferenceTypeId>
+      <uax:TypeDefinitionId>
+        <uax:Identifier>i=69</uax:Identifier>
+      </uax:TypeDefinitionId>
+      <uax:NumericId>15019</uax:NumericId>
+      <uax:Value>
+        <uax:Value>
+          <uax:String>//xs:element[@name='AggregateStateDataType']</uax:String>
+        </uax:Value>
+      </uax:Value>
+      <uax:DataType>
+        <uax:Identifier>i=12</uax:Identifier>
+      </uax:DataType>
+      <uax:ValueRank>-1</uax:ValueRank>
+      <uax:AccessLevel>1</uax:AccessLevel>
+      <uax:UserAccessLevel>1</uax:UserAccessLevel>
+    </AggregateStateDataType>
+  </AggregateState_XmlSchema>
+  <DefaultJson xmlns="http://opcfoundation.org/UA/">
+    <uax:NodeClass>Object_1</uax:NodeClass>
+    <uax:NodeId>
+      <uax:Identifier>ns=1;i=15022</uax:Identifier>
+    </uax:NodeId>
+    <uax:BrowseName>
+      <uax:NamespaceIndex>0</uax:NamespaceIndex>
+      <uax:Name>Default JSON</uax:Name>
+    </uax:BrowseName>
+    <uax:TypeDefinitionId>
+      <uax:Identifier>i=76</uax:Identifier>
+    </uax:TypeDefinitionId>
+    <uax:NumericId>15022</uax:NumericId>
+    <uax:References>
+      <uax:Reference>
+        <uax:ReferenceTypeId>
+          <uax:Identifier>i=38</uax:Identifier>
+        </uax:ReferenceTypeId>
+        <uax:IsInverse>true</uax:IsInverse>
+        <uax:TargetId>
+          <uax:Identifier>ns=1;i=15001</uax:Identifier>
+        </uax:TargetId>
+      </uax:Reference>
+    </uax:References>
+  </DefaultJson>
+</uax:ListOfNodeState>
