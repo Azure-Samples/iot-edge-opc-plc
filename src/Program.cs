@@ -14,7 +14,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static OpcPlc.OpcApplicationConfiguration;
@@ -125,8 +124,6 @@ public static class Program
     /// </summary>
     public static void Main(string[] args)
     {
-        InitAppLocation();
-
         // Start OPC UA server.
         MainAsync(args).Wait();
     }
@@ -145,19 +142,18 @@ public static class Program
 
         InitLogging();
 
-        // show usage if requested
+        // Show usage if requested
         if (ShowHelp)
         {
-            Usage(options);
+            CliOptions.PrintUsage(options);
             return;
         }
 
-        // validate and parse extra arguments
+        // Validate and parse extra arguments
         if (extraArgs.Count > 0)
         {
-            Logger.Error("Error in command line options");
-            Logger.Error($"Command line arguments: {string.Join(" ", args)}");
-            Usage(options);
+            Logger.Error($"Error with command line arguments: {string.Join(" ", args)}");
+            CliOptions.PrintUsage(options);
             return;
         }
 
@@ -275,7 +271,7 @@ public static class Program
 
         if (ShowPublisherConfigJsonIp)
         {
-            await PnJsonHelper.DumpPublisherConfigJsonAsync(
+            await PnJsonHelper.PrintPublisherConfigJsonAsync(
                 PnJson,
                 $"{GetIpAddress()}:{ServerPort}{ServerPath}",
                 PluginNodes,
@@ -283,7 +279,7 @@ public static class Program
         }
         else if (ShowPublisherConfigJsonPh)
         {
-            await PnJsonHelper.DumpPublisherConfigJsonAsync(
+            await PnJsonHelper.PrintPublisherConfigJsonAsync(
                 PnJson,
                 $"{Hostname}:{ServerPort}{ServerPath}",
                 PluginNodes,
@@ -309,40 +305,6 @@ public static class Program
 
         PlcSimulation.Stop();
         PlcServer.Stop();
-    }
-
-    /// <summary>
-    /// Usage message.
-    /// </summary>
-    private static void Usage(Mono.Options.OptionSet options)
-    {
-        // show usage
-        Logger.Information("");
-        Logger.Information($"{ProgramName} V{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}");
-        Logger.Information($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
-        Logger.Information("");
-        Logger.Information("Usage: {0}.exe [<options>]", Assembly.GetEntryAssembly().GetName().Name);
-        Logger.Information("");
-        Logger.Information("OPC UA PLC for different data simulation scenarios");
-        Logger.Information("To exit the application, press CTRL-C while it is running.");
-        Logger.Information("");
-        Logger.Information("To specify a list of strings, please use the following format:");
-        Logger.Information("\"<string 1>,<string 2>,...,<string n>\"");
-        Logger.Information("or if one string contains commas:");
-        Logger.Information("\"\"<string 1>\",\"<string 2>\",...,\"<string n>\"\"");
-        Logger.Information("");
-
-        // output the options
-        Logger.Information("Options:");
-        var stringBuilder = new StringBuilder();
-        var stringWriter = new StringWriter(stringBuilder);
-        options.WriteOptionDescriptions(stringWriter);
-        string[] helpLines = stringBuilder.ToString().Split("\n");
-        foreach (var line in helpLines)
-        {
-            Logger.Information(line);
-        }
-        return;
     }
 
     /// <summary>
@@ -418,18 +380,6 @@ public static class Program
             }).Build();
 
         return host;
-    }
-
-    /// <summary>
-    /// Set app folder.
-    /// </summary>
-    private static void InitAppLocation()
-    {
-        string exePath = Process.GetCurrentProcess().MainModule.FileName;
-        string appFolder = Path.GetDirectoryName(exePath);
-
-        // ASP.NET Core 3.1 uses src as default current directory.
-        Directory.SetCurrentDirectory(appFolder);
     }
 
     private static void LogLogo()

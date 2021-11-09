@@ -236,3 +236,260 @@ X.509 certificates:
 ## Resources
 
 - [The OPC Foundation OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard)
+
+## Command-line reference
+```
+Usage: dotnet opcplc.dll [<options>]
+
+OPC UA PLC for different data simulation scenarios.
+To exit the application, press CTRL-C while it's running.
+
+Use the following format to specify a list of strings:
+"<string 1>,<string 2>,...,<string n>"
+or if one string contains commas:
+""<string 1>","<string 2>",...,"<string n>""
+
+Options:
+      --lf, --logfile=VALUE  the filename of the logfile to use.
+                               Default: './machinename-plc.log'
+      --lt, --logflushtimespan=VALUE
+                             the timespan in seconds when the logfile should be
+                               flushed.
+                               Default: 00:00:30 sec
+      --ll, --loglevel=VALUE the loglevel to use (allowed: fatal, error, warn,
+                               info, debug, verbose).
+                               Default: info
+      --sc, --simulationcyclecount=VALUE
+                             count of cycles in one simulation phase
+                               Default:  50 cycles
+      --ct, --cycletime=VALUE
+                             length of one cycle time in milliseconds
+                               Default:  100 msec
+      --ei, --eventinstances=VALUE
+                             number of event instances
+                               Default: 0
+      --er, --eventrate=VALUE
+                             rate in milliseconds to send events
+                               Default: 1000
+      --pn, --portnum=VALUE  the server port of the OPC server endpoint.
+                               Default: 50000
+      --op, --path=VALUE     the enpoint URL path part of the OPC server
+                               endpoint.
+                               Default: ''
+      --ph, --plchostname=VALUE
+                             the fullqualified hostname of the plc.
+                               Default: machinename
+      --ol, --opcmaxstringlen=VALUE
+                             the max length of a string opc can transmit/
+                               receive.
+                               Default: 4194304
+      --lr, --ldsreginterval=VALUE
+                             the LDS(-ME) registration interval in ms. If 0,
+                               then the registration is disabled.
+                               Default: 0
+      --aa, --autoaccept     all certs are trusted when a connection is
+                               established.
+                               Default: False
+      --ut, --unsecuretransport
+                             enables the unsecured transport.
+                               Default: False
+      --to, --trustowncert   the own certificate is put into the trusted
+                               certificate store automatically.
+                               Default: False
+      --at, --appcertstoretype=VALUE
+                             the own application cert store type.
+                               (allowed values: Directory, X509Store)
+                               Default: 'Directory'
+      --ap, --appcertstorepath=VALUE
+                             the path where the own application cert should be
+                               stored
+                               Default (depends on store type):
+                               X509Store: 'CurrentUser\UA_MachineDefault'
+                               Directory: 'pki/own'
+      --tp, --trustedcertstorepath=VALUE
+                             the path of the trusted cert store
+                               Default 'pki/trusted'
+      --rp, --rejectedcertstorepath=VALUE
+                             the path of the rejected cert store
+                               Default 'pki/rejected'
+      --ip, --issuercertstorepath=VALUE
+                             the path of the trusted issuer cert store
+                               Default 'pki/issuer'
+      --csr                  show data to create a certificate signing request
+                               Default 'False'
+      --ab, --applicationcertbase64=VALUE
+                             update/set this applications certificate with the
+                               certificate passed in as bas64 string
+      --af, --applicationcertfile=VALUE
+                             update/set this applications certificate with the
+                               certificate file specified
+      --pb, --privatekeybase64=VALUE
+                             initial provisioning of the application
+                               certificate (with a PEM or PFX fomat) requires a
+                               private key passed in as base64 string
+      --pk, --privatekeyfile=VALUE
+                             initial provisioning of the application
+                               certificate (with a PEM or PFX fomat) requires a
+                               private key passed in as file
+      --cp, --certpassword=VALUE
+                             the optional password for the PEM or PFX or the
+                               installed application certificate
+      --tb, --addtrustedcertbase64=VALUE
+                             adds the certificate to the applications trusted
+                               cert store passed in as base64 string (multiple
+                               strings supported)
+      --tf, --addtrustedcertfile=VALUE
+                             adds the certificate file(s) to the applications
+                               trusted cert store passed in as base64 string (
+                               multiple filenames supported)
+      --ib, --addissuercertbase64=VALUE
+                             adds the specified issuer certificate to the
+                               applications trusted issuer cert store passed in
+                               as base64 string (multiple strings supported)
+      --if, --addissuercertfile=VALUE
+                             adds the specified issuer certificate file(s) to
+                               the applications trusted issuer cert store (
+                               multiple filenames supported)
+      --rb, --updatecrlbase64=VALUE
+                             update the CRL passed in as base64 string to the
+                               corresponding cert store (trusted or trusted
+                               issuer)
+      --uc, --updatecrlfile=VALUE
+                             update the CRL passed in as file to the
+                               corresponding cert store (trusted or trusted
+                               issuer)
+      --rc, --removecert=VALUE
+                             remove cert(s) with the given thumbprint(s) (
+                               multiple thumbprints supported)
+      --daa, --disableanonymousauth
+                             flag to disable anonymous authentication.
+                               Default: False
+      --dua, --disableusernamepasswordauth
+                             flag to disable username/password authentication.
+                               Default: False
+      --dca, --disablecertauth
+                             flag to disable certificate authentication.
+                               Default: False
+      --au, --adminuser=VALUE
+                             the username of the admin user.
+                               Default: sysadmin
+      --ac, --adminpassword=VALUE
+                             the password of the administrator.
+                               Default: demo
+      --du, --defaultuser=VALUE
+                             the username of the default user.
+                               Default: user1
+      --dc, --defaultpassword=VALUE
+                             the password of the default user.
+                               Default: password
+      --alm, --alarms        add alarm simulation to address space.
+                               Default: False
+      --ses, --simpleevents  add simple events simulation to address space.
+                               Default: False
+      --ref, --referencetest add reference test simulation node manager to
+                               address space.
+                               Default: False
+      --dalm, --deterministicalarms=VALUE
+                             add deterministic alarm simulation to address
+                               space.
+                               Provide a script file for controlling
+                               deterministic alarms.
+      --sp, --showpnjson     show OPC Publisher configuration file using IP
+                               address as EndpointUrl.
+                               Default: False
+      --sph, --showpnjsonph  show OPC Publisher configuration file using
+                               plchostname as EndpointUrl.
+                               Default: False
+      --spf, --showpnfname=VALUE
+                             filename of the OPC Publisher configuration file
+                               to write when using options sp/sph.
+                               Default: pn.json
+      --wp, --webport=VALUE  web server port for hosting OPC Publisher
+                               configuration file.
+                               Default: 8080
+  -h, --help                 show this message and exit
+      --ctb, --complextypeboiler
+                             add complex type (boiler) to address space.
+                               Default: False
+      --nv, --nodatavalues   do not generate data values
+                               Default: False
+      --gn, --guidnodes=VALUE
+                             number of nodes with deterministic GUID IDs
+                               Default: 1
+      --nd, --nodips         do not generate dip data
+                               Default: False
+      --fn, --fastnodes=VALUE
+                             number of fast nodes
+                               Default: 1
+      --fr, --fastrate=VALUE rate in seconds to change fast nodes
+                               Default: 10
+      --ft, --fasttype=VALUE data type of fast nodes (UInt|Double|Bool|
+                               UIntArray)
+                               Default: UInt
+      --ftl, --fasttypelowerbound=VALUE
+                             lower bound of data type of fast nodes (UInt|
+                               Double|Bool|UIntArray)
+                               Default: min value of node type.
+      --ftu, --fasttypeupperbound=VALUE
+                             upper bound of data type of fast nodes (UInt|
+                               Double|Bool|UIntArray)
+                               Default: max value of node type.
+      --ftr, --fasttyperandomization=VALUE
+                             randomization of fast nodes value (UInt|Double|
+                               Bool|UIntArray)
+                               Default: False
+      --fts, --fasttypestepsize=VALUE
+                             step or increment size of fast nodes value (UInt|
+                               Double|Bool|UIntArray)
+                               Default: 1
+      --fsi, --fastnodesamplinginterval=VALUE
+                             rate in milliseconds to sample fast nodes
+                               Default: 0
+      --vfr, --veryfastrate=VALUE
+                             rate in milliseconds to change fast nodes
+                               Default: 10000
+      --lid, --longid        add node with ID of 3950 chars.
+                               Default: False
+      --lsn, --longstringnodes
+                             add nodes with string values of 10/50/100/200 kB.
+                               Default: False
+      --nn, --nonegtrend     do not generate negative trend data
+                               Default: False
+      --np, --nopostrend     do not generate positive trend data
+                               Default: False
+      --sn, --slownodes=VALUE
+                             number of slow nodes
+                               Default: 1
+      --sr, --slowrate=VALUE rate in seconds to change slow nodes
+                               Default: 10
+      --st, --slowtype=VALUE data type of slow nodes (UInt|Double|Bool|
+                               UIntArray)
+                               Default: UInt
+      --stl, --slowtypelowerbound=VALUE
+                             lower bound of data type of slow nodes (UInt|
+                               Double|Bool|UIntArray)
+                               Default: min value of node type.
+      --stu, --slowtypeupperbound=VALUE
+                             upper bound of data type of slow nodes (UInt|
+                               Double|Bool|UIntArray)
+                               Default: max value of node type.
+      --str, --slowtyperandomization=VALUE
+                             randomization of slow nodes value (UInt|Double|
+                               Bool|UIntArray)
+                               Default: False
+      --sts, --slowtypestepsize=VALUE
+                             step or increment size of slow nodes value (UInt|
+                               Double|Bool|UIntArray)
+                               Default: 1
+      --ssi, --slownodesamplinginterval=VALUE
+                             rate in milliseconds to sample slow nodes
+                               Default: 0
+      --scn, --specialcharname
+                             add node with special characters in name.
+                               Default: False
+      --ns, --nospikes       do not generate spike data
+                               Default: False
+      --nf, --nodesfile=VALUE
+                             the filename which contains the list of nodes to
+                               be created in the OPC UA address space.
+```

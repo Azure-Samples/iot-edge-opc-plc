@@ -8,6 +8,9 @@ using System.IO;
 using System.Linq;
 using static OpcPlc.OpcApplicationConfiguration;
 using static OpcPlc.PlcSimulation;
+using System.Diagnostics;
+using System.Reflection;
+using System.Text;
 
 public class CliOptions
 {
@@ -203,6 +206,36 @@ public class CliOptions
         }
 
         return options;
+    }
+
+    /// <summary>
+    /// Usage message.
+    /// </summary>
+    public static void PrintUsage(Mono.Options.OptionSet options)
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendLine();
+        sb.AppendLine($"{Program.ProgramName} V{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}");
+        sb.AppendLine($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
+        sb.AppendLine();
+        sb.AppendLine($"Usage: dotnet {Assembly.GetEntryAssembly().GetName().Name}.dll [<options>]");
+        sb.AppendLine();
+        sb.AppendLine("OPC UA PLC for different data simulation scenarios.");
+        sb.AppendLine("To exit the application, press CTRL-C while it's running.");
+        sb.AppendLine();
+        sb.AppendLine("Use the following format to specify a list of strings:");
+        sb.AppendLine("\"<string 1>,<string 2>,...,<string n>\"");
+        sb.AppendLine("or if one string contains commas:");
+        sb.AppendLine("\"\"<string 1>\",\"<string 2>\",...,\"<string n>\"\"");
+        sb.AppendLine();
+
+        // Append the options.
+        sb.AppendLine("Options:");
+        using var stringWriter = new StringWriter(sb);
+        options.WriteOptionDescriptions(stringWriter);
+
+        Program.Logger.Information(sb.ToString());
     }
 
     /// <summary>
