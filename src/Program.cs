@@ -124,8 +124,6 @@ public static class Program
     /// </summary>
     public static void Main(string[] args)
     {
-        InitAppLocation();
-
         // Start OPC UA server.
         MainAsync(args).Wait();
     }
@@ -382,18 +380,6 @@ public static class Program
             }).Build();
 
         return host;
-    }
-
-    /// <summary>
-    /// Set app folder.
-    /// </summary>
-    private static void InitAppLocation()
-    {
-        string exePath = Process.GetCurrentProcess().MainModule.FileName;
-        string appFolder = Path.GetDirectoryName(exePath);
-
-        // ASP.NET Core 3.1 uses src as default current directory.
-        Directory.SetCurrentDirectory(appFolder);
     }
 
     private static void LogLogo()
