@@ -222,7 +222,7 @@ public class CliOptions
         sb.AppendLine($"Usage: dotnet {Assembly.GetEntryAssembly().GetName().Name}.dll [<options>]");
         sb.AppendLine();
         sb.AppendLine("OPC UA PLC for different data simulation scenarios.");
-        sb.AppendLine("To exit the application, press CTRL-C while it is running.");
+        sb.AppendLine("To exit the application, press CTRL-C while it's running.");
         sb.AppendLine();
         sb.AppendLine("Use the following format to specify a list of strings:");
         sb.AppendLine("\"<string 1>,<string 2>,...,<string n>\"");
@@ -230,7 +230,7 @@ public class CliOptions
         sb.AppendLine("\"\"<string 1>\",\"<string 2>\",...,\"<string n>\"\"");
         sb.AppendLine();
 
-        // output the options
+        // Append the options.
         sb.AppendLine("Options:");
         using var stringWriter = new StringWriter(sb);
         options.WriteOptionDescriptions(stringWriter);
