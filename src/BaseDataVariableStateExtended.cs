@@ -1,5 +1,6 @@
 ﻿using Opc.Ua;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace OpcPlc
 {
@@ -15,10 +16,7 @@ namespace OpcPlc
 
         public BaseDataVariableStateExtended(NodeState nodeState, bool randomize, object stepSize, object minValue, object maxValue) : base(nodeState)
         {
-            if (nodeState is null)
-            {
-                throw new ArgumentNullException(nameof(nodeState));
-            }
+            ArgumentNullException.ThrowIfNull(nodeState);
 
             Randomize = randomize;
             StepSize = stepSize ?? throw new ArgumentNullException(nameof(stepSize));
