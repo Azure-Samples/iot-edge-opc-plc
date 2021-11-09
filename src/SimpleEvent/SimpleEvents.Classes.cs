@@ -27,22 +27,19 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Xml;
-using System.Runtime.Serialization;
-using Opc.Ua;
-
-namespace SimpleEvents
+namespace OpcPlc.SimpleEvent
 {
+    using Opc.Ua;
+    using SimpleEvents;
+    using System.Collections.Generic;
+
     #region SystemCycleStatusEventState Class
-    #if (!OPCUA_EXCLUDE_SystemCycleStatusEventState)
+#if (!OPCUA_EXCLUDE_SystemCycleStatusEventState)
     /// <summary>
     /// Stores an instance of the SystemCycleStatusEventType ObjectType.
     /// </summary>
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public partial class SystemCycleStatusEventState : SystemEventState
     {
         #region Constructors
@@ -58,10 +55,10 @@ namespace SimpleEvents
         /// </summary>
         protected override NodeId GetDefaultTypeDefinitionId(NamespaceTable namespaceUris)
         {
-            return Opc.Ua.NodeId.Create(SimpleEvents.ObjectTypes.SystemCycleStatusEventType, SimpleEvents.Namespaces.SimpleEvents, namespaceUris);
+            return NodeId.Create(SimpleEvents.ObjectTypes.SystemCycleStatusEventType, SimpleEvents.Namespaces.SimpleEvents, namespaceUris);
         }
 
-        #if (!OPCUA_EXCLUDE_InitializationStrings)
+#if (!OPCUA_EXCLUDE_InitializationStrings)
         /// <summary>
         /// Initializes the instance.
         /// </summary>
@@ -103,7 +100,7 @@ namespace SimpleEvents
            "BwAAAEN5Y2xlSWQBAQwAAC4ARAwAAAAADP////8BAf////8AAAAAFWCJCgIAAAABAAsAAABDdXJyZW50" +
            "U3RlcAEBDQAALgBEDQAAAAEBAQD/////AQH/////AAAAAA==";
         #endregion
-        #endif
+#endif
         #endregion
 
         #region Public Properties
@@ -117,7 +114,7 @@ namespace SimpleEvents
 
             set
             {
-                if (!Object.ReferenceEquals(m_cycleId, value))
+                if (!ReferenceEquals(m_cycleId, value))
                 {
                     ChangeMasks |= NodeStateChangeMasks.Children;
                 }
@@ -136,7 +133,7 @@ namespace SimpleEvents
 
             set
             {
-                if (!Object.ReferenceEquals(m_currentStep, value))
+                if (!ReferenceEquals(m_currentStep, value))
                 {
                     ChangeMasks |= NodeStateChangeMasks.Children;
                 }
@@ -188,46 +185,46 @@ namespace SimpleEvents
             switch (browseName.Name)
             {
                 case SimpleEvents.BrowseNames.CycleId:
-                {
-                    if (createOrReplace)
                     {
-                        if (CycleId == null)
+                        if (createOrReplace)
                         {
-                            if (replacement == null)
+                            if (CycleId == null)
                             {
-                                CycleId = new PropertyState<string>(this);
-                            }
-                            else
-                            {
-                                CycleId = (PropertyState<string>)replacement;
+                                if (replacement == null)
+                                {
+                                    CycleId = new PropertyState<string>(this);
+                                }
+                                else
+                                {
+                                    CycleId = (PropertyState<string>)replacement;
+                                }
                             }
                         }
-                    }
 
-                    instance = CycleId;
-                    break;
-                }
+                        instance = CycleId;
+                        break;
+                    }
 
                 case SimpleEvents.BrowseNames.CurrentStep:
-                {
-                    if (createOrReplace)
                     {
-                        if (CurrentStep == null)
+                        if (createOrReplace)
                         {
-                            if (replacement == null)
+                            if (CurrentStep == null)
                             {
-                                CurrentStep = new PropertyState<CycleStepDataType>(this);
-                            }
-                            else
-                            {
-                                CurrentStep = (PropertyState<CycleStepDataType>)replacement;
+                                if (replacement == null)
+                                {
+                                    CurrentStep = new PropertyState<CycleStepDataType>(this);
+                                }
+                                else
+                                {
+                                    CurrentStep = (PropertyState<CycleStepDataType>)replacement;
+                                }
                             }
                         }
-                    }
 
-                    instance = CurrentStep;
-                    break;
-                }
+                        instance = CurrentStep;
+                        break;
+                    }
             }
 
             if (instance != null)
@@ -244,16 +241,16 @@ namespace SimpleEvents
         private PropertyState<CycleStepDataType> m_currentStep;
         #endregion
     }
-    #endif
+#endif
     #endregion
 
     #region SystemCycleStartedEventState Class
-    #if (!OPCUA_EXCLUDE_SystemCycleStartedEventState)
+#if (!OPCUA_EXCLUDE_SystemCycleStartedEventState)
     /// <summary>
     /// Stores an instance of the SystemCycleStartedEventType ObjectType.
     /// </summary>
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public partial class SystemCycleStartedEventState : SystemCycleStatusEventState
     {
         #region Constructors
@@ -269,10 +266,10 @@ namespace SimpleEvents
         /// </summary>
         protected override NodeId GetDefaultTypeDefinitionId(NamespaceTable namespaceUris)
         {
-            return Opc.Ua.NodeId.Create(SimpleEvents.ObjectTypes.SystemCycleStartedEventType, SimpleEvents.Namespaces.SimpleEvents, namespaceUris);
+            return NodeId.Create(SimpleEvents.ObjectTypes.SystemCycleStartedEventType, SimpleEvents.Namespaces.SimpleEvents, namespaceUris);
         }
 
-        #if (!OPCUA_EXCLUDE_InitializationStrings)
+#if (!OPCUA_EXCLUDE_InitializationStrings)
         /// <summary>
         /// Initializes the instance.
         /// </summary>
@@ -315,7 +312,7 @@ namespace SimpleEvents
            "dFN0ZXABARkAAC4ARBkAAAABAQEA/////wEB/////wAAAAAXYIkKAgAAAAEABQAAAFN0ZXBzAQEaAAAu" +
            "AEQaAAAAAQEBAAEAAAABAAAAAAAAAAEB/////wAAAAA=";
         #endregion
-        #endif
+#endif
         #endregion
 
         #region Public Properties
@@ -329,7 +326,7 @@ namespace SimpleEvents
 
             set
             {
-                if (!Object.ReferenceEquals(m_steps, value))
+                if (!ReferenceEquals(m_steps, value))
                 {
                     ChangeMasks |= NodeStateChangeMasks.Children;
                 }
@@ -376,25 +373,25 @@ namespace SimpleEvents
             switch (browseName.Name)
             {
                 case SimpleEvents.BrowseNames.Steps:
-                {
-                    if (createOrReplace)
                     {
-                        if (Steps == null)
+                        if (createOrReplace)
                         {
-                            if (replacement == null)
+                            if (Steps == null)
                             {
-                                Steps = new PropertyState<CycleStepDataType[]>(this);
-                            }
-                            else
-                            {
-                                Steps = (PropertyState<CycleStepDataType[]>)replacement;
+                                if (replacement == null)
+                                {
+                                    Steps = new PropertyState<CycleStepDataType[]>(this);
+                                }
+                                else
+                                {
+                                    Steps = (PropertyState<CycleStepDataType[]>)replacement;
+                                }
                             }
                         }
-                    }
 
-                    instance = Steps;
-                    break;
-                }
+                        instance = Steps;
+                        break;
+                    }
             }
 
             if (instance != null)
@@ -410,16 +407,16 @@ namespace SimpleEvents
         private PropertyState<CycleStepDataType[]> m_steps;
         #endregion
     }
-    #endif
+#endif
     #endregion
 
     #region SystemCycleAbortedEventState Class
-    #if (!OPCUA_EXCLUDE_SystemCycleAbortedEventState)
+#if (!OPCUA_EXCLUDE_SystemCycleAbortedEventState)
     /// <summary>
     /// Stores an instance of the SystemCycleAbortedEventType ObjectType.
     /// </summary>
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public partial class SystemCycleAbortedEventState : SystemCycleStatusEventState
     {
         #region Constructors
@@ -435,10 +432,10 @@ namespace SimpleEvents
         /// </summary>
         protected override NodeId GetDefaultTypeDefinitionId(NamespaceTable namespaceUris)
         {
-            return Opc.Ua.NodeId.Create(SimpleEvents.ObjectTypes.SystemCycleAbortedEventType, SimpleEvents.Namespaces.SimpleEvents, namespaceUris);
+            return NodeId.Create(SimpleEvents.ObjectTypes.SystemCycleAbortedEventType, SimpleEvents.Namespaces.SimpleEvents, namespaceUris);
         }
 
-        #if (!OPCUA_EXCLUDE_InitializationStrings)
+#if (!OPCUA_EXCLUDE_InitializationStrings)
         /// <summary>
         /// Initializes the instance.
         /// </summary>
@@ -481,7 +478,7 @@ namespace SimpleEvents
            "dFN0ZXABASYAAC4ARCYAAAABAQEA/////wEB/////wAAAAAVYIkKAgAAAAEABQAAAEVycm9yAQEnAAAu" +
            "AEQnAAAAABP/////AQH/////AAAAAA==";
         #endregion
-        #endif
+#endif
         #endregion
 
         #region Public Properties
@@ -495,7 +492,7 @@ namespace SimpleEvents
 
             set
             {
-                if (!Object.ReferenceEquals(m_error, value))
+                if (!ReferenceEquals(m_error, value))
                 {
                     ChangeMasks |= NodeStateChangeMasks.Children;
                 }
@@ -542,25 +539,25 @@ namespace SimpleEvents
             switch (browseName.Name)
             {
                 case SimpleEvents.BrowseNames.Error:
-                {
-                    if (createOrReplace)
                     {
-                        if (Error == null)
+                        if (createOrReplace)
                         {
-                            if (replacement == null)
+                            if (Error == null)
                             {
-                                Error = new PropertyState<StatusCode>(this);
-                            }
-                            else
-                            {
-                                Error = (PropertyState<StatusCode>)replacement;
+                                if (replacement == null)
+                                {
+                                    Error = new PropertyState<StatusCode>(this);
+                                }
+                                else
+                                {
+                                    Error = (PropertyState<StatusCode>)replacement;
+                                }
                             }
                         }
-                    }
 
-                    instance = Error;
-                    break;
-                }
+                        instance = Error;
+                        break;
+                    }
             }
 
             if (instance != null)
@@ -576,16 +573,16 @@ namespace SimpleEvents
         private PropertyState<StatusCode> m_error;
         #endregion
     }
-    #endif
+#endif
     #endregion
 
     #region SystemCycleFinishedEventState Class
-    #if (!OPCUA_EXCLUDE_SystemCycleFinishedEventState)
+#if (!OPCUA_EXCLUDE_SystemCycleFinishedEventState)
     /// <summary>
     /// Stores an instance of the SystemCycleFinishedEventType ObjectType.
     /// </summary>
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public partial class SystemCycleFinishedEventState : SystemCycleStatusEventState
     {
         #region Constructors
@@ -601,10 +598,10 @@ namespace SimpleEvents
         /// </summary>
         protected override NodeId GetDefaultTypeDefinitionId(NamespaceTable namespaceUris)
         {
-            return Opc.Ua.NodeId.Create(SimpleEvents.ObjectTypes.SystemCycleFinishedEventType, SimpleEvents.Namespaces.SimpleEvents, namespaceUris);
+            return NodeId.Create(SimpleEvents.ObjectTypes.SystemCycleFinishedEventType, SimpleEvents.Namespaces.SimpleEvents, namespaceUris);
         }
 
-        #if (!OPCUA_EXCLUDE_InitializationStrings)
+#if (!OPCUA_EXCLUDE_InitializationStrings)
         /// <summary>
         /// Initializes the instance.
         /// </summary>
@@ -646,7 +643,7 @@ namespace SimpleEvents
            "AQAHAAAAQ3ljbGVJZAEBMgAALgBEMgAAAAAM/////wEB/////wAAAAAVYIkKAgAAAAEACwAAAEN1cnJl" +
            "bnRTdGVwAQEzAAAuAEQzAAAAAQEBAP////8BAf////8AAAAA";
         #endregion
-        #endif
+#endif
         #endregion
 
         #region Public Properties
@@ -658,6 +655,6 @@ namespace SimpleEvents
         #region Private Fields
         #endregion
     }
-    #endif
+#endif
     #endregion
 }

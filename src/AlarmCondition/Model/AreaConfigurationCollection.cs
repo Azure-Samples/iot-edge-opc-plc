@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿namespace AlarmCondition;
 
-namespace AlarmCondition
+using System.Collections.Generic;
+
+public class AreaConfigurationCollection : List<AreaConfiguration>
 {
-    public class AreaConfigurationCollection : List<AreaConfiguration>
-    {
-    }
 }

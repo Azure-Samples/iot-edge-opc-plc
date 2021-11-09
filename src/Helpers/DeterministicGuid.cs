@@ -1,26 +1,25 @@
-﻿using System;
+﻿namespace OpcPlc.Helpers;
 
-namespace OpcPlc.Helpers
+using System;
+
+public static class DeterministicGuid
 {
-    public static class DeterministicGuid
+    private static Random _rnd = new Random(1234); // Seeded (deterministic) random number generator.
+
+    public static Guid NewGuid()
     {
-        private static Random _rnd = new Random(1234); // Seeded (deterministic) random number generator.
+        return new Guid($"{GetRandHex(4)}-{GetRandHex(2)}-{GetRandHex(2)}-{GetRandHex(2)}-{GetRandHex(6)}");
+    }
 
-        public static Guid NewGuid()
+    private static object GetRandHex(int length)
+    {
+        string hexString = string.Empty;
+
+        for (int i = 0; i < length; i++)
         {
-            return new Guid($"{GetRandHex(4)}-{GetRandHex(2)}-{GetRandHex(2)}-{GetRandHex(2)}-{GetRandHex(6)}");
+            hexString += $"{_rnd.Next(0, 255):x2}";
         }
 
-        private static object GetRandHex(int length)
-        {
-            string hexString = string.Empty;
-
-            for (int i = 0; i < length; i++)
-            {
-                hexString += $"{_rnd.Next(0, 255):x2}";
-            }
-
-            return hexString;
-        }
+        return hexString;
     }
 }

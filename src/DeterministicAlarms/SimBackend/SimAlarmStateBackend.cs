@@ -1,53 +1,52 @@
-﻿namespace OpcPlc.DeterministicAlarms.SimBackend
+﻿namespace OpcPlc.DeterministicAlarms.SimBackend;
+
+using Opc.Ua;
+using OpcPlc.DeterministicAlarms.Configuration;
+using OpcPlc.DeterministicAlarms.Model;
+using System;
+
+public class SimAlarmStateBackend
 {
-    using Opc.Ua;
-    using OpcPlc.DeterministicAlarms.Configuration;
-    using OpcPlc.DeterministicAlarms.Model;
-    using System;
+    public string Name { get; internal set; }
 
-    public class SimAlarmStateBackend
+    public AlarmObjectStates AlarmType { get; set; }
+
+    public DateTime Time { get; internal set; }
+
+    public string Reason { get; internal set; }
+
+    public SimConditionStatesEnum State { get; internal set; }
+
+    public LocalizedText Comment { get; internal set; }
+
+    public string UserName { get; internal set; }
+
+    public EventSeverity Severity { get; internal set; }
+
+    public DateTime EnableTime { get; internal set; }
+
+    public DateTime ActiveTime { get; internal set; }
+
+    public SimSourceNodeBackend Source { get; internal set; }
+
+    public string Id { get; internal set; }
+
+    internal SimAlarmStateBackend CreateSnapshot()
     {
-        public string Name { get; internal set; }
+        return (SimAlarmStateBackend)MemberwiseClone();
+    }
 
-        public AlarmObjectStates AlarmType { get; set; }
-
-        public DateTime Time { get; internal set; }
-
-        public string Reason { get; internal set; }
-
-        public SimConditionStatesEnum State { get; internal set; }
-
-        public LocalizedText Comment { get; internal set; }
-
-        public string UserName { get; internal set; }
-
-        public EventSeverity Severity { get; internal set; }
-
-        public DateTime EnableTime { get; internal set; }
-
-        public DateTime ActiveTime { get; internal set; }
-
-        public SimSourceNodeBackend Source { get; internal set; }
-
-        public string Id { get; internal set; }
-
-        internal SimAlarmStateBackend CreateSnapshot()
+    internal bool SetStateBits(SimConditionStatesEnum bits, bool isSet)
+    {
+        if (isSet)
         {
-            return (SimAlarmStateBackend)MemberwiseClone();
+            bool currentlySet = ((State & bits) == bits);
+            State |= bits;
+            return !currentlySet;
         }
 
-        internal bool SetStateBits(SimConditionStatesEnum bits, bool isSet)
-        {
-            if (isSet)
-            {
-                bool currentlySet = ((State & bits) == bits);
-                State |= bits;
-                return !currentlySet;
-            }
-
-            bool currentlyCleared = ((State & ~bits) == State);
-            State &= ~bits;
-            return !currentlyCleared;
-        }
+        bool currentlyCleared = ((State & ~bits) == State);
+        State &= ~bits;
+        return !currentlyCleared;
     }
 }

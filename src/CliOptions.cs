@@ -1,19 +1,19 @@
-﻿namespace OpcPlc
-{
-    using Mono.Options;
-    using System;
-    using Opc.Ua;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using static OpcPlc.OpcApplicationConfiguration;
-    using static OpcPlc.PlcSimulation;
+﻿namespace OpcPlc;
 
-    public class CliOptions
+using Mono.Options;
+using System;
+using Opc.Ua;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using static OpcPlc.OpcApplicationConfiguration;
+using static OpcPlc.PlcSimulation;
+
+public class CliOptions
+{
+    public static Mono.Options.OptionSet InitCommandLineOptions()
     {
-        public static Mono.Options.OptionSet InitCommandLineOptions()
-        {
-            var options = new Mono.Options.OptionSet {
+        var options = new Mono.Options.OptionSet {
                 // log configuration
                 { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{Program.LogFileName}'", (string s) => Program.LogFileName = s },
                 { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {Program.LogFileFlushTimeSpanSec} sec", (int i) => {
@@ -196,100 +196,99 @@
                 { "h|help", "show this message and exit", (string s) => Program.ShowHelp = s != null },
             };
 
-            // Add options from plugin nodes list.
-            foreach (var plugin in Program.PluginNodes)
-            {
-                plugin.AddOptions(options);
-            }
-
-            return options;
+        // Add options from plugin nodes list.
+        foreach (var plugin in Program.PluginNodes)
+        {
+            plugin.AddOptions(options);
         }
 
-        /// <summary>
-        /// Helper to build a list of byte arrays out of a comma separated list of base64 strings (optional in double quotes).
-        /// </summary>
-        private static List<string> ParseListOfStrings(string s)
-        {
-            var strings = new List<string>();
-            if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
-            {
-                while (s.Contains('"'))
-                {
-                    int first = 0;
-                    int next = 0;
-                    first = s.IndexOf('"', next);
-                    next = s.IndexOf('"', ++first);
-                    strings.Add(s[first..next]);
-                    s = s.Substring(++next);
-                }
-            }
-            else if (s.Contains(','))
-            {
-                strings = s.Split(',').ToList();
-                strings.ForEach(st => st.Trim());
-                strings = strings.Select(st => st.Trim()).ToList();
-            }
-            else
-            {
-                strings.Add(s);
-            }
-            return strings;
-        }
+        return options;
+    }
 
-        /// <summary>
-        /// Helper to build a list of filenames out of a comma separated list of filenames (optional in double quotes).
-        /// </summary>
-        private static List<string> ParseListOfFileNames(string s, string option)
+    /// <summary>
+    /// Helper to build a list of byte arrays out of a comma separated list of base64 strings (optional in double quotes).
+    /// </summary>
+    private static List<string> ParseListOfStrings(string s)
+    {
+        var strings = new List<string>();
+        if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
         {
-            var fileNames = new List<string>();
-            if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
+            while (s.Contains('"'))
             {
-                while (s.Contains('"'))
-                {
-                    int first = 0;
-                    int next = 0;
-                    first = s.IndexOf('"', next);
-                    next = s.IndexOf('"', ++first);
-                    string fileName = s[first..next];
-                    if (File.Exists(fileName))
-                    {
-                        fileNames.Add(fileName);
-                    }
-                    else
-                    {
-                        throw new OptionException($"The file '{fileName}' does not exist.", option);
-                    }
-                    s = s.Substring(++next);
-                }
+                int first = 0;
+                int next = 0;
+                first = s.IndexOf('"', next);
+                next = s.IndexOf('"', ++first);
+                strings.Add(s[first..next]);
+                s = s.Substring(++next);
             }
-            else if (s.Contains(','))
+        }
+        else if (s.Contains(','))
+        {
+            strings = s.Split(',').ToList();
+            strings.ForEach(st => st.Trim());
+            strings = strings.Select(st => st.Trim()).ToList();
+        }
+        else
+        {
+            strings.Add(s);
+        }
+        return strings;
+    }
+
+    /// <summary>
+    /// Helper to build a list of filenames out of a comma separated list of filenames (optional in double quotes).
+    /// </summary>
+    private static List<string> ParseListOfFileNames(string s, string option)
+    {
+        var fileNames = new List<string>();
+        if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
+        {
+            while (s.Contains('"'))
             {
-                List<string> parsedFileNames = s.Split(',').ToList();
-                parsedFileNames = parsedFileNames.Select(st => st.Trim()).ToList();
-                foreach (var fileName in parsedFileNames)
+                int first = 0;
+                int next = 0;
+                first = s.IndexOf('"', next);
+                next = s.IndexOf('"', ++first);
+                string fileName = s[first..next];
+                if (File.Exists(fileName))
                 {
-                    if (File.Exists(fileName))
-                    {
-                        fileNames.Add(fileName);
-                    }
-                    else
-                    {
-                        throw new OptionException($"The file '{fileName}' does not exist.", option);
-                    }
-                }
-            }
-            else
-            {
-                if (File.Exists(s))
-                {
-                    fileNames.Add(s);
+                    fileNames.Add(fileName);
                 }
                 else
                 {
-                    throw new OptionException($"The file '{s}' does not exist.", option);
+                    throw new OptionException($"The file '{fileName}' does not exist.", option);
+                }
+                s = s.Substring(++next);
+            }
+        }
+        else if (s.Contains(','))
+        {
+            List<string> parsedFileNames = s.Split(',').ToList();
+            parsedFileNames = parsedFileNames.Select(st => st.Trim()).ToList();
+            foreach (var fileName in parsedFileNames)
+            {
+                if (File.Exists(fileName))
+                {
+                    fileNames.Add(fileName);
+                }
+                else
+                {
+                    throw new OptionException($"The file '{fileName}' does not exist.", option);
                 }
             }
-            return fileNames;
         }
+        else
+        {
+            if (File.Exists(s))
+            {
+                fileNames.Add(s);
+            }
+            else
+            {
+                throw new OptionException($"The file '{s}' does not exist.", option);
+            }
+        }
+        return fileNames;
     }
 }

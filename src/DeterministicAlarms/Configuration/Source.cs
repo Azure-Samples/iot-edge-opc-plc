@@ -1,13 +1,12 @@
-﻿namespace OpcPlc.DeterministicAlarms.Configuration
+﻿namespace OpcPlc.DeterministicAlarms.Configuration;
+
+using System.Collections.Generic;
+
+public class Source
 {
-    using System.Collections.Generic;
+    public SourceObjectState ObjectType { get; set; }
 
-    public class Source
-    {
-        public SourceObjectState ObjectType { get; set; }
+    public string Name { get; set; }
 
-        public string Name { get; set; }
-
-        public List<Alarm> Alarms { get; set; }
-    }
+    public List<Alarm> Alarms { get; set; }
 }

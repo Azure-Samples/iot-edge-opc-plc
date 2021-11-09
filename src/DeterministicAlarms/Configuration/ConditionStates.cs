@@ -1,8 +1,7 @@
-﻿namespace OpcPlc.DeterministicAlarms.Configuration
+﻿namespace OpcPlc.DeterministicAlarms.Configuration;
+
+public enum ConditionStates
 {
-    public enum ConditionStates
-    {
-        Enabled,
-        Activated
-    }
+    Enabled,
+    Activated
 }
