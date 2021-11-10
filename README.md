@@ -147,7 +147,7 @@ Features:
 - It changes every 5 seconds between different values for temperature and pressure leading to different aggregate states of water
   - liquid
   - solid
-  - fluid
+  - gaseous
 
 ## Simple Events
 
