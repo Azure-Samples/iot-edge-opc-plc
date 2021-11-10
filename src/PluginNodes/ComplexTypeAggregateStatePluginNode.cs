@@ -11,7 +11,7 @@ using static OpcPlc.Program;
 /// <summary>
 /// Complex type Aggregate State node.
 /// </summary>
-public class AggregateStatePluginNode : IPluginNodes
+public class ComplexTypeAggregateStatePluginNode : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
