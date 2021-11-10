@@ -419,6 +419,9 @@ Options:
                                configuration file.
                                Default: 8080
   -h, --help                 show this message and exit
+      --ctas, --complextypeaggregatestate
+                             add complex type (aggregate state) to address space.
+                               Default: False
       --ctb, --complextypeboiler
                              add complex type (boiler) to address space.
                                Default: False
