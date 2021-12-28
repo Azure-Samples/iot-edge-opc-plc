@@ -357,7 +357,7 @@
             {
                 case "fatal":
                     loggerConfiguration.MinimumLevel.Fatal();
-                    OpcTraceToLoggerFatal = 0;
+                    OpcStackTraceMask = OpcTraceToLoggerFatal = 0;
                     break;
                 case "error":
                     loggerConfiguration.MinimumLevel.Error();
@@ -365,19 +365,29 @@
                     break;
                 case "warn":
                     loggerConfiguration.MinimumLevel.Warning();
-                    OpcTraceToLoggerWarning = 0;
+                    OpcStackTraceMask = OpcTraceToLoggerError = Utils.TraceMasks.Error | Utils.TraceMasks.StackTrace;
+                    OpcTraceToLoggerWarning = Utils.TraceMasks.StackTrace;
+                    OpcStackTraceMask |= OpcTraceToLoggerWarning;
                     break;
                 case "info":
                     loggerConfiguration.MinimumLevel.Information();
-                    OpcStackTraceMask = OpcTraceToLoggerInformation = 0;
+                    OpcTraceToLoggerError = Utils.TraceMasks.Error;
+                    OpcTraceToLoggerWarning = Utils.TraceMasks.StackTrace;
+                    OpcTraceToLoggerInformation = Utils.TraceMasks.Security;
+                    OpcStackTraceMask = OpcTraceToLoggerError | OpcTraceToLoggerInformation | OpcTraceToLoggerWarning;
                     break;
                 case "debug":
                     loggerConfiguration.MinimumLevel.Debug();
-                    OpcStackTraceMask = OpcTraceToLoggerDebug = Utils.TraceMasks.StackTrace | Utils.TraceMasks.Operation |
-                        Utils.TraceMasks.StartStop | Utils.TraceMasks.ExternalSystem | Utils.TraceMasks.Security;
+                    OpcTraceToLoggerError = Utils.TraceMasks.Error;
+                    OpcTraceToLoggerWarning = Utils.TraceMasks.StackTrace;
+                    OpcTraceToLoggerInformation = Utils.TraceMasks.Security;
+                    OpcTraceToLoggerDebug = Utils.TraceMasks.Operation | Utils.TraceMasks.StartStop | Utils.TraceMasks.ExternalSystem;
+                    OpcStackTraceMask = OpcTraceToLoggerError | OpcTraceToLoggerInformation | OpcTraceToLoggerDebug | OpcTraceToLoggerWarning;
                     break;
                 case "verbose":
                     loggerConfiguration.MinimumLevel.Verbose();
+                    OpcTraceToLoggerError = Utils.TraceMasks.Error | Utils.TraceMasks.StackTrace;
+                    OpcTraceToLoggerInformation = Utils.TraceMasks.Security;
                     OpcStackTraceMask = OpcTraceToLoggerVerbose = Utils.TraceMasks.All;
                     break;
             }
