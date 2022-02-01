@@ -139,7 +139,7 @@ public partial class OpcApplicationConfiguration
         var certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
         if (certificate == null)
         {
-            Logger.Information($"No existing Application certificate found. Create a self-signed Application certificate valid from yesterday for {CertificateFactory.DefaultLifeTime} months," +
+            Logger.Information($"No existing application certificate found. Creating a self-signed application certificate valid since yesterday for {CertificateFactory.DefaultLifeTime} months," +
                 $"with a {CertificateFactory.DefaultKeySize} bit key and {CertificateFactory.DefaultHashSize} bit hash.");
         }
         else
