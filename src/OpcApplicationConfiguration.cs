@@ -80,7 +80,7 @@ public partial class OpcApplicationConfiguration
         var application = new ApplicationInstance()
         {
             ApplicationName = ApplicationName,
-            ApplicationType = ApplicationType.Server
+            ApplicationType = ApplicationType.Server,
         };
 
         var transportQuotas = new TransportQuotas
@@ -121,26 +121,26 @@ public partial class OpcApplicationConfiguration
 
         foreach (var policy in ApplicationConfiguration.ServerConfiguration.SecurityPolicies)
         {
-            Logger.Information($"Security policy {policy.SecurityPolicyUri} with mode {policy.SecurityMode} added");
+            Logger.Information($"Added security policy {policy.SecurityPolicyUri} with mode {policy.SecurityMode}.");
             if (policy.SecurityMode == MessageSecurityMode.None)
             {
-                Logger.Warning("Note: This is a security risk and needs to be disabled for production use");
+                Logger.Warning("Note: security policy 'None' is a security risk and needs to be disabled for production use");
             }
         }
 
-        Logger.Information($"LDS(-ME) registration intervall set to {LdsRegistrationInterval} ms (0 means no registration)");
+        Logger.Information($"LDS(-ME) registration interval set to {LdsRegistrationInterval} ms (0 means no registration)");
 
         // configure OPC stack tracing
         Utils.SetTraceMask(OpcStackTraceMask);
         Utils.Tracing.TraceEventHandler += LoggerOpcUaTraceHandler;
-        Logger.Information($"opcstacktracemask set to: 0x{OpcStackTraceMask:X}");
+        Logger.Information($"The OPC UA trace mask is set to: 0x{OpcStackTraceMask:X}");
 
         // log certificate status
         var certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
         if (certificate == null)
         {
-            Logger.Information($"No existing Application certificate found. Create a self-signed Application certificate valid from yesterday for {CertificateFactory.DefaultLifeTime} months,");
-            Logger.Information($"with a {CertificateFactory.DefaultKeySize} bit key and {CertificateFactory.DefaultHashSize} bit hash.");
+            Logger.Information($"No existing Application certificate found. Create a self-signed Application certificate valid from yesterday for {CertificateFactory.DefaultLifeTime} months," +
+                $"with a {CertificateFactory.DefaultKeySize} bit key and {CertificateFactory.DefaultHashSize} bit hash.");
         }
         else
         {
