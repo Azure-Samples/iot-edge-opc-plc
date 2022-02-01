@@ -1,7 +1,9 @@
 ﻿namespace OpcPlc;
-
 using Opc.Ua;
+using Opc.Ua.Configuration;
 using System;
+using System.Globalization;
+using System.Text;
 using System.Threading.Tasks;
 using static Program;
 
@@ -23,7 +25,7 @@ public partial class OpcApplicationConfiguration
     public static string HostnameLabel => (_hostname.Contains(".") ? _hostname.Substring(0, _hostname.IndexOf('.')) : _hostname);
     public static string ApplicationName => ProgramName;
     public static string ApplicationUri => $"urn:{ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath) ? string.Empty : (ServerPath.StartsWith("/") ? string.Empty : ":"))}{ServerPath.Replace("/", ":")}";
-    public static string ProductUri => $"https://github.com/azure-samples/iot-edge-opc-plc";
+    public static string ProductUri => "https://github.com/azure-samples/iot-edge-opc-plc";
     public static ushort ServerPort { get; set; } = 50000;
     public static string ServerPath { get; set; } = string.Empty;
 
@@ -47,7 +49,6 @@ public partial class OpcApplicationConfiguration
     /// </summary>
     public static int OpcMaxStringLength { get; set; } = 4 * 1024 * 1024;
 
-    /// <summary>
     /// <summary>
     /// Mapping of the application logging levels to OPC stack logging levels.
     /// </summary>
@@ -75,26 +76,14 @@ public partial class OpcApplicationConfiguration
     /// </summary>
     public async Task<ApplicationConfiguration> ConfigureAsync()
     {
-        // instead of using a configuration XML file, we configure everything programmatically
-
-        // passed in as command line argument
-        ApplicationConfiguration = new ApplicationConfiguration
+        // instead of using a configuration XML file, configure everything programmatically
+        var application = new ApplicationInstance
         {
             ApplicationName = ApplicationName,
-            ApplicationUri = ApplicationUri,
-            ProductUri = ProductUri,
             ApplicationType = ApplicationType.Server,
-
-            // configure OPC stack tracing
-            TraceConfiguration = new TraceConfiguration()
         };
-        ApplicationConfiguration.TraceConfiguration.TraceMasks = OpcStackTraceMask;
-        ApplicationConfiguration.TraceConfiguration.ApplySettings();
-        Utils.Tracing.TraceEventHandler += new EventHandler<TraceEventArgs>(LoggerOpcUaTraceHandler);
-        Logger.Information($"opcstacktracemask set to: 0x{OpcStackTraceMask:X}");
 
-        // configure transport settings
-        ApplicationConfiguration.TransportQuotas = new TransportQuotas
+        var transportQuotas = new TransportQuotas
         {
             MaxStringLength = OpcMaxStringLength,
             MaxMessageSize = 4 * 1024 * 1024,
@@ -102,90 +91,104 @@ public partial class OpcApplicationConfiguration
         };
 
         // configure OPC UA server
-        ApplicationConfiguration.ServerConfiguration = new ServerConfiguration();
+        var serverBuilder = application.Build(ApplicationUri, ProductUri)
+            .SetTransportQuotas(transportQuotas)
+            .AsServer(new string[] { $"opc.tcp://{Hostname}:{ServerPort}{ServerPath}" })
+            .AddSignAndEncryptPolicies()
+            .AddSignPolicies();
 
-        // configure server base addresses
-        if (ApplicationConfiguration.ServerConfiguration.BaseAddresses.Count == 0)
+        // use backdoor to access app config used by builder
+        ApplicationConfiguration = application.ApplicationConfiguration;
+
+        if (EnableUnsecureTransport)
         {
-            // we do not use the localhost replacement mechanism of the configuration loading, to immediately show the base address here
-            ApplicationConfiguration.ServerConfiguration.BaseAddresses.Add($"opc.tcp://{Hostname}:{ServerPort}{ServerPath}");
-        }
-        foreach (var endpoint in ApplicationConfiguration.ServerConfiguration.BaseAddresses)
-        {
-            Logger.Information($"OPC UA server base address: {endpoint}");
+            serverBuilder.AddUnsecurePolicyNone();
         }
 
-        ConfigureAuthenticationPolicies();
+        ConfigureUserTokenPolicies(serverBuilder);
+
+        // Support larger number of nodes.
+        var securityBuilder = serverBuilder.SetMaxMessageQueueSize(MAX_MESSAGE_QUEUE_SIZE)
+            .SetMaxNotificationsPerPublish(MAX_NOTIFICATIONS_PER_PUBLISH)
+            .SetMaxSubscriptionCount(MAX_SUBSCRIPTION_COUNT)
+            .SetMaxPublishRequestCount(MAX_PUBLISH_REQUEST_COUNT)
+            .SetMaxRequestThreadCount(MAX_REQUEST_THREAD_COUNT)
+            // LDS registration interval
+            .SetMaxRegistrationInterval(LdsRegistrationInterval);
 
         // security configuration
-        await InitApplicationSecurityAsync().ConfigureAwait(false);
+        ApplicationConfiguration = await InitApplicationSecurityAsync(securityBuilder).ConfigureAwait(false);
 
-        // set LDS registration interval
-        ApplicationConfiguration.ServerConfiguration.MaxRegistrationInterval = LdsRegistrationInterval;
+        foreach (var policy in ApplicationConfiguration.ServerConfiguration.SecurityPolicies)
+        {
+            Logger.Information($"Added security policy {policy.SecurityPolicyUri} with mode {policy.SecurityMode}.");
+            if (policy.SecurityMode == MessageSecurityMode.None)
+            {
+                Logger.Warning("Note: security policy 'None' is a security risk and needs to be disabled for production use");
+            }
+        }
+
         Logger.Information($"LDS(-ME) registration interval set to {LdsRegistrationInterval} ms (0 means no registration)");
+
+        // configure OPC stack tracing
+        Utils.SetTraceMask(OpcStackTraceMask);
+        Utils.Tracing.TraceEventHandler += LoggerOpcUaTraceHandler;
+        Logger.Information($"The OPC UA trace mask is set to: 0x{OpcStackTraceMask:X}");
+
+        // log certificate status
+        var certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
+        if (certificate == null)
+        {
+            Logger.Information($"No existing Application certificate found. Create a self-signed Application certificate valid from yesterday for {CertificateFactory.DefaultLifeTime} months," +
+                $"with a {CertificateFactory.DefaultKeySize} bit key and {CertificateFactory.DefaultHashSize} bit hash.");
+        }
+        else
+        {
+            Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' found in the application certificate store.");
+        }
+
+        // check the certificate, creates new self signed certificate if required
+        bool certOk = await application.CheckApplicationInstanceCertificate(true, CertificateFactory.DefaultKeySize, CertificateFactory.DefaultLifeTime).ConfigureAwait(false);
+        if (!certOk)
+        {
+            throw new Exception("Application certificate invalid.");
+        }
+
+        if (certificate == null)
+        {
+            certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
+            Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' created.");
+        }
+
+        Logger.Information($"Application certificate is for ApplicationUri '{ApplicationConfiguration.ApplicationUri}', ApplicationName '{ApplicationConfiguration.ApplicationName}' and Subject is '{ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate.Subject}'");
+
+        // show CreateSigningRequest data
+        if (ShowCreateSigningRequestInfo)
+        {
+            await ShowCreateSigningRequestInformationAsync(ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate).ConfigureAwait(false);
+        }
 
         // show certificate store information
         await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
 
-        // Support larger number of nodes.
-        ApplicationConfiguration.ServerConfiguration.MaxMessageQueueSize = MAX_MESSAGE_QUEUE_SIZE;
-        ApplicationConfiguration.ServerConfiguration.MaxNotificationsPerPublish = MAX_NOTIFICATIONS_PER_PUBLISH;
-        ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount = MAX_SUBSCRIPTION_COUNT;
-        ApplicationConfiguration.ServerConfiguration.MaxPublishRequestCount = MAX_PUBLISH_REQUEST_COUNT;
-        ApplicationConfiguration.ServerConfiguration.MaxRequestThreadCount = MAX_REQUEST_THREAD_COUNT;
-
         return ApplicationConfiguration;
     }
 
-    private static void ConfigureAuthenticationPolicies()
+    private static void ConfigureUserTokenPolicies(IApplicationConfigurationBuilderServerSelected serverBuilder)
     {
-        var newPolicy = new ServerSecurityPolicy()
-        {
-            SecurityMode = MessageSecurityMode.Sign,
-            SecurityPolicyUri = SecurityPolicies.Basic256Sha256,
-        };
-        ApplicationConfiguration.ServerConfiguration.SecurityPolicies.Add(newPolicy);
-        Logger.Information($"Security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
-
-        newPolicy = new ServerSecurityPolicy()
-        {
-            SecurityMode = MessageSecurityMode.SignAndEncrypt,
-            SecurityPolicyUri = SecurityPolicies.Basic256Sha256,
-        };
-        ApplicationConfiguration.ServerConfiguration.SecurityPolicies.Add(newPolicy);
-        Logger.Information($"Security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
-
-        // add user token policies
-        var userTokenPolicies = new UserTokenPolicyCollection();
-
         if (!DisableAnonymousAuth)
         {
-            userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.Anonymous));
+            serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.Anonymous));
         }
 
         if (!DisableUsernamePasswordAuth)
         {
-            userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.UserName));
+            serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.UserName));
         }
 
         if (!DisableCertAuth)
         {
-            userTokenPolicies.Add(new UserTokenPolicy(UserTokenType.Certificate));
-        }
-
-        ApplicationConfiguration.ServerConfiguration.UserTokenPolicies = userTokenPolicies;
-
-        // add none secure transport on request
-        if (EnableUnsecureTransport)
-        {
-            newPolicy = new ServerSecurityPolicy()
-            {
-                SecurityMode = MessageSecurityMode.None,
-                SecurityPolicyUri = SecurityPolicies.None,
-            };
-            ApplicationConfiguration.ServerConfiguration.SecurityPolicies.Add(newPolicy);
-            Logger.Information($"Unsecure security policy {newPolicy.SecurityPolicyUri} with mode {newPolicy.SecurityMode} added");
-            Logger.Warning($"Note: This is a security risk and needs to be disabled for production use");
+            serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.Certificate));
         }
     }
 
@@ -199,11 +202,18 @@ public partial class OpcApplicationConfiguration
         {
             return;
         }
-        // e.Exception and e.Message are always null
+
+        // e.Exception and e.Message are special
+        if (e.Exception != null)
+        {
+            Logger.Error(e.Exception, e.Format, e.Arguments);
+            return;
+        }
 
         // format the trace message
-        string message = string.Format(e.Format, e.Arguments).Trim();
-        message = "OPC: " + message;
+        var builder = new StringBuilder("OPC: ");
+        builder.AppendFormat(CultureInfo.InvariantCulture, e.Format, e.Arguments);
+        var message = builder.ToString().Trim();
 
         // map logging level
         if ((e.TraceMask & OpcTraceToLoggerVerbose) != 0)
