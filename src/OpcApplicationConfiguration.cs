@@ -77,7 +77,7 @@ public partial class OpcApplicationConfiguration
     public async Task<ApplicationConfiguration> ConfigureAsync()
     {
         // instead of using a configuration XML file, configure everything programmatically
-        var application = new ApplicationInstance()
+        var application = new ApplicationInstance
         {
             ApplicationName = ApplicationName,
             ApplicationType = ApplicationType.Server,
