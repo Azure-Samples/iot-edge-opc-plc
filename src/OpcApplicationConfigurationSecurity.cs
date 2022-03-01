@@ -303,10 +303,10 @@ public partial class OpcApplicationConfiguration
             }
             if (certStore.SupportsCRLs)
             {
-                var crls = certStore.EnumerateCRLs();
+                var crls = await certStore.EnumerateCRLs().ConfigureAwait(false);
                 int crlNum = 1;
                 Logger.Information($"Trusted issuer store has {crls.Count} CRLs.");
-                foreach (var crl in certStore.EnumerateCRLs())
+                foreach (var crl in crls)
                 {
                     Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdate}'");
                 }
@@ -330,10 +330,10 @@ public partial class OpcApplicationConfiguration
             }
             if (certStore.SupportsCRLs)
             {
-                var crls = certStore.EnumerateCRLs();
+                var crls = await certStore.EnumerateCRLs().ConfigureAwait(false);
                 int crlNum = 1;
                 Logger.Information($"Trusted peer store has {crls.Count} CRLs.");
-                foreach (var crl in certStore.EnumerateCRLs())
+                foreach (var crl in crls)
                 {
                     Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdate}'");
                 }
@@ -617,12 +617,12 @@ public partial class OpcApplicationConfiguration
                         // the issuer of the new CRL is trusted. delete the crls of the issuer in the trusted store
                         Logger.Information("Remove the current CRL from the trusted peer store.");
                         trustedCrlIssuer = true;
-                        var crlsToRemove = trustedStore.EnumerateCRLs(trustedCertificate);
+                        var crlsToRemove = await trustedStore.EnumerateCRLs(trustedCertificate).ConfigureAwait(false);
                         foreach (var crlToRemove in crlsToRemove)
                         {
                             try
                             {
-                                if (!trustedStore.DeleteCRL(crlToRemove))
+                                if (!await trustedStore.DeleteCRL(crlToRemove).ConfigureAwait(false))
                                 {
                                     Logger.Warning($"Failed to remove CRL issued by '{crlToRemove.Issuer}' from the trusted peer store.");
                                 }
@@ -646,7 +646,7 @@ public partial class OpcApplicationConfiguration
             {
                 try
                 {
-                    trustedStore.AddCRL(newCrl);
+                    await trustedStore.AddCRL(newCrl).ConfigureAwait(false);
                     Logger.Information($"The new CRL issued by '{newCrl.Issuer}' was added to the trusted peer store.");
                 }
                 catch (Exception e)
@@ -671,12 +671,12 @@ public partial class OpcApplicationConfiguration
                         // the issuer of the new CRL is trusted. delete the crls of the issuer in the trusted store
                         Logger.Information("Remove the current CRL from the trusted issuer store.");
                         trustedCrlIssuer = true;
-                        var crlsToRemove = issuerStore.EnumerateCRLs(issuerCertificate);
+                        var crlsToRemove = await issuerStore.EnumerateCRLs(issuerCertificate).ConfigureAwait(false);
                         foreach (var crlToRemove in crlsToRemove)
                         {
                             try
                             {
-                                if (!issuerStore.DeleteCRL(crlToRemove))
+                                if (!await issuerStore.DeleteCRL(crlToRemove).ConfigureAwait(false))
                                 {
                                     Logger.Warning($"Failed to remove the current CRL issued by '{crlToRemove.Issuer}' from the trusted issuer store.");
                                 }
@@ -701,7 +701,7 @@ public partial class OpcApplicationConfiguration
             {
                 try
                 {
-                    issuerStore.AddCRL(newCrl);
+                    await issuerStore.AddCRL(newCrl).ConfigureAwait(false);
                     Logger.Information($"The new CRL issued by '{newCrl.Issuer}' was added to the trusted issuer store.");
                 }
                 catch (Exception e)

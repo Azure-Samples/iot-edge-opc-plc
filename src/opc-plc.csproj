@@ -8,13 +8,6 @@
     <Authors>Microsoft</Authors>
     <RootNamespace>OpcPlc</RootNamespace>
     <UserSecretsId>bdf7b209-fef3-44d4-9aba-17035fda5efd</UserSecretsId>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <LangVersion>10.0</LangVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
@@ -37,20 +30,10 @@
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
   </ItemGroup>
 
-  <Choose>
-    <When Condition="'$(Configuration)'=='Release'">
-      <ItemGroup>
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.4.367.95" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.4.367.95" />
-      </ItemGroup>
-    </When>
-    <Otherwise>
-      <ItemGroup>
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.4.367.95" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.4.367.95" />
-      </ItemGroup>
-    </Otherwise>
-  </Choose>
+  <ItemGroup>
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.4.368.33" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.4.368.33" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Update="Boiler\BoilerModel.PredefinedNodes.uanodes">
