@@ -20,7 +20,10 @@ public class SlowFastCommon
     public (BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes) CreateNodes(NodeType nodeType, string name, uint count, FolderState folder, FolderState simulatorFolder, bool nodeRandomization, string nodeStepSize, string nodeMinValue, string nodeMaxValue, uint nodeRate, uint nodeSamplingInterval)
     {
         var nodes = CreateBaseLoadNodes(folder, name, count, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
-        var badNodes = CreateBaseLoadNodes(folder, $"Bad{name}", count: 1, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
+
+        var badNodesCount = count == 0u ? 0u : 1u;
+        var badNodes = CreateBaseLoadNodes(folder, $"Bad{name}", count: badNodesCount, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
+
         _numberOfUpdates = CreateNumberOfUpdatesVariable(name, simulatorFolder);
 
         return (nodes, badNodes);
