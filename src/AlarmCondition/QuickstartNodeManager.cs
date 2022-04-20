@@ -3300,7 +3300,7 @@ namespace AlarmCondition
             }
 
             // create the item.
-            MonitoredItem datachangeItem = new MonitoredItem(
+            var datachangeItem = new MonitoredItem(
                 Server,
                 this,
                 handle,
@@ -4170,6 +4170,11 @@ namespace AlarmCondition
 
                 return node;
             }
+        }
+
+        public void TransferMonitoredItems(OperationContext context, bool sendInitialValues, IList<IMonitoredItem> monitoredItems, IList<bool> processedItems, IList<ServiceResult> errors)
+        {
+            throw new NotImplementedException();
         }
         #endregion
 
