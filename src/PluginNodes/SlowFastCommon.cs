@@ -21,8 +21,10 @@ public class SlowFastCommon
     {
         var nodes = CreateBaseLoadNodes(folder, name, count, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
 
-        var badNodesCount = count == 0u ? 0u : 1u;
-        var badNodes = CreateBaseLoadNodes(folder, $"Bad{name}", count: badNodesCount, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
+        uint badNodesCount = count == 0u
+            ? 0u
+            : 1u;
+        var badNodes = CreateBaseLoadNodes(folder, $"Bad{name}", badNodesCount, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
 
         _numberOfUpdates = CreateNumberOfUpdatesVariable(name, simulatorFolder);
 
