@@ -4171,11 +4171,6 @@ namespace AlarmCondition
                 return node;
             }
         }
-
-        public void TransferMonitoredItems(OperationContext context, bool sendInitialValues, IList<IMonitoredItem> monitoredItems, IList<bool> processedItems, IList<ServiceResult> errors)
-        {
-            throw new NotImplementedException();
-        }
         #endregion
 
         #region Private Fields
