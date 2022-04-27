@@ -617,6 +617,7 @@ public partial class OpcApplicationConfiguration
                         // the issuer of the new CRL is trusted. delete the crls of the issuer in the trusted store
                         Logger.Information("Remove the current CRL from the trusted peer store.");
                         trustedCrlIssuer = true;
+
                         var crlsToRemove = await trustedStore.EnumerateCRLs(trustedCertificate).ConfigureAwait(false);
                         foreach (var crlToRemove in crlsToRemove)
                         {
