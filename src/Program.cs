@@ -14,7 +14,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static OpcPlc.OpcApplicationConfiguration;
@@ -50,7 +49,7 @@ public static class Program
     /// <summary>
     /// Service returning <see cref="DateTime"/> values and <see cref="Timer"/> instances. Mocked in tests.
     /// </summary>
-    public static TimeService TimeService = new TimeService();
+    public static TimeService TimeService = new();
 
     /// <summary>
     /// A flag indicating when the server is up and ready to accept connections.
@@ -160,13 +159,13 @@ public static class Program
 
         LogLogo();
 
-        Logger.Information($"Current directory is: {Directory.GetCurrentDirectory()}");
-        Logger.Information($"Log file is: {Path.GetFullPath(LogFileName)}");
-        Logger.Information($"Log level is: {LogLevel}");
+        Logger.Information($"Current directory: {Directory.GetCurrentDirectory()}");
+        Logger.Information($"Log file: {Path.GetFullPath(LogFileName)}");
+        Logger.Information($"Log level: {LogLevel}");
 
         //show version
         var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
-        Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up...");
+        Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up ...");
         Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
 
         using var host = CreateHostBuilder(args);
@@ -181,7 +180,7 @@ public static class Program
         }
         catch (Exception ex)
         {
-            Logger.Fatal(ex, "OPC UA server failed unexpectedly.");
+            Logger.Fatal(ex, "OPC UA server failed unexpectedly");
         }
 
         Logger.Information("OPC UA server exiting...");
@@ -213,9 +212,9 @@ public static class Program
             host.Start();
             Logger.Information($"Web server started on port {WebServerPort}");
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            Logger.Error($"Could not start web server on port {WebServerPort}");
+            Logger.Error($"Could not start web server on port {WebServerPort}: {e.Message}");
         }
     }
 
@@ -253,19 +252,19 @@ public static class Program
         Logger.Information($"Starting server on endpoint {plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]} ...");
         Logger.Information("Simulation settings are:");
         Logger.Information($"One simulation phase consists of {SimulationCycleCount} cycles");
-        Logger.Information($"One cycle takes {SimulationCycleLength} milliseconds");
-        Logger.Information($"Reference Test Simulation is {(AddReferenceTestSimulation ? "enabled" : "disabled")}");
-        Logger.Information($"Simple Events is {(AddSimpleEventsSimulation ? "enabled" : "disabled")}");
-        Logger.Information($"Alarms is {(AddAlarmSimulation ? "enabled" : "disabled")}");
-        Logger.Information($"Deterministic Alarms is {(DeterministicAlarmSimulationFile != null ? "enabled" : "disabled")}");
+        Logger.Information($"One cycle takes {SimulationCycleLength} ms");
+        Logger.Information($"Reference Test Simulation: {(AddReferenceTestSimulation ? "Enabled" : "Disabled")}");
+        Logger.Information($"Simple Events: {(AddSimpleEventsSimulation ? "Enabled" : "Disabled")}");
+        Logger.Information($"Alarms: {(AddAlarmSimulation ? "Enabled" : "Disabled")}");
+        Logger.Information($"Deterministic Alarms: {(DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled")}");
 
-        Logger.Information($"Anonymous authentication: {(DisableAnonymousAuth ? "disabled" : "enabled")}");
-        Logger.Information($"Username/Password authentication: {(DisableUsernamePasswordAuth ? "disabled" : "enabled")}");
-        Logger.Information($"Certificate authentication: {(DisableCertAuth ? "disabled" : "enabled")}");
+        Logger.Information($"Anonymous authentication: {(DisableAnonymousAuth ? "Disabled" : "Enabled")}");
+        Logger.Information($"Username/Password authentication: {(DisableUsernamePasswordAuth ? "Disabled" : "Enabled")}");
+        Logger.Information($"Certificate authentication: {(DisableCertAuth ? "Disabled" : "Enabled")}");
 
         PlcServer = new PlcServer(TimeService);
         PlcServer.Start(plcApplicationConfiguration);
-        Logger.Information("OPC UA Server started.");
+        Logger.Information("OPC UA Server started");
 
         PlcSimulation = new PlcSimulation(PlcServer);
         PlcSimulation.Start();
@@ -288,7 +287,7 @@ public static class Program
         }
 
         Ready = true;
-        Logger.Information("PLC Simulation started. Press CTRL-C to exit.");
+        Logger.Information("PLC simulation started, press Ctrl+C to exit ...");
 
         // wait for Ctrl-C
 
