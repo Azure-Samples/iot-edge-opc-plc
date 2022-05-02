@@ -148,8 +148,8 @@ public partial class OpcApplicationConfiguration
         }
 
         // check the certificate, creates new self signed certificate if required
-        bool certOk = await application.CheckApplicationInstanceCertificate(true, CertificateFactory.DefaultKeySize, CertificateFactory.DefaultLifeTime).ConfigureAwait(false);
-        if (!certOk)
+        bool isCertValid = await application.CheckApplicationInstanceCertificate(silent: true, CertificateFactory.DefaultKeySize, CertificateFactory.DefaultLifeTime).ConfigureAwait(false);
+        if (!isCertValid)
         {
             throw new Exception("Application certificate invalid.");
         }
