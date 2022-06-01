@@ -31,8 +31,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.4.368.53" />
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.4.368.53" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.4.368.58" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.4.368.58" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,7 +49,7 @@
 
   <ItemGroup>
     <PackageReference Update="Microsoft.SourceLink.GitHub" Version="1.1.1" />
-    <PackageReference Update="Nerdbank.GitVersioning" Version="3.4.255" />
+    <PackageReference Update="Nerdbank.GitVersioning" Version="3.5.107" />
   </ItemGroup>
 
   <ItemGroup>
