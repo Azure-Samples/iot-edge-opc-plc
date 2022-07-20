@@ -181,7 +181,7 @@ More information about this feature can be found [here](deterministic-alarms.md)
 
 ## Other features
  
-- Node with special characters in name: `--scn`
+- Node with special characters in name and Id as well as a node with of opaque type: `--scn`
 - Node with long ID (3950 bytes): `--lid`
 - Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray): `--lsn`
 - Nodes for testing all datatypes, arrays, methods, permissions, etc `--ref`. The ReferenceNodeManager of the [OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard) is used for this purpose.
@@ -487,7 +487,8 @@ Options:
                              rate in milliseconds to sample slow nodes
                                Default: 0
       --scn, --specialcharname
-                             add node with special characters in name.
+                             add node with special characters in name 
+                             and an opaque type node
                                Default: False
       --ns, --nospikes       do not generate spike data
                                Default: False
