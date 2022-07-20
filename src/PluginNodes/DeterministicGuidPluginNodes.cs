@@ -3,6 +3,7 @@
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
+using System;
 using System.Collections.Generic;
 using static OpcPlc.Program;
 
@@ -70,13 +71,13 @@ public class DeterministicGuidPluginNodes : IPluginNodes
 
         for (int i = 0; i < NodeCount; i++)
         {
-            string id = DeterministicGuid.NewGuid().ToString();
+            Guid id = DeterministicGuid.NewGuid();
 
             _nodes[i] = _plcNodeManager.CreateVariableNode<uint>(
                 _plcNodeManager.CreateBaseVariable(
                     folder,
                     path: id,
-                    name: id,
+                    name: id.ToString(),
                     new NodeId((uint)BuiltInType.UInt32),
                     ValueRanks.Scalar,
                     AccessLevels.CurrentReadOrWrite,
@@ -86,7 +87,7 @@ public class DeterministicGuidPluginNodes : IPluginNodes
 
             nodes.Add(new NodeWithIntervals
             {
-                NodeId = id,
+                NodeId = id.ToString(),
                 Namespace = OpcPlc.Namespaces.OpcPlcApplications,
             });
         }

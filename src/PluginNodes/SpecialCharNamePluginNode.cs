@@ -17,7 +17,6 @@ public class SpecialCharNamePluginNode : IPluginNodes
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;
     private SimulatedVariableNode<uint> _opaqueNode;
-    private SimulatedVariableNode<uint> _guidNode;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -49,7 +48,6 @@ public class SpecialCharNamePluginNode : IPluginNodes
         {
             _node.Start(value => value + 1, periodMs: 1000);
             _opaqueNode.Start(value => value + 1, periodMs: 1000);
-            _guidNode.Start(value => value + 1, periodMs: 1000);
         }
     }
 
@@ -59,7 +57,6 @@ public class SpecialCharNamePluginNode : IPluginNodes
         {
             _node.Stop();
             _opaqueNode.Stop();
-            _guidNode.Stop();
         }
     }
 
@@ -91,18 +88,6 @@ public class SpecialCharNamePluginNode : IPluginNodes
                 NamespaceType.OpcPlcApplications,
                 defaultValue: (uint)0));
 
-        _guidNode = _plcNodeManager.CreateVariableNode<uint>(
-            _plcNodeManager.CreateBaseVariable(
-                folder,
-                path: new Guid("5257D004-99BC-42C0-AFD3-C545DE63F330"),
-                name: "Guid_5257D004-99BC-42C0-AFD3-C545DE63F330",
-                new NodeId((uint)BuiltInType.UInt32),
-                ValueRanks.Scalar,
-                AccessLevels.CurrentReadOrWrite,
-                "Constantly increasing value",
-                NamespaceType.OpcPlcApplications,
-                defaultValue: (uint)0));
-
         Nodes = new List<NodeWithIntervals>
             {
                 new NodeWithIntervals
@@ -114,12 +99,7 @@ public class SpecialCharNamePluginNode : IPluginNodes
                 {
                     NodeId = "Opaque_abc",
                     Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
-                new NodeWithIntervals
-                {
-                    NodeId = "Guid_5257D004-99BC-42C0-AFD3-C545DE63F330",
-                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
+                }
             };
     }
 }
