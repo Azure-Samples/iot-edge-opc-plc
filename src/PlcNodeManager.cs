@@ -185,7 +185,8 @@ public class PlcNodeManager : CustomNodeManager2
             baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(path, namespaceIndex);
         }
-        else {
+        else
+        {
             baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
         }
