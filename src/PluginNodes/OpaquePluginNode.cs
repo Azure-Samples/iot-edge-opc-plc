@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Web;
 
 /// <summary>
-/// Node with an opaque identifier (free-format byte strings that might or might not be human interpretable).
+/// Node with an opaque identifier (free-format byte string that might or might not be human interpretable).
 /// </summary>
 public class OpaquePluginNode : IPluginNodes
 {

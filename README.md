@@ -181,7 +181,7 @@ More information about this feature can be found [here](deterministic-alarms.md)
 
 ## Other features
  
-- Node with special characters in name and Id as well as a node with of opaque type: `--scn`
+- Node with special characters in name and NodeId: `--scn`
 - Node with long ID (3950 bytes): `--lid`
 - Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray): `--lsn`
 - Nodes for testing all datatypes, arrays, methods, permissions, etc `--ref`. The ReferenceNodeManager of the [OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard) is used for this purpose.
@@ -190,6 +190,7 @@ More information about this feature can be found [here](deterministic-alarms.md)
   - `0`: Slow and Fast nodes are not updated
   - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
 - Nodes with deterministic random GUIDs as node IDs: `--gn=<number_of_nodes>`
+- Node with opaque identifier (free-format byte string): `--on`
 
 ## OPC UA Methods
 
