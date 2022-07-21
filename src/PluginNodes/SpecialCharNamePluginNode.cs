@@ -15,6 +15,7 @@ public class SpecialCharNamePluginNode : IPluginNodes
     private static bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;
+    private SimulatedVariableNode<uint> _opaqueNode;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -45,6 +46,7 @@ public class SpecialCharNamePluginNode : IPluginNodes
         if (_isEnabled)
         {
             _node.Start(value => value + 1, periodMs: 1000);
+            _opaqueNode.Start(value => value + 1, periodMs: 1000);
         }
     }
 
@@ -53,6 +55,7 @@ public class SpecialCharNamePluginNode : IPluginNodes
         if (_isEnabled)
         {
             _node.Stop();
+            _opaqueNode.Stop();
         }
     }
 
@@ -72,6 +75,18 @@ public class SpecialCharNamePluginNode : IPluginNodes
                 NamespaceType.OpcPlcApplications,
                 defaultValue: (uint)0));
 
+        _opaqueNode = _plcNodeManager.CreateVariableNode<uint>(
+            _plcNodeManager.CreateBaseVariable(
+                folder,
+                path: new byte[] { (byte)'a', (byte)'b', (byte)'c' },
+                name: "Opaque_abc",
+                new NodeId((uint)BuiltInType.UInt32),
+                ValueRanks.Scalar,
+                AccessLevels.CurrentReadOrWrite,
+                "Constantly increasing value",
+                NamespaceType.OpcPlcApplications,
+                defaultValue: (uint)0));
+
         Nodes = new List<NodeWithIntervals>
             {
                 new NodeWithIntervals
@@ -79,6 +94,11 @@ public class SpecialCharNamePluginNode : IPluginNodes
                     NodeId = "Special_" + SpecialChars,
                     Namespace = OpcPlc.Namespaces.OpcPlcApplications,
                 },
+                new NodeWithIntervals
+                {
+                    NodeId = "Opaque_abc",
+                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+                }
             };
     }
 }

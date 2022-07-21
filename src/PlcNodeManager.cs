@@ -175,15 +175,20 @@ public class PlcNodeManager : CustomNodeManager2
     {
         ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
 
-        if (path.GetType() == Type.GetType("System.Int64"))
+        if (path is uint)
         {
             baseDataVariableState.NodeId = new NodeId((uint)path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(((uint)path).ToString(), namespaceIndex);
         }
-        else
+        else if (path is string)
         {
             baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(path, namespaceIndex);
+        }
+        else
+        {
+            baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
+            baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
         }
 
         baseDataVariableState.DisplayName = new LocalizedText("en", name);
