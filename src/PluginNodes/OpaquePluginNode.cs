@@ -75,7 +75,7 @@ public class OpaquePluginNode : IPluginNodes
                 {
                     NodeId = "Opaque_abc",
                     Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                }
+                },
             };
     }
 }
