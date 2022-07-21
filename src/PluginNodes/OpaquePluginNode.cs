@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using System.Web;
 
 /// <summary>
-/// Node with special chars in name and ID.
+/// Node with an opaque identifier (free-format byte strings that might or might not be human interpretable).
 /// </summary>
-public class SpecialCharNamePluginNode : IPluginNodes
+public class OpaquePluginNode : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
@@ -19,8 +19,8 @@ public class SpecialCharNamePluginNode : IPluginNodes
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
         optionSet.Add(
-            "scn|specialcharname",
-            $"add node with special characters in name.\nDefault: {_isEnabled}",
+            "on|opaquenode",
+            $"add node with an opaque identifier.\nDefault: {_isEnabled}",
             (string s) => _isEnabled = s != null);
     }
 
@@ -63,8 +63,8 @@ public class SpecialCharNamePluginNode : IPluginNodes
         _node = _plcNodeManager.CreateVariableNode<uint>(
             _plcNodeManager.CreateBaseVariable(
                 folder,
-                path: "Special_" + SpecialChars,
-                name: SpecialChars,
+                path: new byte[] { (byte)'a', (byte)'b', (byte)'c' },
+                name: "Opaque_abc",
                 new NodeId((uint)BuiltInType.UInt32),
                 ValueRanks.Scalar,
                 AccessLevels.CurrentReadOrWrite,
@@ -76,9 +76,9 @@ public class SpecialCharNamePluginNode : IPluginNodes
             {
                 new NodeWithIntervals
                 {
-                    NodeId = "Special_" + SpecialChars,
+                    NodeId = "Opaque_abc",
                     Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
+                }
             };
     }
 }
