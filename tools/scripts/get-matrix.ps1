@@ -36,6 +36,7 @@ if (![string]::IsNullOrEmpty($JobPrefix)) {
     $JobPrefix = "$($JobPrefix)-"
 }
 
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops&tabs=yaml#software
 $agents = @{
     windows = "windows-2022"
     linux = "ubuntu-20.04"
