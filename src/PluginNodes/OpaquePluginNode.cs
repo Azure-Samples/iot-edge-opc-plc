@@ -3,7 +3,6 @@
 using Opc.Ua;
 using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
-using System.Web;
 
 /// <summary>
 /// Node with an opaque identifier (free-format byte string that might or might not be human interpretable).
@@ -58,8 +57,6 @@ public class OpaquePluginNode : IPluginNodes
 
     private void AddNodes(FolderState folder)
     {
-        string SpecialChars = HttpUtility.HtmlDecode(@"&quot;!&#167;$%&amp;/()=?`&#180;\+~*&#39;#_-:.;,&lt;&gt;|@^&#176;€&#181;{[]}");
-
         _node = _plcNodeManager.CreateVariableNode<uint>(
             _plcNodeManager.CreateBaseVariable(
                 folder,
