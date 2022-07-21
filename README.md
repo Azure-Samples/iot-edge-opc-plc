@@ -458,6 +458,9 @@ Options:
                                Default: False
       --nn, --nonegtrend     do not generate negative trend data
                                Default: False
+      --on, --opaquenode
+                             add node with an opaque identifier 
+                               Default: False
       --np, --nopostrend     do not generate positive trend data
                                Default: False
       --sn, --slownodes=VALUE
@@ -489,7 +492,6 @@ Options:
                                Default: 0
       --scn, --specialcharname
                              add node with special characters in name 
-                             and an opaque type node
                                Default: False
       --ns, --nospikes       do not generate spike data
                                Default: False
