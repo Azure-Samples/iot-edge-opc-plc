@@ -425,7 +425,7 @@ Options:
                              number of fast nodes
                                Default: 1
       --fr, --fastrate=VALUE rate in seconds to change fast nodes
-                               Default: 10
+                               Default: 1
       --ft, --fasttype=VALUE data type of fast nodes (UInt|Double|Bool|
                                UIntArray)
                                Default: UInt

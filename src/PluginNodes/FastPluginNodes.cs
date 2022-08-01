@@ -16,7 +16,7 @@ public class FastPluginNodes : IPluginNodes
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
     private uint NodeCount { get; set; } = 1;
-    private uint NodeRate { get; set; } = 10000; // ms.
+    private uint NodeRate { get; set; } = 1000; // ms.
     private NodeType NodeType { get; set; } = NodeType.UInt;
     private string NodeMinValue { get; set; }
     private string NodeMaxValue { get; set; }
