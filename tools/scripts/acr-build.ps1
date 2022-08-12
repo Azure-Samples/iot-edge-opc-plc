@@ -247,7 +247,7 @@ $definitions | ForEach-Object {
     Write-Host "Start build job for $($image)"
 
     # acr does not support arm64 as platform
-    $platform = $platform.Replace("arm64", "arm")
+    # $platform = $platform.Replace("arm64", "arm")
 
     # Create acr command line
     $argumentList = @("acr", "build", "--verbose",
