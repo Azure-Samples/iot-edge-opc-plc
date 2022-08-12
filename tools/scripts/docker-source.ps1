@@ -121,6 +121,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
     $platforms.Keys | ForEach-Object {
         $platformInfo = $platforms.Item($_)
 
+        $dockerPlatform = $_
         $runtimeId = $platformInfo.runtimeId
         $baseImage = $platformInfo.image
         $platformTag = $platformInfo.platformTag
@@ -172,7 +173,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             $workdir = "WORKDIR /app"
         }
         $dockerFileContent = @"
-FROM $($baseImage)
+FROM --platform=$($dockerPlatform) $($baseImage)
 
 $($exposes)
 
