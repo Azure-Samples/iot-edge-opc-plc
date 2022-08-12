@@ -102,7 +102,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
         }
         "linux/amd64" = @{
             runtimeId = "linux-x64"
-            image = "mcr.microsoft.com/dotnet/runtime-deps:6.0-bullseye-slim"
+            image = "mcr.microsoft.com/dotnet/runtime-deps:6.0-bullseye-slim-amd64"
             platformTag = "linux-amd64"
             runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $installLinuxDebugger
@@ -121,7 +121,6 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
     $platforms.Keys | ForEach-Object {
         $platformInfo = $platforms.Item($_)
 
-        $dockerPlatform = $_
         $runtimeId = $platformInfo.runtimeId
         $baseImage = $platformInfo.image
         $platformTag = $platformInfo.platformTag
@@ -173,7 +172,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             $workdir = "WORKDIR /app"
         }
         $dockerFileContent = @"
-FROM --platform=$($dockerPlatform) $($baseImage)
+FROM $($baseImage)
 
 $($exposes)
 
