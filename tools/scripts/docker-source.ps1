@@ -84,7 +84,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
 
     # Default platform definitions
     $platforms = @{
-        "linux/arm/v7" = @{
+        "linux/arm32/v7" = @{
             runtimeId = "linux-arm"
             image = "mcr.microsoft.com/dotnet/runtime-deps:6.0-bullseye-slim-arm32v7"
             platformTag = "linux-arm32v7"
