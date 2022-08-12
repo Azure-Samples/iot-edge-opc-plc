@@ -9,6 +9,7 @@ public static class DeterministicGuid
     public static Guid NewGuid()
     {
         // https://en.wikipedia.org/wiki/Universally_unique_identifier#Format
+        // xxxxxxxx-xxxx-4xxx-[8|9|a|b]xxx-xxxxxxxxxxxx
         return new Guid($"{GetRandHexExp(0, 16, 8)}-{GetRandHexExp(0, 16, 4)}-{GetRandHex(16_384, 20_479, 4)}-{GetRandHex(32_768, 49_151, 4)}-{GetRandHexExp(0, 16, 12)}");
     }
 
