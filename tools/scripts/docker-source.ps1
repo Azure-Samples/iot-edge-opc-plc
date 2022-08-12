@@ -84,7 +84,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
 
     # Default platform definitions
     $platforms = @{
-        "linux/arm" = @{
+        "linux/arm/v7" = @{
             runtimeId = "linux-arm"
             image = "mcr.microsoft.com/dotnet/runtime-deps:6.0-bullseye-slim-arm32v7"
             platformTag = "linux-arm32v7"
@@ -92,7 +92,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             debugger = $installLinuxDebugger
             entryPoint = "[`"./$($assemblyName)`"]"
         }
-        "linux/arm64" = @{
+        "linux/arm64/v8" = @{
             runtimeId = "linux-arm64"
             image = "mcr.microsoft.com/dotnet/runtime-deps:6.0-bullseye-slim-arm64v8"
             platformTag = "linux-arm64v8"
