@@ -175,7 +175,7 @@ public class PlcNodeManager : CustomNodeManager2
     {
         ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
 
-        if (path is uint)
+        if (path is uint || path is long)
         {
             baseDataVariableState.NodeId = new NodeId((uint)path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(((uint)path).ToString(), namespaceIndex);
@@ -187,6 +187,7 @@ public class PlcNodeManager : CustomNodeManager2
         }
         else
         {
+            Logger.Debug("NodeId type is {nodeIdType}", path.GetType().ToString());
             baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
         }
