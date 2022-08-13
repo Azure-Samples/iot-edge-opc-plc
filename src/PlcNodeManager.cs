@@ -199,7 +199,7 @@ public class PlcNodeManager : CustomNodeManager2
         baseDataVariableState.AccessLevel = accessLevel;
         baseDataVariableState.UserAccessLevel = accessLevel;
         baseDataVariableState.Historizing = false;
-        baseDataVariableState.Value = defaultValue ?? Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
+        baseDataVariableState.Value = defaultValue ?? TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
         baseDataVariableState.StatusCode = StatusCodes.Good;
         baseDataVariableState.Timestamp = _timeService.UtcNow();
         baseDataVariableState.Description = new LocalizedText(description);
