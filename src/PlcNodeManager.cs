@@ -175,7 +175,7 @@ public class PlcNodeManager : CustomNodeManager2
     {
         ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
 
-        if (path is uint)
+        if (path is uint || path is long)
         {
             baseDataVariableState.NodeId = new NodeId((uint)path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(((uint)path).ToString(), namespaceIndex);
@@ -187,6 +187,7 @@ public class PlcNodeManager : CustomNodeManager2
         }
         else
         {
+            Logger.Debug("NodeId type is {nodeIdType}", path.GetType().ToString());
             baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
         }
@@ -199,7 +200,7 @@ public class PlcNodeManager : CustomNodeManager2
         baseDataVariableState.AccessLevel = accessLevel;
         baseDataVariableState.UserAccessLevel = accessLevel;
         baseDataVariableState.Historizing = false;
-        baseDataVariableState.Value = defaultValue ?? Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
+        baseDataVariableState.Value = defaultValue ?? TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
         baseDataVariableState.StatusCode = StatusCodes.Good;
         baseDataVariableState.Timestamp = _timeService.UtcNow();
         baseDataVariableState.Description = new LocalizedText(description);
