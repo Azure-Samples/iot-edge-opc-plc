@@ -36,7 +36,7 @@ Get-ChildItem $Path -Recurse -Include "container.json" `
     else {
         $dockerFolder = $dockerFolder.Substring(1)
     }
-    
+
     $metadata = Get-Content -Raw -Path (join-path $_.DirectoryName "container.json") `
         | ConvertFrom-Json
     & (Join-Path $PSScriptRoot "docker-build.ps1") `

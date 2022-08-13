@@ -246,9 +246,6 @@ $definitions | ForEach-Object {
     $image = "$($namespace)$($imageName):$($tagPrefix)$($sourceTag)-$($platformTag)$($tagPostfix)"
     Write-Host "Start build job for $($image)"
 
-    # acr does not support arm64 as platform
-    $platform = $platform.Replace("arm64", "arm")
-
     # Create acr command line
     $argumentList = @("acr", "build", "--verbose",
         "--registry", $Registry,
@@ -278,9 +275,9 @@ $definitions | ForEach-Object {
         $manifest +=
         @"
 
-  - 
+  -
     image: $($Registry).azurecr.io/$($image)
-    platform: 
+    platform:
       $($os)
       $($architecture)
       $($osVersion)

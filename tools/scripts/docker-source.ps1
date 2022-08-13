@@ -84,9 +84,9 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
 
     # Default platform definitions
     $platforms = @{
-        "linux/arm" = @{
+        "linux/arm/v7" = @{
             runtimeId = "linux-arm"
-            image = "mcr.microsoft.com/dotnet/runtime-deps:6.0.1-bullseye-slim"
+            image = "mcr.microsoft.com/dotnet/runtime-deps:6.0-bullseye-slim"
             platformTag = "linux-arm32v7"
             runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $installLinuxDebugger
@@ -94,7 +94,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
         }
         "linux/arm64" = @{
             runtimeId = "linux-arm64"
-            image = "mcr.microsoft.com/dotnet/runtime-deps:6.0.1-bullseye-slim"
+            image = "mcr.microsoft.com/dotnet/runtime-deps:6.0-bullseye-slim"
             platformTag = "linux-arm64v8"
             runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $null
@@ -102,23 +102,16 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
         }
         "linux/amd64" = @{
             runtimeId = "linux-x64"
-            image = "mcr.microsoft.com/dotnet/runtime-deps:6.0.1-bullseye-slim"
+            image = "mcr.microsoft.com/dotnet/runtime-deps:6.0-bullseye-slim"
             platformTag = "linux-amd64"
             runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $installLinuxDebugger
             entryPoint = "[`"./$($assemblyName)`"]"
         }
-        "windows/amd64:10.0.17763.973" = @{
+        "windows/amd64:ltsc2022-amd64" = @{
             runtimeId = "win-x64"
-            image = "mcr.microsoft.com/windows/nanoserver:10.0.17763.973-amd64"
-            platformTag = "nanoserver-amd64-1809"
-            debugger = $null
-            entryPoint = "[`"$($assemblyName).exe`"]"
-        }
-        "windows/amd64:10.0.18363.720" = @{
-            runtimeId = "win-x64"
-            image = "mcr.microsoft.com/windows/nanoserver:10.0.18363.720-amd64"
-            platformTag = "nanoserver-amd64-1909"
+            image = "mcr.microsoft.com/windows/nanoserver:ltsc2022-amd64"
+            platformTag = "nanoserver-ltsc2022-amd64"
             debugger = $null
             entryPoint = "[`"$($assemblyName).exe`"]"
         }
