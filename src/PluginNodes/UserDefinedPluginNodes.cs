@@ -74,7 +74,7 @@ public class UserDefinedPluginNodes : IPluginNodes
         {
             if (node.NodeId.GetType() != Type.GetType("System.Int64") && node.NodeId.GetType() != Type.GetType("System.String"))
             {
-                Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal and string are supported. Default to string.");
+                Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal and string are supported. Defaulting to string.");
                 node.NodeId = node.NodeId.ToString();
             }
 
@@ -115,7 +115,7 @@ public class UserDefinedPluginNodes : IPluginNodes
             node.DataType = "Int32";
         }
 
-        // We have to hard code conversion here, because AccessLevel is defined as byte in OPCUA lib.
+        // We have to hard code the conversion here, because AccessLevel is defined as byte in OPC UA lib.
         byte accessLevel;
         try
         {
