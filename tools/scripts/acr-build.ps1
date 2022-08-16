@@ -81,7 +81,7 @@ $namespace = $branchName
 if ($namespace.StartsWith("feature/")) {
     $namespace = $namespace.Replace("feature/", "")
 }
-elseif ($namespace.StartsWith("release/") -or ($namespace -eq "master")) {
+elseif ($namespace.StartsWith("release/") -or ($namespace -eq "main")) {
     $namespace = "public"
     $releaseBuild = $true
 }
@@ -89,7 +89,7 @@ $namespace = $namespace.Replace("_", "/").Substring(0, [Math]::Min($namespace.Le
 $namespace = "$($namespace)/"
 
 if (![string]::IsNullOrEmpty($Registry) -and ($Registry -ne "industrialiot")) {
-    # if we build from release or from master and registry is provided we leave namespace empty
+    # if we build from release or from main and registry is provided we leave namespace empty
     if ($releaseBuild) {
         $namespace = ""
     }
