@@ -51,18 +51,18 @@ public class CliOptions
                 { "ei|eventinstances=", $"number of event instances\nDefault: {EventInstanceCount}", (uint i) => EventInstanceCount = i },
                 { "er|eventrate=", $"rate in milliseconds to send events\nDefault: {EventInstanceRate}", (uint i) => EventInstanceRate = i },
 
-                // opc configuration
+                // OPC configuration
                 { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {ServerPort}", (ushort i) => ServerPort = i },
                 { "op|path=", $"the enpoint URL path part of the OPC server endpoint.\nDefault: '{ServerPath}'", (string s) => ServerPath = s },
-                { "ph|plchostname=", $"the fullqualified hostname of the plc.\nDefault: {Hostname}", (string s) => Hostname = s },
-                { "ol|opcmaxstringlen=", $"the max length of a string opc can transmit/receive.\nDefault: {OpcMaxStringLength}", (int i) => {
+                { "ph|plchostname=", $"the fully-qualified hostname of the PLC.\nDefault: {Hostname}", (string s) => Hostname = s },
+                { "ol|opcmaxstringlen=", $"the max length of a string OPC can transmit/receive.\nDefault: {OpcMaxStringLength}", (int i) => {
                         if (i > 0)
                         {
                             OpcMaxStringLength = i;
                         }
                         else
                         {
-                            throw new OptionException("The max opc string length must be larger than 0.", "opcmaxstringlen");
+                            throw new OptionException("The max OPC string length must be larger than 0.", "opcmaxstringlen");
                         }
                     }
                 },

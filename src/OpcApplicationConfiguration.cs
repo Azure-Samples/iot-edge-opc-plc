@@ -22,7 +22,9 @@ public partial class OpcApplicationConfiguration
         set => _hostname = value.ToLowerInvariant();
     }
 
-    public static string HostnameLabel => (_hostname.Contains(".") ? _hostname.Substring(0, _hostname.IndexOf('.')) : _hostname);
+    public static string HostnameLabel => _hostname.Contains('.')
+                                            ? _hostname[.._hostname.IndexOf('.')]
+                                            : _hostname;
     public static string ApplicationName => ProgramName;
     public static string ApplicationUri => $"urn:{ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath) ? string.Empty : (ServerPath.StartsWith("/") ? string.Empty : ":"))}{ServerPath.Replace("/", ":")}";
     public static string ProductUri => "https://github.com/azure-samples/iot-edge-opc-plc";
@@ -63,13 +65,6 @@ public partial class OpcApplicationConfiguration
     /// Set the OPC stack log level.
     /// </summary>
     public static int OpcStackTraceMask { get; set; } = 0;
-
-    /// <summary>
-    /// Ctor of the OPC application configuration.
-    /// </summary>
-    public OpcApplicationConfiguration()
-    {
-    }
 
     /// <summary>
     /// Configures all OPC stack settings.
