@@ -233,10 +233,10 @@ public partial class OpcApplicationConfiguration
                 return;
             }
             Logger.Information("----------------------- CreateSigningRequest information ------------------");
-            Logger.Information($"ApplicationUri: {ApplicationConfiguration.ApplicationUri}");
-            Logger.Information($"ApplicationName: {ApplicationConfiguration.ApplicationName}");
-            Logger.Information($"ApplicationType: {ApplicationConfiguration.ApplicationType}");
-            Logger.Information($"ProductUri: {ApplicationConfiguration.ProductUri}");
+            Logger.Information("ApplicationUri: {applicationUri}", ApplicationConfiguration.ApplicationUri);
+            Logger.Information("ApplicationName: {applicationName}", ApplicationConfiguration.ApplicationName);
+            Logger.Information("ApplicationType: {applicationType}", ApplicationConfiguration.ApplicationType);
+            Logger.Information("ProductUri: {productUri}", ApplicationConfiguration.ProductUri);
             if (ApplicationConfiguration.ApplicationType != ApplicationType.Client)
             {
                 int serverNum = 0;

@@ -256,16 +256,19 @@ public static class Program
         // start the server.
         Logger.Information("Starting server on endpoint {endpoint} (alternate: {alternate}) ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0], plcApplicationConfiguration.ServerConfiguration.AlternateBaseAddresses[0]);
         Logger.Information("Simulation settings are:");
-        Logger.Information($"One simulation phase consists of {SimulationCycleCount} cycles");
-        Logger.Information($"One cycle takes {SimulationCycleLength} ms");
-        Logger.Information($"Reference Test Simulation: {(AddReferenceTestSimulation ? "Enabled" : "Disabled")}");
-        Logger.Information($"Simple Events: {(AddSimpleEventsSimulation ? "Enabled" : "Disabled")}");
-        Logger.Information($"Alarms: {(AddAlarmSimulation ? "Enabled" : "Disabled")}");
-        Logger.Information($"Deterministic Alarms: {(DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled")}");
+        Logger.Information("One simulation phase consists of {SimulationCycleCount} cycles", SimulationCycleCount);
+        Logger.Information("One cycle takes {SimulationCycleLength} ms", SimulationCycleLength);
+        Logger.Information("Reference test simulation: {addReferenceTestSimulation}",
+            AddReferenceTestSimulation ? "Enabled" : "Disabled");
+        Logger.Information("Simple events: {addSimpleEventsSimulation}",
+            AddSimpleEventsSimulation ? "Enabled" : "Disabled");
+        Logger.Information("Alarms: {addAlarmSimulation}", AddAlarmSimulation ? "Enabled" : "Disabled");
+        Logger.Information("Deterministic alarms: {deterministicAlarmSimulation}",
+            DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
 
-        Logger.Information($"Anonymous authentication: {(DisableAnonymousAuth ? "Disabled" : "Enabled")}");
-        Logger.Information($"Username/Password authentication: {(DisableUsernamePasswordAuth ? "Disabled" : "Enabled")}");
-        Logger.Information($"Certificate authentication: {(DisableCertAuth ? "Disabled" : "Enabled")}");
+        Logger.Information("Anonymous authentication: {anonymousAuth}", DisableAnonymousAuth ? "Disabled" : "Enabled");
+        Logger.Information("Username/Password authentication: {usernamePasswordAuth}", DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
+        Logger.Information("Certificate authentication: {certAuth}", DisableCertAuth ? "Disabled" : "Enabled");
 
         PlcServer = new PlcServer(TimeService);
         PlcServer.Start(plcApplicationConfiguration);
