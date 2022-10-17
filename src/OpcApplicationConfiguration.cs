@@ -127,7 +127,7 @@ public partial class OpcApplicationConfiguration
 
             if (policy.SecurityMode == MessageSecurityMode.None)
             {
-                Logger.Warning("Note: Security policy 'None' is a security risk and needs to be disabled for production use");
+                Logger.Warning("Security policy {none} is a security risk and needs to be disabled for production use", "None");
             }
         }
 
