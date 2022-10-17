@@ -127,26 +127,28 @@ public partial class OpcApplicationConfiguration
         }
         ApplicationConfiguration = await options.Create().ConfigureAwait(false);
 
-        Logger.Information($"Application Certificate store type is: {id.StoreType}");
-        Logger.Information($"Application Certificate store path is: {id.StorePath}");
-        Logger.Information($"Application Certificate subject name is: {id.SubjectName}");
+        Logger.Information("Application Certificate store type is: {storeType}", id.StoreType);
+        Logger.Information("Application Certificate store path is: {storePath}", id.StorePath);
 
-        Logger.Information($"Rejection of SHA1 signed certificates is {(securityConfiguration.RejectSHA1SignedCertificates ? "enabled" : "disabled")}");
-        Logger.Information($"Minimum certificate key size set to {securityConfiguration.MinimumCertificateKeySize}");
+        Logger.Information("Rejection of SHA1 signed certificates is {status}",
+            securityConfiguration.RejectSHA1SignedCertificates ? "enabled" : "disabled");
 
-        Logger.Information($"Trusted Issuer store type is: {issuerList.StoreType}");
-        Logger.Information($"Trusted Issuer Certificate store path is: {issuerList.StorePath}");
+        Logger.Information("Minimum certificate key size set to {minimumCertificateKeySize}",
+            securityConfiguration.MinimumCertificateKeySize);
 
-        Logger.Information($"Trusted Peer Certificate store type is: {trustList.StoreType}");
-        Logger.Information($"Trusted Peer Certificate store path is: {trustList.StorePath}");
+        Logger.Information("Trusted Issuer store type is: {storeType}", issuerList.StoreType);
+        Logger.Information("Trusted Issuer Certificate store path is: {storePath}", issuerList.StorePath);
 
-        Logger.Information($"Rejected certificate store type is: {rejectedStore.StoreType}");
-        Logger.Information($"Rejected Certificate store path is: {rejectedStore.StorePath}");
+        Logger.Information("Trusted Peer Certificate store type is: {storeType}", trustList.StoreType);
+        Logger.Information("Trusted Peer Certificate store path is: {storePath}", trustList.StorePath);
+
+        Logger.Information("Rejected certificate store type is: {storeType}", rejectedStore.StoreType);
+        Logger.Information("Rejected Certificate store path is: {storePath}", rejectedStore.StorePath);
 
         // handle cert validation
         if (AutoAcceptCerts)
         {
-            Logger.Warning("WARNING: Automatically accepting certificates. This is a security risk.");
+            Logger.Warning("Automatically accepting all client certificates, this is a security risk!");
         }
         ApplicationConfiguration.CertificateValidator.CertificateValidation += new CertificateValidationEventHandler(CertificateValidator_CertificateValidation);
 
@@ -279,15 +281,18 @@ public partial class OpcApplicationConfiguration
             using ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.OpenStore();
             var certs = await certStore.Enumerate().ConfigureAwait(false);
             int certNum = 1;
-            Logger.Information($"Application store contains {certs.Count} certs");
+            Logger.Information("Application store contains {count} certs", certs.Count);
             foreach (var cert in certs)
             {
-                Logger.Information($"{certNum++:D2}: Subject '{cert.Subject}' (thumbprint: {cert.GetCertHashString()})");
+                Logger.Information("{index}: Subject {subject} (thumbprint: {thumbprint})",
+                    $"{certNum++:D2}",
+                    cert.Subject,
+                    cert.GetCertHashString());
             }
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Error while trying to read information from application store.");
+            Logger.Error(e, "Error while trying to read information from application store");
         }
 
         // show trusted issuer certs
@@ -296,19 +301,26 @@ public partial class OpcApplicationConfiguration
             using ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.OpenStore();
             var certs = await certStore.Enumerate().ConfigureAwait(false);
             int certNum = 1;
-            Logger.Information($"Trusted issuer store contains {certs.Count} certs");
+            Logger.Information("Trusted issuer store contains {count} certs", certs.Count);
             foreach (var cert in certs)
             {
-                Logger.Information($"{certNum++:D2}: Subject '{cert.Subject}' (thumbprint: {cert.GetCertHashString()})");
+                Logger.Information("{index}: Subject {subject} (thumbprint: {thumbprint})",
+                    $"{certNum++:D2}",
+                    cert.Subject,
+                    cert.GetCertHashString());
             }
+
             if (certStore.SupportsCRLs)
             {
                 var crls = await certStore.EnumerateCRLs().ConfigureAwait(false);
                 int crlNum = 1;
-                Logger.Information($"Trusted issuer store has {crls.Count} CRLs.");
+                Logger.Information("Trusted issuer store has {count} CRLs", crls.Count);
                 foreach (var crl in crls)
                 {
-                    Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdate}'");
+                    Logger.Information("{index}: Issuer {issuer}, Next update time {nextUpdate}",
+                        $"{crlNum++:D2}",
+                        crl.Issuer,
+                        crl.NextUpdate);
                 }
             }
         }
@@ -323,25 +335,32 @@ public partial class OpcApplicationConfiguration
             using ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore();
             var certs = await certStore.Enumerate().ConfigureAwait(false);
             int certNum = 1;
-            Logger.Information($"Trusted peer store contains {certs.Count} certs");
+            Logger.Information("Trusted peer store contains {count} certs", certs.Count);
             foreach (var cert in certs)
             {
-                Logger.Information($"{certNum++:D2}: Subject '{cert.Subject}' (thumbprint: {cert.GetCertHashString()})");
+                Logger.Information("{index}: Subject {subject} (thumbprint: {thumbprint})",
+                    $"{certNum++:D2}",
+                    cert.Subject,
+                    cert.GetCertHashString());
             }
+
             if (certStore.SupportsCRLs)
             {
                 var crls = await certStore.EnumerateCRLs().ConfigureAwait(false);
                 int crlNum = 1;
-                Logger.Information($"Trusted peer store has {crls.Count} CRLs.");
+                Logger.Information("Trusted peer store has {count} CRLs", crls.Count);
                 foreach (var crl in crls)
                 {
-                    Logger.Information($"{crlNum++:D2}: Issuer '{crl.Issuer}', Next update time '{crl.NextUpdate}'");
+                    Logger.Information("{index}: Issuer {issuer}, Next update time {nextUpdate}",
+                        $"{crlNum++:D2}",
+                        crl.Issuer,
+                        crl.NextUpdate);
                 }
             }
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Error while trying to read information from trusted peer store.");
+            Logger.Error(e, "Error while trying to read information from trusted peer store");
         }
 
         // show rejected peer certs
@@ -350,15 +369,18 @@ public partial class OpcApplicationConfiguration
             using ICertificateStore certStore = ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.OpenStore();
             var certs = await certStore.Enumerate().ConfigureAwait(false);
             int certNum = 1;
-            Logger.Information($"Rejected certificate store contains {certs.Count} certs");
+            Logger.Information("Rejected certificate store contains {count} certs", certs.Count);
             foreach (var cert in certs)
             {
-                Logger.Information($"{certNum++:D2}: Subject '{cert.Subject}' (thumbprint: {cert.GetCertHashString()})");
+                Logger.Information("{index}: Subject {subject} (thumbprint: {thumbprint})",
+                    $"{certNum++:D2}",
+                    cert.Subject,
+                    cert.GetCertHashString());
             }
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Error while trying to read information from rejected certificate store.");
+            Logger.Error(e, "Error while trying to read information from rejected certificate store");
         }
     }
 

@@ -22,7 +22,9 @@ public partial class OpcApplicationConfiguration
         set => _hostname = value.ToLowerInvariant();
     }
 
-    public static string HostnameLabel => (_hostname.Contains(".") ? _hostname.Substring(0, _hostname.IndexOf('.')) : _hostname);
+    public static string HostnameLabel => _hostname.Contains('.')
+                                            ? _hostname[.._hostname.IndexOf('.')]
+                                            : _hostname;
     public static string ApplicationName => ProgramName;
     public static string ApplicationUri => $"urn:{ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath) ? string.Empty : (ServerPath.StartsWith("/") ? string.Empty : ":"))}{ServerPath.Replace("/", ":")}";
     public static string ProductUri => "https://github.com/azure-samples/iot-edge-opc-plc";
@@ -65,13 +67,6 @@ public partial class OpcApplicationConfiguration
     public static int OpcStackTraceMask { get; set; } = 0;
 
     /// <summary>
-    /// Ctor of the OPC application configuration.
-    /// </summary>
-    public OpcApplicationConfiguration()
-    {
-    }
-
-    /// <summary>
     /// Configures all OPC stack settings.
     /// </summary>
     public async Task<ApplicationConfiguration> ConfigureAsync()
@@ -93,7 +88,12 @@ public partial class OpcApplicationConfiguration
         // configure OPC UA server
         var serverBuilder = application.Build(ApplicationUri, ProductUri)
             .SetTransportQuotas(transportQuotas)
-            .AsServer(new string[] { $"opc.tcp://{Hostname}:{ServerPort}{ServerPath}" })
+            .AsServer(baseAddresses: new string[] {
+                $"opc.tcp://{Hostname}:{ServerPort}{ServerPath}",
+            },
+            alternateBaseAddresses: new string[] {
+                $"opc.tcp://{Utils.GetHostName().ToLowerInvariant()}:{ServerPort}{ServerPath}",
+            })
             .AddSignAndEncryptPolicies()
             .AddSignPolicies();
 
@@ -121,30 +121,39 @@ public partial class OpcApplicationConfiguration
 
         foreach (var policy in ApplicationConfiguration.ServerConfiguration.SecurityPolicies)
         {
-            Logger.Information($"Added security policy {policy.SecurityPolicyUri} with mode {policy.SecurityMode}.");
+            Logger.Information("Added security policy {securityPolicyUri} with mode {securityMode}",
+                policy.SecurityPolicyUri,
+                policy.SecurityMode);
+
             if (policy.SecurityMode == MessageSecurityMode.None)
             {
-                Logger.Warning("Note: security policy 'None' is a security risk and needs to be disabled for production use");
+                Logger.Warning("Security policy {none} is a security risk and needs to be disabled for production use", "None");
             }
         }
 
-        Logger.Information($"LDS(-ME) registration interval set to {LdsRegistrationInterval} ms (0 means no registration)");
+        Logger.Information("LDS(-ME) registration interval set to {ldsRegistrationInterval} ms (0 means no registration)",
+            LdsRegistrationInterval);
 
         // configure OPC stack tracing
         Utils.SetTraceMask(OpcStackTraceMask);
         Utils.Tracing.TraceEventHandler += LoggerOpcUaTraceHandler;
-        Logger.Information($"The OPC UA trace mask is set to: 0x{OpcStackTraceMask:X}");
+        Logger.Information("The OPC UA trace mask is set to: {opcStackTraceMask}",
+            $"0x{OpcStackTraceMask:X}");
 
         // log certificate status
         var certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
         if (certificate == null)
         {
-            Logger.Information($"No existing application certificate found. Creating a self-signed application certificate valid since yesterday for {CertificateFactory.DefaultLifeTime} months," +
-                $"with a {CertificateFactory.DefaultKeySize} bit key and {CertificateFactory.DefaultHashSize} bit hash.");
+            Logger.Information("No existing application certificate found. Creating a self-signed application certificate valid since yesterday for {defaultLifeTime} months, " +
+                "with a {defaultKeySize} bit key and {defaultHashSize} bit hash",
+                CertificateFactory.DefaultLifeTime,
+                CertificateFactory.DefaultKeySize,
+                CertificateFactory.DefaultHashSize);
         }
         else
         {
-            Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' found in the application certificate store.");
+            Logger.Information("Application certificate with thumbprint {thumbprint} found in the application certificate store",
+                certificate.Thumbprint);
         }
 
         // check the certificate, creates new self signed certificate if required
@@ -157,10 +166,14 @@ public partial class OpcApplicationConfiguration
         if (certificate == null)
         {
             certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
-            Logger.Information($"Application certificate with thumbprint '{certificate.Thumbprint}' created.");
+            Logger.Information("Application certificate with thumbprint {thumbprint} created",
+                certificate.Thumbprint);
         }
 
-        Logger.Information($"Application certificate is for ApplicationUri '{ApplicationConfiguration.ApplicationUri}', ApplicationName '{ApplicationConfiguration.ApplicationName}' and Subject is '{ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate.Subject}'");
+        Logger.Information("Application certificate is for ApplicationUri {applicationUri}, ApplicationName {applicationName} and Subject is {subject}",
+            ApplicationConfiguration.ApplicationUri,
+            ApplicationConfiguration.ApplicationName,
+            ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate.Subject);
 
         // show CreateSigningRequest data
         if (ShowCreateSigningRequestInfo)
@@ -255,5 +268,5 @@ public partial class OpcApplicationConfiguration
     private const int MAX_PUBLISH_REQUEST_COUNT = MAX_SUBSCRIPTION_COUNT;
     private const int MAX_REQUEST_THREAD_COUNT = MAX_PUBLISH_REQUEST_COUNT;
 
-    private static string _hostname = $"{Utils.GetHostName().ToLowerInvariant()}";
+    private static string _hostname = Utils.GetHostName().ToLowerInvariant();
 }

@@ -159,14 +159,17 @@ public static class Program
 
         LogLogo();
 
-        Logger.Information($"Current directory: {Directory.GetCurrentDirectory()}");
-        Logger.Information($"Log file: {Path.GetFullPath(LogFileName)}");
-        Logger.Information($"Log level: {LogLevel}");
+        Logger.Information("Current directory: {currentDirectory}", Directory.GetCurrentDirectory());
+        Logger.Information("Log file: {logFileName}", Path.GetFullPath(LogFileName));
+        Logger.Information("Log level: {logLevel}", LogLevel);
 
         //show version
         var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
-        Logger.Information($"{ProgramName} V{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} starting up ...");
-        Logger.Debug($"Informational version: V{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
+        Logger.Information("{ProgramName} {version} starting up ...",
+            ProgramName,
+            $"v{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart}");
+        Logger.Debug("Informational version: {version}",
+            $"v{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
 
         using var host = CreateHostBuilder(args);
         if (ShowPublisherConfigJsonIp || ShowPublisherConfigJsonPh)
@@ -210,11 +213,13 @@ public static class Program
         try
         {
             host.Start();
-            Logger.Information($"Web server started on port {WebServerPort}");
+            Logger.Information("Web server started on port {webServerPort}", WebServerPort);
         }
         catch (Exception e)
         {
-            Logger.Error($"Could not start web server on port {WebServerPort}: {e.Message}");
+            Logger.Error("Could not start web server on port {webServerPort}: {message}",
+                WebServerPort,
+                e.Message);
         }
     }
 
@@ -249,7 +254,7 @@ public static class Program
         ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync().ConfigureAwait(false);
 
         // start the server.
-        Logger.Information($"Starting server on endpoint {plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]} ...");
+        Logger.Information("Starting server on endpoint {endpoint} (alternate: {alternate}) ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0], plcApplicationConfiguration.ServerConfiguration.AlternateBaseAddresses[0]);
         Logger.Information("Simulation settings are:");
         Logger.Information($"One simulation phase consists of {SimulationCycleCount} cycles");
         Logger.Information($"One cycle takes {SimulationCycleLength} ms");
