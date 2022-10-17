@@ -88,7 +88,12 @@ public partial class OpcApplicationConfiguration
         // configure OPC UA server
         var serverBuilder = application.Build(ApplicationUri, ProductUri)
             .SetTransportQuotas(transportQuotas)
-            .AsServer(new string[] { $"opc.tcp://{Hostname}:{ServerPort}{ServerPath}" })
+            .AsServer(baseAddresses: new string[] {
+                $"opc.tcp://{Hostname}:{ServerPort}{ServerPath}",
+            },
+            alternateBaseAddresses: new string[] {
+                $"opc.tcp://{Utils.GetHostName().ToLowerInvariant()}:{ServerPort}{ServerPath}",
+            })
             .AddSignAndEncryptPolicies()
             .AddSignPolicies();
 
@@ -250,5 +255,5 @@ public partial class OpcApplicationConfiguration
     private const int MAX_PUBLISH_REQUEST_COUNT = MAX_SUBSCRIPTION_COUNT;
     private const int MAX_REQUEST_THREAD_COUNT = MAX_PUBLISH_REQUEST_COUNT;
 
-    private static string _hostname = $"{Utils.GetHostName().ToLowerInvariant()}";
+    private static string _hostname = Utils.GetHostName().ToLowerInvariant();
 }
