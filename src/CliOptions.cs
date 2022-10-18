@@ -242,30 +242,30 @@ public class CliOptions
     /// <summary>
     /// Helper to build a list of byte arrays out of a comma separated list of base64 strings (optional in double quotes).
     /// </summary>
-    private static List<string> ParseListOfStrings(string s)
+    private static List<string> ParseListOfStrings(string list)
     {
         var strings = new List<string>();
-        if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
+        if (list[0] == '"' && (list.Count(c => c.Equals('"')) % 2 == 0))
         {
-            while (s.Contains('"'))
+            while (list.Contains('"'))
             {
                 int first = 0;
                 int next = 0;
-                first = s.IndexOf('"', next);
-                next = s.IndexOf('"', ++first);
-                strings.Add(s[first..next]);
-                s = s.Substring(++next);
+                first = list.IndexOf('"', next);
+                next = list.IndexOf('"', ++first);
+                strings.Add(list[first..next]);
+                list = list.Substring(++next);
             }
         }
-        else if (s.Contains(','))
+        else if (list.Contains(','))
         {
-            strings = s.Split(',').ToList();
+            strings = list.Split(',').ToList();
             strings.ForEach(st => st.Trim());
             strings = strings.Select(st => st.Trim()).ToList();
         }
         else
         {
-            strings.Add(s);
+            strings.Add(list);
         }
         return strings;
     }
