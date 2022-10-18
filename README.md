@@ -410,6 +410,9 @@ Options:
       --wp, --webport=VALUE  web server port for hosting OPC Publisher
                                configuration file.
                                Default: 8080
+      --cdn, --certdnsnames=VALUE
+                             adds additional DNS names or IP addresses to the
+                               certificate (comma separated values)
   -h, --help                 show this message and exit
       --ctb, --complextypeboiler
                              add complex type (boiler) to address space.

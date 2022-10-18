@@ -3,6 +3,7 @@ using Opc.Ua;
 using Opc.Ua.Configuration;
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static Program;
@@ -85,15 +86,18 @@ public partial class OpcApplicationConfiguration
             MaxByteStringLength = 4 * 1024 * 1024,
         };
 
+        var alternateBaseAddresses = (from dnsName in DnsNames
+                                      select $"opc.tcp://{dnsName}:{ServerPort}{ServerPath}")
+                                     .Append($"opc.tcp://{Utils.GetHostName().ToLowerInvariant()}:{ServerPort}{ServerPath}")
+                                     .ToArray();
+
         // configure OPC UA server
         var serverBuilder = application.Build(ApplicationUri, ProductUri)
             .SetTransportQuotas(transportQuotas)
             .AsServer(baseAddresses: new string[] {
                 $"opc.tcp://{Hostname}:{ServerPort}{ServerPath}",
             },
-            alternateBaseAddresses: new string[] {
-                $"opc.tcp://{Utils.GetHostName().ToLowerInvariant()}:{ServerPort}{ServerPath}",
-            })
+            alternateBaseAddresses)
             .AddSignAndEncryptPolicies()
             .AddSignPolicies();
 

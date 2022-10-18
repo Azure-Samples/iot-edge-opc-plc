@@ -1,16 +1,16 @@
 ﻿namespace OpcPlc;
 
 using Mono.Options;
-using System;
 using Opc.Ua;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using static OpcPlc.OpcApplicationConfiguration;
-using static OpcPlc.PlcSimulation;
-using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using static OpcPlc.OpcApplicationConfiguration;
+using static OpcPlc.PlcSimulation;
 
 public class CliOptions
 {
@@ -172,7 +172,7 @@ public class CliOptions
                     }
                 },
 
-                { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (multiple thumbprints supported)", (string s) => ThumbprintsToRemove = ParseListOfStrings(s)
+                { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (comma separated values)", (string s) => ThumbprintsToRemove = ParseListOfStrings(s)
                 },
 
                 {"daa|disableanonymousauth", $"flag to disable anonymous authentication. \nDefault: {Program.DisableAnonymousAuth}", (string s) => Program.DisableAnonymousAuth = s != null },
@@ -196,6 +196,7 @@ public class CliOptions
                 { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {Program.ShowPublisherConfigJsonPh}", (string s) => Program.ShowPublisherConfigJsonPh = s != null },
                 { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {Program.PnJson}", (string s) => Program.PnJson = s },
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {Program.WebServerPort}", (uint i) => Program.WebServerPort = i },
+                { "cdn|certdnsnames=", "adds additional DNS names or IP addresses to the certificate (comma separated values)", (string s) => DnsNames = ParseListOfStrings(s) },
                 { "h|help", "show this message and exit", (string s) => Program.ShowHelp = s != null },
             };
 
