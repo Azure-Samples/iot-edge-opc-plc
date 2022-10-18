@@ -1,16 +1,16 @@
 ﻿namespace OpcPlc;
 
 using Mono.Options;
-using System;
 using Opc.Ua;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using static OpcPlc.OpcApplicationConfiguration;
-using static OpcPlc.PlcSimulation;
-using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using static OpcPlc.OpcApplicationConfiguration;
+using static OpcPlc.PlcSimulation;
 
 public class CliOptions
 {
@@ -147,12 +147,12 @@ public class CliOptions
                 { "cp|certpassword=", "the optional password for the PEM or PFX or the installed application certificate", (string s) => CertificatePassword = s
                 },
 
-                { "tb|addtrustedcertbase64=", "adds the certificate to the application's trusted cert store passed in as base64 string (multiple strings supported)", (string s) => TrustedCertificateBase64Strings = ParseListOfStrings(s)
+                { "tb|addtrustedcertbase64=", "adds the certificate to the application's trusted cert store passed in as base64 string (comma separated values)", (string s) => TrustedCertificateBase64Strings = ParseListOfStrings(s)
                 },
                 { "tf|addtrustedcertfile=", "adds the certificate file(s) to the application's trusted cert store passed in as base64 string (multiple filenames supported)", (string s) => TrustedCertificateFileNames = ParseListOfFileNames(s, "addtrustedcertfile")
                 },
 
-                { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (multiple strings supported)", (string s) => IssuerCertificateBase64Strings = ParseListOfStrings(s)
+                { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (comma separated values)", (string s) => IssuerCertificateBase64Strings = ParseListOfStrings(s)
                 },
                 { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the application's trusted issuer cert store (multiple filenames supported)", (string s) => IssuerCertificateFileNames = ParseListOfFileNames(s, "addissuercertfile")
                 },
@@ -172,7 +172,7 @@ public class CliOptions
                     }
                 },
 
-                { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (multiple thumbprints supported)", (string s) => ThumbprintsToRemove = ParseListOfStrings(s)
+                { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (comma separated values)", (string s) => ThumbprintsToRemove = ParseListOfStrings(s)
                 },
 
                 {"daa|disableanonymousauth", $"flag to disable anonymous authentication. \nDefault: {Program.DisableAnonymousAuth}", (string s) => Program.DisableAnonymousAuth = s != null },
@@ -196,6 +196,7 @@ public class CliOptions
                 { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {Program.ShowPublisherConfigJsonPh}", (string s) => Program.ShowPublisherConfigJsonPh = s != null },
                 { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {Program.PnJson}", (string s) => Program.PnJson = s },
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {Program.WebServerPort}", (uint i) => Program.WebServerPort = i },
+                { "cdn|certdnsnames=", "add additional DNS names or IP addresses to this application's certificate (comma separated values)", (string s) => DnsNames = ParseListOfStrings(s) },
                 { "h|help", "show this message and exit", (string s) => Program.ShowHelp = s != null },
             };
 
@@ -241,30 +242,30 @@ public class CliOptions
     /// <summary>
     /// Helper to build a list of byte arrays out of a comma separated list of base64 strings (optional in double quotes).
     /// </summary>
-    private static List<string> ParseListOfStrings(string s)
+    private static List<string> ParseListOfStrings(string list)
     {
         var strings = new List<string>();
-        if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
+        if (list[0] == '"' && (list.Count(c => c.Equals('"')) % 2 == 0))
         {
-            while (s.Contains('"'))
+            while (list.Contains('"'))
             {
                 int first = 0;
                 int next = 0;
-                first = s.IndexOf('"', next);
-                next = s.IndexOf('"', ++first);
-                strings.Add(s[first..next]);
-                s = s.Substring(++next);
+                first = list.IndexOf('"', next);
+                next = list.IndexOf('"', ++first);
+                strings.Add(list[first..next]);
+                list = list.Substring(++next);
             }
         }
-        else if (s.Contains(','))
+        else if (list.Contains(','))
         {
-            strings = s.Split(',').ToList();
+            strings = list.Split(',').ToList();
             strings.ForEach(st => st.Trim());
             strings = strings.Select(st => st.Trim()).ToList();
         }
         else
         {
-            strings.Add(s);
+            strings.Add(list);
         }
         return strings;
     }

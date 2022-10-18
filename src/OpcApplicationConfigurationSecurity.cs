@@ -84,6 +84,11 @@ public partial class OpcApplicationConfiguration
     public static List<string> ThumbprintsToRemove = null;
 
     /// <summary>
+    /// Additional certificate DNS names.
+    /// </summary>
+    public static List<string> DnsNames = new ();
+
+    /// <summary>
     /// Configures OPC stack security.
     /// </summary>
     public async Task<ApplicationConfiguration> InitApplicationSecurityAsync(IApplicationConfigurationBuilderServerOptions securityBuilder)

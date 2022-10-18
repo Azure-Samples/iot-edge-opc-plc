@@ -254,7 +254,7 @@ public static class Program
         ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync().ConfigureAwait(false);
 
         // start the server.
-        Logger.Information("Starting server on endpoint {endpoint} (alternate: {alternate}) ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0], plcApplicationConfiguration.ServerConfiguration.AlternateBaseAddresses[0]);
+        Logger.Information("Starting server on endpoint {endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
         Logger.Information("Simulation settings are:");
         Logger.Information("One simulation phase consists of {SimulationCycleCount} cycles", SimulationCycleCount);
         Logger.Information("One cycle takes {SimulationCycleLength} ms", SimulationCycleLength);
