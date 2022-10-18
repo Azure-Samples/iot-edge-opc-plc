@@ -196,7 +196,7 @@ public class CliOptions
                 { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {Program.ShowPublisherConfigJsonPh}", (string s) => Program.ShowPublisherConfigJsonPh = s != null },
                 { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {Program.PnJson}", (string s) => Program.PnJson = s },
                 { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {Program.WebServerPort}", (uint i) => Program.WebServerPort = i },
-                { "cdn|certdnsnames=", "adds additional DNS names or IP addresses to the certificate (comma separated values)", (string s) => DnsNames = ParseListOfStrings(s) },
+                { "cdn|certdnsnames=", "add additional DNS names or IP addresses to this application's certificate (comma separated values)", (string s) => DnsNames = ParseListOfStrings(s) },
                 { "h|help", "show this message and exit", (string s) => Program.ShowHelp = s != null },
             };
 

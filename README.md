@@ -411,8 +411,8 @@ Options:
                                configuration file.
                                Default: 8080
       --cdn, --certdnsnames=VALUE
-                             adds additional DNS names or IP addresses to the
-                               certificate (comma separated values)
+                             add additional DNS names or IP addresses to this
+                               application's certificate (comma separated values)
   -h, --help                 show this message and exit
       --ctb, --complextypeboiler
                              add complex type (boiler) to address space.
