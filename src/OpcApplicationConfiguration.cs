@@ -91,6 +91,8 @@ public partial class OpcApplicationConfiguration
                                      .Append($"opc.tcp://{Utils.GetHostName().ToLowerInvariant()}:{ServerPort}{ServerPath}")
                                      .ToArray();
 
+        Logger.Information("Alternate base addresses (for server binding and certificate DNSNames and IPAddresses extensions): {alternateBaseAddresses}", alternateBaseAddresses);
+
         // configure OPC UA server
         var serverBuilder = application.Build(ApplicationUri, ProductUri)
             .SetTransportQuotas(transportQuotas)
