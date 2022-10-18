@@ -86,7 +86,7 @@ public partial class OpcApplicationConfiguration
     /// <summary>
     /// Additional certificate DNS names.
     /// </summary>
-    public static List<string> DnsNames = null;
+    public static List<string> DnsNames = new ();
 
     /// <summary>
     /// Configures OPC stack security.
