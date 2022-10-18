@@ -339,8 +339,8 @@ Options:
                                installed application certificate
       --tb, --addtrustedcertbase64=VALUE
                              adds the certificate to the applications trusted
-                               cert store passed in as base64 string (multiple
-                               strings supported)
+                               cert store passed in as base64 string (comma
+                               separated values)
       --tf, --addtrustedcertfile=VALUE
                              adds the certificate file(s) to the applications
                                trusted cert store passed in as base64 string (
@@ -348,7 +348,7 @@ Options:
       --ib, --addissuercertbase64=VALUE
                              adds the specified issuer certificate to the
                                applications trusted issuer cert store passed in
-                               as base64 string (multiple strings supported)
+                               as base64 string (comma separated values)
       --if, --addissuercertfile=VALUE
                              adds the specified issuer certificate file(s) to
                                the applications trusted issuer cert store (
@@ -363,7 +363,7 @@ Options:
                                issuer)
       --rc, --removecert=VALUE
                              remove cert(s) with the given thumbprint(s) (
-                               multiple thumbprints supported)
+                               comma separated values)
       --daa, --disableanonymousauth
                              flag to disable anonymous authentication.
                                Default: False

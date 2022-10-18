@@ -147,12 +147,12 @@ public class CliOptions
                 { "cp|certpassword=", "the optional password for the PEM or PFX or the installed application certificate", (string s) => CertificatePassword = s
                 },
 
-                { "tb|addtrustedcertbase64=", "adds the certificate to the application's trusted cert store passed in as base64 string (multiple strings supported)", (string s) => TrustedCertificateBase64Strings = ParseListOfStrings(s)
+                { "tb|addtrustedcertbase64=", "adds the certificate to the application's trusted cert store passed in as base64 string (comma separated values)", (string s) => TrustedCertificateBase64Strings = ParseListOfStrings(s)
                 },
                 { "tf|addtrustedcertfile=", "adds the certificate file(s) to the application's trusted cert store passed in as base64 string (multiple filenames supported)", (string s) => TrustedCertificateFileNames = ParseListOfFileNames(s, "addtrustedcertfile")
                 },
 
-                { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (multiple strings supported)", (string s) => IssuerCertificateBase64Strings = ParseListOfStrings(s)
+                { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (comma separated values)", (string s) => IssuerCertificateBase64Strings = ParseListOfStrings(s)
                 },
                 { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the application's trusted issuer cert store (multiple filenames supported)", (string s) => IssuerCertificateFileNames = ParseListOfFileNames(s, "addissuercertfile")
                 },
