@@ -22,7 +22,7 @@ public class PnJsonHelper
         sb.AppendLine(Environment.NewLine + "[");
         sb.AppendLine("  {");
         sb.AppendLine($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",");
-        sb.AppendLine("    \"UseSecurity\": false,");
+        sb.AppendLine($"    \"UseSecurity\": {(!OpcApplicationConfiguration.EnableUnsecureTransport).ToString().ToLowerInvariant()},");
         sb.AppendLine("    \"OpcNodes\": [");
 
         // Print config from plugin nodes list.
