@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
+using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
@@ -87,14 +88,15 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 
         SetHeaterOffMethodProperties(ref heaterOffMethod);
 
+        // Get BoilerStatus complex type variable.
+        var children = new List<BaseInstanceState>();
+        _node.GetChildren(_plcNodeManager.SystemContext, children);
+
+        // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
-            {
-                new NodeWithIntervals
-                {
-                    NodeId = "Boiler",
-                    Namespace = OpcPlc.Namespaces.OpcPlcBoiler,
-                },
-            };
+        {
+            PluginNodesHelpers.GetNodeWithIntervals(children[0].NodeId, _plcNodeManager),
+        };
     }
 
     /// <summary>
