@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
+using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
 
@@ -57,25 +58,23 @@ public class OpaquePluginNode : IPluginNodes
 
     private void AddNodes(FolderState folder)
     {
-        _node = _plcNodeManager.CreateVariableNode<uint>(
-            _plcNodeManager.CreateBaseVariable(
-                folder,
-                path: new byte[] { (byte)'a', (byte)'b', (byte)'c' },
-                name: "Opaque_abc",
-                new NodeId((uint)BuiltInType.UInt32),
-                ValueRanks.Scalar,
-                AccessLevels.CurrentReadOrWrite,
-                "Constantly increasing value",
-                NamespaceType.OpcPlcApplications,
-                defaultValue: (uint)0));
+        BaseDataVariableState variable = _plcNodeManager.CreateBaseVariable(
+            folder,
+            path: new byte[] { (byte)'a', (byte)'b', (byte)'c' },
+            name: "Opaque_abc",
+            new NodeId((uint)BuiltInType.UInt32),
+            ValueRanks.Scalar,
+            AccessLevels.CurrentReadOrWrite,
+            "Constantly increasing value",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: (uint)0);
 
+        _node = _plcNodeManager.CreateVariableNode<uint>(variable);
+
+        // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
-            {
-                new NodeWithIntervals
-                {
-                    NodeId = "Opaque_abc",
-                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
-            };
+        {
+            PluginNodesHelpers.GetNodeWithIntervals(variable.NodeId, _plcNodeManager),
+        };
     }
 }
