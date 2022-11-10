@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
+using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
 using System.Web;
@@ -60,25 +61,23 @@ public class SpecialCharNamePluginNode : IPluginNodes
     {
         string SpecialChars = HttpUtility.HtmlDecode(@"&quot;!&#167;$%&amp;/()=?`&#180;\+~*&#39;#_-:.;,&lt;&gt;|@^&#176;€&#181;{[]}");
 
-        _node = _plcNodeManager.CreateVariableNode<uint>(
-            _plcNodeManager.CreateBaseVariable(
-                folder,
-                path: "Special_" + SpecialChars,
-                name: SpecialChars,
-                new NodeId((uint)BuiltInType.UInt32),
-                ValueRanks.Scalar,
-                AccessLevels.CurrentReadOrWrite,
-                "Constantly increasing value",
-                NamespaceType.OpcPlcApplications,
-                defaultValue: (uint)0));
+        BaseDataVariableState variable = _plcNodeManager.CreateBaseVariable(
+            folder,
+            path: "Special_" + SpecialChars,
+            name: SpecialChars,
+            new NodeId((uint)BuiltInType.UInt32),
+            ValueRanks.Scalar,
+            AccessLevels.CurrentReadOrWrite,
+            "Constantly increasing value",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: (uint)0);
 
+        _node = _plcNodeManager.CreateVariableNode<uint>(variable);
+
+        // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
-            {
-                new NodeWithIntervals
-                {
-                    NodeId = "Special_" + SpecialChars,
-                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
-            };
+        {
+            PluginNodesHelpers.GetNodeWithIntervals(variable.NodeId, _plcNodeManager),
+        };
     }
 }

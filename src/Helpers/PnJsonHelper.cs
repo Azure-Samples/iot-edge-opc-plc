@@ -41,7 +41,7 @@ public class PnJsonHelper
                     : string.Empty;
 
                 string nodeId = JsonEncodedText.Encode(node.NodeId, JavaScriptEncoder.Default).ToString();
-                sb.AppendLine($"      {{ \"Id\": \"nsu={node.Namespace};s={nodeId}\"{publishingInterval}{samplingInterval} }},");
+                sb.AppendLine($"      {{ \"Id\": \"nsu={node.Namespace};{node.NodeIdTypePrefix}={nodeId}\"{publishingInterval}{samplingInterval} }},");
             }
         }
 
