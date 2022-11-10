@@ -7,6 +7,7 @@ using System.IO;
 using static OpcPlc.Program;
 using Newtonsoft.Json;
 using OpcPlc.PluginNodes.Models;
+using OpcPlc.Helpers;
 
 /// <summary>
 /// Nodes that are configuration via JSON file.
@@ -92,14 +93,10 @@ public class UserDefinedPluginNodes : IPluginNodes
             Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{_plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]}'");
             CreateBaseVariable(userNodesFolder, node);
 
-            nodes.Add(new NodeWithIntervals
-            {
-                NodeId = node.NodeId.ToString(),
-                Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-            });
+            nodes.Add(PluginNodesHelpers.GetNodeWithIntervals(node.NodeId, _plcNodeManager));
         }
 
-        Logger.Information("Processing node information completed.");
+        Logger.Information("Completed processing user defined node information");
 
         Nodes = nodes;
     }

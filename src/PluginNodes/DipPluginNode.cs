@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
+using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
@@ -67,25 +68,23 @@ public class DipPluginNode : IPluginNodes
 
     private void AddNodes(FolderState folder)
     {
-        _node = _plcNodeManager.CreateVariableNode<double>(
-            _plcNodeManager.CreateBaseVariable(
-                folder,
-                path: "DipData",
-                name: "DipData",
-                new NodeId((uint)BuiltInType.Double),
-                ValueRanks.Scalar,
-                AccessLevels.CurrentRead,
-                "Value with random dips",
-                NamespaceType.OpcPlcApplications));
+        BaseDataVariableState variable = _plcNodeManager.CreateBaseVariable(
+            folder,
+            path: "DipData",
+            name: "DipData",
+            new NodeId((uint)BuiltInType.Double),
+            ValueRanks.Scalar,
+            AccessLevels.CurrentRead,
+            "Value with random dips",
+            NamespaceType.OpcPlcApplications);
 
+        _node = _plcNodeManager.CreateVariableNode<double>(variable);
+
+        // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
-            {
-                new NodeWithIntervals
-                {
-                    NodeId = "DipData",
-                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
-            };
+        {
+            PluginNodesHelpers.GetNodeWithIntervals(variable.NodeId, _plcNodeManager),
+        };
     }
 
     /// <summary>

@@ -22,7 +22,7 @@ public class PnJsonHelper
         sb.AppendLine(Environment.NewLine + "[");
         sb.AppendLine("  {");
         sb.AppendLine($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",");
-        sb.AppendLine("    \"UseSecurity\": false,");
+        sb.AppendLine($"    \"UseSecurity\": {(!OpcApplicationConfiguration.EnableUnsecureTransport).ToString().ToLowerInvariant()},");
         sb.AppendLine("    \"OpcNodes\": [");
 
         // Print config from plugin nodes list.
@@ -41,7 +41,7 @@ public class PnJsonHelper
                     : string.Empty;
 
                 string nodeId = JsonEncodedText.Encode(node.NodeId, JavaScriptEncoder.Default).ToString();
-                sb.AppendLine($"      {{ \"Id\": \"nsu={node.Namespace};s={nodeId}\"{publishingInterval}{samplingInterval} }},");
+                sb.AppendLine($"      {{ \"Id\": \"nsu={node.Namespace};{node.NodeIdTypePrefix}={nodeId}\"{publishingInterval}{samplingInterval} }},");
             }
         }
 

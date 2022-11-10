@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
+using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
 using System.Text;
@@ -65,25 +66,23 @@ public class LongIdPluginNode : IPluginNodes
             id.Append((char)(65 + (i % 26)));
         }
 
-        _node = _plcNodeManager.CreateVariableNode<uint>(
-            _plcNodeManager.CreateBaseVariable(
-                folder,
-                path: id.ToString(),
-                name: "LongId3950",
-                new NodeId((uint)BuiltInType.UInt32),
-                ValueRanks.Scalar,
-                AccessLevels.CurrentReadOrWrite,
-                "Constantly increasing value",
-                NamespaceType.OpcPlcApplications,
-                defaultValue: (uint)0));
+        BaseDataVariableState variable = _plcNodeManager.CreateBaseVariable(
+            folder,
+            path: id.ToString(),
+            name: "LongId3950",
+            new NodeId((uint)BuiltInType.UInt32),
+            ValueRanks.Scalar,
+            AccessLevels.CurrentReadOrWrite,
+            "Constantly increasing value",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: (uint)0);
 
+        _node = _plcNodeManager.CreateVariableNode<uint>(variable);
+
+        // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
-            {
-                new NodeWithIntervals
-                {
-                    NodeId = id.ToString(),
-                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
-            };
+        {
+            PluginNodesHelpers.GetNodeWithIntervals(variable.NodeId, _plcNodeManager),
+        };
     }
 }

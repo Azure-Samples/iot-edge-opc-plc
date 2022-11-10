@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
+using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
@@ -67,25 +68,23 @@ public class SpikePluginNode : IPluginNodes
 
     private void AddNodes(FolderState folder)
     {
-        _node = _plcNodeManager.CreateVariableNode<double>(
-            _plcNodeManager.CreateBaseVariable(
-                folder,
-                path: "SpikeData",
-                name: "SpikeData",
-                new NodeId((uint)BuiltInType.Double),
-                ValueRanks.Scalar,
-                AccessLevels.CurrentRead,
-                "Value with random spikes",
-                NamespaceType.OpcPlcApplications));
+        BaseDataVariableState variable = _plcNodeManager.CreateBaseVariable(
+            folder,
+            path: "SpikeData",
+            name: "SpikeData",
+            new NodeId((uint)BuiltInType.Double),
+            ValueRanks.Scalar,
+            AccessLevels.CurrentRead,
+            "Value with random spikes",
+            NamespaceType.OpcPlcApplications);
 
+        _node = _plcNodeManager.CreateVariableNode<double>(variable);
+
+        // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
-            {
-                new NodeWithIntervals
-                {
-                    NodeId = "SpikeData",
-                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
-            };
+        {
+            PluginNodesHelpers.GetNodeWithIntervals(variable.NodeId, _plcNodeManager),
+        };
     }
 
     /// <summary>
