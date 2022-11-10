@@ -19,7 +19,7 @@ public class LongStringPluginNodes : IPluginNodes
     private SimulatedVariableNode<string> _longStringIdNode50;
     private SimulatedVariableNode<byte[]> _longStringIdNode100;
     private SimulatedVariableNode<byte[]> _longStringIdNode200;
-    private readonly Random _random = new Random();
+    private readonly Random _random = new();
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -129,27 +129,27 @@ public class LongStringPluginNodes : IPluginNodes
                 initialByteArray));
 
         Nodes = new List<NodeWithIntervals>
+        {
+            new NodeWithIntervals
             {
-                new NodeWithIntervals
-                {
-                    NodeId = "LongString10kB",
-                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
-                new NodeWithIntervals
-                {
-                    NodeId = "LongString50kB",
-                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
-                new NodeWithIntervals
-                {
-                    NodeId = "LongString100kB",
-                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
-                new NodeWithIntervals
-                {
-                    NodeId = "LongString200kB",
-                    Namespace = OpcPlc.Namespaces.OpcPlcApplications,
-                },
-            };
+                NodeId = "LongString10kB",
+                Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+            },
+            new NodeWithIntervals
+            {
+                NodeId = "LongString50kB",
+                Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+            },
+            new NodeWithIntervals
+            {
+                NodeId = "LongString100kB",
+                Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+            },
+            new NodeWithIntervals
+            {
+                NodeId = "LongString200kB",
+                Namespace = OpcPlc.Namespaces.OpcPlcApplications,
+            },
+        };
     }
 }
