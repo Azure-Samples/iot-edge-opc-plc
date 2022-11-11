@@ -12,11 +12,11 @@ public class PlcSimulation
 
     // alm|alarms
     // add alarm simulation to address space.
-    public static bool AddAlarmSimulation { get; set; } = true;
+    public static bool AddAlarmSimulation { get; set; }
 
     // ses|simpleevents
     // Add simple events simulation to address space.
-    public static bool AddSimpleEventsSimulation { get; set; } = true;
+    public static bool AddSimpleEventsSimulation { get; set; }
 
     // ref|referencetest
     // Add reference test simulation node manager to address space.

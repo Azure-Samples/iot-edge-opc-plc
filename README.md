@@ -50,12 +50,12 @@ The tags of the container match the tags of this repository and the containers a
 
 Sample start command for Docker:
 ~~~
-docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/iotedge/opc-plc:latest --pn=50000 --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --ctb --scn --lid --lsn --ref --gn=5
+docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/iotedge/opc-plc:latest --pn=50000 --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --ref --gn=5
 ~~~
 
 Sample start command for Windows:
 ~~~
-dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --ctb --scn --lid --lsn --ref --gn=5
+dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --ref --gn=5
 ~~~
 
 Note: Make sure that your OPC UA client uses security policy `Basic256Sha256` and message security mode `Sign & Encrypt` to connect.
@@ -132,7 +132,7 @@ Additionally, you can set the configuration file name via the option `--spf`.
 
 ## Complex type (boiler)
  
-The option `--ctb` adds a simple boiler to the address space.
+Adds a simple boiler to the address space.
 
 Features:
 - BoilerStatus is a complex type that shows: temperature, pressure and heater state
@@ -181,16 +181,16 @@ More information about this feature can be found [here](deterministic-alarms.md)
 
 ## Other features
  
-- Node with special characters in name and NodeId: `--scn`
-- Node with long ID (3950 bytes): `--lid`
-- Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray): `--lsn`
+- Node with special characters in name and NodeId:
+- Node with long ID (3950 bytes)
+- Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray)
 - Nodes for testing all datatypes, arrays, methods, permissions, etc `--ref`. The ReferenceNodeManager of the [OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard) is used for this purpose.
 - Limit the number of updates of Slow and Fast nodes. Update the values of the `SlowNumberOfUpdates` and `FastNumberOfUpdates` configuration nodes in the `OpcPlc/SimulatorConfiguration` folder to:
   - `< 0` (default): Slow and Fast nodes are updated indefinitely
   - `0`: Slow and Fast nodes are not updated
   - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
 - Nodes with deterministic random GUIDs as node IDs: `--gn=<number_of_nodes>`
-- Node with opaque identifier (free-format byte string): `--on`
+- Node with opaque identifier (free-format byte string)
 
 ## OPC UA Methods
 
@@ -254,7 +254,7 @@ or if one string contains commas:
 
 Options:
       --lf, --logfile=VALUE  the filename of the logfile to use.
-                               Default: './machinename-plc.log'
+                               Default: './de-lcantero-p53-plc.log'
       --lt, --logflushtimespan=VALUE
                              the timespan in seconds when the logfile should be
                                flushed.
@@ -281,7 +281,7 @@ Options:
                                Default: ''
       --ph, --plchostname=VALUE
                              the fully-qualified hostname of the PLC.
-                               Default: machinename
+                               Default: de-lcantero-p53
       --ol, --opcmaxstringlen=VALUE
                              the max length of a string OPC can transmit/
                                receive.
@@ -385,6 +385,10 @@ Options:
       --dc, --defaultpassword=VALUE
                              the password of the default user.
                                Default: password
+      --alm, --alarms        add alarm simulation to address space.
+                               Default: False
+      --ses, --simpleevents  add simple events simulation to address space.
+                               Default: False
       --dalm, --deterministicalarms=VALUE
                              add deterministic alarm simulation to address
                                space.
