@@ -1,16 +1,16 @@
 namespace OpcPlc.Tests;
 
+using FluentAssertions;
+using NUnit.Framework;
+using Opc.Ua;
+using Opc.Ua.Client;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Text;
-using FluentAssertions;
-using NUnit.Framework;
-using Opc.Ua;
-using Opc.Ua.Client;
+using System.Threading;
 
 /// <summary>
 /// Abstract base class for tests using OPC-UA Subscriptions.
@@ -134,7 +134,7 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
 
     protected IEnumerable<Dictionary<string, object>> FireTimersWithPeriodAndReceiveEvents(TimeSpan period, int expectedCount)
     {
-        FireTimersWithPeriod(period, 1);
+        FireTimersWithPeriod(period, numberOfTimes: 1);
         return ReceiveEventsAsDictionary(expectedCount);
     }
 

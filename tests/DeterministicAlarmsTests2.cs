@@ -1,11 +1,10 @@
 namespace OpcPlc.Tests;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
+using System;
+using System.Linq;
 using static System.TimeSpan;
 
 [TestFixture]
@@ -42,14 +41,14 @@ public class DeterministicAlarmsTests2 : SubscriptionTestsBase
         NodeShouldHaveStates(doorOpen1, Inactive, Disabled);
 
         var waitUntilStartInSeconds = FromSeconds(5); // value in dalm002.json file
-        var opcEvent1 = FireTimersWithPeriodAndReceiveEvents(waitUntilStartInSeconds, 1).First();
+        var opcEvent1 = FireTimersWithPeriodAndReceiveEvents(waitUntilStartInSeconds, expectedCount: 1).First();
         var timeForFirstEvent = DateTime.Parse(opcEvent1["/Time"].ToString());
 
         NodeShouldHaveStates(doorOpen1, Active, Enabled);
 
         AdvanceToNextStep();
 
-        var opcEvent2 = FireTimersWithPeriodAndReceiveEvents(waitUntilStartInSeconds, 1).First();
+        var opcEvent2 = FireTimersWithPeriodAndReceiveEvents(waitUntilStartInSeconds, expectedCount: 1).First();
         var timeForNextEvent = DateTime.Parse(opcEvent2["/Time"].ToString());
 
         NodeShouldHaveStates(doorOpen1, Inactive, Disabled);
