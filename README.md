@@ -254,7 +254,7 @@ or if one string contains commas:
 
 Options:
       --lf, --logfile=VALUE  the filename of the logfile to use.
-                               Default: './machinename-plc.log'
+                               Default: './de-lcantero-p53-plc.log'
       --lt, --logflushtimespan=VALUE
                              the timespan in seconds when the logfile should be
                                flushed.
@@ -280,10 +280,10 @@ Options:
                                endpoint.
                                Default: ''
       --ph, --plchostname=VALUE
-                             the fullqualified hostname of the plc.
-                               Default: machinename
+                             the fully-qualified hostname of the PLC.
+                               Default: de-lcantero-p53
       --ol, --opcmaxstringlen=VALUE
-                             the max length of a string opc can transmit/
+                             the max length of a string OPC can transmit/
                                receive.
                                Default: 4194304
       --lr, --ldsreginterval=VALUE
@@ -308,23 +308,23 @@ Options:
                                stored
                                Default (depends on store type):
                                X509Store: 'CurrentUser\UA_MachineDefault'
-                               Directory: 'pki/own'
+                               Directory: 'pki\own'
       --tp, --trustedcertstorepath=VALUE
                              the path of the trusted cert store
-                               Default 'pki/trusted'
+                               Default 'pki\trusted'
       --rp, --rejectedcertstorepath=VALUE
                              the path of the rejected cert store
-                               Default 'pki/rejected'
+                               Default 'pki\rejected'
       --ip, --issuercertstorepath=VALUE
                              the path of the trusted issuer cert store
-                               Default 'pki/issuer'
+                               Default 'pki\issuer'
       --csr                  show data to create a certificate signing request
                                Default 'False'
       --ab, --applicationcertbase64=VALUE
-                             update/set this applications certificate with the
+                             update/set this application's certificate with the
                                certificate passed in as bas64 string
       --af, --applicationcertfile=VALUE
-                             update/set this applications certificate with the
+                             update/set this application's certificate with the
                                certificate file specified
       --pb, --privatekeybase64=VALUE
                              initial provisioning of the application
@@ -338,20 +338,20 @@ Options:
                              the optional password for the PEM or PFX or the
                                installed application certificate
       --tb, --addtrustedcertbase64=VALUE
-                             adds the certificate to the applications trusted
+                             adds the certificate to the application's trusted
                                cert store passed in as base64 string (comma
                                separated values)
       --tf, --addtrustedcertfile=VALUE
-                             adds the certificate file(s) to the applications
+                             adds the certificate file(s) to the application's
                                trusted cert store passed in as base64 string (
                                multiple filenames supported)
       --ib, --addissuercertbase64=VALUE
                              adds the specified issuer certificate to the
-                               applications trusted issuer cert store passed in
-                               as base64 string (comma separated values)
+                               application's trusted issuer cert store passed
+                               in as base64 string (comma separated values)
       --if, --addissuercertfile=VALUE
                              adds the specified issuer certificate file(s) to
-                               the applications trusted issuer cert store (
+                               the application's trusted issuer cert store (
                                multiple filenames supported)
       --rb, --updatecrlbase64=VALUE
                              update the CRL passed in as base64 string to the
@@ -362,8 +362,8 @@ Options:
                                corresponding cert store (trusted or trusted
                                issuer)
       --rc, --removecert=VALUE
-                             remove cert(s) with the given thumbprint(s) (
-                               comma separated values)
+                             remove cert(s) with the given thumbprint(s) (comma
+                               separated values)
       --daa, --disableanonymousauth
                              flag to disable anonymous authentication.
                                Default: False
@@ -385,13 +385,6 @@ Options:
       --dc, --defaultpassword=VALUE
                              the password of the default user.
                                Default: password
-      --alm, --alarms        add alarm simulation to address space.
-                               Default: False
-      --ses, --simpleevents  add simple events simulation to address space.
-                               Default: False
-      --ref, --referencetest add reference test simulation node manager to
-                               address space.
-                               Default: False
       --dalm, --deterministicalarms=VALUE
                              add deterministic alarm simulation to address
                                space.
@@ -412,11 +405,9 @@ Options:
                                Default: 8080
       --cdn, --certdnsnames=VALUE
                              add additional DNS names or IP addresses to this
-                               application's certificate (comma separated values)
+                               application's certificate (comma separated
+                               values)
   -h, --help                 show this message and exit
-      --ctb, --complextypeboiler
-                             add complex type (boiler) to address space.
-                               Default: False
       --nv, --nodatavalues   do not generate data values
                                Default: False
       --gn, --guidnodes=VALUE
@@ -453,16 +444,8 @@ Options:
                                Default: 0
       --vfr, --veryfastrate=VALUE
                              rate in milliseconds to change fast nodes
-                               Default: 10000
-      --lid, --longid        add node with ID of 3950 chars.
-                               Default: False
-      --lsn, --longstringnodes
-                             add nodes with string values of 10/50/100/200 kB.
-                               Default: False
+                               Default: 1000
       --nn, --nonegtrend     do not generate negative trend data
-                               Default: False
-      --on, --opaquenode
-                             add node with an opaque identifier 
                                Default: False
       --np, --nopostrend     do not generate positive trend data
                                Default: False
@@ -493,9 +476,6 @@ Options:
       --ssi, --slownodesamplinginterval=VALUE
                              rate in milliseconds to sample slow nodes
                                Default: 0
-      --scn, --specialcharname
-                             add node with special characters in name 
-                               Default: False
       --ns, --nospikes       do not generate spike data
                                Default: False
       --nf, --nodesfile=VALUE
