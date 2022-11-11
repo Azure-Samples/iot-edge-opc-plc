@@ -9,9 +9,18 @@ public class PlcSimulation
     /// <summary>
     /// Flags for node generation.
     /// </summary>
-    public static bool AddAlarmSimulation { get; set; }
-    public static bool AddSimpleEventsSimulation { get; set; }
-    public static bool AddReferenceTestSimulation { get; set; }
+
+    // alm|alarms
+    // add alarm simulation to address space.
+    public static bool AddAlarmSimulation { get; set; } = true;
+
+    // ses|simpleevents
+    // Add simple events simulation to address space.
+    public static bool AddSimpleEventsSimulation { get; set; } = true;
+
+    // ref|referencetest
+    // Add reference test simulation node manager to address space.
+    public static bool AddReferenceTestSimulation { get; set; } = true;
     public static string DeterministicAlarmSimulationFile { get; set; }
 
     public static uint EventInstanceCount { get; set; } = 0;
