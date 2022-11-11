@@ -23,10 +23,9 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
-        optionSet.Add(
-            "ctb|complextypeboiler",
-            $"add complex type (boiler) to address space.\nDefault: {_isEnabled}",
-            (string s) => _isEnabled = s != null);
+        // ctb|complextypeboiler
+        // Add complex type (boiler) to address space.
+        _isEnabled = true;
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)

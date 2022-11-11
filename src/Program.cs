@@ -152,9 +152,8 @@ public static class Program
         // Validate and parse extra arguments
         if (extraArgs.Count > 0)
         {
-            Logger.Error($"Error with command line arguments: {string.Join(" ", args)}");
+            Logger.Warning($"Found one or more invalid command line arguments: {string.Join(" ", extraArgs)}");
             CliOptions.PrintUsage(options);
-            return;
         }
 
         LogLogo();

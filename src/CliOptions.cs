@@ -188,7 +188,6 @@ public class CliOptions
                 // Special nodes
                 { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", (string s) => AddAlarmSimulation = s != null },
                 { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", (string s) => AddSimpleEventsSimulation = s != null },
-                { "ref|referencetest", $"add reference test simulation node manager to address space.\nDefault: {AddReferenceTestSimulation}", (string s) => AddReferenceTestSimulation = s != null },
                 { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (string s) => DeterministicAlarmSimulationFile = s },
 
                 // misc

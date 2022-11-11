@@ -50,12 +50,12 @@ The tags of the container match the tags of this repository and the containers a
 
 Sample start command for Docker:
 ~~~
-docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/iotedge/opc-plc:latest --pn=50000 --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --ctb --scn --lid --lsn --ref --gn=5
+docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/iotedge/opc-plc:latest --pn=50000 --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --ref --gn=5
 ~~~
 
 Sample start command for Windows:
 ~~~
-dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --ctb --scn --lid --lsn --ref --gn=5
+dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --ref --gn=5
 ~~~
 
 Note: Make sure that your OPC UA client uses security policy `Basic256Sha256` and message security mode `Sign & Encrypt` to connect.
@@ -132,7 +132,7 @@ Additionally, you can set the configuration file name via the option `--spf`.
 
 ## Complex type (boiler)
  
-The option `--ctb` adds a simple boiler to the address space.
+Adds a simple boiler to the address space.
 
 Features:
 - BoilerStatus is a complex type that shows: temperature, pressure and heater state
@@ -181,16 +181,16 @@ More information about this feature can be found [here](deterministic-alarms.md)
 
 ## Other features
  
-- Node with special characters in name and NodeId: `--scn`
-- Node with long ID (3950 bytes): `--lid`
-- Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray): `--lsn`
+- Node with special characters in name and NodeId:
+- Node with long ID (3950 bytes)
+- Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray)
 - Nodes for testing all datatypes, arrays, methods, permissions, etc `--ref`. The ReferenceNodeManager of the [OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard) is used for this purpose.
 - Limit the number of updates of Slow and Fast nodes. Update the values of the `SlowNumberOfUpdates` and `FastNumberOfUpdates` configuration nodes in the `OpcPlc/SimulatorConfiguration` folder to:
   - `< 0` (default): Slow and Fast nodes are updated indefinitely
   - `0`: Slow and Fast nodes are not updated
   - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
 - Nodes with deterministic random GUIDs as node IDs: `--gn=<number_of_nodes>`
-- Node with opaque identifier (free-format byte string): `--on`
+- Node with opaque identifier (free-format byte string)
 
 ## OPC UA Methods
 
@@ -280,10 +280,10 @@ Options:
                                endpoint.
                                Default: ''
       --ph, --plchostname=VALUE
-                             the fullqualified hostname of the plc.
+                             the fully-qualified hostname of the PLC.
                                Default: machinename
       --ol, --opcmaxstringlen=VALUE
-                             the max length of a string opc can transmit/
+                             the max length of a string OPC can transmit/
                                receive.
                                Default: 4194304
       --lr, --ldsreginterval=VALUE
@@ -308,23 +308,23 @@ Options:
                                stored
                                Default (depends on store type):
                                X509Store: 'CurrentUser\UA_MachineDefault'
-                               Directory: 'pki/own'
+                               Directory: 'pki\own'
       --tp, --trustedcertstorepath=VALUE
                              the path of the trusted cert store
-                               Default 'pki/trusted'
+                               Default 'pki\trusted'
       --rp, --rejectedcertstorepath=VALUE
                              the path of the rejected cert store
-                               Default 'pki/rejected'
+                               Default 'pki\rejected'
       --ip, --issuercertstorepath=VALUE
                              the path of the trusted issuer cert store
-                               Default 'pki/issuer'
+                               Default 'pki\issuer'
       --csr                  show data to create a certificate signing request
                                Default 'False'
       --ab, --applicationcertbase64=VALUE
-                             update/set this applications certificate with the
+                             update/set this application's certificate with the
                                certificate passed in as bas64 string
       --af, --applicationcertfile=VALUE
-                             update/set this applications certificate with the
+                             update/set this application's certificate with the
                                certificate file specified
       --pb, --privatekeybase64=VALUE
                              initial provisioning of the application
@@ -338,20 +338,20 @@ Options:
                              the optional password for the PEM or PFX or the
                                installed application certificate
       --tb, --addtrustedcertbase64=VALUE
-                             adds the certificate to the applications trusted
+                             adds the certificate to the application's trusted
                                cert store passed in as base64 string (comma
                                separated values)
       --tf, --addtrustedcertfile=VALUE
-                             adds the certificate file(s) to the applications
+                             adds the certificate file(s) to the application's
                                trusted cert store passed in as base64 string (
                                multiple filenames supported)
       --ib, --addissuercertbase64=VALUE
                              adds the specified issuer certificate to the
-                               applications trusted issuer cert store passed in
-                               as base64 string (comma separated values)
+                               application's trusted issuer cert store passed
+                               in as base64 string (comma separated values)
       --if, --addissuercertfile=VALUE
                              adds the specified issuer certificate file(s) to
-                               the applications trusted issuer cert store (
+                               the application's trusted issuer cert store (
                                multiple filenames supported)
       --rb, --updatecrlbase64=VALUE
                              update the CRL passed in as base64 string to the
@@ -362,8 +362,8 @@ Options:
                                corresponding cert store (trusted or trusted
                                issuer)
       --rc, --removecert=VALUE
-                             remove cert(s) with the given thumbprint(s) (
-                               comma separated values)
+                             remove cert(s) with the given thumbprint(s) (comma
+                               separated values)
       --daa, --disableanonymousauth
                              flag to disable anonymous authentication.
                                Default: False
@@ -389,9 +389,6 @@ Options:
                                Default: False
       --ses, --simpleevents  add simple events simulation to address space.
                                Default: False
-      --ref, --referencetest add reference test simulation node manager to
-                               address space.
-                               Default: False
       --dalm, --deterministicalarms=VALUE
                              add deterministic alarm simulation to address
                                space.
@@ -412,11 +409,9 @@ Options:
                                Default: 8080
       --cdn, --certdnsnames=VALUE
                              add additional DNS names or IP addresses to this
-                               application's certificate (comma separated values)
+                               application's certificate (comma separated
+                               values)
   -h, --help                 show this message and exit
-      --ctb, --complextypeboiler
-                             add complex type (boiler) to address space.
-                               Default: False
       --nv, --nodatavalues   do not generate data values
                                Default: False
       --gn, --guidnodes=VALUE
@@ -453,16 +448,8 @@ Options:
                                Default: 0
       --vfr, --veryfastrate=VALUE
                              rate in milliseconds to change fast nodes
-                               Default: 10000
-      --lid, --longid        add node with ID of 3950 chars.
-                               Default: False
-      --lsn, --longstringnodes
-                             add nodes with string values of 10/50/100/200 kB.
-                               Default: False
+                               Default: 1000
       --nn, --nonegtrend     do not generate negative trend data
-                               Default: False
-      --on, --opaquenode
-                             add node with an opaque identifier 
                                Default: False
       --np, --nopostrend     do not generate positive trend data
                                Default: False
@@ -493,9 +480,6 @@ Options:
       --ssi, --slownodesamplinginterval=VALUE
                              rate in milliseconds to sample slow nodes
                                Default: 0
-      --scn, --specialcharname
-                             add node with special characters in name 
-                               Default: False
       --ns, --nospikes       do not generate spike data
                                Default: False
       --nf, --nodesfile=VALUE

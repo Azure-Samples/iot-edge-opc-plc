@@ -18,10 +18,9 @@ public class OpaquePluginNode : IPluginNodes
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
-        optionSet.Add(
-            "on|opaquenode",
-            $"add node with an opaque identifier.\nDefault: {_isEnabled}",
-            (string s) => _isEnabled = s != null);
+        // on|opaquenode
+        // Add node with an opaque identifier.
+        _isEnabled = true;
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)

@@ -48,7 +48,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
         NodeShouldHaveStates(lightOff2, Inactive, Disabled);
 
         var waitUntilStartInSeconds = FromSeconds(9); // value in dalm001.json file
-        FireTimersWithPeriodAndReceiveEvents(waitUntilStartInSeconds, 1)
+        FireTimersWithPeriodAndReceiveEvents(waitUntilStartInSeconds, expectedCount: 1)
             .First()
             .Should().Contain(new Dictionary<string, object>
             {
@@ -67,7 +67,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
 
         AdvanceToNextStep();
 
-        FireTimersWithPeriodAndReceiveEvents(FromSeconds(5), 1)
+        FireTimersWithPeriodAndReceiveEvents(FromSeconds(5), expectedCount: 1)
             .First()
             .Should().Contain(new Dictionary<string, object>
             {
@@ -83,7 +83,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
 
         AdvanceToNextStep();
 
-        FireTimersWithPeriodAndReceiveEvents(FromSeconds(7), 1)
+        FireTimersWithPeriodAndReceiveEvents(FromSeconds(7), expectedCount: 1)
             .First()
             .Should().Contain(new Dictionary<string, object>
             {
@@ -99,7 +99,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
 
         AdvanceToNextStep();
 
-        FireTimersWithPeriodAndReceiveEvents(FromSeconds(4), 1)
+        FireTimersWithPeriodAndReceiveEvents(FromSeconds(4), expectedCount: 1)
             .First()
             .Should().Contain(new Dictionary<string, object>
             {
@@ -113,7 +113,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
 
         NodeShouldHaveStates(tempHigh1, Active, Enabled);
 
-        FireTimersWithPeriodAndReceiveEvents(FromMilliseconds(1), 1)
+        FireTimersWithPeriodAndReceiveEvents(FromMilliseconds(1), expectedCount: 1)
             .First()
             .Should().Contain(new Dictionary<string, object>
             {
@@ -125,7 +125,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
 
         AdvanceToNextStep();
 
-        FireTimersWithPeriodAndReceiveEvents(FromSeconds(5), 1)
+        FireTimersWithPeriodAndReceiveEvents(FromSeconds(5), expectedCount: 1)
             .First()
             .Should().Contain(new Dictionary<string, object>
             {
@@ -138,7 +138,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
         AdvanceToNextStep();
 
         // At this point, the *runningForSeconds* limit in the JSON file causes execution to stop
-        FireTimersWithPeriodAndReceiveEvents(FromSeconds(1), 0);
+        FireTimersWithPeriodAndReceiveEvents(FromSeconds(1), expectedCount: 0);
 
         NodeShouldHaveStates(doorOpen1, Active, Enabled);
         NodeShouldHaveStates(tempHigh1, Active, Enabled);

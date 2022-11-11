@@ -19,10 +19,9 @@ public class SpecialCharNamePluginNode : IPluginNodes
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
-        optionSet.Add(
-            "scn|specialcharname",
-            $"add node with special characters in name.\nDefault: {_isEnabled}",
-            (string s) => _isEnabled = s != null);
+        // scn|specialcharname
+        // Add node with special characters in name.
+        _isEnabled = true;
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)

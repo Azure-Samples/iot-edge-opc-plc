@@ -1,5 +1,13 @@
 namespace OpcPlc.Tests;
 
+using FluentAssertions;
+using Moq;
+using NUnit.Framework;
+using Opc.Ua;
+using Opc.Ua.Client;
+using Opc.Ua.Configuration;
+using OpcPlc;
+using Serilog;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -11,14 +19,6 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using FluentAssertions;
-using Moq;
-using NUnit.Framework;
-using Opc.Ua;
-using Opc.Ua.Client;
-using Opc.Ua.Configuration;
-using OpcPlc;
-using Serilog;
 
 /// <summary>
 /// A test fixture that starts a static singleton instance of the OPC PLC simulator.
@@ -97,6 +97,7 @@ public class PlcSimulatorFixture
                 _timers.Add((timer, handler));
                 return timer;
             });
+
         mock.Setup(f => f.NewFastTimer(It.IsAny<FastTimerElapsedEventHandler>(), It.IsAny<uint>()))
             .Returns((FastTimerElapsedEventHandler handler, uint intervalInMilliseconds) =>
             {
@@ -109,6 +110,7 @@ public class PlcSimulatorFixture
                 _fastTimers.Add((timer, handler));
                 return timer;
             });
+
         Program.TimeService = mock.Object;
 
         mock.Setup(f => f.Now())
@@ -132,7 +134,7 @@ public class PlcSimulatorFixture
                 _serverCancellationTokenSource.Token)
             .GetAwaiter().GetResult());
 
-        var endpointUrl = WaitForServerUp();
+        string endpointUrl = WaitForServerUp();
         await _log.WriteAsync($"Found server at: {endpointUrl}");
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -163,9 +165,12 @@ public class PlcSimulatorFixture
     /// <returns>The created session.</returns>
     public Task<Session> CreateSessionAsync(string sessionName)
     {
-        _log.WriteLine("Create a session with OPC UA server.");
+        _log.WriteLine("Create a session with OPC UA server");
         var userIdentity = new UserIdentity(new AnonymousIdentityToken());
-        return Session.Create(_config, _serverEndpoint, false, sessionName, 60000, userIdentity, null);
+
+        // When unit test certificate expires,
+        // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
+        return Session.Create(_config, _serverEndpoint, updateBeforeConnect: false, sessionName, sessionTimeout: 60000, userIdentity, preferredLocales: null);
     }
 
     /// <summary>
@@ -228,10 +233,10 @@ public class PlcSimulatorFixture
         };
 
         // load the application configuration.
-        var config = await application.LoadApplicationConfiguration(false).ConfigureAwait(false);
+        var config = await application.LoadApplicationConfiguration(silent: false).ConfigureAwait(false);
 
         // check the application certificate.
-        var haveAppCertificate = await application.CheckApplicationInstanceCertificate(false, 0).ConfigureAwait(false);
+        bool haveAppCertificate = await application.CheckApplicationInstanceCertificate(silent: false, minimumKeySize: 0).ConfigureAwait(false);
         if (!haveAppCertificate)
         {
             throw new Exception("Application instance certificate invalid!");

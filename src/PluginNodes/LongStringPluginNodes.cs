@@ -23,10 +23,9 @@ public class LongStringPluginNodes : IPluginNodes
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
-        optionSet.Add(
-            "lsn|longstringnodes",
-            $"add nodes with string values of 10/50/100/200 kB.\nDefault: {_isEnabled}",
-            (string s) => _isEnabled = s != null);
+        // lsn|longstringnodes
+        // Add nodes with string values of 10/50/100/200 kB.
+        _isEnabled = true;
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
