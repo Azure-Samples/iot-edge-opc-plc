@@ -1,13 +1,13 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Newtonsoft.Json;
 using Opc.Ua;
+using OpcPlc.Helpers;
+using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using static OpcPlc.Program;
-using Newtonsoft.Json;
-using OpcPlc.PluginNodes.Models;
-using OpcPlc.Helpers;
 
 /// <summary>
 /// Nodes that are configuration via JSON file.
@@ -90,10 +90,14 @@ public class UserDefinedPluginNodes : IPluginNodes
                 node.Description = node.Name;
             }
 
-            Logger.Debug($"Create node with Id '{typedNodeId}' and BrowseName '{node.Name}' in namespace with index '{_plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]}'");
+            Logger.Debug("Create node with Id {typedNodeId} and BrowseName {name} in namespace with index {namespaceIndex}",
+                typedNodeId,
+                node.Name,
+                _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]);
+
             CreateBaseVariable(userNodesFolder, node);
 
-            nodes.Add(PluginNodesHelpers.GetNodeWithIntervals(node.NodeId, _plcNodeManager));
+            nodes.Add(PluginNodesHelpers.GetNodeWithIntervals((NodeId)node.NodeId, _plcNodeManager));
         }
 
         Logger.Information("Completed processing user defined node information");
