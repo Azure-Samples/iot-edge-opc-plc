@@ -281,7 +281,7 @@ Options:
                                Default: ''
       --ph, --plchostname=VALUE
                              the fully-qualified hostname of the PLC.
-                               Default: de-lcantero-p53
+                               Default: machinename
       --ol, --opcmaxstringlen=VALUE
                              the max length of a string OPC can transmit/
                                receive.
