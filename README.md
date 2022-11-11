@@ -254,7 +254,7 @@ or if one string contains commas:
 
 Options:
       --lf, --logfile=VALUE  the filename of the logfile to use.
-                               Default: './de-lcantero-p53-plc.log'
+                               Default: './machinename-plc.log'
       --lt, --logflushtimespan=VALUE
                              the timespan in seconds when the logfile should be
                                flushed.
@@ -281,7 +281,7 @@ Options:
                                Default: ''
       --ph, --plchostname=VALUE
                              the fully-qualified hostname of the PLC.
-                               Default: de-lcantero-p53
+                               Default: machinename
       --ol, --opcmaxstringlen=VALUE
                              the max length of a string OPC can transmit/
                                receive.
