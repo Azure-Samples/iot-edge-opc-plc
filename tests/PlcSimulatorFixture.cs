@@ -167,6 +167,9 @@ public class PlcSimulatorFixture
     {
         _log.WriteLine("Create a session with OPC UA server");
         var userIdentity = new UserIdentity(new AnonymousIdentityToken());
+
+        // When unit test certificate expires,
+        // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
         return Session.Create(_config, _serverEndpoint, updateBeforeConnect: false, sessionName, sessionTimeout: 60000, userIdentity, preferredLocales: null);
     }
 
