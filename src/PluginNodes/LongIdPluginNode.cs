@@ -19,10 +19,9 @@ public class LongIdPluginNode : IPluginNodes
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
-        optionSet.Add(
-            "lid|longid",
-            $"add node with ID of 3950 chars.\nDefault: {_isEnabled}",
-            (string s) => _isEnabled = s != null);
+        // lid|longid
+        // Add node with ID of 3950 chars.
+        _isEnabled = true;
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
