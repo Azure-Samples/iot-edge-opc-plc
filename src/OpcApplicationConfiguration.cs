@@ -265,7 +265,6 @@ public partial class OpcApplicationConfiguration
             Logger.Fatal(message);
             return;
         }
-        return;
     }
 
     private const int MAX_MESSAGE_QUEUE_SIZE = 200000;
