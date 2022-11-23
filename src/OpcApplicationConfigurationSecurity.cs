@@ -1,12 +1,12 @@
 ﻿namespace OpcPlc;
+using Opc.Ua;
+using Opc.Ua.Configuration;
+using Opc.Ua.Security.Certificates;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
-using Opc.Ua;
-using Opc.Ua.Configuration;
-using Opc.Ua.Security.Certificates;
 using static Program;
 
 /// <summary>
@@ -86,7 +86,7 @@ public partial class OpcApplicationConfiguration
     /// <summary>
     /// Additional certificate DNS names.
     /// </summary>
-    public static List<string> DnsNames = new ();
+    public static List<string> DnsNames = new();
 
     /// <summary>
     /// Configures OPC stack security.
@@ -257,7 +257,7 @@ public partial class OpcApplicationConfiguration
                 Logger.Information($"ServerCapabilities: {string.Join(", ", serverCapabilities)}");
             }
             Logger.Information("CSR (base64 encoded):");
-            Console.WriteLine($"{ Convert.ToBase64String(certificateSigningRequest)}");
+            Console.WriteLine($"{Convert.ToBase64String(certificateSigningRequest)}");
             Logger.Information("---------------------------------------------------------------------------");
             try
             {
@@ -394,21 +394,20 @@ public partial class OpcApplicationConfiguration
     /// </summary>
     private static void CertificateValidator_CertificateValidation(CertificateValidator validator, CertificateValidationEventArgs e)
     {
-        if (e.Error.StatusCode == Opc.Ua.StatusCodes.BadCertificateUntrusted)
+        if (e.Error.StatusCode == StatusCodes.BadCertificateUntrusted)
         {
             e.Accept = AutoAcceptCerts;
             if (AutoAcceptCerts)
             {
-                Logger.Information($"Certificate '{e.Certificate.Subject}' will be trusted, because of corresponding command line option.");
+                Logger.Warning("Trusting certificate {certificateSubject} because of corresponding command line option", e.Certificate.Subject);
             }
             else
             {
-                Logger.Information($"Not trusting OPC application with certificate subject '{e.Certificate.Subject}'.");
-                Logger.Information("If you want to trust this certificate, please copy it from the directory:");
-                Logger.Information($"{ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath}/certs");
-                Logger.Information("to the directory:");
-                Logger.Information($"{ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}/certs");
-                Logger.Information("Rejecting certificate for now.");
+                Logger.Error(
+                    "Rejecting OPC application with certificate {certificateSubject}. If you want to trust this certificate, please copy it from the directory {rejectedCertificateStore} to {trustedPeerCertificates}",
+                    e.Certificate.Subject,
+                    $"{ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath}{Path.DirectorySeparatorChar}certs",
+                    $"{ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}{Path.DirectorySeparatorChar}certs");
             }
         }
     }
