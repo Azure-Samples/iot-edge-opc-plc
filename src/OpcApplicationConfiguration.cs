@@ -1,6 +1,10 @@
 ﻿namespace OpcPlc;
+
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Configuration;
+using Serilog;
+using Serilog.Extensions.Logging;
 using System;
 using System.Globalization;
 using System.Linq;
@@ -142,9 +146,14 @@ public partial class OpcApplicationConfiguration
 
         // configure OPC stack tracing
         Utils.SetTraceMask(OpcStackTraceMask);
-        Utils.Tracing.TraceEventHandler += LoggerOpcUaTraceHandler;
         Logger.Information("The OPC UA trace mask is set to: {opcStackTraceMask}",
             $"0x{OpcStackTraceMask:X}");
+
+        var microsoftLogger = new SerilogLoggerFactory(Logger)
+            .CreateLogger("OPC");
+
+        // set logger interface, disables TraceEvent
+        Utils.SetLogger(microsoftLogger);
 
         // log certificate status
         var certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
@@ -209,63 +218,6 @@ public partial class OpcApplicationConfiguration
         {
             serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.Certificate));
         }
-    }
-
-    /// <summary>
-    /// Event handler to log OPC UA stack trace messages into own logger.
-    /// </summary>
-    private static void LoggerOpcUaTraceHandler(object sender, TraceEventArgs e)
-    {
-        // return fast if no trace needed
-        if ((e.TraceMask & OpcStackTraceMask) == 0)
-        {
-            return;
-        }
-
-        // e.Exception and e.Message are special
-        if (e.Exception != null)
-        {
-            Logger.Error(e.Exception, e.Format, e.Arguments);
-            return;
-        }
-
-        // format the trace message
-        var builder = new StringBuilder("OPC: ");
-        builder.AppendFormat(CultureInfo.InvariantCulture, e.Format, e.Arguments);
-        var message = builder.ToString().Trim();
-
-        // map logging level
-        if ((e.TraceMask & OpcTraceToLoggerVerbose) != 0)
-        {
-            Logger.Verbose(message);
-            return;
-        }
-        if ((e.TraceMask & OpcTraceToLoggerDebug) != 0)
-        {
-            Logger.Debug(message);
-            return;
-        }
-        if ((e.TraceMask & OpcTraceToLoggerInformation) != 0)
-        {
-            Logger.Information(message);
-            return;
-        }
-        if ((e.TraceMask & OpcTraceToLoggerWarning) != 0)
-        {
-            Logger.Warning(message);
-            return;
-        }
-        if ((e.TraceMask & OpcTraceToLoggerError) != 0)
-        {
-            Logger.Error(message);
-            return;
-        }
-        if ((e.TraceMask & OpcTraceToLoggerFatal) != 0)
-        {
-            Logger.Fatal(message);
-            return;
-        }
-        return;
     }
 
     private const int MAX_MESSAGE_QUEUE_SIZE = 200000;
