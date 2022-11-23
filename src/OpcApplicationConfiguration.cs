@@ -1,14 +1,10 @@
 ﻿namespace OpcPlc;
 
-using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Configuration;
-using Serilog;
 using Serilog.Extensions.Logging;
 using System;
-using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using static Program;
 
