@@ -1,5 +1,5 @@
 /* ========================================================================
- * Copyright (c) 2005-2019 The OPC Foundation, Inc. All rights reserved.
+ * Copyright (c) 2005-2021 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
  *
@@ -38,35 +38,25 @@ namespace BoilerModel
 {
     #region BoilerDataType Class
     #if (!OPCUA_EXCLUDE_BoilerDataType)
-    /// <summary>
-    /// Temperature in °C, pressure in Pa and heater state.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     [DataContract(Namespace = BoilerModel.Namespaces.Boiler)]
-    public partial class BoilerDataType : IEncodeable
+    public partial class BoilerDataType : IEncodeable, IJsonEncodeable
     {
         #region Constructors
-        /// <summary>
-        /// The default constructor.
-        /// </summary>
+        /// <remarks />
         public BoilerDataType()
         {
             Initialize();
         }
-
-        /// <summary>
-        /// Called by the .NET framework during deserialization.
-        /// </summary>
+            
         [OnDeserializing]
         private void Initialize(StreamingContext context)
         {
             Initialize();
         }
-
-        /// <summary>
-        /// Sets private members to default values.
-        /// </summary>
+            
         private void Initialize()
         {
             m_temperature = new BoilerTemperatureType();
@@ -76,9 +66,7 @@ namespace BoilerModel
         #endregion
 
         #region Public Properties
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <remarks />
         [DataMember(Name = "Temperature", IsRequired = false, Order = 1)]
         public BoilerTemperatureType Temperature
         {
@@ -117,22 +105,16 @@ namespace BoilerModel
 
         #region IEncodeable Members
         /// <summary cref="IEncodeable.TypeId" />
-        public virtual ExpandedNodeId TypeId
-        {
-            get { return DataTypeIds.BoilerDataType; }
-        }
+        public virtual ExpandedNodeId TypeId => DataTypeIds.BoilerDataType; 
 
         /// <summary cref="IEncodeable.BinaryEncodingId" />
-        public virtual ExpandedNodeId BinaryEncodingId
-        {
-            get { return ObjectIds.BoilerDataType_Encoding_DefaultBinary; }
-        }
+        public virtual ExpandedNodeId BinaryEncodingId => ObjectIds.BoilerDataType_Encoding_DefaultBinary;
 
         /// <summary cref="IEncodeable.XmlEncodingId" />
-        public virtual ExpandedNodeId XmlEncodingId
-        {
-            get { return ObjectIds.BoilerDataType_Encoding_DefaultXml; }
-        }
+        public virtual ExpandedNodeId XmlEncodingId => ObjectIds.BoilerDataType_Encoding_DefaultXml;
+                    
+        /// <summary cref="IJsonEncodeable.JsonEncodingId" />
+        public virtual ExpandedNodeId JsonEncodingId => ObjectIds.BoilerDataType_Encoding_DefaultJson; 
 
         /// <summary cref="IEncodeable.Encode(IEncoder)" />
         public virtual void Encode(IEncoder encoder)
@@ -209,9 +191,7 @@ namespace BoilerModel
     }
 
     #region BoilerDataTypeCollection Class
-    /// <summary>
-    /// A collection of BoilerDataType objects.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     [CollectionDataContract(Name = "ListOfBoilerDataType", Namespace = BoilerModel.Namespaces.Boiler, ItemName = "BoilerDataType")]
@@ -222,26 +202,18 @@ namespace BoilerModel
     #endif
     {
         #region Constructors
-        /// <summary>
-        /// Initializes the collection with default values.
-        /// </summary>
+        /// <remarks />
         public BoilerDataTypeCollection() {}
 
-        /// <summary>
-        /// Initializes the collection with an initial capacity.
-        /// </summary>
+        /// <remarks />
         public BoilerDataTypeCollection(int capacity) : base(capacity) {}
 
-        /// <summary>
-        /// Initializes the collection with another collection.
-        /// </summary>
+        /// <remarks />
         public BoilerDataTypeCollection(IEnumerable<BoilerDataType> collection) : base(collection) {}
         #endregion
 
         #region Static Operators
-        /// <summary>
-        /// Converts an array to a collection.
-        /// </summary>
+        /// <remarks />
         public static implicit operator BoilerDataTypeCollection(BoilerDataType[] values)
         {
             if (values != null)
@@ -252,9 +224,7 @@ namespace BoilerModel
             return new BoilerDataTypeCollection();
         }
 
-        /// <summary>
-        /// Converts a collection to an array.
-        /// </summary>
+        /// <remarks />
         public static explicit operator BoilerDataType[](BoilerDataTypeCollection values)
         {
             if (values != null)
@@ -268,9 +238,7 @@ namespace BoilerModel
 
         #if !NET_STANDARD
         #region ICloneable Methods
-        /// <summary>
-        /// Creates a deep copy of the collection.
-        /// </summary>
+        /// <remarks />
         public object Clone()
         {
             return (BoilerDataTypeCollection)this.MemberwiseClone();
@@ -297,35 +265,25 @@ namespace BoilerModel
 
     #region BoilerTemperatureType Class
     #if (!OPCUA_EXCLUDE_BoilerTemperatureType)
-    /// <summary>
-    /// Temperature in °C next to the heater at the bottom, and away from the heater at the top.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     [DataContract(Namespace = BoilerModel.Namespaces.Boiler)]
-    public partial class BoilerTemperatureType : IEncodeable
+    public partial class BoilerTemperatureType : IEncodeable, IJsonEncodeable
     {
         #region Constructors
-        /// <summary>
-        /// The default constructor.
-        /// </summary>
+        /// <remarks />
         public BoilerTemperatureType()
         {
             Initialize();
         }
-
-        /// <summary>
-        /// Called by the .NET framework during deserialization.
-        /// </summary>
+            
         [OnDeserializing]
         private void Initialize(StreamingContext context)
         {
             Initialize();
         }
-
-        /// <summary>
-        /// Sets private members to default values.
-        /// </summary>
+            
         private void Initialize()
         {
             m_top = (int)0;
@@ -353,22 +311,16 @@ namespace BoilerModel
 
         #region IEncodeable Members
         /// <summary cref="IEncodeable.TypeId" />
-        public virtual ExpandedNodeId TypeId
-        {
-            get { return DataTypeIds.BoilerTemperatureType; }
-        }
+        public virtual ExpandedNodeId TypeId => DataTypeIds.BoilerTemperatureType; 
 
         /// <summary cref="IEncodeable.BinaryEncodingId" />
-        public virtual ExpandedNodeId BinaryEncodingId
-        {
-            get { return ObjectIds.BoilerTemperatureType_Encoding_DefaultBinary; }
-        }
+        public virtual ExpandedNodeId BinaryEncodingId => ObjectIds.BoilerTemperatureType_Encoding_DefaultBinary;
 
         /// <summary cref="IEncodeable.XmlEncodingId" />
-        public virtual ExpandedNodeId XmlEncodingId
-        {
-            get { return ObjectIds.BoilerTemperatureType_Encoding_DefaultXml; }
-        }
+        public virtual ExpandedNodeId XmlEncodingId => ObjectIds.BoilerTemperatureType_Encoding_DefaultXml;
+                    
+        /// <summary cref="IJsonEncodeable.JsonEncodingId" />
+        public virtual ExpandedNodeId JsonEncodingId => ObjectIds.BoilerTemperatureType_Encoding_DefaultJson; 
 
         /// <summary cref="IEncodeable.Encode(IEncoder)" />
         public virtual void Encode(IEncoder encoder)
@@ -440,9 +392,7 @@ namespace BoilerModel
     }
 
     #region BoilerTemperatureTypeCollection Class
-    /// <summary>
-    /// A collection of BoilerTemperatureType objects.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     [CollectionDataContract(Name = "ListOfBoilerTemperatureType", Namespace = BoilerModel.Namespaces.Boiler, ItemName = "BoilerTemperatureType")]
@@ -453,26 +403,18 @@ namespace BoilerModel
     #endif
     {
         #region Constructors
-        /// <summary>
-        /// Initializes the collection with default values.
-        /// </summary>
+        /// <remarks />
         public BoilerTemperatureTypeCollection() {}
 
-        /// <summary>
-        /// Initializes the collection with an initial capacity.
-        /// </summary>
+        /// <remarks />
         public BoilerTemperatureTypeCollection(int capacity) : base(capacity) {}
 
-        /// <summary>
-        /// Initializes the collection with another collection.
-        /// </summary>
+        /// <remarks />
         public BoilerTemperatureTypeCollection(IEnumerable<BoilerTemperatureType> collection) : base(collection) {}
         #endregion
 
         #region Static Operators
-        /// <summary>
-        /// Converts an array to a collection.
-        /// </summary>
+        /// <remarks />
         public static implicit operator BoilerTemperatureTypeCollection(BoilerTemperatureType[] values)
         {
             if (values != null)
@@ -483,9 +425,7 @@ namespace BoilerModel
             return new BoilerTemperatureTypeCollection();
         }
 
-        /// <summary>
-        /// Converts a collection to an array.
-        /// </summary>
+        /// <remarks />
         public static explicit operator BoilerTemperatureType[](BoilerTemperatureTypeCollection values)
         {
             if (values != null)
@@ -499,9 +439,7 @@ namespace BoilerModel
 
         #if !NET_STANDARD
         #region ICloneable Methods
-        /// <summary>
-        /// Creates a deep copy of the collection.
-        /// </summary>
+        /// <remarks />
         public object Clone()
         {
             return (BoilerTemperatureTypeCollection)this.MemberwiseClone();
@@ -528,9 +466,7 @@ namespace BoilerModel
 
     #region BoilerHeaterStateType Enumeration
     #if (!OPCUA_EXCLUDE_BoilerHeaterStateType)
-    /// <summary>
-    /// Heater working state.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     [DataContract(Namespace = BoilerModel.Namespaces.Boiler)]
@@ -546,9 +482,7 @@ namespace BoilerModel
     }
 
     #region BoilerHeaterStateTypeCollection Class
-    /// <summary>
-    /// A collection of BoilerHeaterStateType objects.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     [CollectionDataContract(Name = "ListOfBoilerHeaterStateType", Namespace = BoilerModel.Namespaces.Boiler, ItemName = "BoilerHeaterStateType")]
@@ -559,26 +493,18 @@ namespace BoilerModel
     #endif
     {
         #region Constructors
-        /// <summary>
-        /// Initializes the collection with default values.
-        /// </summary>
+        /// <remarks />
         public BoilerHeaterStateTypeCollection() {}
 
-        /// <summary>
-        /// Initializes the collection with an initial capacity.
-        /// </summary>
+        /// <remarks />
         public BoilerHeaterStateTypeCollection(int capacity) : base(capacity) {}
 
-        /// <summary>
-        /// Initializes the collection with another collection.
-        /// </summary>
+        /// <remarks />
         public BoilerHeaterStateTypeCollection(IEnumerable<BoilerHeaterStateType> collection) : base(collection) {}
         #endregion
 
         #region Static Operators
-        /// <summary>
-        /// Converts an array to a collection.
-        /// </summary>
+        /// <remarks />
         public static implicit operator BoilerHeaterStateTypeCollection(BoilerHeaterStateType[] values)
         {
             if (values != null)
@@ -589,9 +515,7 @@ namespace BoilerModel
             return new BoilerHeaterStateTypeCollection();
         }
 
-        /// <summary>
-        /// Converts a collection to an array.
-        /// </summary>
+        /// <remarks />
         public static explicit operator BoilerHeaterStateType[](BoilerHeaterStateTypeCollection values)
         {
             if (values != null)
@@ -605,9 +529,7 @@ namespace BoilerModel
 
         #if !NET_STANDARD
         #region ICloneable Methods
-        /// <summary>
-        /// Creates a deep copy of the collection.
-        /// </summary>
+        /// <remarks />
         public object Clone()
         {
             return (BoilerHeaterStateTypeCollection)this.MemberwiseClone();

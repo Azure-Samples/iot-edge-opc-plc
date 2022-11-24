@@ -5,6 +5,12 @@
   targetNamespace="http://microsoft.com/Opc/OpcPlc/Boiler"
   elementFormDefault="qualified"
 >
+  <xs:annotation>
+    <xs:appinfo>
+      <tns:Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" Version="1.0.0" PublicationDate="2020-11-16T10:36:09.1771842Z" />
+    </xs:appinfo>
+  </xs:annotation>
+  
   <xs:import namespace="http://opcfoundation.org/UA/2008/02/Types.xsd" />
 
   <xs:complexType name="BoilerDataType">

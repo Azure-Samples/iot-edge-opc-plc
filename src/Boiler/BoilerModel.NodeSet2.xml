@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<UANodeSet xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" LastModified="2020-11-16T10:36:09.1771842Z" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
   <NamespaceUris>
     <Uri>http://microsoft.com/Opc/OpcPlc/Boiler</Uri>
   </NamespaceUris>
   <Models>
-    <Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler">
-      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.04.6" PublicationDate="2020-04-10T00:00:00Z" />
+    <Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" Version="1.0.0" PublicationDate="2020-11-16T10:36:09.1771842Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" XmlSchemaUri="http://opcfoundation.org/UA/2008/02/Types.xsd" />
     </Model>
   </Models>
   <Aliases>
@@ -44,6 +44,17 @@
     <Alias Alias="HasModellingRule">i=37</Alias>
     <Alias Alias="HasEncoding">i=38</Alias>
     <Alias Alias="HasDescription">i=39</Alias>
+    <Alias Alias="HasCause">i=53</Alias>
+    <Alias Alias="ToState">i=52</Alias>
+    <Alias Alias="FromState">i=51</Alias>
+    <Alias Alias="HasEffect">i=54</Alias>
+    <Alias Alias="HasTrueSubState">i=9004</Alias>
+    <Alias Alias="HasFalseSubState">i=9005</Alias>
+    <Alias Alias="HasDictionaryEntry">i=17597</Alias>
+    <Alias Alias="HasCondition">i=9006</Alias>
+    <Alias Alias="HasGuard">i=15112</Alias>
+    <Alias Alias="HasAddIn">i=17604</Alias>
+    <Alias Alias="HasInterface">i=17603</Alias>
   </Aliases>
   <UADataType NodeId="ns=1;i=15032" BrowseName="1:BoilerDataType">
     <DisplayName>BoilerDataType</DisplayName>
@@ -84,19 +95,14 @@
     <DisplayName>EnumStrings</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
-      <Reference ReferenceType="HasModellingRule">i=78</Reference>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=15014</Reference>
     </References>
     <Value>
       <ListOfLocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>Off</Text>
         </LocalizedText>
         <LocalizedText>
-          <Locale>
-          </Locale>
           <Text>On</Text>
         </LocalizedText>
       </ListOfLocalizedText>
@@ -183,7 +189,7 @@
       <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
     </References>
   </UAObject>
-  <UAVariable NodeId="ns=1;i=15074" BrowseName="1:BoilerModel" SymbolicName="Boiler_BinarySchema" DataType="ByteString">
+  <UAVariable NodeId="ns=1;i=15074" BrowseName="1:BoilerModel" SymbolicName="Boiler_BinarySchema" ReleaseStatus="Deprecated" DataType="ByteString">
     <DisplayName>BoilerModel</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=15076</Reference>
@@ -222,7 +228,7 @@ PG9wYzpFbnVtZXJhdGVkVmFsdWUgTmFtZT0iT24iIFZhbHVlPSIxIiAvPg0KICA8L29wYzpFbnVt
 ZXJhdGVkVHlwZT4NCg0KPC9vcGM6VHlwZURpY3Rpb25hcnk+</ByteString>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=15076" BrowseName="NamespaceUri" ParentNodeId="ns=1;i=15074" DataType="String">
+  <UAVariable NodeId="ns=1;i=15076" BrowseName="NamespaceUri" ReleaseStatus="Deprecated" ParentNodeId="ns=1;i=15074" DataType="String">
     <DisplayName>NamespaceUri</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -232,7 +238,7 @@ ZXJhdGVkVHlwZT4NCg0KPC9vcGM6VHlwZURpY3Rpb25hcnk+</ByteString>
       <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">http://microsoft.com/Opc/OpcPlc/Boiler</String>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=15077" BrowseName="Deprecated" ParentNodeId="ns=1;i=15074" DataType="Boolean">
+  <UAVariable NodeId="ns=1;i=15077" BrowseName="Deprecated" ReleaseStatus="Deprecated" ParentNodeId="ns=1;i=15074" DataType="Boolean">
     <DisplayName>Deprecated</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -242,7 +248,7 @@ ZXJhdGVkVHlwZT4NCg0KPC9vcGM6VHlwZURpY3Rpb25hcnk+</ByteString>
       <Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=15078" BrowseName="1:BoilerDataType" ParentNodeId="ns=1;i=15074" DataType="String">
+  <UAVariable NodeId="ns=1;i=15078" BrowseName="1:BoilerDataType" ReleaseStatus="Deprecated" ParentNodeId="ns=1;i=15074" DataType="String">
     <DisplayName>BoilerDataType</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=69</Reference>
@@ -252,7 +258,7 @@ ZXJhdGVkVHlwZT4NCg0KPC9vcGM6VHlwZURpY3Rpb25hcnk+</ByteString>
       <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">BoilerDataType</String>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=15005" BrowseName="1:BoilerTemperatureType" ParentNodeId="ns=1;i=15074" DataType="String">
+  <UAVariable NodeId="ns=1;i=15005" BrowseName="1:BoilerTemperatureType" ReleaseStatus="Deprecated" ParentNodeId="ns=1;i=15074" DataType="String">
     <DisplayName>BoilerTemperatureType</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=69</Reference>
@@ -278,7 +284,7 @@ ZXJhdGVkVHlwZT4NCg0KPC9vcGM6VHlwZURpY3Rpb25hcnk+</ByteString>
       <Reference ReferenceType="HasTypeDefinition">i=76</Reference>
     </References>
   </UAObject>
-  <UAVariable NodeId="ns=1;i=15086" BrowseName="1:BoilerModel" SymbolicName="Boiler_XmlSchema" DataType="ByteString">
+  <UAVariable NodeId="ns=1;i=15086" BrowseName="1:BoilerModel" SymbolicName="Boiler_XmlSchema" ReleaseStatus="Deprecated" DataType="ByteString">
     <DisplayName>BoilerModel</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=15088</Reference>
@@ -293,56 +299,60 @@ ZXJhdGVkVHlwZT4NCg0KPC9vcGM6VHlwZURpY3Rpb25hcnk+</ByteString>
 DQogIHhtbG5zOnVhPSJodHRwOi8vb3BjZm91bmRhdGlvbi5vcmcvVUEvMjAwOC8wMi9UeXBlcy54
 c2QiDQogIHhtbG5zOnRucz0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9Cb2lsZXIi
 DQogIHRhcmdldE5hbWVzcGFjZT0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9Cb2ls
-ZXIiDQogIGVsZW1lbnRGb3JtRGVmYXVsdD0icXVhbGlmaWVkIg0KPg0KICA8eHM6aW1wb3J0IG5h
-bWVzcGFjZT0iaHR0cDovL29wY2ZvdW5kYXRpb24ub3JnL1VBLzIwMDgvMDIvVHlwZXMueHNkIiAv
-Pg0KDQogIDx4czpjb21wbGV4VHlwZSBuYW1lPSJCb2lsZXJEYXRhVHlwZSI+DQogICAgPHhzOmFu
-bm90YXRpb24+DQogICAgICA8eHM6ZG9jdW1lbnRhdGlvbj5UZW1wZXJhdHVyZSBpbiDCsEMsIHBy
-ZXNzdXJlIGluIFBhIGFuZCBoZWF0ZXIgc3RhdGUuPC94czpkb2N1bWVudGF0aW9uPg0KICAgIDwv
-eHM6YW5ub3RhdGlvbj4NCiAgICA8eHM6c2VxdWVuY2U+DQogICAgICA8eHM6ZWxlbWVudCBuYW1l
-PSJUZW1wZXJhdHVyZSIgdHlwZT0idG5zOkJvaWxlclRlbXBlcmF0dXJlVHlwZSIgbWluT2NjdXJz
-PSIwIiBuaWxsYWJsZT0idHJ1ZSIgLz4NCiAgICAgIDx4czplbGVtZW50IG5hbWU9IlByZXNzdXJl
-IiB0eXBlPSJ4czppbnQiIG1pbk9jY3Vycz0iMCIgLz4NCiAgICAgIDx4czplbGVtZW50IG5hbWU9
-IkhlYXRlclN0YXRlIiB0eXBlPSJ0bnM6Qm9pbGVySGVhdGVyU3RhdGVUeXBlIiBtaW5PY2N1cnM9
-IjAiIC8+DQogICAgPC94czpzZXF1ZW5jZT4NCiAgPC94czpjb21wbGV4VHlwZT4NCiAgPHhzOmVs
-ZW1lbnQgbmFtZT0iQm9pbGVyRGF0YVR5cGUiIHR5cGU9InRuczpCb2lsZXJEYXRhVHlwZSIgLz4N
-Cg0KICA8eHM6Y29tcGxleFR5cGUgbmFtZT0iTGlzdE9mQm9pbGVyRGF0YVR5cGUiPg0KICAgIDx4
-czpzZXF1ZW5jZT4NCiAgICAgIDx4czplbGVtZW50IG5hbWU9IkJvaWxlckRhdGFUeXBlIiB0eXBl
-PSJ0bnM6Qm9pbGVyRGF0YVR5cGUiIG1pbk9jY3Vycz0iMCIgbWF4T2NjdXJzPSJ1bmJvdW5kZWQi
-IG5pbGxhYmxlPSJ0cnVlIiAvPg0KICAgIDwveHM6c2VxdWVuY2U+DQogIDwveHM6Y29tcGxleFR5
-cGU+DQogIDx4czplbGVtZW50IG5hbWU9Ikxpc3RPZkJvaWxlckRhdGFUeXBlIiB0eXBlPSJ0bnM6
-TGlzdE9mQm9pbGVyRGF0YVR5cGUiIG5pbGxhYmxlPSJ0cnVlIj48L3hzOmVsZW1lbnQ+DQoNCiAg
-PHhzOmNvbXBsZXhUeXBlIG5hbWU9IkJvaWxlclRlbXBlcmF0dXJlVHlwZSI+DQogICAgPHhzOmFu
-bm90YXRpb24+DQogICAgICA8eHM6ZG9jdW1lbnRhdGlvbj5UZW1wZXJhdHVyZSBpbiDCsEMgbmV4
-dCB0byB0aGUgaGVhdGVyIGF0IHRoZSBib3R0b20sIGFuZCBhd2F5IGZyb20gdGhlIGhlYXRlciBh
-dCB0aGUgdG9wLjwveHM6ZG9jdW1lbnRhdGlvbj4NCiAgICA8L3hzOmFubm90YXRpb24+DQogICAg
-PHhzOnNlcXVlbmNlPg0KICAgICAgPHhzOmVsZW1lbnQgbmFtZT0iVG9wIiB0eXBlPSJ4czppbnQi
-IG1pbk9jY3Vycz0iMCIgLz4NCiAgICAgIDx4czplbGVtZW50IG5hbWU9IkJvdHRvbSIgdHlwZT0i
-eHM6aW50IiBtaW5PY2N1cnM9IjAiIC8+DQogICAgPC94czpzZXF1ZW5jZT4NCiAgPC94czpjb21w
-bGV4VHlwZT4NCiAgPHhzOmVsZW1lbnQgbmFtZT0iQm9pbGVyVGVtcGVyYXR1cmVUeXBlIiB0eXBl
-PSJ0bnM6Qm9pbGVyVGVtcGVyYXR1cmVUeXBlIiAvPg0KDQogIDx4czpjb21wbGV4VHlwZSBuYW1l
-PSJMaXN0T2ZCb2lsZXJUZW1wZXJhdHVyZVR5cGUiPg0KICAgIDx4czpzZXF1ZW5jZT4NCiAgICAg
-IDx4czplbGVtZW50IG5hbWU9IkJvaWxlclRlbXBlcmF0dXJlVHlwZSIgdHlwZT0idG5zOkJvaWxl
-clRlbXBlcmF0dXJlVHlwZSIgbWluT2NjdXJzPSIwIiBtYXhPY2N1cnM9InVuYm91bmRlZCIgbmls
-bGFibGU9InRydWUiIC8+DQogICAgPC94czpzZXF1ZW5jZT4NCiAgPC94czpjb21wbGV4VHlwZT4N
-CiAgPHhzOmVsZW1lbnQgbmFtZT0iTGlzdE9mQm9pbGVyVGVtcGVyYXR1cmVUeXBlIiB0eXBlPSJ0
-bnM6TGlzdE9mQm9pbGVyVGVtcGVyYXR1cmVUeXBlIiBuaWxsYWJsZT0idHJ1ZSI+PC94czplbGVt
-ZW50Pg0KDQogIDx4czpzaW1wbGVUeXBlICBuYW1lPSJCb2lsZXJIZWF0ZXJTdGF0ZVR5cGUiPg0K
-ICAgIDx4czphbm5vdGF0aW9uPg0KICAgICAgPHhzOmRvY3VtZW50YXRpb24+SGVhdGVyIHdvcmtp
-bmcgc3RhdGUuPC94czpkb2N1bWVudGF0aW9uPg0KICAgIDwveHM6YW5ub3RhdGlvbj4NCiAgICA8
-eHM6cmVzdHJpY3Rpb24gYmFzZT0ieHM6c3RyaW5nIj4NCiAgICAgIDx4czplbnVtZXJhdGlvbiB2
-YWx1ZT0iT2ZmXzAiIC8+DQogICAgICA8eHM6ZW51bWVyYXRpb24gdmFsdWU9Ik9uXzEiIC8+DQog
-ICAgPC94czpyZXN0cmljdGlvbj4NCiAgPC94czpzaW1wbGVUeXBlPg0KICA8eHM6ZWxlbWVudCBu
-YW1lPSJCb2lsZXJIZWF0ZXJTdGF0ZVR5cGUiIHR5cGU9InRuczpCb2lsZXJIZWF0ZXJTdGF0ZVR5
-cGUiIC8+DQoNCiAgPHhzOmNvbXBsZXhUeXBlIG5hbWU9Ikxpc3RPZkJvaWxlckhlYXRlclN0YXRl
-VHlwZSI+DQogICAgPHhzOnNlcXVlbmNlPg0KICAgICAgPHhzOmVsZW1lbnQgbmFtZT0iQm9pbGVy
-SGVhdGVyU3RhdGVUeXBlIiB0eXBlPSJ0bnM6Qm9pbGVySGVhdGVyU3RhdGVUeXBlIiBtaW5PY2N1
-cnM9IjAiIG1heE9jY3Vycz0idW5ib3VuZGVkIiAvPg0KICAgIDwveHM6c2VxdWVuY2U+DQogIDwv
-eHM6Y29tcGxleFR5cGU+DQogIDx4czplbGVtZW50IG5hbWU9Ikxpc3RPZkJvaWxlckhlYXRlclN0
-YXRlVHlwZSIgdHlwZT0idG5zOkxpc3RPZkJvaWxlckhlYXRlclN0YXRlVHlwZSIgbmlsbGFibGU9
-InRydWUiPjwveHM6ZWxlbWVudD4NCg0KPC94czpzY2hlbWE+</ByteString>
+ZXIiDQogIGVsZW1lbnRGb3JtRGVmYXVsdD0icXVhbGlmaWVkIg0KPg0KICA8eHM6YW5ub3RhdGlv
+bj4NCiAgICA8eHM6YXBwaW5mbz4NCiAgICAgIDx0bnM6TW9kZWwgTW9kZWxVcmk9Imh0dHA6Ly9t
+aWNyb3NvZnQuY29tL09wYy9PcGNQbGMvQm9pbGVyIiBWZXJzaW9uPSIxLjAuMCIgUHVibGljYXRp
+b25EYXRlPSIyMDIwLTExLTE2VDEwOjM2OjA5LjE3NzE4NDJaIiAvPg0KICAgIDwveHM6YXBwaW5m
+bz4NCiAgPC94czphbm5vdGF0aW9uPg0KICANCiAgPHhzOmltcG9ydCBuYW1lc3BhY2U9Imh0dHA6
+Ly9vcGNmb3VuZGF0aW9uLm9yZy9VQS8yMDA4LzAyL1R5cGVzLnhzZCIgLz4NCg0KICA8eHM6Y29t
+cGxleFR5cGUgbmFtZT0iQm9pbGVyRGF0YVR5cGUiPg0KICAgIDx4czphbm5vdGF0aW9uPg0KICAg
+ICAgPHhzOmRvY3VtZW50YXRpb24+VGVtcGVyYXR1cmUgaW4gwrBDLCBwcmVzc3VyZSBpbiBQYSBh
+bmQgaGVhdGVyIHN0YXRlLjwveHM6ZG9jdW1lbnRhdGlvbj4NCiAgICA8L3hzOmFubm90YXRpb24+
+DQogICAgPHhzOnNlcXVlbmNlPg0KICAgICAgPHhzOmVsZW1lbnQgbmFtZT0iVGVtcGVyYXR1cmUi
+IHR5cGU9InRuczpCb2lsZXJUZW1wZXJhdHVyZVR5cGUiIG1pbk9jY3Vycz0iMCIgbmlsbGFibGU9
+InRydWUiIC8+DQogICAgICA8eHM6ZWxlbWVudCBuYW1lPSJQcmVzc3VyZSIgdHlwZT0ieHM6aW50
+IiBtaW5PY2N1cnM9IjAiIC8+DQogICAgICA8eHM6ZWxlbWVudCBuYW1lPSJIZWF0ZXJTdGF0ZSIg
+dHlwZT0idG5zOkJvaWxlckhlYXRlclN0YXRlVHlwZSIgbWluT2NjdXJzPSIwIiAvPg0KICAgIDwv
+eHM6c2VxdWVuY2U+DQogIDwveHM6Y29tcGxleFR5cGU+DQogIDx4czplbGVtZW50IG5hbWU9IkJv
+aWxlckRhdGFUeXBlIiB0eXBlPSJ0bnM6Qm9pbGVyRGF0YVR5cGUiIC8+DQoNCiAgPHhzOmNvbXBs
+ZXhUeXBlIG5hbWU9Ikxpc3RPZkJvaWxlckRhdGFUeXBlIj4NCiAgICA8eHM6c2VxdWVuY2U+DQog
+ICAgICA8eHM6ZWxlbWVudCBuYW1lPSJCb2lsZXJEYXRhVHlwZSIgdHlwZT0idG5zOkJvaWxlckRh
+dGFUeXBlIiBtaW5PY2N1cnM9IjAiIG1heE9jY3Vycz0idW5ib3VuZGVkIiBuaWxsYWJsZT0idHJ1
+ZSIgLz4NCiAgICA8L3hzOnNlcXVlbmNlPg0KICA8L3hzOmNvbXBsZXhUeXBlPg0KICA8eHM6ZWxl
+bWVudCBuYW1lPSJMaXN0T2ZCb2lsZXJEYXRhVHlwZSIgdHlwZT0idG5zOkxpc3RPZkJvaWxlckRh
+dGFUeXBlIiBuaWxsYWJsZT0idHJ1ZSI+PC94czplbGVtZW50Pg0KDQogIDx4czpjb21wbGV4VHlw
+ZSBuYW1lPSJCb2lsZXJUZW1wZXJhdHVyZVR5cGUiPg0KICAgIDx4czphbm5vdGF0aW9uPg0KICAg
+ICAgPHhzOmRvY3VtZW50YXRpb24+VGVtcGVyYXR1cmUgaW4gwrBDIG5leHQgdG8gdGhlIGhlYXRl
+ciBhdCB0aGUgYm90dG9tLCBhbmQgYXdheSBmcm9tIHRoZSBoZWF0ZXIgYXQgdGhlIHRvcC48L3hz
+OmRvY3VtZW50YXRpb24+DQogICAgPC94czphbm5vdGF0aW9uPg0KICAgIDx4czpzZXF1ZW5jZT4N
+CiAgICAgIDx4czplbGVtZW50IG5hbWU9IlRvcCIgdHlwZT0ieHM6aW50IiBtaW5PY2N1cnM9IjAi
+IC8+DQogICAgICA8eHM6ZWxlbWVudCBuYW1lPSJCb3R0b20iIHR5cGU9InhzOmludCIgbWluT2Nj
+dXJzPSIwIiAvPg0KICAgIDwveHM6c2VxdWVuY2U+DQogIDwveHM6Y29tcGxleFR5cGU+DQogIDx4
+czplbGVtZW50IG5hbWU9IkJvaWxlclRlbXBlcmF0dXJlVHlwZSIgdHlwZT0idG5zOkJvaWxlclRl
+bXBlcmF0dXJlVHlwZSIgLz4NCg0KICA8eHM6Y29tcGxleFR5cGUgbmFtZT0iTGlzdE9mQm9pbGVy
+VGVtcGVyYXR1cmVUeXBlIj4NCiAgICA8eHM6c2VxdWVuY2U+DQogICAgICA8eHM6ZWxlbWVudCBu
+YW1lPSJCb2lsZXJUZW1wZXJhdHVyZVR5cGUiIHR5cGU9InRuczpCb2lsZXJUZW1wZXJhdHVyZVR5
+cGUiIG1pbk9jY3Vycz0iMCIgbWF4T2NjdXJzPSJ1bmJvdW5kZWQiIG5pbGxhYmxlPSJ0cnVlIiAv
+Pg0KICAgIDwveHM6c2VxdWVuY2U+DQogIDwveHM6Y29tcGxleFR5cGU+DQogIDx4czplbGVtZW50
+IG5hbWU9Ikxpc3RPZkJvaWxlclRlbXBlcmF0dXJlVHlwZSIgdHlwZT0idG5zOkxpc3RPZkJvaWxl
+clRlbXBlcmF0dXJlVHlwZSIgbmlsbGFibGU9InRydWUiPjwveHM6ZWxlbWVudD4NCg0KICA8eHM6
+c2ltcGxlVHlwZSAgbmFtZT0iQm9pbGVySGVhdGVyU3RhdGVUeXBlIj4NCiAgICA8eHM6YW5ub3Rh
+dGlvbj4NCiAgICAgIDx4czpkb2N1bWVudGF0aW9uPkhlYXRlciB3b3JraW5nIHN0YXRlLjwveHM6
+ZG9jdW1lbnRhdGlvbj4NCiAgICA8L3hzOmFubm90YXRpb24+DQogICAgPHhzOnJlc3RyaWN0aW9u
+IGJhc2U9InhzOnN0cmluZyI+DQogICAgICA8eHM6ZW51bWVyYXRpb24gdmFsdWU9Ik9mZl8wIiAv
+Pg0KICAgICAgPHhzOmVudW1lcmF0aW9uIHZhbHVlPSJPbl8xIiAvPg0KICAgIDwveHM6cmVzdHJp
+Y3Rpb24+DQogIDwveHM6c2ltcGxlVHlwZT4NCiAgPHhzOmVsZW1lbnQgbmFtZT0iQm9pbGVySGVh
+dGVyU3RhdGVUeXBlIiB0eXBlPSJ0bnM6Qm9pbGVySGVhdGVyU3RhdGVUeXBlIiAvPg0KDQogIDx4
+czpjb21wbGV4VHlwZSBuYW1lPSJMaXN0T2ZCb2lsZXJIZWF0ZXJTdGF0ZVR5cGUiPg0KICAgIDx4
+czpzZXF1ZW5jZT4NCiAgICAgIDx4czplbGVtZW50IG5hbWU9IkJvaWxlckhlYXRlclN0YXRlVHlw
+ZSIgdHlwZT0idG5zOkJvaWxlckhlYXRlclN0YXRlVHlwZSIgbWluT2NjdXJzPSIwIiBtYXhPY2N1
+cnM9InVuYm91bmRlZCIgLz4NCiAgICA8L3hzOnNlcXVlbmNlPg0KICA8L3hzOmNvbXBsZXhUeXBl
+Pg0KICA8eHM6ZWxlbWVudCBuYW1lPSJMaXN0T2ZCb2lsZXJIZWF0ZXJTdGF0ZVR5cGUiIHR5cGU9
+InRuczpMaXN0T2ZCb2lsZXJIZWF0ZXJTdGF0ZVR5cGUiIG5pbGxhYmxlPSJ0cnVlIj48L3hzOmVs
+ZW1lbnQ+DQoNCjwveHM6c2NoZW1hPg==</ByteString>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=15088" BrowseName="NamespaceUri" ParentNodeId="ns=1;i=15086" DataType="String">
+  <UAVariable NodeId="ns=1;i=15088" BrowseName="NamespaceUri" ReleaseStatus="Deprecated" ParentNodeId="ns=1;i=15086" DataType="String">
     <DisplayName>NamespaceUri</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -352,7 +362,7 @@ InRydWUiPjwveHM6ZWxlbWVudD4NCg0KPC94czpzY2hlbWE+</ByteString>
       <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">http://microsoft.com/Opc/OpcPlc/Boiler</String>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=15089" BrowseName="Deprecated" ParentNodeId="ns=1;i=15086" DataType="Boolean">
+  <UAVariable NodeId="ns=1;i=15089" BrowseName="Deprecated" ReleaseStatus="Deprecated" ParentNodeId="ns=1;i=15086" DataType="Boolean">
     <DisplayName>Deprecated</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
@@ -362,7 +372,7 @@ InRydWUiPjwveHM6ZWxlbWVudD4NCg0KPC94czpzY2hlbWE+</ByteString>
       <Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=15090" BrowseName="1:BoilerDataType" ParentNodeId="ns=1;i=15086" DataType="String">
+  <UAVariable NodeId="ns=1;i=15090" BrowseName="1:BoilerDataType" ReleaseStatus="Deprecated" ParentNodeId="ns=1;i=15086" DataType="String">
     <DisplayName>BoilerDataType</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=69</Reference>
@@ -372,7 +382,7 @@ InRydWUiPjwveHM6ZWxlbWVudD4NCg0KPC94czpzY2hlbWE+</ByteString>
       <String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">//xs:element[@name='BoilerDataType']</String>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=15009" BrowseName="1:BoilerTemperatureType" ParentNodeId="ns=1;i=15086" DataType="String">
+  <UAVariable NodeId="ns=1;i=15009" BrowseName="1:BoilerTemperatureType" ReleaseStatus="Deprecated" ParentNodeId="ns=1;i=15086" DataType="String">
     <DisplayName>BoilerTemperatureType</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=69</Reference>
