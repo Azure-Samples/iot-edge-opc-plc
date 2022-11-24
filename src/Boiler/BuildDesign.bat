@@ -1,12 +1,27 @@
 @echo off
+setlocal
+
+REM if docker is not available, ensure the Opc.Ua.ModelCompiler.exe is in the PATH
+set MODELCOMPILER=Opc.Ua.ModelCompiler.exe
+REM
+set MODELCOMPILERIMAGE=ghcr.io/opcfoundation/ua-modelcompiler:latest
+set MODELROOT=.
+
+echo Pulling latest ModelCompiler from github container registry ...
+docker pull %MODELCOMPILERIMAGE%
+IF ERRORLEVEL 1 (
+:nodocker
+    Echo The docker command to download ModelCompiler failed. Using local PATH instead to execute it.
+) ELSE (
+    Echo Successfully pulled the latest docker container for ModelCompiler
+    set MODELROOT=/model
+    set MODELCOMPILER=docker run -v "%CD%:/model" -it --rm --name ua-modelcompiler %MODELCOMPILERIMAGE%
+)
 
 echo Building ModelDesign
-
-REM Issue> The ModelCompiler from docker doesn't create the DataTypeDefinition'
-REM docker run --mount type=bind,source=%CD%,target=/model sailavid/ua-modelcompiler -- -console -version v104 -d2 /model/ModelDesign.xml -cg /model/ModelDesign.csv -o2 /model
-
-REM Build master branch in https://github.com/OPCFoundation/UA-ModelCompiler
-REM add ModelCompiler build output folder to PATH
-Opc.Ua.ModelCompiler.exe -version v104 -d2 ".\ModelDesign.xml" -c ".\ModelDesign.csv" -o2 ".\"
-
+%MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/ModelDesign.xml" -cg "%MODELROOT%/ModelDesign.csv" -o2 "%MODELROOT%/"
+IF ERRORLEVEL 1 (
+echo Modelcompiler failed!
+) ELSE (
 echo Success!
+)

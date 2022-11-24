@@ -1,5 +1,5 @@
 /* ========================================================================
- * Copyright (c) 2005-2019 The OPC Foundation, Inc. All rights reserved.
+ * Copyright (c) 2005-2021 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
  *
@@ -38,378 +38,246 @@ using Opc.Ua;
 namespace BoilerModel
 {
     #region DataType Identifiers
-    /// <summary>
-    /// A class that declares constants for all DataTypes in the Model Design.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class DataTypes
     {
-        /// <summary>
-        /// The identifier for the BoilerDataType DataType.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerDataType = 15032;
 
-        /// <summary>
-        /// The identifier for the BoilerTemperatureType DataType.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerTemperatureType = 15001;
 
-        /// <summary>
-        /// The identifier for the BoilerHeaterStateType DataType.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerHeaterStateType = 15014;
     }
     #endregion
 
     #region Object Identifiers
-    /// <summary>
-    /// A class that declares constants for all Objects in the Model Design.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class Objects
     {
-        /// <summary>
-        /// The identifier for the Boiler1 Object.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler1 = 15070;
 
-        /// <summary>
-        /// The identifier for the BoilerDataType_Encoding_DefaultBinary Object.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerDataType_Encoding_DefaultBinary = 15072;
 
-        /// <summary>
-        /// The identifier for the BoilerTemperatureType_Encoding_DefaultBinary Object.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerTemperatureType_Encoding_DefaultBinary = 15004;
 
-        /// <summary>
-        /// The identifier for the BoilerDataType_Encoding_DefaultXml Object.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerDataType_Encoding_DefaultXml = 15084;
 
-        /// <summary>
-        /// The identifier for the BoilerTemperatureType_Encoding_DefaultXml Object.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerTemperatureType_Encoding_DefaultXml = 15008;
 
-        /// <summary>
-        /// The identifier for the BoilerDataType_Encoding_DefaultJson Object.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerDataType_Encoding_DefaultJson = 15096;
 
-        /// <summary>
-        /// The identifier for the BoilerTemperatureType_Encoding_DefaultJson Object.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerTemperatureType_Encoding_DefaultJson = 15012;
     }
     #endregion
 
     #region ObjectType Identifiers
-    /// <summary>
-    /// A class that declares constants for all ObjectTypes in the Model Design.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class ObjectTypes
     {
-        /// <summary>
-        /// The identifier for the BoilerType ObjectType.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerType = 15068;
     }
     #endregion
 
     #region Variable Identifiers
-    /// <summary>
-    /// A class that declares constants for all Variables in the Model Design.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class Variables
     {
-        /// <summary>
-        /// The identifier for the BoilerHeaterStateType_EnumStrings Variable.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerHeaterStateType_EnumStrings = 15015;
 
-        /// <summary>
-        /// The identifier for the BoilerType_BoilerStatus Variable.
-        /// </summary>
+        /// <remarks />
         public const uint BoilerType_BoilerStatus = 15003;
 
-        /// <summary>
-        /// The identifier for the Boiler1_BoilerStatus Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler1_BoilerStatus = 15013;
 
-        /// <summary>
-        /// The identifier for the Boiler_BinarySchema Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler_BinarySchema = 15074;
 
-        /// <summary>
-        /// The identifier for the Boiler_BinarySchema_NamespaceUri Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler_BinarySchema_NamespaceUri = 15076;
 
-        /// <summary>
-        /// The identifier for the Boiler_BinarySchema_Deprecated Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler_BinarySchema_Deprecated = 15077;
 
-        /// <summary>
-        /// The identifier for the Boiler_BinarySchema_BoilerDataType Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler_BinarySchema_BoilerDataType = 15078;
 
-        /// <summary>
-        /// The identifier for the Boiler_BinarySchema_BoilerTemperatureType Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler_BinarySchema_BoilerTemperatureType = 15005;
 
-        /// <summary>
-        /// The identifier for the Boiler_XmlSchema Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler_XmlSchema = 15086;
 
-        /// <summary>
-        /// The identifier for the Boiler_XmlSchema_NamespaceUri Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler_XmlSchema_NamespaceUri = 15088;
 
-        /// <summary>
-        /// The identifier for the Boiler_XmlSchema_Deprecated Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler_XmlSchema_Deprecated = 15089;
 
-        /// <summary>
-        /// The identifier for the Boiler_XmlSchema_BoilerDataType Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler_XmlSchema_BoilerDataType = 15090;
 
-        /// <summary>
-        /// The identifier for the Boiler_XmlSchema_BoilerTemperatureType Variable.
-        /// </summary>
+        /// <remarks />
         public const uint Boiler_XmlSchema_BoilerTemperatureType = 15009;
     }
     #endregion
 
     #region DataType Node Identifiers
-    /// <summary>
-    /// A class that declares constants for all DataTypes in the Model Design.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class DataTypeIds
     {
-        /// <summary>
-        /// The identifier for the BoilerDataType DataType.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerDataType = new ExpandedNodeId(BoilerModel.DataTypes.BoilerDataType, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the BoilerTemperatureType DataType.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerTemperatureType = new ExpandedNodeId(BoilerModel.DataTypes.BoilerTemperatureType, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the BoilerHeaterStateType DataType.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerHeaterStateType = new ExpandedNodeId(BoilerModel.DataTypes.BoilerHeaterStateType, BoilerModel.Namespaces.Boiler);
     }
     #endregion
 
     #region Object Node Identifiers
-    /// <summary>
-    /// A class that declares constants for all Objects in the Model Design.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class ObjectIds
     {
-        /// <summary>
-        /// The identifier for the Boiler1 Object.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler1 = new ExpandedNodeId(BoilerModel.Objects.Boiler1, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the BoilerDataType_Encoding_DefaultBinary Object.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultBinary = new ExpandedNodeId(BoilerModel.Objects.BoilerDataType_Encoding_DefaultBinary, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the BoilerTemperatureType_Encoding_DefaultBinary Object.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultBinary = new ExpandedNodeId(BoilerModel.Objects.BoilerTemperatureType_Encoding_DefaultBinary, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the BoilerDataType_Encoding_DefaultXml Object.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultXml = new ExpandedNodeId(BoilerModel.Objects.BoilerDataType_Encoding_DefaultXml, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the BoilerTemperatureType_Encoding_DefaultXml Object.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultXml = new ExpandedNodeId(BoilerModel.Objects.BoilerTemperatureType_Encoding_DefaultXml, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the BoilerDataType_Encoding_DefaultJson Object.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultJson = new ExpandedNodeId(BoilerModel.Objects.BoilerDataType_Encoding_DefaultJson, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the BoilerTemperatureType_Encoding_DefaultJson Object.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultJson = new ExpandedNodeId(BoilerModel.Objects.BoilerTemperatureType_Encoding_DefaultJson, BoilerModel.Namespaces.Boiler);
     }
     #endregion
 
     #region ObjectType Node Identifiers
-    /// <summary>
-    /// A class that declares constants for all ObjectTypes in the Model Design.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class ObjectTypeIds
     {
-        /// <summary>
-        /// The identifier for the BoilerType ObjectType.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerType = new ExpandedNodeId(BoilerModel.ObjectTypes.BoilerType, BoilerModel.Namespaces.Boiler);
     }
     #endregion
 
     #region Variable Node Identifiers
-    /// <summary>
-    /// A class that declares constants for all Variables in the Model Design.
-    /// </summary>
+    /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class VariableIds
     {
-        /// <summary>
-        /// The identifier for the BoilerHeaterStateType_EnumStrings Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerHeaterStateType_EnumStrings = new ExpandedNodeId(BoilerModel.Variables.BoilerHeaterStateType_EnumStrings, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the BoilerType_BoilerStatus Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId BoilerType_BoilerStatus = new ExpandedNodeId(BoilerModel.Variables.BoilerType_BoilerStatus, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler1_BoilerStatus Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler1_BoilerStatus = new ExpandedNodeId(BoilerModel.Variables.Boiler1_BoilerStatus, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler_BinarySchema Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler_BinarySchema = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler_BinarySchema_NamespaceUri Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler_BinarySchema_NamespaceUri = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_NamespaceUri, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler_BinarySchema_Deprecated Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler_BinarySchema_Deprecated = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_Deprecated, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler_BinarySchema_BoilerDataType Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler_BinarySchema_BoilerDataType = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_BoilerDataType, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler_BinarySchema_BoilerTemperatureType Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler_BinarySchema_BoilerTemperatureType = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_BoilerTemperatureType, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler_XmlSchema Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler_XmlSchema = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler_XmlSchema_NamespaceUri Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler_XmlSchema_NamespaceUri = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_NamespaceUri, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler_XmlSchema_Deprecated Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler_XmlSchema_Deprecated = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_Deprecated, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler_XmlSchema_BoilerDataType Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler_XmlSchema_BoilerDataType = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_BoilerDataType, BoilerModel.Namespaces.Boiler);
 
-        /// <summary>
-        /// The identifier for the Boiler_XmlSchema_BoilerTemperatureType Variable.
-        /// </summary>
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler_XmlSchema_BoilerTemperatureType = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_BoilerTemperatureType, BoilerModel.Namespaces.Boiler);
     }
     #endregion
 
     #region BrowseName Declarations
-    /// <summary>
-    /// Declares all of the BrowseNames used in the Model Design.
-    /// </summary>
+    /// <remarks />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class BrowseNames
     {
-        /// <summary>
-        /// The BrowseName for the Boiler_BinarySchema component.
-        /// </summary>
+        /// <remarks />
         public const string Boiler_BinarySchema = "BoilerModel";
 
-        /// <summary>
-        /// The BrowseName for the Boiler_XmlSchema component.
-        /// </summary>
+        /// <remarks />
         public const string Boiler_XmlSchema = "BoilerModel";
 
-        /// <summary>
-        /// The BrowseName for the Boiler1 component.
-        /// </summary>
+        /// <remarks />
         public const string Boiler1 = "Boiler #1";
 
-        /// <summary>
-        /// The BrowseName for the BoilerDataType component.
-        /// </summary>
+        /// <remarks />
         public const string BoilerDataType = "BoilerDataType";
 
-        /// <summary>
-        /// The BrowseName for the BoilerHeaterStateType component.
-        /// </summary>
+        /// <remarks />
         public const string BoilerHeaterStateType = "BoilerHeaterStateType";
 
-        /// <summary>
-        /// The BrowseName for the BoilerStatus component.
-        /// </summary>
+        /// <remarks />
         public const string BoilerStatus = "BoilerStatus";
 
-        /// <summary>
-        /// The BrowseName for the BoilerTemperatureType component.
-        /// </summary>
+        /// <remarks />
         public const string BoilerTemperatureType = "BoilerTemperatureType";
 
-        /// <summary>
-        /// The BrowseName for the BoilerType component.
-        /// </summary>
+        /// <remarks />
         public const string BoilerType = "BoilerType";
     }
     #endregion
 
     #region Namespace Declarations
-    /// <summary>
-    /// Defines constants for all namespaces referenced by the model design.
-    /// </summary>
+    /// <remarks />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class Namespaces
     {
