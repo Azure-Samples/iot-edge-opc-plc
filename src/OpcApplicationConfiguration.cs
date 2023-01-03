@@ -195,6 +195,9 @@ public partial class OpcApplicationConfiguration
         // show certificate store information
         await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
 
+        // activate Auditing Events of the server
+        ApplicationConfiguration.ServerConfiguration.AuditingEnabled = true;
+
         return ApplicationConfiguration;
     }
 
