@@ -121,6 +121,9 @@ public partial class OpcApplicationConfiguration
             .SetMaxRequestThreadCount(MAX_REQUEST_THREAD_COUNT)
             // LDS registration interval
             .SetMaxRegistrationInterval(LdsRegistrationInterval);
+            // enable auditing events and diagnostics
+            .SetDiagnosticsEnabled(true)
+            .SetAuditingEnabled(true)
 
         // security configuration
         ApplicationConfiguration = await InitApplicationSecurityAsync(securityBuilder).ConfigureAwait(false);
@@ -194,9 +197,6 @@ public partial class OpcApplicationConfiguration
 
         // show certificate store information
         await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
-
-        // activate Auditing Events of the server
-        ApplicationConfiguration.ServerConfiguration.AuditingEnabled = true;
 
         return ApplicationConfiguration;
     }
