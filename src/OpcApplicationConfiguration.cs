@@ -120,10 +120,10 @@ public partial class OpcApplicationConfiguration
             .SetMaxPublishRequestCount(MAX_PUBLISH_REQUEST_COUNT)
             .SetMaxRequestThreadCount(MAX_REQUEST_THREAD_COUNT)
             // LDS registration interval
-            .SetMaxRegistrationInterval(LdsRegistrationInterval);
+            .SetMaxRegistrationInterval(LdsRegistrationInterval)
             // enable auditing events and diagnostics
             .SetDiagnosticsEnabled(true)
-            .SetAuditingEnabled(true)
+            .SetAuditingEnabled(true);
 
         // security configuration
         ApplicationConfiguration = await InitApplicationSecurityAsync(securityBuilder).ConfigureAwait(false);
