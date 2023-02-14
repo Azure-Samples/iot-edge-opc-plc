@@ -10,6 +10,8 @@ using static OpcPlc.Program;
 
 /// <summary>
 /// Nodes that are configured via binary *.PredefinedNodes.uanodes file.
+/// To produce a binary *.PredefinedNodes.uanodes file from an XML NodeSet file, run the following command:
+/// ModelCompiler.cmd <XML_NodeSet_FileName_Without_Extension>
 /// </summary>
 public class UaNodesPluginNodes : IPluginNodes
 {
