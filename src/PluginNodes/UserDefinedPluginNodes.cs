@@ -10,7 +10,7 @@ using System.IO;
 using static OpcPlc.Program;
 
 /// <summary>
-/// Nodes that are configuration via JSON file.
+/// Nodes that are configured via JSON file.
 /// </summary>
 public class UserDefinedPluginNodes : IPluginNodes
 {
