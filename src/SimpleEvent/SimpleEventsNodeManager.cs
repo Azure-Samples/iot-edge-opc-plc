@@ -205,14 +205,14 @@ namespace SimpleEvents
                 for (int ii = 1; ii < 3; ii++)
                 {
                     // construct translation object with default text.
-                    TranslationInfo info = new TranslationInfo(
+                    var info = new TranslationInfo(
                         "SystemCycleStarted",
                         "en-US",
                         "The system cycle '{0}' has started.",
                         ++m_cycleId);
 
                     // construct the event.
-                    SystemCycleStartedEventState e = new SystemCycleStartedEventState(null);
+                    var e = new SystemCycleStartedEventState(null);
 
                     e.Initialize(
                         SystemContext,
