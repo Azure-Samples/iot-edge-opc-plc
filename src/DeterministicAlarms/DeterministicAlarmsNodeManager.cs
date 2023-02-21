@@ -49,7 +49,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Can't read or decode deterministic alarm script file.");
+            Logger.Error(ex, "Cannot read or decode deterministic alarm script file");
         }
     }
 

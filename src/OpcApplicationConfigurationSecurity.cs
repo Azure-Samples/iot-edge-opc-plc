@@ -223,7 +223,7 @@ public partial class OpcApplicationConfiguration
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Error while loading private key.");
+                    Logger.Error(e, "Error while loading private key");
                     return;
                 }
             }
@@ -234,7 +234,7 @@ public partial class OpcApplicationConfiguration
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Error while creating signing request.");
+                Logger.Error(e, "Error while creating signing request");
                 return;
             }
             Logger.Information("----------------------- CreateSigningRequest information ------------------");
@@ -266,7 +266,7 @@ public partial class OpcApplicationConfiguration
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Error while writing .csr file.");
+                Logger.Error(e, "Error while writing .csr file");
             }
         }
         catch (Exception e)
@@ -331,7 +331,7 @@ public partial class OpcApplicationConfiguration
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Error while trying to read information from trusted issuer store.");
+            Logger.Error(e, "Error while trying to read information from trusted issuer store");
         }
 
         // show trusted peer certs
@@ -428,7 +428,7 @@ public partial class OpcApplicationConfiguration
         // search the trusted peer store and remove certificates with a specified thumbprint
         try
         {
-            Logger.Information("Starting to remove certificate(s) from trusted peer and trusted issuer store.");
+            Logger.Information("Starting to remove certificate(s) from trusted peer and trusted issuer store");
             using ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath);
             foreach (var thumbprint in thumbprintsToRemove)
             {
@@ -437,18 +437,18 @@ public partial class OpcApplicationConfiguration
                 {
                     if (!await trustedStore.Delete(thumbprint).ConfigureAwait(false))
                     {
-                        Logger.Warning($"Failed to remove certificate with thumbprint '{thumbprint}' from the trusted peer store.");
+                        Logger.Warning($"Failed to remove certificate with thumbprint '{thumbprint}' from the trusted peer store");
                     }
                     else
                     {
-                        Logger.Information($"Removed certificate with thumbprint '{thumbprint}' from the trusted peer store.");
+                        Logger.Information($"Removed certificate with thumbprint '{thumbprint}' from the trusted peer store");
                     }
                 }
             }
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Error while trying to remove certificate(s) from the trusted peer store.");
+            Logger.Error(e, "Error while trying to remove certificate(s) from the trusted peer store");
             result = false;
         }
 
@@ -463,18 +463,18 @@ public partial class OpcApplicationConfiguration
                 {
                     if (!await issuerStore.Delete(thumbprint).ConfigureAwait(false))
                     {
-                        Logger.Warning($"Failed to delete certificate with thumbprint '{thumbprint}' from the trusted issuer store.");
+                        Logger.Warning($"Failed to delete certificate with thumbprint '{thumbprint}' from the trusted issuer store");
                     }
                     else
                     {
-                        Logger.Information($"Removed certificate with thumbprint '{thumbprint}' from the trusted issuer store.");
+                        Logger.Information($"Removed certificate with thumbprint '{thumbprint}' from the trusted issuer store");
                     }
                 }
             }
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Error while trying to remove certificate(s) from the trusted issuer store.");
+            Logger.Error(e, "Error while trying to remove certificate(s) from the trusted issuer store");
             result = false;
         }
         return result;
@@ -496,7 +496,7 @@ public partial class OpcApplicationConfiguration
             return false;
         }
 
-        Logger.Information($"Starting to add certificate(s) to the {(issuerCertificate ? "trusted issuer" : "trusted peer")} store.");
+        Logger.Information($"Starting to add certificate(s) to the {(issuerCertificate ? "trusted issuer" : "trusted peer")} store");
         var certificatesToAdd = new X509Certificate2Collection();
         try
         {
@@ -521,7 +521,7 @@ public partial class OpcApplicationConfiguration
                     }
                     else
                     {
-                        Logger.Error($"The provided string '{certificateBase64String.Substring(0, 10)}...' is not a valid base64 string.");
+                        Logger.Error($"The provided string '{certificateBase64String.Substring(0, 10)}...' is not a valid base64 string");
                         return false;
                     }
                 }
@@ -529,7 +529,7 @@ public partial class OpcApplicationConfiguration
         }
         catch (Exception e)
         {
-            Logger.Error(e, "The issuer certificate data is invalid. Please check your command line options.");
+            Logger.Error(e, "The issuer certificate data is invalid. Please check your command line options");
             return false;
         }
 
@@ -544,18 +544,18 @@ public partial class OpcApplicationConfiguration
                     try
                     {
                         await issuerStore.Add(certificateToAdd).ConfigureAwait(false);
-                        Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted issuer store.");
+                        Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted issuer store");
                     }
                     catch (ArgumentException)
                     {
                         // ignore error if cert already exists in store
-                        Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' already exists in trusted issuer store.");
+                        Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' already exists in trusted issuer store");
                     }
                 }
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Error while adding a certificate to the trusted issuer store.");
+                Logger.Error(e, "Error while adding a certificate to the trusted issuer store");
                 result = false;
             }
         }
@@ -569,18 +569,18 @@ public partial class OpcApplicationConfiguration
                     try
                     {
                         await trustedStore.Add(certificateToAdd).ConfigureAwait(false);
-                        Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted peer store.");
+                        Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted peer store");
                     }
                     catch (ArgumentException)
                     {
                         // ignore error if cert already exists in store
-                        Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' already exists in trusted peer store.");
+                        Logger.Information($"Certificate '{certificateToAdd.SubjectName.Name}' already exists in trusted peer store");
                     }
                 }
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Error while adding a certificate to the trusted peer store.");
+                Logger.Error(e, "Error while adding a certificate to the trusted peer store");
                 result = false;
             }
         }
@@ -596,12 +596,12 @@ public partial class OpcApplicationConfiguration
 
         if (string.IsNullOrEmpty(newCrlBase64String) && string.IsNullOrEmpty(newCrlFileName))
         {
-            Logger.Error("There is no CRL specified. Please check your command line options.");
+            Logger.Error("There is no CRL specified. Please check your command line options");
             return false;
         }
 
         // validate input and create the new CRL
-        Logger.Information("Starting to update the current CRL.");
+        Logger.Information("Starting to update the current CRL");
         X509CRL newCrl;
         try
         {
@@ -614,7 +614,7 @@ public partial class OpcApplicationConfiguration
                 }
                 else
                 {
-                    Logger.Error($"The provided string '{newCrlBase64String.Substring(0, 10)}...' is not a valid base64 string.");
+                    Logger.Error($"The provided string '{newCrlBase64String.Substring(0, 10)}...' is not a valid base64 string");
                     return false;
                 }
             }
@@ -625,7 +625,7 @@ public partial class OpcApplicationConfiguration
         }
         catch (Exception e)
         {
-            Logger.Error(e, "The new CRL data is invalid.");
+            Logger.Error(e, "The new CRL data is invalid");
             return false;
         }
 
@@ -641,7 +641,7 @@ public partial class OpcApplicationConfiguration
                     if (X509Utils.CompareDistinguishedName(newCrl.Issuer, trustedCertificate.Subject) && newCrl.VerifySignature(trustedCertificate, false))
                     {
                         // the issuer of the new CRL is trusted. delete the crls of the issuer in the trusted store
-                        Logger.Information("Remove the current CRL from the trusted peer store.");
+                        Logger.Information("Remove the current CRL from the trusted peer store");
                         trustedCrlIssuer = true;
 
                         var crlsToRemove = await trustedStore.EnumerateCRLs(trustedCertificate).ConfigureAwait(false);
@@ -651,12 +651,12 @@ public partial class OpcApplicationConfiguration
                             {
                                 if (!await trustedStore.DeleteCRL(crlToRemove).ConfigureAwait(false))
                                 {
-                                    Logger.Warning($"Failed to remove CRL issued by '{crlToRemove.Issuer}' from the trusted peer store.");
+                                    Logger.Warning($"Failed to remove CRL issued by '{crlToRemove.Issuer}' from the trusted peer store");
                                 }
                             }
                             catch (Exception e)
                             {
-                                Logger.Error(e, $"Error while removing the current CRL issued by '{crlToRemove.Issuer}' from the trusted peer store.");
+                                Logger.Error(e, $"Error while removing the current CRL issued by '{crlToRemove.Issuer}' from the trusted peer store");
                                 result = false;
                             }
                         }
@@ -664,7 +664,7 @@ public partial class OpcApplicationConfiguration
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Error while removing the cureent CRL from the trusted peer store.");
+                    Logger.Error(e, "Error while removing the cureent CRL from the trusted peer store");
                     result = false;
                 }
             }
@@ -674,11 +674,11 @@ public partial class OpcApplicationConfiguration
                 try
                 {
                     await trustedStore.AddCRL(newCrl).ConfigureAwait(false);
-                    Logger.Information($"The new CRL issued by '{newCrl.Issuer}' was added to the trusted peer store.");
+                    Logger.Information($"The new CRL issued by '{newCrl.Issuer}' was added to the trusted peer store");
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Error while adding the new CRL to the trusted peer store.");
+                    Logger.Error(e, "Error while adding the new CRL to the trusted peer store");
                     result = false;
                 }
             }
@@ -696,7 +696,7 @@ public partial class OpcApplicationConfiguration
                     if (X509Utils.CompareDistinguishedName(newCrl.Issuer, issuerCertificate.Subject) && newCrl.VerifySignature(issuerCertificate, false))
                     {
                         // the issuer of the new CRL is trusted. delete the crls of the issuer in the trusted store
-                        Logger.Information("Remove the current CRL from the trusted issuer store.");
+                        Logger.Information("Remove the current CRL from the trusted issuer store");
                         trustedCrlIssuer = true;
                         var crlsToRemove = await issuerStore.EnumerateCRLs(issuerCertificate).ConfigureAwait(false);
                         foreach (var crlToRemove in crlsToRemove)
@@ -705,12 +705,12 @@ public partial class OpcApplicationConfiguration
                             {
                                 if (!await issuerStore.DeleteCRL(crlToRemove).ConfigureAwait(false))
                                 {
-                                    Logger.Warning($"Failed to remove the current CRL issued by '{crlToRemove.Issuer}' from the trusted issuer store.");
+                                    Logger.Warning($"Failed to remove the current CRL issued by '{crlToRemove.Issuer}' from the trusted issuer store");
                                 }
                             }
                             catch (Exception e)
                             {
-                                Logger.Error(e, $"Error while removing the current CRL issued by '{crlToRemove.Issuer}' from the trusted issuer store.");
+                                Logger.Error(e, $"Error while removing the current CRL issued by '{crlToRemove.Issuer}' from the trusted issuer store");
                                 result = false;
                             }
                         }
@@ -718,7 +718,7 @@ public partial class OpcApplicationConfiguration
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "Error while removing the current CRL from the trusted issuer store.");
+                    Logger.Error(e, "Error while removing the current CRL from the trusted issuer store");
                     result = false;
                 }
             }
@@ -729,11 +729,11 @@ public partial class OpcApplicationConfiguration
                 try
                 {
                     await issuerStore.AddCRL(newCrl).ConfigureAwait(false);
-                    Logger.Information($"The new CRL issued by '{newCrl.Issuer}' was added to the trusted issuer store.");
+                    Logger.Information($"The new CRL issued by '{newCrl.Issuer}' was added to the trusted issuer store");
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, $"Error while adding the new CRL issued by '{newCrl.Issuer}' to the trusted issuer store.");
+                    Logger.Error(e, $"Error while adding the new CRL issued by '{newCrl.Issuer}' to the trusted issuer store");
                     result = false;
                 }
             }
@@ -770,7 +770,7 @@ public partial class OpcApplicationConfiguration
                 }
                 else
                 {
-                    Logger.Error($"The provided string '{newCertificateBase64String.Substring(0, 10)}...' is not a valid base64 string.");
+                    Logger.Error($"The provided string '{newCertificateBase64String.Substring(0, 10)}...' is not a valid base64 string");
                     return false;
                 }
             }
@@ -781,12 +781,12 @@ public partial class OpcApplicationConfiguration
         }
         catch (Exception e)
         {
-            Logger.Error(e, "The new application certificate data is invalid.");
+            Logger.Error(e, "The new application certificate data is invalid");
             return false;
         }
 
         // validate input and create the private key
-        Logger.Information("Start updating the current application certificate.");
+        Logger.Information("Start updating the current application certificate");
         byte[] privateKey = null;
         try
         {
@@ -795,7 +795,7 @@ public partial class OpcApplicationConfiguration
                 privateKey = new byte[privateKeyBase64String.Length * 3 / 4];
                 if (!Convert.TryFromBase64String(privateKeyBase64String, privateKey, out int written))
                 {
-                    Logger.Error($"The provided string '{privateKeyBase64String.Substring(0, 10)}...' is not a valid base64 string.");
+                    Logger.Error($"The provided string '{privateKeyBase64String.Substring(0, 10)}...' is not a valid base64 string");
                     return false;
                 }
             }
@@ -806,7 +806,7 @@ public partial class OpcApplicationConfiguration
         }
         catch (Exception e)
         {
-            Logger.Error(e, "The private key data is invalid.");
+            Logger.Error(e, "The private key data is invalid");
             return false;
         }
 
@@ -819,17 +819,17 @@ public partial class OpcApplicationConfiguration
             hasApplicationCertificate = true;
             currentApplicationCertificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
             currentSubjectName = currentApplicationCertificate.SubjectName.Name;
-            Logger.Information($"The current application certificate has SubjectName '{currentSubjectName}' and thumbprint '{currentApplicationCertificate.Thumbprint}'.");
+            Logger.Information($"The current application certificate has SubjectName '{currentSubjectName}' and thumbprint '{currentApplicationCertificate.Thumbprint}'");
         }
         else
         {
-            Logger.Information("There is no existing application certificate.");
+            Logger.Information("There is no existing application certificate");
         }
 
         // for a cert update subject names of current and new certificate must match
         if (hasApplicationCertificate && !X509Utils.CompareDistinguishedName(currentSubjectName, newCertificate.SubjectName.Name))
         {
-            Logger.Error($"The SubjectName '{newCertificate.SubjectName.Name}' of the new certificate doesn't match the current certificates SubjectName '{currentSubjectName}'.");
+            Logger.Error($"The SubjectName '{newCertificate.SubjectName.Name}' of the new certificate doesn't match the current certificates SubjectName '{currentSubjectName}'");
             return false;
         }
 
@@ -865,7 +865,7 @@ public partial class OpcApplicationConfiguration
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Failed to verify integrity of the new certificate and the trusted issuer list.");
+            Logger.Error(e, "Failed to verify integrity of the new certificate and the trusted issuer list");
             return false;
         }
 
@@ -880,7 +880,7 @@ public partial class OpcApplicationConfiguration
                 X509Certificate2 certWithPrivateKey = X509Utils.CreateCertificateFromPKCS12(privateKey, certificatePassword);
                 newCertificateWithPrivateKey = CertificateFactory.CreateCertificateWithPrivateKey(newCertificate, certWithPrivateKey);
                 newCertFormat = "PFX";
-                Logger.Information("The private key for the new certificate was passed in using PFX format.");
+                Logger.Information("The private key for the new certificate was passed in using PFX format");
             }
             catch
             {
@@ -894,7 +894,7 @@ public partial class OpcApplicationConfiguration
             {
                 newCertificateWithPrivateKey = CertificateFactory.CreateCertificateWithPEMPrivateKey(newCertificate, privateKey, certificatePassword);
                 newCertFormat = "PEM";
-                Logger.Information("The private key for the new certificate was passed in using PEM format.");
+                Logger.Information("The private key for the new certificate was passed in using PEM format");
             }
             catch
             {
@@ -914,7 +914,7 @@ public partial class OpcApplicationConfiguration
                 }
                 else
                 {
-                    Logger.Error("There is no existing application certificate we can use to extract the private key. You need to pass in a private key using PFX or PEM format.");
+                    Logger.Error("There is no existing application certificate we can use to extract the private key. You need to pass in a private key using PFX or PEM format");
                 }
             }
             catch
@@ -928,7 +928,7 @@ public partial class OpcApplicationConfiguration
         {
             if (string.IsNullOrEmpty(newCertFormat))
             {
-                Logger.Error("The provided format of the private key is not supported (must be PEM or PFX) or the provided cert password is wrong.");
+                Logger.Error("The provided format of the private key is not supported (must be PEM or PFX) or the provided cert password is wrong");
                 return false;
             }
         }
@@ -936,7 +936,7 @@ public partial class OpcApplicationConfiguration
         {
             if (string.IsNullOrEmpty(newCertFormat))
             {
-                Logger.Error("There is no application certificate we can update and for the new application certificate there was not usable private key (must be PEM or PFX format) provided or the provided cert password is wrong.");
+                Logger.Error("There is no application certificate we can update and for the new application certificate there was not usable private key (must be PEM or PFX format) provided or the provided cert password is wrong");
                 return false;
             }
         }
@@ -944,26 +944,26 @@ public partial class OpcApplicationConfiguration
         // remove the existing and add the new application cert
         using (ICertificateStore appStore = CertificateStoreIdentifier.OpenStore(ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath))
         {
-            Logger.Information("Remove the existing application certificate.");
+            Logger.Information("Remove the existing application certificate");
             try
             {
                 if (hasApplicationCertificate && !await appStore.Delete(currentApplicationCertificate.Thumbprint).ConfigureAwait(false))
                 {
-                    Logger.Warning($"Removing the existing application certificate with thumbprint '{currentApplicationCertificate.Thumbprint}' failed.");
+                    Logger.Warning($"Removing the existing application certificate with thumbprint '{currentApplicationCertificate.Thumbprint}' failed");
                 }
             }
             catch
             {
-                Logger.Warning("Failed to remove the existing application certificate from the ApplicationCertificate store.");
+                Logger.Warning("Failed to remove the existing application certificate from the ApplicationCertificate store");
             }
             try
             {
                 await appStore.Add(newCertificateWithPrivateKey).ConfigureAwait(false);
-                Logger.Information($"The new application certificate '{newCertificateWithPrivateKey.SubjectName.Name}' and thumbprint '{newCertificateWithPrivateKey.Thumbprint}' was added to the application certificate store.");
+                Logger.Information($"The new application certificate '{newCertificateWithPrivateKey.SubjectName.Name}' and thumbprint '{newCertificateWithPrivateKey.Thumbprint}' was added to the application certificate store");
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Failed to add the new application certificate to the application certificate store.");
+                Logger.Error(e, "Failed to add the new application certificate to the application certificate store");
                 return false;
             }
         }
@@ -971,13 +971,13 @@ public partial class OpcApplicationConfiguration
         // update the application certificate
         try
         {
-            Logger.Information($"Activating the new application certificate with thumbprint '{newCertificateWithPrivateKey.Thumbprint}'.");
+            Logger.Information($"Activating the new application certificate with thumbprint '{newCertificateWithPrivateKey.Thumbprint}'");
             ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = newCertificate;
             await ApplicationConfiguration.CertificateValidator.UpdateCertificate(ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Failed to activate the new application certificate.");
+            Logger.Error(e, "Failed to activate the new application certificate");
             return false;
         }
 

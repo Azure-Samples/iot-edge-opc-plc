@@ -269,10 +269,12 @@ public static class Program
         Logger.Information("Username/Password authentication: {usernamePasswordAuth}", DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
         Logger.Information("Certificate authentication: {certAuth}", DisableCertAuth ? "Disabled" : "Enabled");
 
+        // Add simple events, alarms, reference test simulation and deterministic alarms.
         PlcServer = new PlcServer(TimeService);
         PlcServer.Start(plcApplicationConfiguration);
         Logger.Information("OPC UA Server started");
 
+        // Add remaining base simulations.
         PlcSimulation = new PlcSimulation(PlcServer);
         PlcSimulation.Start();
 

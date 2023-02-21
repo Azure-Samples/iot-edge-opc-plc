@@ -236,7 +236,7 @@ namespace SimpleEvents
             }
             catch (Exception e)
             {
-                Utils.Trace(e, "Unexpected error during simulation.");
+                Utils.Trace(e, "Unexpected error during simulation");
             }
         }
         #endregion
