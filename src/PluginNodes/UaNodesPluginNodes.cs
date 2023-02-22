@@ -67,7 +67,7 @@ public class UaNodesPluginNodes : IPluginNodes
     }
 
     /// <summary>
-    /// Loads a node set from a file or resource and adds them to the set of predefined nodes.
+    /// Loads a node set from a file and adds them to the set of predefined nodes.
     /// </summary>
     private NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
