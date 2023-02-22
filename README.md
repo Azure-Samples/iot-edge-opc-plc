@@ -254,7 +254,7 @@ or if one string contains commas:
 
 Options:
       --lf, --logfile=VALUE  the filename of the logfile to use.
-                               Default: './machinename-plc.log'
+                               Default: './machinename.log'
       --lt, --logflushtimespan=VALUE
                              the timespan in seconds when the logfile should be
                                flushed.
@@ -482,7 +482,11 @@ Options:
                                Default: 0
       --ns, --nospikes       do not generate spike data
                                Default: False
+      --unf, --uanodesfile=VALUE
+                             the binary *.PredefinedNodes.uanodes file that
+                               contains the nodes to be created in the OPC UA
+                               address space.
       --nf, --nodesfile=VALUE
-                             the filename which contains the list of nodes to
-                               be created in the OPC UA address space.
+                             the filename that contains the list of nodes to be
+                               created in the OPC UA address space.
 ```
