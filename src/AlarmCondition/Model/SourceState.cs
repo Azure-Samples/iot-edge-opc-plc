@@ -27,9 +27,9 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
+using Opc.Ua;
 using System;
 using System.Collections.Generic;
-using Opc.Ua;
 
 namespace AlarmCondition
 {
@@ -291,42 +291,42 @@ namespace AlarmCondition
             switch (alarm.AlarmType)
             {
                 case "HighAlarm":
-                {
-                    ExclusiveDeviationAlarmState node2 = new ExclusiveDeviationAlarmState(this);
-                    node = node2;
-                    node2.HighLimit = new PropertyState<double>(node2);
-                    break;
-                }
+                    {
+                        ExclusiveDeviationAlarmState node2 = new ExclusiveDeviationAlarmState(this);
+                        node = node2;
+                        node2.HighLimit = new PropertyState<double>(node2);
+                        break;
+                    }
 
                 case "HighLowAlarm":
-                {
-                    NonExclusiveLevelAlarmState node2 = new NonExclusiveLevelAlarmState(this);
-                    node = node2;
+                    {
+                        NonExclusiveLevelAlarmState node2 = new NonExclusiveLevelAlarmState(this);
+                        node = node2;
 
-                    node2.HighHighLimit = new PropertyState<double>(node2);
-                    node2.HighLimit = new PropertyState<double>(node2);
-                    node2.LowLimit = new PropertyState<double>(node2);
-                    node2.LowLowLimit = new PropertyState<double>(node2);
+                        node2.HighHighLimit = new PropertyState<double>(node2);
+                        node2.HighLimit = new PropertyState<double>(node2);
+                        node2.LowLimit = new PropertyState<double>(node2);
+                        node2.LowLowLimit = new PropertyState<double>(node2);
 
-                    node2.HighHighState = new TwoStateVariableState(node2);
-                    node2.HighState = new TwoStateVariableState(node2);
-                    node2.LowState = new TwoStateVariableState(node2);
-                    node2.LowLowState = new TwoStateVariableState(node2);
+                        node2.HighHighState = new TwoStateVariableState(node2);
+                        node2.HighState = new TwoStateVariableState(node2);
+                        node2.LowState = new TwoStateVariableState(node2);
+                        node2.LowLowState = new TwoStateVariableState(node2);
 
-                    break;
-                }
+                        break;
+                    }
 
                 case "TripAlarm":
-                {
-                    node = new TripAlarmState(this);
-                    break;
-                }
+                    {
+                        node = new TripAlarmState(this);
+                        break;
+                    }
 
                 default:
-                {
-                    node = new AlarmConditionState(this);
-                    break;
-                }
+                    {
+                        node = new AlarmConditionState(this);
+                        break;
+                    }
             }
 
             node.SymbolicName = alarm.Name;
@@ -738,9 +738,9 @@ namespace AlarmCondition
         #region Private Fields
         private AlarmConditionServerNodeManager m_nodeManager;
         private UnderlyingSystemSource m_source;
-        private Dictionary<string,AlarmConditionState> m_alarms;
-        private Dictionary<string,AlarmConditionState> m_events;
-        private Dictionary<NodeId,AlarmConditionState> m_branches;
+        private Dictionary<string, AlarmConditionState> m_alarms;
+        private Dictionary<string, AlarmConditionState> m_events;
+        private Dictionary<NodeId, AlarmConditionState> m_branches;
         private DialogConditionState m_dialog;
         #endregion
     }
