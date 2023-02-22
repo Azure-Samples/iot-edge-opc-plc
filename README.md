@@ -191,6 +191,7 @@ More information about this feature can be found [here](deterministic-alarms.md)
   - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
 - Nodes with deterministic random GUIDs as node IDs: `--gn=<number_of_nodes>`
 - Node with opaque identifier (free-format byte string)
+- Load binary *.PredefinedNodes.uanodes file compiled from an XML NodeSet: `--unf=<PredefinedNodes_uanodes>`
 
 ## OPC UA Methods
 
