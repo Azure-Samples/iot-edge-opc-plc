@@ -25,7 +25,7 @@ public class UaNodesPluginNodes : IPluginNodes
     {
         optionSet.Add(
             "unf|uanodesfile=",
-            "the binary *.PredefinedNodes.uanodes file which contains the nodes to be created in the OPC UA address space.",
+            "the binary *.PredefinedNodes.uanodes file that contains the nodes to be created in the OPC UA address space, use ModelCompiler.cmd <ModelDesign> to compile.",
             (string s) => _nodesFileName = s);
     }
 
