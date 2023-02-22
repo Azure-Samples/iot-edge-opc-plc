@@ -217,6 +217,11 @@ namespace AlarmCondition
                     sources[ii].DoSimulation(m_simulationCounter, ii);
                 }
             }
+            catch (OutOfMemoryException oome)
+            {
+                Utils.Trace(oome, $"OutOfMemoryException: {oome.Message}");
+                Environment.Exit(-1); // Exit app as we cannot recover from this.
+            }
             catch (Exception e)
             {
                 Utils.Trace(e, "Unexpected error running simulation for system");
