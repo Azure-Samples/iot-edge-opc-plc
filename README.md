@@ -482,7 +482,12 @@ Options:
                                Default: 0
       --ns, --nospikes       do not generate spike data
                                Default: False
+      --unf, --uanodesfile=VALUE
+                             the binary *.PredefinedNodes.uanodes file that
+                               contains the nodes to be created in the OPC UA
+                               address space, use ModelCompiler.cmd <
+                               ModelDesign> to compile.
       --nf, --nodesfile=VALUE
-                             the filename which contains the list of nodes to
-                               be created in the OPC UA address space.
+                             the filename that contains the list of nodes to be
+                               created in the OPC UA address space.
 ```

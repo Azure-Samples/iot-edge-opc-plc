@@ -10,7 +10,7 @@ using System.IO;
 using static OpcPlc.Program;
 
 /// <summary>
-/// Nodes that are configuration via JSON file.
+/// Nodes that are configured via JSON file.
 /// </summary>
 public class UserDefinedPluginNodes : IPluginNodes
 {
@@ -23,7 +23,7 @@ public class UserDefinedPluginNodes : IPluginNodes
     {
         optionSet.Add(
             "nf|nodesfile=",
-            "the filename which contains the list of nodes to be created in the OPC UA address space.",
+            "the filename that contains the list of nodes to be created in the OPC UA address space.",
             (string s) => _nodesFileName = s);
     }
 
