@@ -72,7 +72,7 @@ public class PlcNodeManager : CustomNodeManager2
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Error creating address space.");
+                Logger.Error(e, "Error creating address space");
             }
 
             AddPredefinedNode(SystemContext, root);

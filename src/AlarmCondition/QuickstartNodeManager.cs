@@ -315,9 +315,7 @@ namespace AlarmCondition
         /// <returns>Non-null if the handle belongs to the node manager.</returns>
         protected virtual NodeHandle IsHandleInNamespace(object managerHandle)
         {
-            NodeHandle source = managerHandle as NodeHandle;
-
-            if (source == null)
+            if (managerHandle is not NodeHandle source)
             {
                 return null;
             }
@@ -342,9 +340,8 @@ namespace AlarmCondition
                     return null;
                 }
 
-                NodeState node = null;
 
-                if (!PredefinedNodes.TryGetValue(nodeId, out node))
+                if (!PredefinedNodes.TryGetValue(nodeId, out NodeState node))
                 {
                     return null;
                 }
@@ -412,7 +409,7 @@ namespace AlarmCondition
             ServerSystemContext contextToUse = m_systemContext.Copy(context);
 
             bool found = false;
-            List<LocalReference> referencesToRemove = new List<LocalReference>();
+            List<LocalReference> referencesToRemove = new();
 
             lock (Lock)
             {
@@ -421,9 +418,8 @@ namespace AlarmCondition
                     return false;
                 }
 
-                NodeState node = null;
 
-                if (PredefinedNodes.TryGetValue(nodeId, out node))
+                if (PredefinedNodes.TryGetValue(nodeId, out NodeState node))
                 {
                     RemovePredefinedNode(contextToUse, node, referencesToRemove);
                     found = true;
@@ -460,7 +456,7 @@ namespace AlarmCondition
             protected set
             {
                 ArgumentNullException.ThrowIfNull(value);
-                List<string> namespaceUris = new List<string>(value);
+                List<string> namespaceUris = new(value);
                 SetNamespaces(namespaceUris.ToArray());
             }
         }
@@ -540,9 +536,7 @@ namespace AlarmCondition
         /// </summary>
         protected virtual NodeState AddBehaviourToPredefinedNode(ISystemContext context, NodeState predefinedNode)
         {
-            BaseObjectState passiveNode = predefinedNode as BaseObjectState;
-
-            if (passiveNode == null)
+            if (predefinedNode is not BaseObjectState passiveNode)
             {
                 return predefinedNode;
             }
@@ -563,14 +557,13 @@ namespace AlarmCondition
             NodeState activeNode = AddBehaviourToPredefinedNode(context, node);
             m_predefinedNodes[activeNode.NodeId] = activeNode;
 
-            BaseTypeState type = activeNode as BaseTypeState;
 
-            if (type != null)
+            if (activeNode is BaseTypeState type)
             {
                 AddTypesToTypeTree(type);
             }
 
-            List<BaseInstanceState> children = new List<BaseInstanceState>();
+            var children = new List<BaseInstanceState>();
             activeNode.GetChildren(context, children);
 
             for (int ii = 0; ii < children.Count; ii++)
@@ -598,15 +591,14 @@ namespace AlarmCondition
             OnNodeRemoved(node);
 
             // remove from the parent.
-            BaseInstanceState instance = node as BaseInstanceState;
 
-            if (instance != null && instance.Parent != null)
+            if (node is BaseInstanceState instance && instance.Parent != null)
             {
                 instance.Parent.RemoveChild(instance);
             }
 
             // remove children.
-            List<BaseInstanceState> children = new List<BaseInstanceState>();
+            var children = new List<BaseInstanceState>();
             node.GetChildren(context, children);
 
             for (int ii = 0; ii < children.Count; ii++)
@@ -620,15 +612,14 @@ namespace AlarmCondition
             }
 
             // remove from type table.
-            BaseTypeState type = node as BaseTypeState;
 
-            if (type != null)
+            if (node is BaseTypeState type)
             {
                 m_server.TypeTree.Remove(type.NodeId);
             }
 
             // remove inverse references.
-            List<IReference> references = new List<IReference>();
+            var references = new List<IReference>();
             node.GetReferences(context, references);
 
             for (int ii = 0; ii < references.Count; ii++)
@@ -640,7 +631,7 @@ namespace AlarmCondition
                     continue;
                 }
 
-                LocalReference referenceToRemove = new LocalReference(
+                var referenceToRemove = new LocalReference(
                     (NodeId)reference.TargetId,
                     reference.ReferenceTypeId,
                     reference.IsInverse,
@@ -672,14 +663,13 @@ namespace AlarmCondition
             foreach (NodeState source in m_predefinedNodes.Values)
             {
                 // assign a default value to any variable value.
-                BaseVariableState variable = source as BaseVariableState;
 
-                if (variable != null && variable.Value == null)
+                if (source is BaseVariableState variable && variable.Value == null)
                 {
                     variable.Value = Opc.Ua.TypeInfo.GetDefaultValue(variable.DataType, variable.ValueRank, Server.TypeTree);
                 }
 
-                IList<IReference> references = new List<IReference>();
+                var references = new List<IReference>();
                 source.GetReferences(SystemContext, references);
 
                 for (int ii = 0; ii < references.Count; ii++)
@@ -698,7 +688,7 @@ namespace AlarmCondition
                         continue;
                     }
 
-                    NodeId targetId = (NodeId)reference.TargetId;
+                    var targetId = (NodeId)reference.TargetId;
 
                     // check for data type encoding references.
                     if (reference.IsInverse && reference.ReferenceTypeId == ReferenceTypeIds.HasEncoding)
@@ -707,9 +697,7 @@ namespace AlarmCondition
                     }
 
                     // add inverse reference to internal targets.
-                    NodeState target = null;
-
-                    if (m_predefinedNodes.TryGetValue(targetId, out target))
+                    if (m_predefinedNodes.TryGetValue(targetId, out NodeState target))
                     {
                         if (!target.ReferenceExists(reference.ReferenceTypeId, !reference.IsInverse, source.NodeId))
                         {
@@ -753,19 +741,18 @@ namespace AlarmCondition
             IDictionary<NodeId, IList<IReference>> externalReferences)
         {
             // get list of references to external nodes.
-            IList<IReference> referencesToAdd = null;
-
-            if (!externalReferences.TryGetValue(sourceId, out referencesToAdd))
+            if (!externalReferences.TryGetValue(sourceId, out IList<IReference> referencesToAdd))
             {
                 externalReferences[sourceId] = referencesToAdd = new List<IReference>();
             }
 
             // add reserve reference from external node.
-            ReferenceNode referenceToAdd = new ReferenceNode();
-
-            referenceToAdd.ReferenceTypeId = referenceTypeId;
-            referenceToAdd.IsInverse = isInverse;
-            referenceToAdd.TargetId = targetId;
+            var referenceToAdd = new ReferenceNode
+            {
+                ReferenceTypeId = referenceTypeId,
+                IsInverse = isInverse,
+                TargetId = targetId
+            };
 
             referencesToAdd.Add(referenceToAdd);
         }
@@ -798,16 +785,13 @@ namespace AlarmCondition
         /// </summary>
         protected void AddTypesToTypeTree(NodeId typeId)
         {
-            NodeState node = null;
-
-            if (!PredefinedNodes.TryGetValue(typeId, out node))
+            if (!PredefinedNodes.TryGetValue(typeId, out NodeState node))
             {
                 return;
             }
 
-            BaseTypeState type = node as BaseTypeState;
 
-            if (type == null)
+            if (node is not BaseTypeState type)
             {
                 return;
             }
@@ -826,9 +810,7 @@ namespace AlarmCondition
                 return null;
             }
 
-            NodeState node = null;
-
-            if (!PredefinedNodes.TryGetValue(nodeId, out node))
+            if (!PredefinedNodes.TryGetValue(nodeId, out NodeState node))
             {
                 return null;
             }
@@ -892,15 +874,14 @@ namespace AlarmCondition
 
             if (m_predefinedNodes != null)
             {
-                NodeState node = null;
-
-                if (m_predefinedNodes.TryGetValue(nodeId, out node))
+                if (m_predefinedNodes.TryGetValue(nodeId, out NodeState node))
                 {
-                    NodeHandle handle = new NodeHandle();
-
-                    handle.NodeId = nodeId;
-                    handle.Node = node;
-                    handle.Validated = true;
+                    var handle = new NodeHandle
+                    {
+                        NodeId = nodeId,
+                        Node = node,
+                        Validated = true,
+                    };
 
                     return handle;
                 }
@@ -1035,11 +1016,12 @@ namespace AlarmCondition
                     Attributes.UserExecutable);
 
                 // construct the metadata object.
-                NodeMetadata metadata = new NodeMetadata(target, target.NodeId);
-
-                metadata.NodeClass = target.NodeClass;
-                metadata.BrowseName = target.BrowseName;
-                metadata.DisplayName = target.DisplayName;
+                var metadata = new NodeMetadata(target, target.NodeId)
+                {
+                    NodeClass = target.NodeClass,
+                    BrowseName = target.BrowseName,
+                    DisplayName = target.DisplayName
+                };
 
                 if (values[0] != null && values[1] != null)
                 {
@@ -1071,9 +1053,8 @@ namespace AlarmCondition
                 }
 
                 // get instance references.
-                BaseInstanceState instance = target as BaseInstanceState;
 
-                if (instance != null)
+                if (target is BaseInstanceState instance)
                 {
                     metadata.TypeDefinition = instance.TypeDefinitionId;
                     metadata.ModellingRule = instance.ModellingRuleId;
@@ -1153,7 +1134,7 @@ namespace AlarmCondition
             lock (browser)
             {
                 // apply filters to references.
-                Dictionary<NodeId, NodeState> cache = new Dictionary<NodeId, NodeState>();
+                var cache = new Dictionary<NodeId, NodeState>();
 
                 for (IReference reference = browser.Next(); reference != null; reference = browser.Next())
                 {
@@ -1221,9 +1202,10 @@ namespace AlarmCondition
             ServerSystemContext systemContext = m_systemContext.Copy(context);
 
             // create the type definition reference.
-            ReferenceDescription description = new ReferenceDescription();
-
-            description.NodeId = reference.TargetId;
+            ReferenceDescription description = new()
+            {
+                NodeId = reference.TargetId
+            };
             description.SetReferenceType(continuationPoint.ResultMask, reference.ReferenceTypeId, !reference.IsInverse);
 
             // check if reference is in the view.
@@ -1247,9 +1229,8 @@ namespace AlarmCondition
             NodeState target = null;
 
             // check for local reference.
-            NodeStateReference referenceInfo = reference as NodeStateReference;
 
-            if (referenceInfo != null)
+            if (reference is NodeStateReference referenceInfo)
             {
                 target = referenceInfo.Target;
             }
@@ -1257,9 +1238,7 @@ namespace AlarmCondition
             // check for internal reference.
             if (target == null)
             {
-                NodeHandle handle = GetManagerHandle(context, (NodeId)reference.TargetId, null) as NodeHandle;
-
-                if (handle != null)
+                if (GetManagerHandle(context, (NodeId)reference.TargetId, null) is NodeHandle handle)
                 {
                     target = ValidateNode(context, handle, null);
                 }
@@ -1289,9 +1268,8 @@ namespace AlarmCondition
             // look up the type definition.
             NodeId typeDefinition = null;
 
-            BaseInstanceState instance = target as BaseInstanceState;
 
-            if (instance != null)
+            if (target is BaseInstanceState instance)
             {
                 typeDefinition = instance.TypeDefinitionId;
             }
@@ -1369,16 +1347,15 @@ namespace AlarmCondition
                         NodeState target = null;
 
                         // check for local reference.
-                        NodeStateReference referenceInfo = reference as NodeStateReference;
 
-                        if (referenceInfo != null)
+                        if (reference is NodeStateReference referenceInfo)
                         {
                             target = referenceInfo.Target;
                         }
 
                         if (target == null)
                         {
-                            NodeId targetId = (NodeId)reference.TargetId;
+                            var targetId = (NodeId)reference.TargetId;
 
                             // the target may be a reference to a node in another node manager.
                             if (!IsNodeIdInNamespace(targetId))
@@ -1433,7 +1410,7 @@ namespace AlarmCondition
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
             IDictionary<NodeId, NodeState> operationCache = new NodeIdDictionary<NodeState>();
-            List<NodeHandle> nodesToValidate = new List<NodeHandle>();
+            var nodesToValidate = new List<NodeHandle>();
 
             lock (Lock)
             {
@@ -1459,7 +1436,7 @@ namespace AlarmCondition
                     nodeToRead.Processed = true;
 
                     // create an initial value.
-                    DataValue value = values[ii] = new DataValue();
+                    var value = values[ii] = new DataValue();
 
                     value.Value = null;
                     value.ServerTimestamp = DateTime.UtcNow;
@@ -1517,7 +1494,6 @@ namespace AlarmCondition
             NodeHandle handle,
             IDictionary<NodeId, NodeState> cache)
         {
-            NodeState target = null;
 
             // not valid if no root.
             if (handle == null)
@@ -1534,6 +1510,7 @@ namespace AlarmCondition
             // construct id for root node.
             NodeId rootId = handle.RootId;
 
+            NodeState target;
             if (cache != null)
             {
                 // lookup component in local cache for request.
@@ -1543,7 +1520,7 @@ namespace AlarmCondition
                 }
 
                 // lookup root in local cache for request.
-                if (!String.IsNullOrEmpty(handle.ComponentPath))
+                if (!string.IsNullOrEmpty(handle.ComponentPath))
                 {
                     if (cache.TryGetValue(rootId, out target))
                     {
@@ -1667,7 +1644,7 @@ namespace AlarmCondition
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
             IDictionary<NodeId, NodeState> operationCache = new NodeIdDictionary<NodeState>();
-            List<NodeHandle> nodesToValidate = new List<NodeHandle>();
+            List<NodeHandle> nodesToValidate = new();
 
             lock (Lock)
             {
@@ -1695,7 +1672,7 @@ namespace AlarmCondition
                     // index range is not supported.
                     if (nodeToWrite.AttributeId != Attributes.Value)
                     {
-                        if (!String.IsNullOrEmpty(nodeToWrite.IndexRange))
+                        if (!string.IsNullOrEmpty(nodeToWrite.IndexRange))
                         {
                             errors[ii] = StatusCodes.BadWriteNotSupported;
                             continue;
@@ -1804,7 +1781,7 @@ namespace AlarmCondition
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
             IDictionary<NodeId, NodeState> operationCache = new NodeIdDictionary<NodeState>();
-            List<NodeHandle> nodesToProcess = new List<NodeHandle>();
+            List<NodeHandle> nodesToProcess = new();
 
             lock (Lock)
             {
@@ -1851,9 +1828,8 @@ namespace AlarmCondition
                     errors[ii] = StatusCodes.BadHistoryOperationUnsupported;
 
                     // check for data history variable.
-                    BaseVariableState variable = handle.Node as BaseVariableState;
 
-                    if (variable != null)
+                    if (handle.Node is BaseVariableState variable)
                     {
                         if ((variable.AccessLevel & AccessLevels.HistoryRead) != 0)
                         {
@@ -1864,9 +1840,8 @@ namespace AlarmCondition
                     }
 
                     // check for event history object.
-                    BaseObjectState notifier = handle.Node as BaseObjectState;
 
-                    if (notifier != null)
+                    if (handle.Node is BaseObjectState notifier)
                     {
                         if ((notifier.EventNotifier & EventNotifiers.HistoryRead) != 0)
                         {
@@ -2074,9 +2049,8 @@ namespace AlarmCondition
             }
 
             // handle raw data request.
-            ReadRawModifiedDetails readRawModifiedDetails = details as ReadRawModifiedDetails;
 
-            if (readRawModifiedDetails != null)
+            if (details is ReadRawModifiedDetails readRawModifiedDetails)
             {
                 // at least one must be provided.
                 if (readRawModifiedDetails.StartTime == DateTime.MinValue && readRawModifiedDetails.EndTime == DateTime.MinValue)
@@ -2107,9 +2081,8 @@ namespace AlarmCondition
             }
 
             // handle processed data request.
-            ReadProcessedDetails readProcessedDetails = details as ReadProcessedDetails;
 
-            if (readProcessedDetails != null)
+            if (details is ReadProcessedDetails readProcessedDetails)
             {
                 // check the list of aggregates.
                 if (readProcessedDetails.AggregateType == null || readProcessedDetails.AggregateType.Count != nodesToRead.Count)
@@ -2137,9 +2110,8 @@ namespace AlarmCondition
             }
 
             // handle raw data at time request.
-            ReadAtTimeDetails readAtTimeDetails = details as ReadAtTimeDetails;
 
-            if (readAtTimeDetails != null)
+            if (details is ReadAtTimeDetails readAtTimeDetails)
             {
                 HistoryReadAtTime(
                     context,
@@ -2155,9 +2127,8 @@ namespace AlarmCondition
             }
 
             // handle read events request.
-            ReadEventDetails readEventDetails = details as ReadEventDetails;
 
-            if (readEventDetails != null)
+            if (details is ReadEventDetails readEventDetails)
             {
                 // check start/end time and max values.
                 if (readEventDetails.NumValuesPerNode == 0)
@@ -2211,7 +2182,7 @@ namespace AlarmCondition
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
             IDictionary<NodeId, NodeState> operationCache = new NodeIdDictionary<NodeState>();
-            List<NodeHandle> nodesToProcess = new List<NodeHandle>();
+            List<NodeHandle> nodesToProcess = new();
 
             lock (Lock)
             {
@@ -2254,9 +2225,7 @@ namespace AlarmCondition
                     errors[ii] = StatusCodes.BadHistoryOperationUnsupported;
 
                     // check for data history variable.
-                    BaseVariableState variable = handle.Node as BaseVariableState;
-
-                    if (variable != null)
+                    if (handle.Node is BaseVariableState variable)
                     {
                         if ((variable.AccessLevel & AccessLevels.HistoryWrite) != 0)
                         {
@@ -2267,9 +2236,7 @@ namespace AlarmCondition
                     }
 
                     // check for event history object.
-                    BaseObjectState notifier = handle.Node as BaseObjectState;
-
-                    if (notifier != null)
+                    if (handle.Node is BaseObjectState notifier)
                     {
                         if ((notifier.EventNotifier & EventNotifiers.HistoryWrite) != 0)
                         {
@@ -2667,7 +2634,7 @@ namespace AlarmCondition
                 }
 
                 // call the method.
-                CallMethodResult result = results[ii] = new CallMethodResult();
+                var result = results[ii] = new CallMethodResult();
 
                 errors[ii] = Call(
                     systemContext,
@@ -2686,9 +2653,9 @@ namespace AlarmCondition
             MethodState method,
             CallMethodResult result)
         {
-            ServerSystemContext systemContext = context as ServerSystemContext;
-            List<ServiceResult> argumentErrors = new List<ServiceResult>();
-            VariantCollection outputArguments = new VariantCollection();
+            var systemContext = context as ServerSystemContext;
+            List<ServiceResult> argumentErrors = new();
+            VariantCollection outputArguments = new();
 
             ServiceResult error = method.Call(
                 context,
@@ -2932,7 +2899,7 @@ namespace AlarmCondition
             IEventMonitoredItem monitoredItem,
             bool unsubscribe)
         {
-            MonitoredNode monitoredNode = null;
+            MonitoredNode monitoredNode;
 
             // handle unsubscribe.
             if (unsubscribe)
@@ -2962,13 +2929,10 @@ namespace AlarmCondition
             }
 
             // only objects or views can be subscribed to.
-            BaseObjectState instance = source as BaseObjectState;
 
-            if (instance == null || (instance.EventNotifier & EventNotifiers.SubscribeToEvents) == 0)
+            if (source is not BaseObjectState instance || (instance.EventNotifier & EventNotifiers.SubscribeToEvents) == 0)
             {
-                ViewState view = source as ViewState;
-
-                if (view == null || (view.EventNotifier & EventNotifiers.SubscribeToEvents) == 0)
+                if (source is not ViewState view || (view.EventNotifier & EventNotifiers.SubscribeToEvents) == 0)
                 {
                     return StatusCodes.BadNotSupported;
                 }
@@ -3027,15 +2991,14 @@ namespace AlarmCondition
             for (int ii = 0; ii < monitoredItems.Count; ii++)
             {
                 // the IEventMonitoredItem should always be MonitoredItems since they are created by the MasterNodeManager.
-                MonitoredItem monitoredItem = monitoredItems[ii] as MonitoredItem;
 
-                if (monitoredItem == null)
+                if (monitoredItems[ii] is not MonitoredItem monitoredItem)
                 {
                     continue;
                 }
 
-                List<IFilterTarget> events = new List<IFilterTarget>();
-                List<NodeState> nodesToRefresh = new List<NodeState>();
+                List<IFilterTarget> events = new();
+                List<NodeState> nodesToRefresh = new();
 
                 lock (Lock)
                 {
@@ -3050,9 +3013,8 @@ namespace AlarmCondition
                     else
                     {
                         // check for existing monitored node.
-                        MonitoredNode monitoredNode = null;
 
-                        if (!MonitoredNodes.TryGetValue(monitoredItem.NodeId, out monitoredNode))
+                        if (!MonitoredNodes.TryGetValue(monitoredItem.NodeId, out MonitoredNode monitoredNode))
                         {
                             continue;
                         }
@@ -3098,8 +3060,8 @@ namespace AlarmCondition
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
             IDictionary<NodeId, NodeState> operationCache = new NodeIdDictionary<NodeState>();
-            List<NodeHandle> nodesToValidate = new List<NodeHandle>();
-            List<IMonitoredItem> createdItems = new List<IMonitoredItem>();
+            List<NodeHandle> nodesToValidate = new();
+            List<IMonitoredItem> createdItems = new();
 
             lock (Lock)
             {
@@ -3231,9 +3193,7 @@ namespace AlarmCondition
             }
 
             // check if the node is already being monitored.
-            MonitoredNode monitoredNode = null;
-
-            if (!m_monitoredNodes.TryGetValue(handle.Node.NodeId, out monitoredNode))
+            if (!m_monitoredNodes.TryGetValue(handle.Node.NodeId, out MonitoredNode monitoredNode))
             {
                 NodeState cachedNode = AddNodeToComponentCache(context, handle, handle.Node);
                 m_monitoredNodes[handle.Node.NodeId] = monitoredNode = new MonitoredNode(this, cachedNode);
@@ -3256,16 +3216,14 @@ namespace AlarmCondition
             // ensure minimum sampling interval is not exceeded.
             if (itemToCreate.ItemToMonitor.AttributeId == Attributes.Value)
             {
-                BaseVariableState variable = handle.Node as BaseVariableState;
-
-                if (variable != null && samplingInterval < variable.MinimumSamplingInterval)
+                if (handle.Node is BaseVariableState variable && samplingInterval < variable.MinimumSamplingInterval)
                 {
                     samplingInterval = variable.MinimumSamplingInterval;
                 }
             }
 
             // put a large upper limit on sampling.
-            if (samplingInterval == Double.MaxValue)
+            if (samplingInterval == double.MaxValue)
             {
                 samplingInterval = 365 * 24 * 3600 * 1000.0;
             }
@@ -3278,10 +3236,9 @@ namespace AlarmCondition
                 queueSize = m_maxQueueSize;
             }
 
-            // validate the monitoring filter.
-            Opc.Ua.Range euRange = null;
-            MonitoringFilter filterToUse = null;
 
+
+            // validate the monitoring filter.
             ServiceResult error = ValidateMonitoringFilter(
                 context,
                 handle,
@@ -3289,8 +3246,8 @@ namespace AlarmCondition
                 samplingInterval,
                 queueSize,
                 parameters.Filter,
-                out filterToUse,
-                out euRange,
+                out MonitoringFilter filterToUse,
+                out Opc.Ua.Range euRange,
                 out filterResult);
 
             if (ServiceResult.IsBad(error))
@@ -3345,12 +3302,13 @@ namespace AlarmCondition
             NodeHandle handle,
             IDataChangeMonitoredItem2 monitoredItem)
         {
-            DataValue initialValue = new DataValue();
-
-            initialValue.Value = null;
-            initialValue.ServerTimestamp = DateTime.UtcNow;
-            initialValue.SourceTimestamp = DateTime.MinValue;
-            initialValue.StatusCode = StatusCodes.BadWaitingForInitialData;
+            DataValue initialValue = new()
+            {
+                Value = null,
+                ServerTimestamp = DateTime.UtcNow,
+                SourceTimestamp = DateTime.MinValue,
+                StatusCode = StatusCodes.BadWaitingForInitialData
+            };
 
             ServiceResult error = handle.Node.ReadAttribute(
                 context,
@@ -3403,13 +3361,10 @@ namespace AlarmCondition
             }
 
             // extension objects wrap any data structure. must check that the client provided the correct structure.
-            DataChangeFilter deadbandFilter = ExtensionObject.ToEncodeable(filter) as DataChangeFilter;
 
-            if (deadbandFilter == null)
+            if (ExtensionObject.ToEncodeable(filter) is not DataChangeFilter deadbandFilter)
             {
-                AggregateFilter aggregateFilter = ExtensionObject.ToEncodeable(filter) as AggregateFilter;
-
-                if (aggregateFilter == null || attributeId != Attributes.Value)
+                if (ExtensionObject.ToEncodeable(filter) is not AggregateFilter aggregateFilter || attributeId != Attributes.Value)
                 {
                     return StatusCodes.BadFilterNotAllowed;
                 }
@@ -3419,12 +3374,14 @@ namespace AlarmCondition
                     return StatusCodes.BadAggregateNotSupported;
                 }
 
-                ServerAggregateFilter revisedFilter = new ServerAggregateFilter();
-                revisedFilter.AggregateType = aggregateFilter.AggregateType;
-                revisedFilter.StartTime = aggregateFilter.StartTime;
-                revisedFilter.ProcessingInterval = aggregateFilter.ProcessingInterval;
-                revisedFilter.AggregateConfiguration = aggregateFilter.AggregateConfiguration;
-                revisedFilter.Stepped = false;
+                ServerAggregateFilter revisedFilter = new()
+                {
+                    AggregateType = aggregateFilter.AggregateType,
+                    StartTime = aggregateFilter.StartTime,
+                    ProcessingInterval = aggregateFilter.ProcessingInterval,
+                    AggregateConfiguration = aggregateFilter.AggregateConfiguration,
+                    Stepped = false
+                };
 
                 StatusCode error = ReviseAggregateFilter(context, handle, samplingInterval, queueSize, revisedFilter);
 
@@ -3433,10 +3390,12 @@ namespace AlarmCondition
                     return error;
                 }
 
-                AggregateFilterResult aggregateFilterResult = new AggregateFilterResult();
-                aggregateFilterResult.RevisedProcessingInterval = aggregateFilter.ProcessingInterval;
-                aggregateFilterResult.RevisedStartTime = aggregateFilter.StartTime;
-                aggregateFilterResult.RevisedAggregateConfiguration = aggregateFilter.AggregateConfiguration;
+                AggregateFilterResult aggregateFilterResult = new()
+                {
+                    RevisedProcessingInterval = aggregateFilter.ProcessingInterval,
+                    RevisedStartTime = aggregateFilter.StartTime,
+                    RevisedAggregateConfiguration = aggregateFilter.AggregateConfiguration
+                };
 
                 filterToUse = revisedFilter;
                 result = aggregateFilterResult;
@@ -3449,9 +3408,8 @@ namespace AlarmCondition
                 return StatusCodes.BadFilterNotAllowed;
             }
 
-            BaseVariableState variable = handle.Node as BaseVariableState;
 
-            if (variable == null)
+            if (handle.Node is not BaseVariableState variable)
             {
                 return StatusCodes.BadFilterNotAllowed;
             }
@@ -3479,9 +3437,7 @@ namespace AlarmCondition
             // need to look up the EU range if a percent filter is requested.
             if (deadbandFilter.DeadbandType == (uint)DeadbandType.Percent)
             {
-                PropertyState property = handle.Node.FindChild(context, Opc.Ua.BrowseNames.EURange) as PropertyState;
-
-                if (property == null)
+                if (handle.Node.FindChild(context, Opc.Ua.BrowseNames.EURange) is not PropertyState property)
                 {
                     return StatusCodes.BadFilterNotAllowed;
                 }
@@ -3556,7 +3512,7 @@ namespace AlarmCondition
             IList<MonitoringFilterResult> filterResults)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
-            List<IMonitoredItem> modifiedItems = new List<IMonitoredItem>();
+            List<IMonitoredItem> modifiedItems = new();
 
             lock (Lock)
             {
@@ -3582,8 +3538,6 @@ namespace AlarmCondition
                     itemToModify.Processed = true;
 
                     // modify the monitored item.
-                    MonitoringFilterResult filterResult = null;
-
                     errors[ii] = ModifyMonitoredItem(
                         systemContext,
                         context.DiagnosticsMask,
@@ -3591,7 +3545,7 @@ namespace AlarmCondition
                         monitoredItems[ii],
                         itemToModify,
                         handle,
-                        out filterResult);
+                        out MonitoringFilterResult filterResult);
 
                     // save any filter error details.
                     filterResults[ii] = filterResult;
@@ -3629,7 +3583,6 @@ namespace AlarmCondition
             NodeHandle handle,
             out MonitoringFilterResult filterResult)
         {
-            filterResult = null;
 
             // check for valid monitored item.
             MonitoredItem datachangeItem = monitoredItem as MonitoredItem;
@@ -3650,16 +3603,14 @@ namespace AlarmCondition
             // ensure minimum sampling interval is not exceeded.
             if (datachangeItem.AttributeId == Attributes.Value)
             {
-                BaseVariableState variable = handle.Node as BaseVariableState;
-
-                if (variable != null && samplingInterval < variable.MinimumSamplingInterval)
+                if (handle.Node is BaseVariableState variable && samplingInterval < variable.MinimumSamplingInterval)
                 {
                     samplingInterval = variable.MinimumSamplingInterval;
                 }
             }
 
             // put a large upper limit on sampling.
-            if (samplingInterval == Double.MaxValue)
+            if (samplingInterval == double.MaxValue)
             {
                 samplingInterval = 365 * 24 * 3600 * 1000.0;
             }
@@ -3672,10 +3623,9 @@ namespace AlarmCondition
                 queueSize = m_maxQueueSize;
             }
 
-            // validate the monitoring filter.
-            Opc.Ua.Range euRange = null;
-            MonitoringFilter filterToUse = null;
 
+
+            // validate the monitoring filter.
             ServiceResult error = ValidateMonitoringFilter(
                 context,
                 handle,
@@ -3683,8 +3633,8 @@ namespace AlarmCondition
                 samplingInterval,
                 queueSize,
                 parameters.Filter,
-                out filterToUse,
-                out euRange,
+                out MonitoringFilter filterToUse,
+                out Opc.Ua.Range euRange,
                 out filterResult);
 
             if (ServiceResult.IsBad(error))
@@ -3738,7 +3688,7 @@ namespace AlarmCondition
             IList<ServiceResult> errors)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
-            List<IMonitoredItem> deletedItems = new List<IMonitoredItem>();
+            List<IMonitoredItem> deletedItems = new();
 
             lock (Lock)
             {
@@ -3800,9 +3750,7 @@ namespace AlarmCondition
             MonitoredItem datachangeItem = monitoredItem as MonitoredItem;
 
             // check if the node is already being monitored.
-            MonitoredNode monitoredNode = null;
-
-            if (m_monitoredNodes.TryGetValue(handle.NodeId, out monitoredNode))
+            if (m_monitoredNodes.TryGetValue(handle.NodeId, out MonitoredNode monitoredNode))
             {
                 monitoredNode.Remove(datachangeItem);
 
@@ -3853,7 +3801,7 @@ namespace AlarmCondition
             IList<ServiceResult> errors)
         {
             ServerSystemContext systemContext = m_systemContext.Copy(context);
-            List<IMonitoredItem> changedItems = new List<IMonitoredItem>();
+            List<IMonitoredItem> changedItems = new();
 
             lock (Lock)
             {
@@ -3922,9 +3870,8 @@ namespace AlarmCondition
                     }
 
                     // check handle.
-                    var monitoredNode = monitoredItems[i].ManagerHandle as MonitoredNode;
 
-                    if (monitoredNode == null)
+                    if (monitoredItems[i].ManagerHandle is not MonitoredNode monitoredNode)
                     {
                         continue;
                     }
@@ -4050,7 +3997,7 @@ namespace AlarmCondition
 
                 CacheEntry entry = null;
 
-                if (!String.IsNullOrEmpty(handle.ComponentPath))
+                if (!string.IsNullOrEmpty(handle.ComponentPath))
                 {
                     if (m_componentCache.TryGetValue(handle.RootId, out entry))
                     {
@@ -4085,14 +4032,12 @@ namespace AlarmCondition
                 {
                     NodeId nodeId = handle.NodeId;
 
-                    if (!String.IsNullOrEmpty(handle.ComponentPath))
+                    if (!string.IsNullOrEmpty(handle.ComponentPath))
                     {
                         nodeId = handle.RootId;
                     }
 
-                    CacheEntry entry = null;
-
-                    if (m_componentCache.TryGetValue(nodeId, out entry))
+                    if (m_componentCache.TryGetValue(nodeId, out CacheEntry entry))
                     {
                         entry.RefCount--;
 
@@ -4123,15 +4068,14 @@ namespace AlarmCondition
                 }
 
                 // check if a component is actually specified.
-                if (!String.IsNullOrEmpty(handle.ComponentPath))
+                if (!string.IsNullOrEmpty(handle.ComponentPath))
                 {
-                    CacheEntry entry = null;
 
-                    if (m_componentCache.TryGetValue(handle.RootId, out entry))
+                    if (m_componentCache.TryGetValue(handle.RootId, out CacheEntry entry))
                     {
                         entry.RefCount++;
 
-                        if (!String.IsNullOrEmpty(handle.ComponentPath))
+                        if (!string.IsNullOrEmpty(handle.ComponentPath))
                         {
                             return entry.Entry.FindChildBySymbolicName(context, handle.ComponentPath);
                         }
@@ -4143,9 +4087,11 @@ namespace AlarmCondition
 
                     if (root != null)
                     {
-                        entry = new CacheEntry();
-                        entry.RefCount = 1;
-                        entry.Entry = root;
+                        entry = new CacheEntry
+                        {
+                            RefCount = 1,
+                            Entry = root
+                        };
                         m_componentCache.Add(handle.RootId, entry);
                     }
                 }
@@ -4153,17 +4099,18 @@ namespace AlarmCondition
                 // simply add the node to the cache.
                 else
                 {
-                    CacheEntry entry = null;
 
-                    if (m_componentCache.TryGetValue(handle.NodeId, out entry))
+                    if (m_componentCache.TryGetValue(handle.NodeId, out CacheEntry entry))
                     {
                         entry.RefCount++;
                         return entry.Entry;
                     }
 
-                    entry = new CacheEntry();
-                    entry.RefCount = 1;
-                    entry.Entry = node;
+                    entry = new CacheEntry
+                    {
+                        RefCount = 1,
+                        Entry = node
+                    };
                     m_componentCache.Add(handle.NodeId, entry);
                 }
 
@@ -4173,7 +4120,7 @@ namespace AlarmCondition
         #endregion
 
         #region Private Fields
-        private object m_lock = new object();
+        private object m_lock = new();
         private IServerInternal m_server;
         private ServerSystemContext m_systemContext;
         private string[] m_namespaceUris;
