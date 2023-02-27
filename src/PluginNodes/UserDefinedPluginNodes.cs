@@ -97,7 +97,7 @@ public class UserDefinedPluginNodes : IPluginNodes
 
             CreateBaseVariable(userNodesFolder, node);
 
-            nodes.Add(PluginNodesHelpers.GetNodeWithIntervals((NodeId)node.NodeId, _plcNodeManager));
+            nodes.Add(PluginNodesHelper.GetNodeWithIntervals((NodeId)node.NodeId, _plcNodeManager));
         }
 
         Logger.Information("Completed processing user defined node information");

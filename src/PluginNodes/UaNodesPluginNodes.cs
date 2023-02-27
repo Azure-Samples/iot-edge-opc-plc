@@ -82,7 +82,7 @@ public class UaNodesPluginNodes : IPluginNodes
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
         {
-            PluginNodesHelpers.GetNodeWithIntervals(predefinedNodes[0].NodeId, _plcNodeManager),
+            PluginNodesHelper.GetNodeWithIntervals(predefinedNodes[0].NodeId, _plcNodeManager),
         };
 
         return predefinedNodes;

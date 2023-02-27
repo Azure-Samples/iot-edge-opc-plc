@@ -94,7 +94,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
         {
-            PluginNodesHelpers.GetNodeWithIntervals(children[0].NodeId, _plcNodeManager),
+            PluginNodesHelper.GetNodeWithIntervals(children[0].NodeId, _plcNodeManager),
         };
     }
 
