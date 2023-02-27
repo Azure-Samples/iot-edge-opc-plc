@@ -3,9 +3,9 @@
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
-using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using static OpcPlc.Program;
 
 /// <summary>
@@ -17,7 +17,7 @@ public class UaNodesPluginNodes : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private static string _nodesFileName;
+    private static List<string> _nodesFileNames;
     private PlcNodeManager _plcNodeManager;
     private Stream _uanodesFile;
 
@@ -25,15 +25,15 @@ public class UaNodesPluginNodes : IPluginNodes
     {
         optionSet.Add(
             "unf|uanodesfile=",
-            "the binary *.PredefinedNodes.uanodes file that contains the nodes to be created in the OPC UA address space, use ModelCompiler.cmd <ModelDesign> to compile.",
-            (string s) => _nodesFileName = s);
+            "the binary *.PredefinedNodes.uanodes file that contains the nodes to be created in the OPC UA address space (multiple comma separated filenames supported), use ModelCompiler.cmd <ModelDesign> to compile.",
+            (string s) => _nodesFileNames = CliHelper.ParseListOfFileNames(s, "unf"));
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
         _plcNodeManager = plcNodeManager;
 
-        if (!string.IsNullOrEmpty(_nodesFileName))
+        if (_nodesFileNames.Any())
         {
             AddNodes((FolderState)telemetryFolder.Parent); // Root.
         }
@@ -49,21 +49,15 @@ public class UaNodesPluginNodes : IPluginNodes
 
     private void AddNodes(FolderState folder)
     {
-        if (!File.Exists(_nodesFileName))
+        foreach (var file in _nodesFileNames)
         {
-            string error = $"The file {_nodesFileName} does not exist.";
-            Logger.Error(error);
-            throw new Exception(error);
+            _uanodesFile = File.OpenRead(file);
+
+            // Load complex types from binary uanodes file.
+            _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
         }
 
-        _uanodesFile = File.OpenRead(_nodesFileName);
-
-        // Load complex types from binary uanodes file.
-        _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
-
-        var nodes = new List<NodeWithIntervals>();
-
-        Logger.Information("Completed processing binary uanodes file");
+        Logger.Information("Completed processing binary uanodes file(s)");
     }
 
     /// <summary>
@@ -80,10 +74,8 @@ public class UaNodesPluginNodes : IPluginNodes
         _uanodesFile.Close();
 
         // Add to node list for creation of pn.json.
-        Nodes = new List<NodeWithIntervals>
-        {
-            PluginNodesHelper.GetNodeWithIntervals(predefinedNodes[0].NodeId, _plcNodeManager),
-        };
+        Nodes ??= new List<NodeWithIntervals>();
+        Nodes = Nodes.Append(PluginNodesHelper.GetNodeWithIntervals(predefinedNodes[0].NodeId, _plcNodeManager)).ToList();
 
         return predefinedNodes;
     }
