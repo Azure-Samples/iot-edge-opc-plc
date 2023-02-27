@@ -87,7 +87,7 @@ public class DeterministicGuidPluginNodes : IPluginNodes
             _nodes[i] = _plcNodeManager.CreateVariableNode<uint>(variable);
 
             // Add to node list for creation of pn.json.
-            nodes.Add(PluginNodesHelpers.GetNodeWithIntervals(variable.NodeId, _plcNodeManager));
+            nodes.Add(PluginNodesHelper.GetNodeWithIntervals(variable.NodeId, _plcNodeManager));
         }
 
         Nodes = nodes;

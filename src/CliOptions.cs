@@ -2,6 +2,7 @@
 
 using Mono.Options;
 using Opc.Ua;
+using OpcPlc.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -149,12 +150,12 @@ public class CliOptions
 
                 { "tb|addtrustedcertbase64=", "adds the certificate to the application's trusted cert store passed in as base64 string (comma separated values)", (string s) => TrustedCertificateBase64Strings = ParseListOfStrings(s)
                 },
-                { "tf|addtrustedcertfile=", "adds the certificate file(s) to the application's trusted cert store passed in as base64 string (multiple filenames supported)", (string s) => TrustedCertificateFileNames = ParseListOfFileNames(s, "addtrustedcertfile")
+                { "tf|addtrustedcertfile=", "adds the certificate file(s) to the application's trusted cert store passed in as base64 string (multiple comma separated filenames supported)", (string s) => TrustedCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addtrustedcertfile")
                 },
 
                 { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (comma separated values)", (string s) => IssuerCertificateBase64Strings = ParseListOfStrings(s)
                 },
-                { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the application's trusted issuer cert store (multiple filenames supported)", (string s) => IssuerCertificateFileNames = ParseListOfFileNames(s, "addissuercertfile")
+                { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the application's trusted issuer cert store (multiple comma separated filenames supported)", (string s) => IssuerCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addissuercertfile")
                 },
 
                 { "rb|updatecrlbase64=", "update the CRL passed in as base64 string to the corresponding cert store (trusted or trusted issuer)", (string s) => CrlBase64String = s
@@ -267,61 +268,5 @@ public class CliOptions
             strings.Add(list);
         }
         return strings;
-    }
-
-    /// <summary>
-    /// Helper to build a list of filenames out of a comma separated list of filenames (optional in double quotes).
-    /// </summary>
-    private static List<string> ParseListOfFileNames(string s, string option)
-    {
-        var fileNames = new List<string>();
-        if (s[0] == '"' && (s.Count(c => c.Equals('"')) % 2 == 0))
-        {
-            while (s.Contains('"'))
-            {
-                int first = 0;
-                int next = 0;
-                first = s.IndexOf('"', next);
-                next = s.IndexOf('"', ++first);
-                string fileName = s[first..next];
-                if (File.Exists(fileName))
-                {
-                    fileNames.Add(fileName);
-                }
-                else
-                {
-                    throw new OptionException($"The file '{fileName}' does not exist.", option);
-                }
-                s = s.Substring(++next);
-            }
-        }
-        else if (s.Contains(','))
-        {
-            List<string> parsedFileNames = s.Split(',').ToList();
-            parsedFileNames = parsedFileNames.Select(st => st.Trim()).ToList();
-            foreach (var fileName in parsedFileNames)
-            {
-                if (File.Exists(fileName))
-                {
-                    fileNames.Add(fileName);
-                }
-                else
-                {
-                    throw new OptionException($"The file '{fileName}' does not exist.", option);
-                }
-            }
-        }
-        else
-        {
-            if (File.Exists(s))
-            {
-                fileNames.Add(s);
-            }
-            else
-            {
-                throw new OptionException($"The file '{s}' does not exist.", option);
-            }
-        }
-        return fileNames;
     }
 }

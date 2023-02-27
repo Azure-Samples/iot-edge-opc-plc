@@ -345,7 +345,7 @@ Options:
       --tf, --addtrustedcertfile=VALUE
                              adds the certificate file(s) to the application's
                                trusted cert store passed in as base64 string (
-                               multiple filenames supported)
+                               multiple comma separated filenames supported)
       --ib, --addissuercertbase64=VALUE
                              adds the specified issuer certificate to the
                                application's trusted issuer cert store passed
@@ -353,7 +353,7 @@ Options:
       --if, --addissuercertfile=VALUE
                              adds the specified issuer certificate file(s) to
                                the application's trusted issuer cert store (
-                               multiple filenames supported)
+                               multiple comma separated filenames supported)
       --rb, --updatecrlbase64=VALUE
                              update the CRL passed in as base64 string to the
                                corresponding cert store (trusted or trusted
@@ -486,7 +486,8 @@ Options:
       --unf, --uanodesfile=VALUE
                              the binary *.PredefinedNodes.uanodes file that
                                contains the nodes to be created in the OPC UA
-                               address space, use ModelCompiler.cmd <
+                               address space (multiple comma separated
+                               filenames supported), use ModelCompiler.cmd <
                                ModelDesign> to compile.
       --nf, --nodesfile=VALUE
                              the filename that contains the list of nodes to be

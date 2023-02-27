@@ -83,7 +83,7 @@ public class DipPluginNode : IPluginNodes
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
         {
-            PluginNodesHelpers.GetNodeWithIntervals(variable.NodeId, _plcNodeManager),
+            PluginNodesHelper.GetNodeWithIntervals(variable.NodeId, _plcNodeManager),
         };
     }
 
