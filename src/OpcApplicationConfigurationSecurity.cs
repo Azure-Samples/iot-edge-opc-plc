@@ -43,6 +43,13 @@ public partial class OpcApplicationConfiguration
     public static bool AutoAcceptCerts { get; set; } = false;
 
     /// <summary>
+    /// Don't reject chain validation with CA certs with unknown revocation status,
+    /// e.g. when the CRL is not available or the OCSP provider is offline.
+    /// The default value is <see langword="false"/>, so rejection is enabled.
+    /// </summary>
+    public static bool DontRejectUnknownRevocationStatus { get; set; } = false;
+
+    /// <summary>
     /// Show CSR information during startup.
     /// </summary>
     public static bool ShowCreateSigningRequestInfo { get; set; } = false;
@@ -95,6 +102,7 @@ public partial class OpcApplicationConfiguration
     {
         var options = securityBuilder.AddSecurityConfiguration(ApplicationName, OpcOwnPKIRootDefault)
             .SetAutoAcceptUntrustedCertificates(AutoAcceptCerts)
+            .SetRejectUnknownRevocationStatus(!DontRejectUnknownRevocationStatus)
             .SetRejectSHA1SignedCertificates(false)
             .SetMinimumCertificateKeySize(1024)
             .SetAddAppCertToTrustedStore(TrustMyself);

@@ -294,6 +294,11 @@ Options:
       --aa, --autoaccept     all certs are trusted when a connection is
                                established.
                                Default: False
+      --drurs, --dontrejectunknownrevocationstatus
+                             Don't reject chain validation with CA certs with
+                               unknown revocation status, e.g. when the CRL is
+                               not available or the OCSP provider is offline.
+                               Default: False
       --ut, --unsecuretransport
                              enables the unsecured transport.
                                Default: False

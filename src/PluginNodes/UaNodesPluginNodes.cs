@@ -33,7 +33,7 @@ public class UaNodesPluginNodes : IPluginNodes
     {
         _plcNodeManager = plcNodeManager;
 
-        if (_nodesFileNames.Any())
+        if (_nodesFileNames?.Any() ?? false)
         {
             AddNodes((FolderState)telemetryFolder.Parent); // Root.
         }
