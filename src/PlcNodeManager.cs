@@ -185,11 +185,6 @@ public class PlcNodeManager : CustomNodeManager2
             baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(path, namespaceIndex);
         }
-        else if (path is Guid)
-        {
-            baseDataVariableState.NodeId = new NodeId((Guid)path, namespaceIndex);
-            baseDataVariableState.BrowseName = new QualifiedName(((Guid)path).ToString(), namespaceIndex);
-        }
         else
         {
             Logger.Debug("NodeId type is {nodeIdType}", path.GetType().ToString());
