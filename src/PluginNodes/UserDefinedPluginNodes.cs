@@ -7,6 +7,7 @@ using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using static OpcPlc.Program;
 
 /// <summary>
@@ -62,6 +63,14 @@ public class UserDefinedPluginNodes : IPluginNodes
         });
 
         Logger.Information($"Processing node information configured in {_nodesFileName}");
+
+        Nodes = AddNodes(folder, cfgFolder).ToList();
+
+        Logger.Information("Completed processing user defined node information");
+    }
+
+    private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder)
+    {
         Logger.Debug($"Create folder {cfgFolder.Folder}");
         FolderState userNodesFolder = _plcNodeManager.CreateFolder(
             folder,
@@ -69,17 +78,28 @@ public class UserDefinedPluginNodes : IPluginNodes
             name: cfgFolder.Folder,
             NamespaceType.OpcPlcApplications);
 
-        var nodes = new List<NodeWithIntervals>();
-
         foreach (var node in cfgFolder.NodeList)
         {
-            if (node.NodeId.GetType() != Type.GetType("System.Int64") && node.NodeId.GetType() != Type.GetType("System.String"))
+            var isDecimal = node.NodeId.GetType() == Type.GetType("System.Int64");
+            var isString = node.NodeId.GetType() == Type.GetType("System.String");
+
+            if (!isDecimal && !isString)
             {
-                Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal and string are supported. Defaulting to string.");
+                Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal, string, and guid are supported. Defaulting to string.");
                 node.NodeId = node.NodeId.ToString();
             }
 
-            string typedNodeId = $"{(node.NodeId.GetType() == Type.GetType("System.Int64") ? "i=" : "s=")}{node.NodeId.ToString()}";
+            var isGuid = false;
+            if (Guid.TryParse(node.NodeId.ToString(), out Guid guidNodeId))
+            {
+                isGuid = true;
+                node.NodeId = guidNodeId;
+            }
+
+            string typedNodeId =
+                isDecimal ? $"i={node.NodeId.ToString()}" :
+                isGuid ? $"g={node.NodeId.ToString()}" :
+                $"s={node.NodeId.ToString()}";
             if (string.IsNullOrEmpty(node.Name))
             {
                 node.Name = typedNodeId;
@@ -90,19 +110,37 @@ public class UserDefinedPluginNodes : IPluginNodes
                 node.Description = node.Name;
             }
 
-            Logger.Debug("Create node with Id {typedNodeId} and BrowseName {name} in namespace with index {namespaceIndex}",
+            Logger.Debug("Create node with Id {typedNodeId}, BrowseName {name} and type {type} in namespace with index {namespaceIndex}",
                 typedNodeId,
                 node.Name,
+                node.NodeId.GetType(),
                 _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]);
 
             CreateBaseVariable(userNodesFolder, node);
 
-            nodes.Add(PluginNodesHelper.GetNodeWithIntervals((NodeId)node.NodeId, _plcNodeManager));
+            yield return PluginNodesHelper.GetNodeWithIntervals((NodeId)node.NodeId, _plcNodeManager);
         }
 
-        Logger.Information("Completed processing user defined node information");
+        foreach (var childNode in AddFolders(userNodesFolder, cfgFolder))
+        {
+            yield return childNode;
+        }
+    }
 
-        Nodes = nodes;
+    private IEnumerable<NodeWithIntervals> AddFolders(FolderState folder, ConfigFolder cfgFolder)
+    {
+        if (cfgFolder.FolderList is null)
+        {
+            yield break;
+        }
+
+        foreach (var childFolder in cfgFolder.FolderList)
+        {
+            foreach (var node in AddNodes(folder, childFolder))
+            {
+                yield return node;
+            }
+        }
     }
 
     /// <summary>

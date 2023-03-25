@@ -11,6 +11,8 @@ public class ConfigFolder
 {
     public string Folder { get; set; }
 
+    public List<ConfigFolder> FolderList { get; set; }
+
     public List<ConfigNode> NodeList { get; set; }
 }
 
