@@ -234,7 +234,7 @@ docker build -f .\src\bin\publish\Release\linux-x64\Dockerfile.linux-amd64 -t io
 X.509 certificates:
 
 * Running on Windows natively, you cannot use an application certificate store of type `Directory`, since the access to the private key will fail. Use the option `--at X509Store` in this case.
-* Running as Linux Docker container, you can map the certificate stores to the host file system by using the Docker run option `-v <hostdirectory>:/appdata`. This will make the certificate persistent over starts.
+* Running as Linux Docker container, you can map the certificate stores to the host file system by using the Docker run option `-v <hostpkidirectory>:/app/pki`. This will make the certificate persistent over starts.
 * Running as Linux Docker container using an X509Store for the application certificate, you need to use the Docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
 
 ## Resources
