@@ -88,8 +88,18 @@ public partial class OpcApplicationConfiguration
 
         var alternateBaseAddresses = (from dnsName in DnsNames
                                       select $"opc.tcp://{dnsName}:{ServerPort}{ServerPath}")
-                                     .Append($"opc.tcp://{Utils.GetHostName().ToLowerInvariant()}:{ServerPort}{ServerPath}")
                                      .ToArray();
+        // when no DNS names are configured, use the hostname as alternative name
+        if (alternateBaseAddresses.Length == 0)
+        {
+            try
+            {
+                alternateBaseAddresses.Append($"opc.tcp://{Utils.GetHostName().ToLowerInvariant()}:{ServerPort}{ServerPath}");
+            }
+            catch ( Exception ex ) {
+                Logger.Warning(ex, "Could not get hostname.");
+            }
+        }
 
         Logger.Information("Alternate base addresses (for server binding and certificate DNSNames and IPAddresses extensions): {alternateBaseAddresses}", alternateBaseAddresses);
 

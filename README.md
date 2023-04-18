@@ -416,7 +416,8 @@ Options:
       --cdn, --certdnsnames=VALUE
                              add additional DNS names or IP addresses to this
                                application's certificate (comma separated
-                               values)
+                               values; no spaces allowed)
+                               Default: {HostName} filled in using GetHostByName()
   -h, --help                 show this message and exit
       --nv, --nodatavalues   do not generate data values
                                Default: False
