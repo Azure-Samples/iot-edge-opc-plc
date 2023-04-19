@@ -80,8 +80,8 @@ public class UserDefinedPluginNodes : IPluginNodes
 
         foreach (var node in cfgFolder.NodeList)
         {
-            var isDecimal = node.NodeId.GetType() == Type.GetType("System.Int64");
-            var isString = node.NodeId.GetType() == Type.GetType("System.String");
+            bool isDecimal = node.NodeId.GetType() == Type.GetType("System.Int64");
+            bool isString = node.NodeId.GetType() == Type.GetType("System.String");
 
             if (!isDecimal && !isString)
             {
@@ -89,17 +89,19 @@ public class UserDefinedPluginNodes : IPluginNodes
                 node.NodeId = node.NodeId.ToString();
             }
 
-            var isGuid = false;
+            bool isGuid = false;
             if (Guid.TryParse(node.NodeId.ToString(), out Guid guidNodeId))
             {
                 isGuid = true;
                 node.NodeId = guidNodeId;
             }
 
-            string typedNodeId =
-                isDecimal ? $"i={node.NodeId.ToString()}" :
-                isGuid ? $"g={node.NodeId.ToString()}" :
-                $"s={node.NodeId.ToString()}";
+            string typedNodeId = isDecimal
+                ? $"i={node.NodeId.ToString()}"
+                : isGuid
+                    ? $"g={node.NodeId.ToString()}"
+                    : $"s={node.NodeId.ToString()}";
+
             if (string.IsNullOrEmpty(node.Name))
             {
                 node.Name = typedNodeId;
