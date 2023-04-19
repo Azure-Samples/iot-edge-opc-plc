@@ -72,6 +72,16 @@ Here's a sample node configuration file:
 ~~~
 {
   "Folder": "MyTelemetry",
+  "FolderList": [    
+    {
+      "Folder": "Directory",
+      "NodeList": [        
+        {
+          "NodeId": "ChildNode"
+        },
+      ]
+    }
+  ],
   "NodeList": [
     {
       "NodeId": 1023,
@@ -93,6 +103,7 @@ Here's a sample node configuration file:
 }
 ~~~
 - Folder: Defines the name of the folder under which the user specified nodes should be created. This folder is created below the root of the OPC UA server.
+- FolderList: Defines the list of child folders, which will be published by the emulated server. (Optional)
 - NodeList: Defines the list of nodes, which will be published by the emulated server. Nodes specified in the list can be browsed and changed by OPC UA applications. This enables developers to easyly implement and test OPC UA client applications.
 - NodeId: Specifies the identifier of the node and is required. This value can be a decimal or string value. Every other JSON type is converted to a string identifier.
 - Name: The display name of the tag. If not set it will be set to the NodeId. (Optional)

@@ -1,5 +1,22 @@
 {
   "Folder": "MyTelemetry",
+  "FolderList": [
+    {      
+      "Folder": "Child",
+      "NodeList": [
+        {
+          "NodeId": 9999,
+          "Name": "Child Node",
+          "Description": "Child Node for testing"
+        },
+        {
+          "NodeId": "c6522393-5ca1-4547-9551-29d110ca4a3f",
+          "Name": "Guid",
+          "Description": "Guid test"
+        }
+      ]
+    }
+  ],
   "NodeList": [
     {
       "NodeId": 1023,
