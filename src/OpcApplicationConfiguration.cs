@@ -86,17 +86,18 @@ public partial class OpcApplicationConfiguration
             MaxByteStringLength = 4 * 1024 * 1024,
         };
 
-        var alternateBaseAddresses = (from dnsName in DnsNames
-                                      select $"opc.tcp://{dnsName}:{ServerPort}{ServerPath}")
-                                     .ToArray();
-        // when no DNS names are configured, use the hostname as alternative name
-        if (alternateBaseAddresses.Length == 0)
+        var alternateBaseAddresses = from dnsName in DnsNames
+                                     select $"opc.tcp://{dnsName}:{ServerPort}{ServerPath}";
+
+        // When no DNS names are configured, use the hostname as alternative name.
+        if (!alternateBaseAddresses.Any())
         {
             try
             {
-                alternateBaseAddresses.Append($"opc.tcp://{Utils.GetHostName().ToLowerInvariant()}:{ServerPort}{ServerPath}");
+                alternateBaseAddresses = alternateBaseAddresses.Append($"opc.tcp://{Utils.GetHostName().ToLowerInvariant()}:{ServerPort}{ServerPath}");
             }
-            catch ( Exception ex ) {
+            catch (Exception ex)
+            {
                 Logger.Warning(ex, "Could not get hostname.");
             }
         }
@@ -109,7 +110,7 @@ public partial class OpcApplicationConfiguration
             .AsServer(baseAddresses: new string[] {
                 $"opc.tcp://{Hostname}:{ServerPort}{ServerPath}",
             },
-            alternateBaseAddresses)
+            alternateBaseAddresses.ToArray())
             .AddSignAndEncryptPolicies()
             .AddSignPolicies();
 
