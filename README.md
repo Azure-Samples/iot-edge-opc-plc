@@ -255,7 +255,7 @@ or if one string contains commas:
 
 Options:
       --lf, --logfile=VALUE  the filename of the logfile to use.
-                               Default: './machinename-plc.log'
+                               Default: './hostname-plc.log'
       --lt, --logflushtimespan=VALUE
                              the timespan in seconds when the logfile should be
                                flushed.
@@ -282,7 +282,7 @@ Options:
                                Default: ''
       --ph, --plchostname=VALUE
                              the fully-qualified hostname of the PLC.
-                               Default: machinename
+                               Default: hostname
       --ol, --opcmaxstringlen=VALUE
                              the max length of a string OPC can transmit/
                                receive.
@@ -417,7 +417,7 @@ Options:
                              add additional DNS names or IP addresses to this
                                application's certificate (comma separated
                                values; no spaces allowed)
-                               Default: {HostName} filled in using GetHostByName()
+                               Default: DNS hostname
   -h, --help                 show this message and exit
       --nv, --nodatavalues   do not generate data values
                                Default: False
