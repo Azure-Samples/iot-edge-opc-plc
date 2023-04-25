@@ -27,223 +27,223 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Reflection;
+namespace SimpleEvents;
+
 using Opc.Ua;
 using Opc.Ua.Server;
 using OpcPlc.SimpleEvent;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading;
 
-namespace SimpleEvents
+/// <summary>
+/// A node manager for a server that exposes several variables.
+/// </summary>
+public class SimpleEventsNodeManager : CustomNodeManager2
 {
+    #region Constructors
     /// <summary>
-    /// A node manager for a server that exposes several variables.
+    /// Initializes the node manager.
     /// </summary>
-    public class SimpleEventsNodeManager : CustomNodeManager2
+    public SimpleEventsNodeManager(IServerInternal server, ApplicationConfiguration _)
+    :
+        base(server, _)
     {
-        #region Constructors
-        /// <summary>
-        /// Initializes the node manager.
-        /// </summary>
-        public SimpleEventsNodeManager(IServerInternal server, ApplicationConfiguration _)
-        :
-            base(server, _)
-        {
-            SystemContext.NodeIdFactory = this;
+        SystemContext.NodeIdFactory = this;
 
-            // set one namespace for the type model and one names for dynamically created nodes.
-            string[] namespaceUrls = new string[1];
-            namespaceUrls[0] = OpcPlc.Namespaces.OpcPlcSimpleEvents;
-            SetNamespaces(namespaceUrls);
-        }
+        // set one namespace for the type model and one names for dynamically created nodes.
+        string[] namespaceUrls = new string[1];
+        namespaceUrls[0] = OpcPlc.Namespaces.OpcPlcSimpleEvents;
+        SetNamespaces(namespaceUrls);
+    }
 
-        #endregion
-        #region IDisposable Members
-        /// <summary>
-        /// An overrideable version of the Dispose.
-        /// </summary>
-        protected override void Dispose(bool disposing)
+    #endregion
+    #region IDisposable Members
+    /// <summary>
+    /// An overrideable version of the Dispose.
+    /// </summary>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
         {
-            if (disposing)
+            if (m_simulationTimer != null)
             {
-                if (m_simulationTimer != null)
-                {
-                    Utils.SilentDispose(m_simulationTimer);
-                    m_simulationTimer = null;
-                }
+                Utils.SilentDispose(m_simulationTimer);
+                m_simulationTimer = null;
             }
         }
-        #endregion
+    }
+    #endregion
 
-        #region INodeIdFactory Members
-        /// <summary>
-        /// Creates the NodeId for the specified node.
-        /// </summary>
-        public override NodeId New(ISystemContext context, NodeState node)
+    #region INodeIdFactory Members
+    /// <summary>
+    /// Creates the NodeId for the specified node.
+    /// </summary>
+    public override NodeId New(ISystemContext context, NodeState node)
+    {
+        return node.NodeId;
+    }
+    #endregion
+
+    #region Overridden Methods
+    /// <summary>
+    /// Loads a node set from a file or resource and addes them to the set of predefined nodes.
+    /// </summary>
+    protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    {
+        NodeStateCollection predefinedNodes = new NodeStateCollection();
+        predefinedNodes.LoadFromBinaryResource(context,
+            "SimpleEvent/SimpleEvents.PredefinedNodes.uanodes",
+            typeof(SimpleEventsNodeManager).GetTypeInfo().Assembly,
+            true);
+        return predefinedNodes;
+    }
+    #endregion
+
+    #region INodeManager Members
+    /// <summary>
+    /// Does any initialization required before the address space can be used.
+    /// </summary>
+    /// <remarks>
+    /// The externalReferences is an out parameter that allows the node manager to link to nodes
+    /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
+    /// should have a reference to the root folder node(s) exposed by this node manager.
+    /// </remarks>
+    public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+    {
+        lock (Lock)
         {
-            return node.NodeId;
+            LoadPredefinedNodes(SystemContext, externalReferences);
+
+            // start a simulation that changes the values of the nodes.
+            m_simulationTimer = new Timer(DoSimulation, state: null, 3000, 3000);
         }
-        #endregion
+    }
 
-        #region Overridden Methods
-        /// <summary>
-        /// Loads a node set from a file or resource and addes them to the set of predefined nodes.
-        /// </summary>
-        protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    /// <summary>
+    /// Frees any resources allocated for the address space.
+    /// </summary>
+    public override void DeleteAddressSpace()
+    {
+        lock (Lock)
         {
-            NodeStateCollection predefinedNodes = new NodeStateCollection();
-            predefinedNodes.LoadFromBinaryResource(context,
-                "SimpleEvent/SimpleEvents.PredefinedNodes.uanodes",
-                typeof(SimpleEventsNodeManager).GetTypeInfo().Assembly,
-                true);
-            return predefinedNodes;
+            base.DeleteAddressSpace();
         }
-        #endregion
+    }
 
-        #region INodeManager Members
-        /// <summary>
-        /// Does any initialization required before the address space can be used.
-        /// </summary>
-        /// <remarks>
-        /// The externalReferences is an out parameter that allows the node manager to link to nodes
-        /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
-        /// should have a reference to the root folder node(s) exposed by this node manager.
-        /// </remarks>
-        public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+    /// <summary>
+    /// Returns a unique handle for the node.
+    /// </summary>
+    protected override NodeHandle GetManagerHandle(ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache)
+    {
+        lock (Lock)
         {
-            lock (Lock)
-            {
-
-                LoadPredefinedNodes(SystemContext, externalReferences);
-
-                // start a simulation that changes the values of the nodes.
-                m_simulationTimer = new Timer(DoSimulation, null, 3000, 3000);
-            }
-        }
-
-        /// <summary>
-        /// Frees any resources allocated for the address space.
-        /// </summary>
-        public override void DeleteAddressSpace()
-        {
-            lock (Lock)
-            {
-                base.DeleteAddressSpace();
-            }
-        }
-
-        /// <summary>
-        /// Returns a unique handle for the node.
-        /// </summary>
-        protected override NodeHandle GetManagerHandle(ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache)
-        {
-            lock (Lock)
-            {
-                // quickly exclude nodes that are not in the namespace.
-                if (!IsNodeIdInNamespace(nodeId))
-                {
-                    return null;
-                }
-
-                // check for predefined nodes.
-                if (PredefinedNodes != null)
-                {
-                    NodeState node = null;
-
-                    if (PredefinedNodes.TryGetValue(nodeId, out node))
-                    {
-                        NodeHandle handle = new NodeHandle();
-
-                        handle.NodeId = nodeId;
-                        handle.Validated = true;
-                        handle.Node = node;
-
-                        return handle;
-                    }
-                }
-
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Verifies that the specified node exists.
-        /// </summary>
-        protected override NodeState ValidateNode(
-            ServerSystemContext context,
-            NodeHandle handle,
-            IDictionary<NodeId, NodeState> cache)
-        {
-            // not valid if no root.
-            if (handle == null)
+            // quickly exclude nodes that are not in the namespace.
+            if (!IsNodeIdInNamespace(nodeId))
             {
                 return null;
             }
 
-            // check if previously validated.
-            if (handle.Validated)
+            // check for predefined nodes.
+            if (PredefinedNodes != null)
             {
-                return handle.Node;
-            }
+                NodeState node = null;
 
-            // TBD
+                if (PredefinedNodes.TryGetValue(nodeId, out node))
+                {
+                    var handle = new NodeHandle();
+
+                    handle.NodeId = nodeId;
+                    handle.Validated = true;
+                    handle.Node = node;
+
+                    return handle;
+                }
+            }
 
             return null;
         }
-        #endregion
+    }
 
-        #region Private Methods
-        /// <summary>
-        /// Does the simulation.
-        /// </summary>
-        /// <param name="state">The state.</param>
-        private void DoSimulation(object state)
+    /// <summary>
+    /// Verifies that the specified node exists.
+    /// </summary>
+    protected override NodeState ValidateNode(
+        ServerSystemContext context,
+        NodeHandle handle,
+        IDictionary<NodeId, NodeState> cache)
+    {
+        // not valid if no root.
+        if (handle == null)
         {
-            try
+            return null;
+        }
+
+        // check if previously validated.
+        if (handle.Validated)
+        {
+            return handle.Node;
+        }
+
+        // TBD
+
+        return null;
+    }
+    #endregion
+
+    #region Private Methods
+    /// <summary>
+    /// Does the simulation.
+    /// </summary>
+    /// <param name="state">The state.</param>
+    private void DoSimulation(object state)
+    {
+        try
+        {
+            for (int i = 1; i < 3; i++)
             {
-                for (int ii = 1; ii < 3; ii++)
+                // construct translation object with default text.
+                var info = new TranslationInfo(
+                    "SystemCycleStarted",
+                    "en-US",
+                    "The system cycle '{0}' has started.",
+                    ++m_cycleId);
+
+                // construct the event.
+                var e = new SystemCycleStartedEventState(parent: null);
+
+                e.Initialize(
+                    SystemContext,
+                    source: null,
+                    (EventSeverity)i,
+                    new LocalizedText(info));
+
+                e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceName, "System", copy: false);
+                e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, copy: false);
+                e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.CycleId, NamespaceIndex), m_cycleId.ToString(), copy: false);
+
+                var step = new CycleStepDataType
                 {
-                    // construct translation object with default text.
-                    var info = new TranslationInfo(
-                        "SystemCycleStarted",
-                        "en-US",
-                        "The system cycle '{0}' has started.",
-                        ++m_cycleId);
+                    Name = "Step 1",
+                    Duration = 1000,
+                };
 
-                    // construct the event.
-                    var e = new SystemCycleStartedEventState(null);
+                e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.CurrentStep, NamespaceIndex), step, copy: false);
+                e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.Steps, NamespaceIndex), new CycleStepDataType[] { step, step }, copy: false);
 
-                    e.Initialize(
-                        SystemContext,
-                        source: null,
-                        (EventSeverity)ii,
-                        new LocalizedText(info));
-
-                    e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceName, "System", false);
-                    e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, false);
-                    e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.CycleId, NamespaceIndex), m_cycleId.ToString(), false);
-
-                    var step = new CycleStepDataType();
-                    step.Name = "Step 1";
-                    step.Duration = 1000;
-
-                    e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.CurrentStep, NamespaceIndex), step, false);
-                    e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.Steps, NamespaceIndex), new CycleStepDataType[] { step, step }, false);
-
-                    Server.ReportEvent(e);
-                }
-            }
-            catch (Exception e)
-            {
-                Utils.Trace(e, "Unexpected error during simulation");
+                Server.ReportEvent(e);
             }
         }
-        #endregion
-
-        #region Private Fields
-        private Timer m_simulationTimer;
-        private int m_cycleId;
-        #endregion
+        catch (Exception e)
+        {
+            Utils.Trace(e, "Unexpected error during simulation");
+        }
     }
+    #endregion
+
+    #region Private Fields
+    private Timer m_simulationTimer;
+    private int m_cycleId;
+    #endregion
 }
