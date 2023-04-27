@@ -65,13 +65,10 @@ public class SimpleEventsNodeManager : CustomNodeManager2
     /// </summary>
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
+        if (disposing && m_simulationTimer != null)
         {
-            if (m_simulationTimer != null)
-            {
-                Utils.SilentDispose(m_simulationTimer);
-                m_simulationTimer = null;
-            }
+            Utils.SilentDispose(m_simulationTimer);
+            m_simulationTimer = null;
         }
     }
     #endregion
@@ -92,11 +89,11 @@ public class SimpleEventsNodeManager : CustomNodeManager2
     /// </summary>
     protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
-        NodeStateCollection predefinedNodes = new NodeStateCollection();
+        var predefinedNodes = new NodeStateCollection();
         predefinedNodes.LoadFromBinaryResource(context,
             "SimpleEvent/SimpleEvents.PredefinedNodes.uanodes",
             typeof(SimpleEventsNodeManager).GetTypeInfo().Assembly,
-            true);
+            updateTables: true);
         return predefinedNodes;
     }
     #endregion
@@ -152,11 +149,12 @@ public class SimpleEventsNodeManager : CustomNodeManager2
 
                 if (PredefinedNodes.TryGetValue(nodeId, out node))
                 {
-                    var handle = new NodeHandle();
-
-                    handle.NodeId = nodeId;
-                    handle.Validated = true;
-                    handle.Node = node;
+                    var handle = new NodeHandle
+                    {
+                        NodeId = nodeId,
+                        Validated = true,
+                        Node = node,
+                    };
 
                     return handle;
                 }
@@ -203,21 +201,14 @@ public class SimpleEventsNodeManager : CustomNodeManager2
         {
             for (int i = 1; i < 3; i++)
             {
-                // construct translation object with default text.
-                var info = new TranslationInfo(
-                    "SystemCycleStarted",
-                    "en-US",
-                    "The system cycle '{0}' has started.",
-                    ++m_cycleId);
-
-                // construct the event.
+                // Construct the event.
                 var e = new SystemCycleStartedEventState(parent: null);
 
                 e.Initialize(
                     SystemContext,
                     source: null,
                     (EventSeverity)i,
-                    new LocalizedText(info));
+                    new LocalizedText($"The system cycle '{++m_cycleId}' has started."));
 
                 e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceName, "System", copy: false);
                 e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, copy: false);
