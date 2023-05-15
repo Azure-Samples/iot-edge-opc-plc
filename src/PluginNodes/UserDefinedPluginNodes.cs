@@ -17,7 +17,7 @@ public class UserDefinedPluginNodes : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private static string _nodesFileName;
+    private string _nodesFileName;
     private PlcNodeManager _plcNodeManager;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
@@ -48,25 +48,26 @@ public class UserDefinedPluginNodes : IPluginNodes
 
     private void AddNodes(FolderState folder)
     {
-        if (!File.Exists(_nodesFileName))
+        try
         {
-            string error = $"The user node configuration file {_nodesFileName} does not exist.";
-            Logger.Error(error);
-            throw new Exception(error);
+            string json = File.ReadAllText(_nodesFileName);
+
+            var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.All,
+            });
+
+            Logger.Information($"Processing node information configured in {_nodesFileName}");
+
+            Nodes = AddNodes(folder, cfgFolder).ToList();
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "Error loading user defined node file {file}: {error}", _nodesFileName, e.Message);
         }
 
-        string json = File.ReadAllText(_nodesFileName);
 
-        var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
-        {
-            TypeNameHandling = TypeNameHandling.All,
-        });
-
-        Logger.Information($"Processing node information configured in {_nodesFileName}");
-
-        Nodes = AddNodes(folder, cfgFolder).ToList();
-
-        Logger.Information("Completed processing user defined node information");
+        Logger.Information("Completed processing user defined node file");
     }
 
     private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder)
