@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
+using BoilerModel;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
@@ -18,7 +19,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 
     private static bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
-    private BoilerModel.BoilerState _node;
+    private BoilerState _node;
     private ITimer _nodeGenerator;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
@@ -106,7 +107,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         var predefinedNodes = new NodeStateCollection();
 
         predefinedNodes.LoadFromBinaryResource(context,
-            "Boiler/BoilerModel.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
+            "Boilers/Boiler1/BoilerModel.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
             typeof(PlcNodeManager).GetTypeInfo().Assembly,
             updateTables: true);
 
@@ -121,9 +122,9 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         };
 
         int currentTemperatureBottom = _node.BoilerStatus.Value.Temperature.Bottom;
-        BoilerModel.BoilerTemperatureType newTemperature = newValue.Temperature;
+        BoilerTemperatureType newTemperature = newValue.Temperature;
 
-        if (_node.BoilerStatus.Value.HeaterState == BoilerModel.BoilerHeaterStateType.On)
+        if (_node.BoilerStatus.Value.HeaterState == BoilerHeaterStateType.On)
         {
             // Heater on, increase by 1.
             newTemperature.Bottom = currentTemperatureBottom + 1;
@@ -162,7 +163,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     /// </summary>
     private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
-        _node.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.On;
+        _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.On;
         Logger.Debug("OnHeaterOnCall method called");
         return ServiceResult.Good;
     }
@@ -172,7 +173,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     /// </summary>
     private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
-        _node.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.Off;
+        _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.Off;
         Logger.Debug("OnHeaterOffCall method called");
         return ServiceResult.Good;
     }
