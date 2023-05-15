@@ -27,12 +27,6 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Reflection;
-using System.Xml;
-using System.Runtime.Serialization;
 using Opc.Ua;
 
 namespace BoilerModel
@@ -40,7 +34,7 @@ namespace BoilerModel
     #region DataType Identifiers
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class DataTypes
     {
         /// <remarks />
@@ -57,7 +51,7 @@ namespace BoilerModel
     #region Object Identifiers
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class Objects
     {
         /// <remarks />
@@ -86,7 +80,7 @@ namespace BoilerModel
     #region ObjectType Identifiers
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class ObjectTypes
     {
         /// <remarks />
@@ -97,7 +91,7 @@ namespace BoilerModel
     #region Variable Identifiers
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class Variables
     {
         /// <remarks />
@@ -144,110 +138,110 @@ namespace BoilerModel
     #region DataType Node Identifiers
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class DataTypeIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerDataType = new ExpandedNodeId(BoilerModel.DataTypes.BoilerDataType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerDataType = new ExpandedNodeId(DataTypes.BoilerDataType, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerTemperatureType = new ExpandedNodeId(BoilerModel.DataTypes.BoilerTemperatureType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerTemperatureType = new ExpandedNodeId(DataTypes.BoilerTemperatureType, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerHeaterStateType = new ExpandedNodeId(BoilerModel.DataTypes.BoilerHeaterStateType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerHeaterStateType = new ExpandedNodeId(DataTypes.BoilerHeaterStateType, Namespaces.Boiler);
     }
     #endregion
 
     #region Object Node Identifiers
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class ObjectIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler1 = new ExpandedNodeId(BoilerModel.Objects.Boiler1, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler1 = new ExpandedNodeId(Objects.Boiler1, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultBinary = new ExpandedNodeId(BoilerModel.Objects.BoilerDataType_Encoding_DefaultBinary, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultBinary = new ExpandedNodeId(Objects.BoilerDataType_Encoding_DefaultBinary, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultBinary = new ExpandedNodeId(BoilerModel.Objects.BoilerTemperatureType_Encoding_DefaultBinary, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultBinary = new ExpandedNodeId(Objects.BoilerTemperatureType_Encoding_DefaultBinary, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultXml = new ExpandedNodeId(BoilerModel.Objects.BoilerDataType_Encoding_DefaultXml, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultXml = new ExpandedNodeId(Objects.BoilerDataType_Encoding_DefaultXml, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultXml = new ExpandedNodeId(BoilerModel.Objects.BoilerTemperatureType_Encoding_DefaultXml, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultXml = new ExpandedNodeId(Objects.BoilerTemperatureType_Encoding_DefaultXml, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultJson = new ExpandedNodeId(BoilerModel.Objects.BoilerDataType_Encoding_DefaultJson, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultJson = new ExpandedNodeId(Objects.BoilerDataType_Encoding_DefaultJson, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultJson = new ExpandedNodeId(BoilerModel.Objects.BoilerTemperatureType_Encoding_DefaultJson, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultJson = new ExpandedNodeId(Objects.BoilerTemperatureType_Encoding_DefaultJson, Namespaces.Boiler);
     }
     #endregion
 
     #region ObjectType Node Identifiers
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class ObjectTypeIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerType = new ExpandedNodeId(BoilerModel.ObjectTypes.BoilerType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerType = new ExpandedNodeId(ObjectTypes.BoilerType, Namespaces.Boiler);
     }
     #endregion
 
     #region Variable Node Identifiers
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class VariableIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerHeaterStateType_EnumStrings = new ExpandedNodeId(BoilerModel.Variables.BoilerHeaterStateType_EnumStrings, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerHeaterStateType_EnumStrings = new ExpandedNodeId(Variables.BoilerHeaterStateType_EnumStrings, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerType_BoilerStatus = new ExpandedNodeId(BoilerModel.Variables.BoilerType_BoilerStatus, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerType_BoilerStatus = new ExpandedNodeId(Variables.BoilerType_BoilerStatus, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler1_BoilerStatus = new ExpandedNodeId(BoilerModel.Variables.Boiler1_BoilerStatus, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler1_BoilerStatus = new ExpandedNodeId(Variables.Boiler1_BoilerStatus, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_BinarySchema = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_BinarySchema = new ExpandedNodeId(Variables.Boiler_BinarySchema, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_BinarySchema_NamespaceUri = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_NamespaceUri, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_BinarySchema_NamespaceUri = new ExpandedNodeId(Variables.Boiler_BinarySchema_NamespaceUri, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_BinarySchema_Deprecated = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_Deprecated, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_BinarySchema_Deprecated = new ExpandedNodeId(Variables.Boiler_BinarySchema_Deprecated, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_BinarySchema_BoilerDataType = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_BoilerDataType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_BinarySchema_BoilerDataType = new ExpandedNodeId(Variables.Boiler_BinarySchema_BoilerDataType, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_BinarySchema_BoilerTemperatureType = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_BoilerTemperatureType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_BinarySchema_BoilerTemperatureType = new ExpandedNodeId(Variables.Boiler_BinarySchema_BoilerTemperatureType, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_XmlSchema = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_XmlSchema = new ExpandedNodeId(Variables.Boiler_XmlSchema, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_XmlSchema_NamespaceUri = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_NamespaceUri, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_XmlSchema_NamespaceUri = new ExpandedNodeId(Variables.Boiler_XmlSchema_NamespaceUri, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_XmlSchema_Deprecated = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_Deprecated, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_XmlSchema_Deprecated = new ExpandedNodeId(Variables.Boiler_XmlSchema_Deprecated, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_XmlSchema_BoilerDataType = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_BoilerDataType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_XmlSchema_BoilerDataType = new ExpandedNodeId(Variables.Boiler_XmlSchema_BoilerDataType, Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_XmlSchema_BoilerTemperatureType = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_BoilerTemperatureType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_XmlSchema_BoilerTemperatureType = new ExpandedNodeId(Variables.Boiler_XmlSchema_BoilerTemperatureType, Namespaces.Boiler);
     }
     #endregion
 
     #region BrowseName Declarations
     /// <remarks />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class BrowseNames
     {
         /// <remarks />
@@ -278,7 +272,7 @@ namespace BoilerModel
 
     #region Namespace Declarations
     /// <remarks />
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public static partial class Namespaces
     {
         /// <summary>

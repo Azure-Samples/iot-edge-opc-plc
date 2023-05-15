@@ -38,7 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Boiler\BoilerModel.PredefinedNodes.uanodes">
+    <None Update="Boilers\Boiler1\BoilerModel.PredefinedNodes.uanodes">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="nodesfile.json">
