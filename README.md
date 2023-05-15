@@ -202,7 +202,8 @@ More information about this feature can be found [here](deterministic-alarms.md)
   - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
 - Nodes with deterministic random GUIDs as node IDs: `--gn=<number_of_nodes>`
 - Node with opaque identifier (free-format byte string)
-- Load binary *.PredefinedNodes.uanodes file compiled from an XML NodeSet: `--unf=<PredefinedNodes_uanodes>`
+- Load binary *.PredefinedNodes.uanodes file(s) compiled from an XML NodeSet: `--unf=<PredefinedNodes_uanodes>`
+- Load *.NodeSet2.xml file(s): `--ns2=<NodeSet2_xml>`
 
 ## OPC UA Methods
 
@@ -469,6 +470,10 @@ Options:
                                Default: 1000
       --nn, --nonegtrend     do not generate negative trend data
                                Default: False
+      --ns2, --nodeset2file=VALUE
+                             the *.NodeSet2.xml file that contains the nodes to
+                               be created in the OPC UA address space (multiple
+                               comma separated filenames supported)
       --np, --nopostrend     do not generate positive trend data
                                Default: False
       --sn, --slownodes=VALUE
@@ -505,8 +510,8 @@ Options:
                                contains the nodes to be created in the OPC UA
                                address space (multiple comma separated
                                filenames supported), use ModelCompiler.cmd <
-                               ModelDesign> to compile.
+                               ModelDesign> to compile
       --nf, --nodesfile=VALUE
                              the filename that contains the list of nodes to be
-                               created in the OPC UA address space.
+                               created in the OPC UA address space
 ```
