@@ -24,7 +24,7 @@ public class UserDefinedPluginNodes : IPluginNodes
     {
         optionSet.Add(
             "nf|nodesfile=",
-            "the filename that contains the list of nodes to be created in the OPC UA address space.",
+            "the filename that contains the list of nodes to be created in the OPC UA address space",
             (string s) => _nodesFileName = s);
     }
 

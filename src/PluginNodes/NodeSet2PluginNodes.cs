@@ -23,7 +23,7 @@ public class NodeSet2PluginNodes : IPluginNodes
     {
         optionSet.Add(
             "ns2|nodeset2file=",
-            "the *.NodeSet2.xml file that contains the nodes to be created in the OPC UA address space (multiple comma separated filenames supported).",
+            "the *.NodeSet2.xml file that contains the nodes to be created in the OPC UA address space (multiple comma separated filenames supported)",
             (string s) => _nodesFileNames = CliHelper.ParseListOfFileNames(s, "ns2"));
     }
 
