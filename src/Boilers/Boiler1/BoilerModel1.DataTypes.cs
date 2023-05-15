@@ -34,14 +34,14 @@ using System.Xml;
 using System.Runtime.Serialization;
 using Opc.Ua;
 
-namespace BoilerModel
+namespace BoilerModel1
 {
     #region BoilerDataType Class
     #if (!OPCUA_EXCLUDE_BoilerDataType)
     /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [DataContract(Namespace = BoilerModel.Namespaces.Boiler)]
+    [DataContract(Namespace = BoilerModel1.Namespaces.Boiler)]
     public partial class BoilerDataType : IEncodeable, IJsonEncodeable
     {
         #region Constructors
@@ -119,7 +119,7 @@ namespace BoilerModel
         /// <summary cref="IEncodeable.Encode(IEncoder)" />
         public virtual void Encode(IEncoder encoder)
         {
-            encoder.PushNamespace(BoilerModel.Namespaces.Boiler);
+            encoder.PushNamespace(BoilerModel1.Namespaces.Boiler);
 
             encoder.WriteEncodeable("Temperature", Temperature, typeof(BoilerTemperatureType));
             encoder.WriteInt32("Pressure", Pressure);
@@ -131,7 +131,7 @@ namespace BoilerModel
         /// <summary cref="IEncodeable.Decode(IDecoder)" />
         public virtual void Decode(IDecoder decoder)
         {
-            decoder.PushNamespace(BoilerModel.Namespaces.Boiler);
+            decoder.PushNamespace(BoilerModel1.Namespaces.Boiler);
 
             Temperature = (BoilerTemperatureType)decoder.ReadEncodeable("Temperature", typeof(BoilerTemperatureType));
             Pressure = decoder.ReadInt32("Pressure");
@@ -194,7 +194,7 @@ namespace BoilerModel
     /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [CollectionDataContract(Name = "ListOfBoilerDataType", Namespace = BoilerModel.Namespaces.Boiler, ItemName = "BoilerDataType")]
+    [CollectionDataContract(Name = "ListOfBoilerDataType", Namespace = BoilerModel1.Namespaces.Boiler, ItemName = "BoilerDataType")]
     #if !NET_STANDARD
     public partial class BoilerDataTypeCollection : List<BoilerDataType>, ICloneable
     #else
@@ -268,7 +268,7 @@ namespace BoilerModel
     /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [DataContract(Namespace = BoilerModel.Namespaces.Boiler)]
+    [DataContract(Namespace = BoilerModel1.Namespaces.Boiler)]
     public partial class BoilerTemperatureType : IEncodeable, IJsonEncodeable
     {
         #region Constructors
@@ -325,7 +325,7 @@ namespace BoilerModel
         /// <summary cref="IEncodeable.Encode(IEncoder)" />
         public virtual void Encode(IEncoder encoder)
         {
-            encoder.PushNamespace(BoilerModel.Namespaces.Boiler);
+            encoder.PushNamespace(BoilerModel1.Namespaces.Boiler);
 
             encoder.WriteInt32("Top", Top);
             encoder.WriteInt32("Bottom", Bottom);
@@ -336,7 +336,7 @@ namespace BoilerModel
         /// <summary cref="IEncodeable.Decode(IDecoder)" />
         public virtual void Decode(IDecoder decoder)
         {
-            decoder.PushNamespace(BoilerModel.Namespaces.Boiler);
+            decoder.PushNamespace(BoilerModel1.Namespaces.Boiler);
 
             Top = decoder.ReadInt32("Top");
             Bottom = decoder.ReadInt32("Bottom");
@@ -395,7 +395,7 @@ namespace BoilerModel
     /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [CollectionDataContract(Name = "ListOfBoilerTemperatureType", Namespace = BoilerModel.Namespaces.Boiler, ItemName = "BoilerTemperatureType")]
+    [CollectionDataContract(Name = "ListOfBoilerTemperatureType", Namespace = BoilerModel1.Namespaces.Boiler, ItemName = "BoilerTemperatureType")]
     #if !NET_STANDARD
     public partial class BoilerTemperatureTypeCollection : List<BoilerTemperatureType>, ICloneable
     #else
@@ -469,7 +469,7 @@ namespace BoilerModel
     /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [DataContract(Namespace = BoilerModel.Namespaces.Boiler)]
+    [DataContract(Namespace = BoilerModel1.Namespaces.Boiler)]
     public enum BoilerHeaterStateType
     {
         /// <remarks />
@@ -485,7 +485,7 @@ namespace BoilerModel
     /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [CollectionDataContract(Name = "ListOfBoilerHeaterStateType", Namespace = BoilerModel.Namespaces.Boiler, ItemName = "BoilerHeaterStateType")]
+    [CollectionDataContract(Name = "ListOfBoilerHeaterStateType", Namespace = BoilerModel1.Namespaces.Boiler, ItemName = "BoilerHeaterStateType")]
     #if !NET_STANDARD
     public partial class BoilerHeaterStateTypeCollection : List<BoilerHeaterStateType>, ICloneable
     #else

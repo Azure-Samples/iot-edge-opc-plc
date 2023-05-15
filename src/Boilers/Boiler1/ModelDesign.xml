@@ -14,7 +14,7 @@
   -->
   <opc:Namespaces>
     <opc:Namespace Name="OpcUa" Prefix="Opc.Ua" XmlNamespace="http://opcfoundation.org/UA/2008/02/Types.xsd">http://opcfoundation.org/UA/</opc:Namespace>
-    <opc:Namespace Name="Boiler" Prefix="BoilerModel">http://microsoft.com/Opc/OpcPlc/Boiler</opc:Namespace>
+    <opc:Namespace Name="Boiler" Prefix="BoilerModel1">http://microsoft.com/Opc/OpcPlc/Boiler</opc:Namespace>
   </opc:Namespaces>
 
   <!--DataTypes -->

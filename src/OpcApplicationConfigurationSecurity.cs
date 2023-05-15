@@ -166,49 +166,38 @@ public partial class OpcApplicationConfiguration
         ApplicationConfiguration.CertificateValidator.CertificateValidation += new CertificateValidationEventHandler(CertificateValidator_CertificateValidation);
 
         // remove issuer and trusted certificates with the given thumbprints
-        if (ThumbprintsToRemove?.Count > 0)
+        if (ThumbprintsToRemove?.Count > 0 &&
+            !await RemoveCertificatesAsync(ThumbprintsToRemove).ConfigureAwait(false))
         {
-            if (!await RemoveCertificatesAsync(ThumbprintsToRemove).ConfigureAwait(false))
-            {
-                throw new Exception("Removing certificates failed.");
-            }
+            throw new Exception("Removing certificates failed.");
         }
 
         // add trusted issuer certificates
-        if (IssuerCertificateBase64Strings?.Count > 0 || IssuerCertificateFileNames?.Count > 0)
+        if ((IssuerCertificateBase64Strings?.Count > 0 || IssuerCertificateFileNames?.Count > 0) &&
+            !await AddCertificatesAsync(IssuerCertificateBase64Strings, IssuerCertificateFileNames, true).ConfigureAwait(false))
         {
-            if (!await AddCertificatesAsync(IssuerCertificateBase64Strings, IssuerCertificateFileNames, true).ConfigureAwait(false))
-            {
-                throw new Exception("Adding trusted issuer certificate(s) failed.");
-            }
+            throw new Exception("Adding trusted issuer certificate(s) failed.");
         }
 
         // add trusted peer certificates
-        if (TrustedCertificateBase64Strings?.Count > 0 || TrustedCertificateFileNames?.Count > 0)
+        if ((TrustedCertificateBase64Strings?.Count > 0 || TrustedCertificateFileNames?.Count > 0) &&
+            !await AddCertificatesAsync(TrustedCertificateBase64Strings, TrustedCertificateFileNames, false).ConfigureAwait(false))
         {
-            if (!await AddCertificatesAsync(TrustedCertificateBase64Strings, TrustedCertificateFileNames, false).ConfigureAwait(false))
-            {
-                throw new Exception("Adding trusted peer certificate(s) failed.");
-            }
+            throw new Exception("Adding trusted peer certificate(s) failed.");
         }
 
         // update CRL if requested
-        if (!string.IsNullOrEmpty(CrlBase64String) || !string.IsNullOrEmpty(CrlFileName))
+        if ((!string.IsNullOrEmpty(CrlBase64String) || !string.IsNullOrEmpty(CrlFileName)) &&
+            !await UpdateCrlAsync(CrlBase64String, CrlFileName).ConfigureAwait(false))
         {
-            if (!await UpdateCrlAsync(CrlBase64String, CrlFileName).ConfigureAwait(false))
-            {
-                throw new Exception("CRL update failed.");
-            }
+            throw new Exception("CRL update failed.");
         }
 
         // update application certificate if requested or use the existing certificate
-        if (!string.IsNullOrEmpty(NewCertificateBase64String) || !string.IsNullOrEmpty(NewCertificateFileName))
+        if ((!string.IsNullOrEmpty(NewCertificateBase64String) || !string.IsNullOrEmpty(NewCertificateFileName)) &&
+            !await UpdateApplicationCertificateAsync(NewCertificateBase64String, NewCertificateFileName, CertificatePassword, PrivateKeyBase64String, PrivateKeyFileName).ConfigureAwait(false))
         {
-            if (!await UpdateApplicationCertificateAsync(NewCertificateBase64String, NewCertificateFileName, CertificatePassword, PrivateKeyBase64String, PrivateKeyFileName).ConfigureAwait(false))
-            {
-                throw new Exception("Update/Setting of the application certificate failed.");
-            }
-
+            throw new Exception("Update/Setting of the application certificate failed.");
         }
 
         return ApplicationConfiguration;

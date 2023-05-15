@@ -40,7 +40,7 @@ using System.Threading;
 /// <summary>
 /// A node manager for a server that exposes several variables.
 /// </summary>
-public class SimpleEventsNodeManager : CustomNodeManager2
+public sealed class SimpleEventsNodeManager : CustomNodeManager2
 {
     #region Constructors
     /// <summary>

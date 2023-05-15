@@ -34,7 +34,7 @@ using System.Xml;
 using System.Runtime.Serialization;
 using Opc.Ua;
 
-namespace BoilerModel
+namespace BoilerModel1
 {
     #region BoilerState Class
     #if (!OPCUA_EXCLUDE_BoilerState)
@@ -52,7 +52,7 @@ namespace BoilerModel
         /// <remarks />
         protected override NodeId GetDefaultTypeDefinitionId(NamespaceTable namespaceUris)
         {
-            return Opc.Ua.NodeId.Create(BoilerModel.ObjectTypes.BoilerType, BoilerModel.Namespaces.Boiler, namespaceUris);
+            return Opc.Ua.NodeId.Create(BoilerModel1.ObjectTypes.BoilerType, BoilerModel1.Namespaces.Boiler, namespaceUris);
         }
 
         #if (!OPCUA_EXCLUDE_InitializationStrings)
@@ -141,7 +141,7 @@ namespace BoilerModel
 
             switch (browseName.Name)
             {
-                case BoilerModel.BrowseNames.BoilerStatus:
+                case BoilerModel1.BrowseNames.BoilerStatus:
                 {
                     if (createOrReplace)
                     {

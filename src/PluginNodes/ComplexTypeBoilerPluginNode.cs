@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
+using BoilerModel1;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
@@ -18,7 +19,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 
     private static bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
-    private BoilerModel.BoilerState _node;
+    private BoilerState _node;
     private ITimer _nodeGenerator;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
@@ -60,10 +61,10 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
 
         // Find the Boiler1 node that was created when the model was loaded.
-        var passiveNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel.Objects.Boiler1, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        var passiveNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel1.Objects.Boiler1, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
 
         // Convert to node that can be manipulated within the server.
-        _node = new BoilerModel.BoilerState(null);
+        _node = new BoilerState(null);
         _node.Create(_plcNodeManager.SystemContext, passiveNode);
 
         _plcNodeManager.AddPredefinedNode(_node);
@@ -106,7 +107,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         var predefinedNodes = new NodeStateCollection();
 
         predefinedNodes.LoadFromBinaryResource(context,
-            "Boiler/BoilerModel.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
+            "Boilers/Boiler1/BoilerModel1.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
             typeof(PlcNodeManager).GetTypeInfo().Assembly,
             updateTables: true);
 
@@ -115,15 +116,15 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 
     public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        var newValue = new BoilerModel.BoilerDataType
+        var newValue = new BoilerDataType
         {
             HeaterState = _node.BoilerStatus.Value.HeaterState,
         };
 
         int currentTemperatureBottom = _node.BoilerStatus.Value.Temperature.Bottom;
-        BoilerModel.BoilerTemperatureType newTemperature = newValue.Temperature;
+        BoilerTemperatureType newTemperature = newValue.Temperature;
 
-        if (_node.BoilerStatus.Value.HeaterState == BoilerModel.BoilerHeaterStateType.On)
+        if (_node.BoilerStatus.Value.HeaterState == BoilerHeaterStateType.On)
         {
             // Heater on, increase by 1.
             newTemperature.Bottom = currentTemperatureBottom + 1;
@@ -162,7 +163,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     /// </summary>
     private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
-        _node.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.On;
+        _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.On;
         Logger.Debug("OnHeaterOnCall method called");
         return ServiceResult.Good;
     }
@@ -172,7 +173,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     /// </summary>
     private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
-        _node.BoilerStatus.Value.HeaterState = BoilerModel.BoilerHeaterStateType.Off;
+        _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.Off;
         Logger.Debug("OnHeaterOffCall method called");
         return ServiceResult.Good;
     }

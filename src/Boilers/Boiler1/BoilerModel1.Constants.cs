@@ -35,7 +35,7 @@ using System.Xml;
 using System.Runtime.Serialization;
 using Opc.Ua;
 
-namespace BoilerModel
+namespace BoilerModel1
 {
     #region DataType Identifiers
     /// <remarks />
@@ -148,13 +148,13 @@ namespace BoilerModel
     public static partial class DataTypeIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerDataType = new ExpandedNodeId(BoilerModel.DataTypes.BoilerDataType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerDataType = new ExpandedNodeId(BoilerModel1.DataTypes.BoilerDataType, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerTemperatureType = new ExpandedNodeId(BoilerModel.DataTypes.BoilerTemperatureType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerTemperatureType = new ExpandedNodeId(BoilerModel1.DataTypes.BoilerTemperatureType, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerHeaterStateType = new ExpandedNodeId(BoilerModel.DataTypes.BoilerHeaterStateType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerHeaterStateType = new ExpandedNodeId(BoilerModel1.DataTypes.BoilerHeaterStateType, BoilerModel1.Namespaces.Boiler);
     }
     #endregion
 
@@ -165,25 +165,25 @@ namespace BoilerModel
     public static partial class ObjectIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler1 = new ExpandedNodeId(BoilerModel.Objects.Boiler1, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler1 = new ExpandedNodeId(BoilerModel1.Objects.Boiler1, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultBinary = new ExpandedNodeId(BoilerModel.Objects.BoilerDataType_Encoding_DefaultBinary, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultBinary = new ExpandedNodeId(BoilerModel1.Objects.BoilerDataType_Encoding_DefaultBinary, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultBinary = new ExpandedNodeId(BoilerModel.Objects.BoilerTemperatureType_Encoding_DefaultBinary, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultBinary = new ExpandedNodeId(BoilerModel1.Objects.BoilerTemperatureType_Encoding_DefaultBinary, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultXml = new ExpandedNodeId(BoilerModel.Objects.BoilerDataType_Encoding_DefaultXml, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultXml = new ExpandedNodeId(BoilerModel1.Objects.BoilerDataType_Encoding_DefaultXml, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultXml = new ExpandedNodeId(BoilerModel.Objects.BoilerTemperatureType_Encoding_DefaultXml, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultXml = new ExpandedNodeId(BoilerModel1.Objects.BoilerTemperatureType_Encoding_DefaultXml, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultJson = new ExpandedNodeId(BoilerModel.Objects.BoilerDataType_Encoding_DefaultJson, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerDataType_Encoding_DefaultJson = new ExpandedNodeId(BoilerModel1.Objects.BoilerDataType_Encoding_DefaultJson, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultJson = new ExpandedNodeId(BoilerModel.Objects.BoilerTemperatureType_Encoding_DefaultJson, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerTemperatureType_Encoding_DefaultJson = new ExpandedNodeId(BoilerModel1.Objects.BoilerTemperatureType_Encoding_DefaultJson, BoilerModel1.Namespaces.Boiler);
     }
     #endregion
 
@@ -194,7 +194,7 @@ namespace BoilerModel
     public static partial class ObjectTypeIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerType = new ExpandedNodeId(BoilerModel.ObjectTypes.BoilerType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerType = new ExpandedNodeId(BoilerModel1.ObjectTypes.BoilerType, BoilerModel1.Namespaces.Boiler);
     }
     #endregion
 
@@ -205,43 +205,43 @@ namespace BoilerModel
     public static partial class VariableIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerHeaterStateType_EnumStrings = new ExpandedNodeId(BoilerModel.Variables.BoilerHeaterStateType_EnumStrings, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerHeaterStateType_EnumStrings = new ExpandedNodeId(BoilerModel1.Variables.BoilerHeaterStateType_EnumStrings, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerType_BoilerStatus = new ExpandedNodeId(BoilerModel.Variables.BoilerType_BoilerStatus, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId BoilerType_BoilerStatus = new ExpandedNodeId(BoilerModel1.Variables.BoilerType_BoilerStatus, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler1_BoilerStatus = new ExpandedNodeId(BoilerModel.Variables.Boiler1_BoilerStatus, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler1_BoilerStatus = new ExpandedNodeId(BoilerModel1.Variables.Boiler1_BoilerStatus, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_BinarySchema = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_BinarySchema = new ExpandedNodeId(BoilerModel1.Variables.Boiler_BinarySchema, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_BinarySchema_NamespaceUri = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_NamespaceUri, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_BinarySchema_NamespaceUri = new ExpandedNodeId(BoilerModel1.Variables.Boiler_BinarySchema_NamespaceUri, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_BinarySchema_Deprecated = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_Deprecated, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_BinarySchema_Deprecated = new ExpandedNodeId(BoilerModel1.Variables.Boiler_BinarySchema_Deprecated, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_BinarySchema_BoilerDataType = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_BoilerDataType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_BinarySchema_BoilerDataType = new ExpandedNodeId(BoilerModel1.Variables.Boiler_BinarySchema_BoilerDataType, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_BinarySchema_BoilerTemperatureType = new ExpandedNodeId(BoilerModel.Variables.Boiler_BinarySchema_BoilerTemperatureType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_BinarySchema_BoilerTemperatureType = new ExpandedNodeId(BoilerModel1.Variables.Boiler_BinarySchema_BoilerTemperatureType, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_XmlSchema = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_XmlSchema = new ExpandedNodeId(BoilerModel1.Variables.Boiler_XmlSchema, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_XmlSchema_NamespaceUri = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_NamespaceUri, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_XmlSchema_NamespaceUri = new ExpandedNodeId(BoilerModel1.Variables.Boiler_XmlSchema_NamespaceUri, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_XmlSchema_Deprecated = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_Deprecated, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_XmlSchema_Deprecated = new ExpandedNodeId(BoilerModel1.Variables.Boiler_XmlSchema_Deprecated, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_XmlSchema_BoilerDataType = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_BoilerDataType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_XmlSchema_BoilerDataType = new ExpandedNodeId(BoilerModel1.Variables.Boiler_XmlSchema_BoilerDataType, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_XmlSchema_BoilerTemperatureType = new ExpandedNodeId(BoilerModel.Variables.Boiler_XmlSchema_BoilerTemperatureType, BoilerModel.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler_XmlSchema_BoilerTemperatureType = new ExpandedNodeId(BoilerModel1.Variables.Boiler_XmlSchema_BoilerTemperatureType, BoilerModel1.Namespaces.Boiler);
     }
     #endregion
 
@@ -251,10 +251,10 @@ namespace BoilerModel
     public static partial class BrowseNames
     {
         /// <remarks />
-        public const string Boiler_BinarySchema = "BoilerModel";
+        public const string Boiler_BinarySchema = "BoilerModel1";
 
         /// <remarks />
-        public const string Boiler_XmlSchema = "BoilerModel";
+        public const string Boiler_XmlSchema = "BoilerModel1";
 
         /// <remarks />
         public const string Boiler1 = "Boiler #1";
@@ -292,7 +292,7 @@ namespace BoilerModel
         public const string OpcUaXsd = "http://opcfoundation.org/UA/2008/02/Types.xsd";
 
         /// <summary>
-        /// The URI for the Boiler namespace (.NET code namespace is 'BoilerModel').
+        /// The URI for the Boiler namespace (.NET code namespace is 'BoilerModel1').
         /// </summary>
         public const string Boiler = "http://microsoft.com/Opc/OpcPlc/Boiler";
     }
