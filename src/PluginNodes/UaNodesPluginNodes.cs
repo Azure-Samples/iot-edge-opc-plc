@@ -3,6 +3,7 @@
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,7 +18,7 @@ public class UaNodesPluginNodes : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private static List<string> _nodesFileNames;
+    private List<string> _nodesFileNames;
     private PlcNodeManager _plcNodeManager;
     private Stream _uanodesFile;
 
@@ -51,10 +52,17 @@ public class UaNodesPluginNodes : IPluginNodes
     {
         foreach (var file in _nodesFileNames)
         {
-            _uanodesFile = File.OpenRead(file);
+            try
+            {
+                _uanodesFile = File.OpenRead(file);
 
-            // Load complex types from binary uanodes file.
-            _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
+                // Load complex types from binary uanodes file.
+                _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, "Error loading binary uanodes file {file}: {error}", file, e.Message);
+            }
         }
 
         Logger.Information("Completed processing binary uanodes file(s)");
