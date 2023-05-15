@@ -1,6 +1,6 @@
 namespace OpcPlc.Tests;
 
-using BoilerModel;
+using BoilerModel1;
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
@@ -119,7 +119,7 @@ public class BoilerTests : SimulatorTestsBase
 
     private BoilerDataType GetBoilerModel()
     {
-        var nodeId = NodeId.Create(BoilerModel.Variables.Boiler1_BoilerStatus, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var nodeId = NodeId.Create(BoilerModel1.Variables.Boiler1_BoilerStatus, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var value = Session.ReadValue(nodeId).Value;
         return value.Should().BeOfType<ExtensionObject>().Which.Body.Should().BeOfType<BoilerDataType>().Subject;
     }

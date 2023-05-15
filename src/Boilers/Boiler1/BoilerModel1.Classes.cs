@@ -27,16 +27,20 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
+using System;
 using System.Collections.Generic;
+using System.Text;
+using System.Xml;
+using System.Runtime.Serialization;
 using Opc.Ua;
 
-namespace BoilerModel
+namespace BoilerModel1
 {
     #region BoilerState Class
-#if (!OPCUA_EXCLUDE_BoilerState)
+    #if (!OPCUA_EXCLUDE_BoilerState)
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
     public partial class BoilerState : BaseObjectState
     {
         #region Constructors
@@ -48,10 +52,10 @@ namespace BoilerModel
         /// <remarks />
         protected override NodeId GetDefaultTypeDefinitionId(NamespaceTable namespaceUris)
         {
-            return NodeId.Create(ObjectTypes.BoilerType, Namespaces.Boiler, namespaceUris);
+            return Opc.Ua.NodeId.Create(BoilerModel1.ObjectTypes.BoilerType, BoilerModel1.Namespaces.Boiler, namespaceUris);
         }
 
-#if (!OPCUA_EXCLUDE_InitializationStrings)
+        #if (!OPCUA_EXCLUDE_InitializationStrings)
         /// <remarks />
         protected override void Initialize(ISystemContext context)
         {
@@ -83,7 +87,7 @@ namespace BoilerModel
            "PEhlYXRlclN0YXRlPk9uPC9IZWF0ZXJTdGF0ZT48L0JvaWxlckRhdGFUeXBlPgEBuDr/////AQH/////" +
            "AAAAAA==";
         #endregion
-#endif
+        #endif
         #endregion
 
         #region Public Properties
@@ -97,7 +101,7 @@ namespace BoilerModel
 
             set
             {
-                if (!ReferenceEquals(m_boilerStatus, value))
+                if (!Object.ReferenceEquals(m_boilerStatus, value))
                 {
                     ChangeMasks |= NodeStateChangeMasks.Children;
                 }
@@ -120,7 +124,7 @@ namespace BoilerModel
 
             base.GetChildren(context, children);
         }
-
+            
         /// <remarks />
         protected override BaseInstanceState FindChild(
             ISystemContext context,
@@ -137,26 +141,26 @@ namespace BoilerModel
 
             switch (browseName.Name)
             {
-                case BrowseNames.BoilerStatus:
+                case BoilerModel1.BrowseNames.BoilerStatus:
+                {
+                    if (createOrReplace)
                     {
-                        if (createOrReplace)
+                        if (BoilerStatus == null)
                         {
-                            if (BoilerStatus == null)
+                            if (replacement == null)
                             {
-                                if (replacement == null)
-                                {
-                                    BoilerStatus = new BaseDataVariableState<BoilerDataType>(this);
-                                }
-                                else
-                                {
-                                    BoilerStatus = (BaseDataVariableState<BoilerDataType>)replacement;
-                                }
+                                BoilerStatus = new BaseDataVariableState<BoilerDataType>(this);
+                            }
+                            else
+                            {
+                                BoilerStatus = (BaseDataVariableState<BoilerDataType>)replacement;
                             }
                         }
-
-                        instance = BoilerStatus;
-                        break;
                     }
+
+                    instance = BoilerStatus;
+                    break;
+                }
             }
 
             if (instance != null)
@@ -172,6 +176,6 @@ namespace BoilerModel
         private BaseDataVariableState<BoilerDataType> m_boilerStatus;
         #endregion
     }
-#endif
+    #endif
     #endregion
 }

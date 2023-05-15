@@ -29,17 +29,19 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
+using System.Xml;
 using System.Runtime.Serialization;
 using Opc.Ua;
 
-namespace BoilerModel
+namespace BoilerModel1
 {
     #region BoilerDataType Class
-#if (!OPCUA_EXCLUDE_BoilerDataType)
+    #if (!OPCUA_EXCLUDE_BoilerDataType)
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [DataContract(Namespace = Namespaces.Boiler)]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [DataContract(Namespace = BoilerModel1.Namespaces.Boiler)]
     public partial class BoilerDataType : IEncodeable, IJsonEncodeable
     {
         #region Constructors
@@ -48,17 +50,17 @@ namespace BoilerModel
         {
             Initialize();
         }
-
+            
         [OnDeserializing]
         private void Initialize(StreamingContext context)
         {
             Initialize();
         }
-
+            
         private void Initialize()
         {
             m_temperature = new BoilerTemperatureType();
-            m_pressure = 0;
+            m_pressure = (int)0;
             m_heaterState = BoilerHeaterStateType.Off;
         }
         #endregion
@@ -88,7 +90,7 @@ namespace BoilerModel
         [DataMember(Name = "Pressure", IsRequired = false, Order = 2)]
         public int Pressure
         {
-            get { return m_pressure; }
+            get { return m_pressure;  }
             set { m_pressure = value; }
         }
 
@@ -96,28 +98,28 @@ namespace BoilerModel
         [DataMember(Name = "HeaterState", IsRequired = false, Order = 3)]
         public BoilerHeaterStateType HeaterState
         {
-            get { return m_heaterState; }
+            get { return m_heaterState;  }
             set { m_heaterState = value; }
         }
         #endregion
 
         #region IEncodeable Members
         /// <summary cref="IEncodeable.TypeId" />
-        public virtual ExpandedNodeId TypeId => DataTypeIds.BoilerDataType;
+        public virtual ExpandedNodeId TypeId => DataTypeIds.BoilerDataType; 
 
         /// <summary cref="IEncodeable.BinaryEncodingId" />
         public virtual ExpandedNodeId BinaryEncodingId => ObjectIds.BoilerDataType_Encoding_DefaultBinary;
 
         /// <summary cref="IEncodeable.XmlEncodingId" />
         public virtual ExpandedNodeId XmlEncodingId => ObjectIds.BoilerDataType_Encoding_DefaultXml;
-
+                    
         /// <summary cref="IJsonEncodeable.JsonEncodingId" />
-        public virtual ExpandedNodeId JsonEncodingId => ObjectIds.BoilerDataType_Encoding_DefaultJson;
+        public virtual ExpandedNodeId JsonEncodingId => ObjectIds.BoilerDataType_Encoding_DefaultJson; 
 
         /// <summary cref="IEncodeable.Encode(IEncoder)" />
         public virtual void Encode(IEncoder encoder)
         {
-            encoder.PushNamespace(Namespaces.Boiler);
+            encoder.PushNamespace(BoilerModel1.Namespaces.Boiler);
 
             encoder.WriteEncodeable("Temperature", Temperature, typeof(BoilerTemperatureType));
             encoder.WriteInt32("Pressure", Pressure);
@@ -129,7 +131,7 @@ namespace BoilerModel
         /// <summary cref="IEncodeable.Decode(IDecoder)" />
         public virtual void Decode(IDecoder decoder)
         {
-            decoder.PushNamespace(Namespaces.Boiler);
+            decoder.PushNamespace(BoilerModel1.Namespaces.Boiler);
 
             Temperature = (BoilerTemperatureType)decoder.ReadEncodeable("Temperature", typeof(BoilerTemperatureType));
             Pressure = decoder.ReadInt32("Pressure");
@@ -141,7 +143,7 @@ namespace BoilerModel
         /// <summary cref="IEncodeable.IsEqual(IEncodeable)" />
         public virtual bool IsEqual(IEncodeable encodeable)
         {
-            if (ReferenceEquals(this, encodeable))
+            if (Object.ReferenceEquals(this, encodeable))
             {
                 return true;
             }
@@ -160,22 +162,22 @@ namespace BoilerModel
             return true;
         }
 
-#if !NET_STANDARD
+        #if !NET_STANDARD
         /// <summary cref="ICloneable.Clone" />
         public virtual object Clone()
         {
-            return (BoilerDataType)MemberwiseClone();
+            return (BoilerDataType)this.MemberwiseClone();
         }
-#endif
+        #endif
 
-        /// <summary cref="object.MemberwiseClone" />
+        /// <summary cref="Object.MemberwiseClone" />
         public new object MemberwiseClone()
         {
             BoilerDataType clone = (BoilerDataType)base.MemberwiseClone();
 
-            clone.m_temperature = (BoilerTemperatureType)Utils.Clone(m_temperature);
-            clone.m_pressure = (int)Utils.Clone(m_pressure);
-            clone.m_heaterState = (BoilerHeaterStateType)Utils.Clone(m_heaterState);
+            clone.m_temperature = (BoilerTemperatureType)Utils.Clone(this.m_temperature);
+            clone.m_pressure = (int)Utils.Clone(this.m_pressure);
+            clone.m_heaterState = (BoilerHeaterStateType)Utils.Clone(this.m_heaterState);
 
             return clone;
         }
@@ -191,23 +193,23 @@ namespace BoilerModel
     #region BoilerDataTypeCollection Class
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [CollectionDataContract(Name = "ListOfBoilerDataType", Namespace = Namespaces.Boiler, ItemName = "BoilerDataType")]
-#if !NET_STANDARD
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [CollectionDataContract(Name = "ListOfBoilerDataType", Namespace = BoilerModel1.Namespaces.Boiler, ItemName = "BoilerDataType")]
+    #if !NET_STANDARD
     public partial class BoilerDataTypeCollection : List<BoilerDataType>, ICloneable
-#else
+    #else
     public partial class BoilerDataTypeCollection : List<BoilerDataType>
-#endif
+    #endif
     {
         #region Constructors
         /// <remarks />
-        public BoilerDataTypeCollection() { }
+        public BoilerDataTypeCollection() {}
 
         /// <remarks />
-        public BoilerDataTypeCollection(int capacity) : base(capacity) { }
+        public BoilerDataTypeCollection(int capacity) : base(capacity) {}
 
         /// <remarks />
-        public BoilerDataTypeCollection(IEnumerable<BoilerDataType> collection) : base(collection) { }
+        public BoilerDataTypeCollection(IEnumerable<BoilerDataType> collection) : base(collection) {}
         #endregion
 
         #region Static Operators
@@ -234,22 +236,22 @@ namespace BoilerModel
         }
         #endregion
 
-#if !NET_STANDARD
+        #if !NET_STANDARD
         #region ICloneable Methods
         /// <remarks />
         public object Clone()
         {
-            return (BoilerDataTypeCollection)MemberwiseClone();
+            return (BoilerDataTypeCollection)this.MemberwiseClone();
         }
         #endregion
-#endif
+        #endif
 
-        /// <summary cref="object.MemberwiseClone" />
+        /// <summary cref="Object.MemberwiseClone" />
         public new object MemberwiseClone()
         {
-            BoilerDataTypeCollection clone = new BoilerDataTypeCollection(Count);
+            BoilerDataTypeCollection clone = new BoilerDataTypeCollection(this.Count);
 
-            for (int ii = 0; ii < Count; ii++)
+            for (int ii = 0; ii < this.Count; ii++)
             {
                 clone.Add((BoilerDataType)Utils.Clone(this[ii]));
             }
@@ -258,15 +260,15 @@ namespace BoilerModel
         }
     }
     #endregion
-#endif
+    #endif
     #endregion
 
     #region BoilerTemperatureType Class
-#if (!OPCUA_EXCLUDE_BoilerTemperatureType)
+    #if (!OPCUA_EXCLUDE_BoilerTemperatureType)
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [DataContract(Namespace = Namespaces.Boiler)]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [DataContract(Namespace = BoilerModel1.Namespaces.Boiler)]
     public partial class BoilerTemperatureType : IEncodeable, IJsonEncodeable
     {
         #region Constructors
@@ -275,17 +277,17 @@ namespace BoilerModel
         {
             Initialize();
         }
-
+            
         [OnDeserializing]
         private void Initialize(StreamingContext context)
         {
             Initialize();
         }
-
+            
         private void Initialize()
         {
-            m_top = 0;
-            m_bottom = 0;
+            m_top = (int)0;
+            m_bottom = (int)0;
         }
         #endregion
 
@@ -294,7 +296,7 @@ namespace BoilerModel
         [DataMember(Name = "Top", IsRequired = false, Order = 1)]
         public int Top
         {
-            get { return m_top; }
+            get { return m_top;  }
             set { m_top = value; }
         }
 
@@ -302,28 +304,28 @@ namespace BoilerModel
         [DataMember(Name = "Bottom", IsRequired = false, Order = 2)]
         public int Bottom
         {
-            get { return m_bottom; }
+            get { return m_bottom;  }
             set { m_bottom = value; }
         }
         #endregion
 
         #region IEncodeable Members
         /// <summary cref="IEncodeable.TypeId" />
-        public virtual ExpandedNodeId TypeId => DataTypeIds.BoilerTemperatureType;
+        public virtual ExpandedNodeId TypeId => DataTypeIds.BoilerTemperatureType; 
 
         /// <summary cref="IEncodeable.BinaryEncodingId" />
         public virtual ExpandedNodeId BinaryEncodingId => ObjectIds.BoilerTemperatureType_Encoding_DefaultBinary;
 
         /// <summary cref="IEncodeable.XmlEncodingId" />
         public virtual ExpandedNodeId XmlEncodingId => ObjectIds.BoilerTemperatureType_Encoding_DefaultXml;
-
+                    
         /// <summary cref="IJsonEncodeable.JsonEncodingId" />
-        public virtual ExpandedNodeId JsonEncodingId => ObjectIds.BoilerTemperatureType_Encoding_DefaultJson;
+        public virtual ExpandedNodeId JsonEncodingId => ObjectIds.BoilerTemperatureType_Encoding_DefaultJson; 
 
         /// <summary cref="IEncodeable.Encode(IEncoder)" />
         public virtual void Encode(IEncoder encoder)
         {
-            encoder.PushNamespace(Namespaces.Boiler);
+            encoder.PushNamespace(BoilerModel1.Namespaces.Boiler);
 
             encoder.WriteInt32("Top", Top);
             encoder.WriteInt32("Bottom", Bottom);
@@ -334,7 +336,7 @@ namespace BoilerModel
         /// <summary cref="IEncodeable.Decode(IDecoder)" />
         public virtual void Decode(IDecoder decoder)
         {
-            decoder.PushNamespace(Namespaces.Boiler);
+            decoder.PushNamespace(BoilerModel1.Namespaces.Boiler);
 
             Top = decoder.ReadInt32("Top");
             Bottom = decoder.ReadInt32("Bottom");
@@ -345,7 +347,7 @@ namespace BoilerModel
         /// <summary cref="IEncodeable.IsEqual(IEncodeable)" />
         public virtual bool IsEqual(IEncodeable encodeable)
         {
-            if (ReferenceEquals(this, encodeable))
+            if (Object.ReferenceEquals(this, encodeable))
             {
                 return true;
             }
@@ -363,21 +365,21 @@ namespace BoilerModel
             return true;
         }
 
-#if !NET_STANDARD
+        #if !NET_STANDARD
         /// <summary cref="ICloneable.Clone" />
         public virtual object Clone()
         {
-            return (BoilerTemperatureType)MemberwiseClone();
+            return (BoilerTemperatureType)this.MemberwiseClone();
         }
-#endif
+        #endif
 
-        /// <summary cref="object.MemberwiseClone" />
+        /// <summary cref="Object.MemberwiseClone" />
         public new object MemberwiseClone()
         {
             BoilerTemperatureType clone = (BoilerTemperatureType)base.MemberwiseClone();
 
-            clone.m_top = (int)Utils.Clone(m_top);
-            clone.m_bottom = (int)Utils.Clone(m_bottom);
+            clone.m_top = (int)Utils.Clone(this.m_top);
+            clone.m_bottom = (int)Utils.Clone(this.m_bottom);
 
             return clone;
         }
@@ -392,23 +394,23 @@ namespace BoilerModel
     #region BoilerTemperatureTypeCollection Class
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [CollectionDataContract(Name = "ListOfBoilerTemperatureType", Namespace = Namespaces.Boiler, ItemName = "BoilerTemperatureType")]
-#if !NET_STANDARD
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [CollectionDataContract(Name = "ListOfBoilerTemperatureType", Namespace = BoilerModel1.Namespaces.Boiler, ItemName = "BoilerTemperatureType")]
+    #if !NET_STANDARD
     public partial class BoilerTemperatureTypeCollection : List<BoilerTemperatureType>, ICloneable
-#else
+    #else
     public partial class BoilerTemperatureTypeCollection : List<BoilerTemperatureType>
-#endif
+    #endif
     {
         #region Constructors
         /// <remarks />
-        public BoilerTemperatureTypeCollection() { }
+        public BoilerTemperatureTypeCollection() {}
 
         /// <remarks />
-        public BoilerTemperatureTypeCollection(int capacity) : base(capacity) { }
+        public BoilerTemperatureTypeCollection(int capacity) : base(capacity) {}
 
         /// <remarks />
-        public BoilerTemperatureTypeCollection(IEnumerable<BoilerTemperatureType> collection) : base(collection) { }
+        public BoilerTemperatureTypeCollection(IEnumerable<BoilerTemperatureType> collection) : base(collection) {}
         #endregion
 
         #region Static Operators
@@ -435,22 +437,22 @@ namespace BoilerModel
         }
         #endregion
 
-#if !NET_STANDARD
+        #if !NET_STANDARD
         #region ICloneable Methods
         /// <remarks />
         public object Clone()
         {
-            return (BoilerTemperatureTypeCollection)MemberwiseClone();
+            return (BoilerTemperatureTypeCollection)this.MemberwiseClone();
         }
         #endregion
-#endif
+        #endif
 
-        /// <summary cref="object.MemberwiseClone" />
+        /// <summary cref="Object.MemberwiseClone" />
         public new object MemberwiseClone()
         {
-            BoilerTemperatureTypeCollection clone = new BoilerTemperatureTypeCollection(Count);
+            BoilerTemperatureTypeCollection clone = new BoilerTemperatureTypeCollection(this.Count);
 
-            for (int ii = 0; ii < Count; ii++)
+            for (int ii = 0; ii < this.Count; ii++)
             {
                 clone.Add((BoilerTemperatureType)Utils.Clone(this[ii]));
             }
@@ -459,15 +461,15 @@ namespace BoilerModel
         }
     }
     #endregion
-#endif
+    #endif
     #endregion
 
     #region BoilerHeaterStateType Enumeration
-#if (!OPCUA_EXCLUDE_BoilerHeaterStateType)
+    #if (!OPCUA_EXCLUDE_BoilerHeaterStateType)
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [DataContract(Namespace = Namespaces.Boiler)]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [DataContract(Namespace = BoilerModel1.Namespaces.Boiler)]
     public enum BoilerHeaterStateType
     {
         /// <remarks />
@@ -482,23 +484,23 @@ namespace BoilerModel
     #region BoilerHeaterStateTypeCollection Class
     /// <remarks />
     /// <exclude />
-    [System.CodeDom.Compiler.GeneratedCode("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    [CollectionDataContract(Name = "ListOfBoilerHeaterStateType", Namespace = Namespaces.Boiler, ItemName = "BoilerHeaterStateType")]
-#if !NET_STANDARD
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
+    [CollectionDataContract(Name = "ListOfBoilerHeaterStateType", Namespace = BoilerModel1.Namespaces.Boiler, ItemName = "BoilerHeaterStateType")]
+    #if !NET_STANDARD
     public partial class BoilerHeaterStateTypeCollection : List<BoilerHeaterStateType>, ICloneable
-#else
+    #else
     public partial class BoilerHeaterStateTypeCollection : List<BoilerHeaterStateType>
-#endif
+    #endif
     {
         #region Constructors
         /// <remarks />
-        public BoilerHeaterStateTypeCollection() { }
+        public BoilerHeaterStateTypeCollection() {}
 
         /// <remarks />
-        public BoilerHeaterStateTypeCollection(int capacity) : base(capacity) { }
+        public BoilerHeaterStateTypeCollection(int capacity) : base(capacity) {}
 
         /// <remarks />
-        public BoilerHeaterStateTypeCollection(IEnumerable<BoilerHeaterStateType> collection) : base(collection) { }
+        public BoilerHeaterStateTypeCollection(IEnumerable<BoilerHeaterStateType> collection) : base(collection) {}
         #endregion
 
         #region Static Operators
@@ -525,22 +527,22 @@ namespace BoilerModel
         }
         #endregion
 
-#if !NET_STANDARD
+        #if !NET_STANDARD
         #region ICloneable Methods
         /// <remarks />
         public object Clone()
         {
-            return (BoilerHeaterStateTypeCollection)MemberwiseClone();
+            return (BoilerHeaterStateTypeCollection)this.MemberwiseClone();
         }
         #endregion
-#endif
+        #endif
 
-        /// <summary cref="object.MemberwiseClone" />
+        /// <summary cref="Object.MemberwiseClone" />
         public new object MemberwiseClone()
         {
-            BoilerHeaterStateTypeCollection clone = new BoilerHeaterStateTypeCollection(Count);
+            BoilerHeaterStateTypeCollection clone = new BoilerHeaterStateTypeCollection(this.Count);
 
-            for (int ii = 0; ii < Count; ii++)
+            for (int ii = 0; ii < this.Count; ii++)
             {
                 clone.Add((BoilerHeaterStateType)Utils.Clone(this[ii]));
             }
@@ -549,6 +551,6 @@ namespace BoilerModel
         }
     }
     #endregion
-#endif
+    #endif
     #endregion
 }

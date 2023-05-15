@@ -1,7 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
-using BoilerModel;
+using BoilerModel1;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
@@ -61,10 +61,10 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
 
         // Find the Boiler1 node that was created when the model was loaded.
-        var passiveNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel.Objects.Boiler1, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        var passiveNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel1.Objects.Boiler1, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
 
         // Convert to node that can be manipulated within the server.
-        _node = new BoilerModel.BoilerState(null);
+        _node = new BoilerState(null);
         _node.Create(_plcNodeManager.SystemContext, passiveNode);
 
         _plcNodeManager.AddPredefinedNode(_node);
@@ -107,7 +107,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         var predefinedNodes = new NodeStateCollection();
 
         predefinedNodes.LoadFromBinaryResource(context,
-            "Boilers/Boiler1/BoilerModel.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
+            "Boilers/Boiler1/BoilerModel1.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
             typeof(PlcNodeManager).GetTypeInfo().Assembly,
             updateTables: true);
 
@@ -116,7 +116,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 
     public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        var newValue = new BoilerModel.BoilerDataType
+        var newValue = new BoilerDataType
         {
             HeaterState = _node.BoilerStatus.Value.HeaterState,
         };
