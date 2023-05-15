@@ -23,12 +23,10 @@ public class PlcNodeManager : CustomNodeManager2
     /// </summary>
     public override NodeId New(ISystemContext context, NodeState node)
     {
-        if (node is BaseInstanceState instance && instance.Parent != null)
+        if (node is BaseInstanceState instance && instance.Parent != null &&
+            instance.Parent.NodeId.Identifier is string id)
         {
-            if (instance.Parent.NodeId.Identifier is string id)
-            {
-                return new NodeId(id + "_" + instance.SymbolicName, instance.Parent.NodeId.NamespaceIndex);
-            }
+            return new NodeId(id + "_" + instance.SymbolicName, instance.Parent.NodeId.NamespaceIndex);
         }
 
         return node.NodeId;
