@@ -9,7 +9,7 @@ using System.Linq;
 using static OpcPlc.Program;
 
 /// <summary>
-/// Nodes that are configured via binary *.PredefinedNodes.uanodes file.
+/// Nodes that are configured via binary *.PredefinedNodes.uanodes file(s).
 /// To produce a binary *.PredefinedNodes.uanodes file from an XML NodeSet file, run the following command:
 /// ModelCompiler.cmd <XML_NodeSet_FileName_Without_Extension>
 /// </summary>
@@ -67,11 +67,12 @@ public class UaNodesPluginNodes : IPluginNodes
     {
         var predefinedNodes = new NodeStateCollection();
 
-        predefinedNodes.LoadFromBinary(context,
-            _uanodesFile,
-            updateTables: true);
-
-        _uanodesFile.Close();
+        using (_uanodesFile)
+        {
+            predefinedNodes.LoadFromBinary(context,
+                    _uanodesFile,
+                    updateTables: true);
+        }
 
         // Add to node list for creation of pn.json.
         Nodes ??= new List<NodeWithIntervals>();
