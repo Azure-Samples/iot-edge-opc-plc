@@ -56,6 +56,7 @@
 
   <ItemGroup>
     <Folder Include="AlarmCondition\UnderlyingSystem\" />
+    <Folder Include="Boilers\Boiler2\" />
   </ItemGroup>
 
 </Project>

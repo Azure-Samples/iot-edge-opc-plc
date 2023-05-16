@@ -1,6 +1,7 @@
 @echo off
 setlocal
-set modelName=%1
+set modelName1=%1
+set modelName2=%2
 
 REM If docker is not available, ensure that Opc.Ua.ModelCompiler.exe is in the PATH environment variable
 set MODELCOMPILER=Opc.Ua.ModelCompiler.exe
@@ -19,8 +20,19 @@ IF ERRORLEVEL 1 (
 )
 
 echo:
-echo Building %modelName%.xml ...
-%MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/%modelName%.xml" -cg "%MODELROOT%/%modelName%.csv" -o2 "%MODELROOT%/"
+echo Building %modelName1%.xml ...
+IF "%2" == "" (
+    %MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/%modelName1%.xml" -cg "%MODELROOT%/%modelName1%.csv" -o2 "%MODELROOT%/"
+) ELSE (
+    echo Building %modelName2%.xml ...
+
+    echo Building DI from Nodeset2
+    %MODELCOMPILER% compile -version v104 -id 1000 -d2 "%MODELROOT%/%modelName2%.xml,Opc.Ua.DI,OpcUaDI" -o2 "%MODELROOT%/DI"
+    IF %ERRORLEVEL% EQU 0 echo Success!
+
+
+    %MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/%modelName1%.xml,BoilerModel2,Boiler2" -d2 "%MODELROOT%/%modelName2%.xml,Opc.Ua.DI,OpcUaDI" -cg "%MODELROOT%/%modelName1%.csv" -o2 "%MODELROOT%/"
+)
 
 echo:
 IF ERRORLEVEL 1 (
