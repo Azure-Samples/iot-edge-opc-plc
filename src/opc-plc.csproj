@@ -18,6 +18,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Boilers\Boiler1\BoilerModel1.PredefinedNodes.uanodes" />
+    <None Remove="Boilers\Boiler2\OpcPlc.Boiler2.PredefinedNodes.uanodes" />
+    <None Remove="DI\Opc.Ua.DI.PredefinedNodes.uanodes" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Boilers\Boiler1\BoilerModel1.PredefinedNodes.uanodes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Boilers\Boiler2\OpcPlc.Boiler2.PredefinedNodes.uanodes" />
+    <EmbeddedResource Include="DI\Opc.Ua.DI.PredefinedNodes.uanodes" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 
@@ -38,9 +52,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Boilers\Boiler1\BoilerModel1.PredefinedNodes.uanodes">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="nodesfile.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -56,7 +67,6 @@
 
   <ItemGroup>
     <Folder Include="AlarmCondition\UnderlyingSystem\" />
-    <Folder Include="Boilers\Boiler2\" />
   </ItemGroup>
 
 </Project>
