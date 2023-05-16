@@ -1,7 +1,11 @@
 @echo off
 setlocal
 set modelName1=%1
-set modelName2=%2
+set namespace1=%2
+set prefix1=%3
+set modelName2=%4
+set namespace2=%5
+set prefix2=%6
 
 REM If docker is not available, ensure that Opc.Ua.ModelCompiler.exe is in the PATH environment variable
 set MODELCOMPILER=Opc.Ua.ModelCompiler.exe
@@ -20,18 +24,17 @@ IF ERRORLEVEL 1 (
 )
 
 echo:
-echo Building %modelName1%.xml ...
 IF "%2" == "" (
+    echo Building %modelName1%.xml ...
     %MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/%modelName1%.xml" -cg "%MODELROOT%/%modelName1%.csv" -o2 "%MODELROOT%/"
-) ELSE (
-    echo Building %modelName2%.xml ...
-
-    echo Building DI from Nodeset2
-    %MODELCOMPILER% compile -version v104 -id 1000 -d2 "%MODELROOT%/%modelName2%.xml,Opc.Ua.DI,OpcUaDI" -o2 "%MODELROOT%/DI"
+) ELSE IF "%4" == "" (
+    echo Building %modelName1%.xml,%namespace1%,%prefix1% ...
+    %MODELCOMPILER% compile -version v104 -id 1000 -d2 "%MODELROOT%/%modelName1%.xml,%namespace1%,%prefix1%" -o2 "%MODELROOT%/"
     IF %ERRORLEVEL% EQU 0 echo Success!
-
-
-    %MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/%modelName1%.xml,BoilerModel2,Boiler2" -d2 "%MODELROOT%/%modelName2%.xml,Opc.Ua.DI,OpcUaDI" -cg "%MODELROOT%/%modelName1%.csv" -o2 "%MODELROOT%/"
+) ELSE (
+    echo Building %modelName1%.xml,%namespace1%,%prefix1% %modelName2%.xml,%namespace2%,%prefix2%...
+    %MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/%modelName1%.xml,%namespace1%,%prefix1%" -d2 "%MODELROOT%/%modelName2%.xml,%namespace2%,%prefix2%" -cg "%MODELROOT%/%modelName1%.csv" -o2 "%MODELROOT%/"
+    IF %ERRORLEVEL% EQU 0 echo Success!
 )
 
 echo:
