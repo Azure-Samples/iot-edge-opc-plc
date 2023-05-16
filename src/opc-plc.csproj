@@ -27,8 +27,12 @@
     <EmbeddedResource Include="Boilers\Boiler1\BoilerModel1.PredefinedNodes.uanodes">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="Boilers\Boiler2\OpcPlc.Boiler2.PredefinedNodes.uanodes" />
-    <EmbeddedResource Include="DI\Opc.Ua.DI.PredefinedNodes.uanodes" />
+    <EmbeddedResource Include="Boilers\Boiler2\OpcPlc.Boiler2.PredefinedNodes.uanodes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DI\Opc.Ua.DI.PredefinedNodes.uanodes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
