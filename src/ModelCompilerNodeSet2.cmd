@@ -39,10 +39,7 @@ echo Model1 Filename : %filename1%
 echo Model2 Filename : %filename2%
 mkdir temp
 
-IF "%2" == "" (
-    echo Building %modelName1%.xml ...
-    %MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/%modelName1%.xml" -cg "%MODELROOT%/%modelName1%.csv" -o2 "%MODELROOT%/"
-) ELSE IF "%4" == "" (
+IF "%4" == "" (
     echo Building Nodeset2 %modelName1%.xml,%namespace1%,%prefix1% ...
     COPY %modelName1%.xml temp
     %MODELCOMPILER% compile -version v104 -id 1000 -d2 "%MODELROOT%/temp/%filename1%.xml,%namespace1%,%prefix1%" -o2 "%MODELROOT%/"

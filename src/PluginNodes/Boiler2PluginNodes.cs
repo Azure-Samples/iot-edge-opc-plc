@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Reflection;
 
 /// <summary>
-/// Boiler node that inherit from DI.
+/// Boiler node that inherits from DI.
 /// </summary>
 public class Boiler2PluginNodes : IPluginNodes
 {
