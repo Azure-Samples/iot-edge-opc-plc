@@ -35,7 +35,7 @@ using System.Runtime.Serialization;
 using Opc.Ua;
 using Opc.Ua.DI;
 
-namespace OpcPlc.Boiler2
+namespace BoilerModel2
 {
     #region BoilerState Class
     #if (!OPCUA_EXCLUDE_BoilerState)
@@ -53,7 +53,7 @@ namespace OpcPlc.Boiler2
         /// <remarks />
         protected override NodeId GetDefaultTypeDefinitionId(NamespaceTable namespaceUris)
         {
-            return Opc.Ua.NodeId.Create(OpcPlc.Boiler2.ObjectTypes.Boiler, OpcPlc.Boiler2.Namespaces.Boiler2, namespaceUris);
+            return Opc.Ua.NodeId.Create(BoilerModel2.ObjectTypes.Boiler, BoilerModel2.Namespaces.Boiler2, namespaceUris);
         }
 
         #if (!OPCUA_EXCLUDE_InitializationStrings)

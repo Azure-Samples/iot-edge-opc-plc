@@ -36,7 +36,7 @@
             <si:GeneratorExtension Hash="5198baa73fdd6d953046d8044b9f544e"/>
         </Extension>
     </Extensions>
-    <UAObject SymbolicName="http___microsoft_com_boiler" NodeId="ns=2;i=5000" BrowseName="2:http://microsoft.com/Opc/OpcPlc/Boiler" ParentNodeId="i=11715">
+    <UAObject SymbolicName="http___microsoft_com_Opc_OpcPlc_boiler" NodeId="ns=2;i=5000" BrowseName="2:http://microsoft.com/Opc/OpcPlc/Boiler" ParentNodeId="i=11715">
         <DisplayName>http://microsoft.com/Opc/OpcPlc/Boiler</DisplayName>
         <References>
             <Reference ReferenceType="HasComponent" IsForward="false">i=11715</Reference>

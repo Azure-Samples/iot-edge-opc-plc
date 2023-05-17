@@ -18,24 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Boilers\Boiler1\BoilerModel1.PredefinedNodes.uanodes" />
-    <None Remove="Boilers\Boiler2\OpcPlc.Boiler2.PredefinedNodes.uanodes" />
-    <None Remove="DI\Opc.Ua.DI.PredefinedNodes.uanodes" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Boilers\Boiler1\BoilerModel1.PredefinedNodes.uanodes">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Boilers\Boiler2\OpcPlc.Boiler2.PredefinedNodes.uanodes">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DI\Opc.Ua.DI.PredefinedNodes.uanodes">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 
@@ -56,6 +38,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Boilers\Boiler1\BoilerModel1.PredefinedNodes.uanodes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Boilers\Boiler2\BoilerModel2.PredefinedNodes.uanodes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="CompanionSpecs\DI\Opc.Ua.DI.PredefinedNodes.uanodes">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="nodesfile.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

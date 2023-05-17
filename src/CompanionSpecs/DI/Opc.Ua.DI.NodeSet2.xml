@@ -58,7 +58,6 @@
   </Aliases>
   <UAObject NodeId="ns=1;i=15001" BrowseName="1:http://opcfoundation.org/UA/DI/" SymbolicName="OPCUADINamespaceMetadata">
     <DisplayName>http://opcfoundation.org/UA/DI/</DisplayName>
-    <Documentation>https://reference.opcfoundation.org/v104/DI/v103/docs/11.1</Documentation>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=15002</Reference>
       <Reference ReferenceType="HasProperty">ns=1;i=15003</Reference>

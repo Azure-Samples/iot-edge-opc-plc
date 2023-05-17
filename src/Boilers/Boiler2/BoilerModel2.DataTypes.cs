@@ -35,6 +35,6 @@ using System.Runtime.Serialization;
 using Opc.Ua;
 using Opc.Ua.DI;
 
-namespace OpcPlc.Boiler2
+namespace BoilerModel2
 {
 }
