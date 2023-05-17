@@ -47,7 +47,7 @@ IF "%4" == "" (
     COPY %modelName1%.xml temp
     COPY %modelName2%.xml temp
     echo Building Nodeset2 %modelName1%.xml,%namespace1%,%prefix1% %modelName2%.xml,%namespace2%,%prefix2%...
-    %MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/temp/%filename1%.xml,%namespace1%,%prefix1%" -d2 "%MODELROOT%/temp/%filename2%.xml,%namespace2%,%prefix2%" -cg "%MODELROOT%/%modelName1%.csv" -o2 "%MODELROOT%/"
+    %MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/temp/%filename1%.xml,%namespace1%,%prefix1%" -d2 "%MODELROOT%/temp/%filename2%.xml,%namespace2%,%prefix2%" -o2 "%MODELROOT%/"
 )
 
 rmdir /s/q temp
