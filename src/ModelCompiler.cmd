@@ -46,13 +46,11 @@ IF "%2" == "" (
     echo Building Nodeset2 %modelName1%.xml,%namespace1%,%prefix1% ...
     COPY %modelName1%.xml temp
     %MODELCOMPILER% compile -version v104 -id 1000 -d2 "%MODELROOT%/temp/%filename1%.xml,%namespace1%,%prefix1%" -o2 "%MODELROOT%/"
-    IF %ERRORLEVEL% EQU 0 echo Success!
 ) ELSE (
     COPY %modelName1%.xml temp
     COPY %modelName2%.xml temp
     echo Building Nodeset2 %modelName1%.xml,%namespace1%,%prefix1% %modelName2%.xml,%namespace2%,%prefix2%...
     %MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/temp/%filename1%.xml,%namespace1%,%prefix1%" -d2 "%MODELROOT%/temp/%filename2%.xml,%namespace2%,%prefix2%" -cg "%MODELROOT%/%modelName1%.csv" -o2 "%MODELROOT%/"
-    IF %ERRORLEVEL% EQU 0 echo Success!
 )
 
 rmdir /s/q temp
