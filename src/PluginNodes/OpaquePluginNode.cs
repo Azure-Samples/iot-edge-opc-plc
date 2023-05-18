@@ -12,7 +12,7 @@ public class OpaquePluginNode : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private static bool _isEnabled;
+    private bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;
 
