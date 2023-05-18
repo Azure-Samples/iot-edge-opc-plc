@@ -2,23 +2,19 @@
 
 using Opc.Ua;
 using OpcPlc.PluginNodes.Models;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using Opc.Ua.DI;
 
 /// <summary>
 /// Device Information Companion spec.
 /// https://opcfoundation.org/developer-tools/documents/view/197
+/// The prefix "A" in the class name is used to ensure that this plugin is loaded first.
 /// </summary>
 public class ADeviceInformationPluginNodes : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private static bool _isEnabled;
+    private bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
