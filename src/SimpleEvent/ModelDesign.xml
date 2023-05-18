@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <opc:ModelDesign
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-	xmlns:opc="http://opcfoundation.org/UA/ModelDesign.xsd"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:opc="http://opcfoundation.org/UA/ModelDesign.xsd"
   xmlns:ua="http://opcfoundation.org/UA/"
   xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"
-	xmlns="http://microsoft.com/Opc/OpcPlc/SimpleEvents"
+  xmlns="http://microsoft.com/Opc/OpcPlc/SimpleEvents"
   TargetNamespace="http://microsoft.com/Opc/OpcPlc/SimpleEvents"
 >
   <opc:Namespaces>
@@ -27,7 +27,7 @@
       <opc:Property SymbolicName="CurrentStep" DataType="CycleStepDataType" ValueRank="Scalar" />
     </opc:Children>
   </opc:ObjectType>
-  
+
   <opc:ObjectType SymbolicName="SystemCycleStartedEventType" BaseType="SystemCycleStatusEventType">
     <opc:Description>An event raised when a system cycle starts.</opc:Description>
     <opc:Children>
