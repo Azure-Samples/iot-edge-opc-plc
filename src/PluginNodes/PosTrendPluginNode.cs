@@ -14,7 +14,7 @@ public class PosTrendPluginNode : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private static bool _isEnabled = true;
+    private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<double> _node;
     private readonly Random _random = new Random();
