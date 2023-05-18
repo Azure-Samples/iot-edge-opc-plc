@@ -8,6 +8,7 @@ using System.Reflection;
 /// <summary>
 /// Device Information Companion spec.
 /// https://opcfoundation.org/developer-tools/documents/view/197
+/// The prefix "A" in the class name is used to ensure that this plugin is loaded first.
 /// </summary>
 public class ADeviceInformationPluginNodes : IPluginNodes
 {
