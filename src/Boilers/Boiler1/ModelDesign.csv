@@ -1,3 +1,4 @@
+Boilers,1,Object
 BoilerTemperatureType,15001,DataType
 BoilerType_BoilerStatus,15003,Variable
 BoilerTemperatureType_Encoding_DefaultBinary,15004,Object

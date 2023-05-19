@@ -6,6 +6,59 @@
   </NamespaceUris>
   <ServerUris />
   <Nodes>
+    <Node i:type="ObjectNode">
+      <NodeId>
+        <Identifier>ns=1;i=1</Identifier>
+      </NodeId>
+      <NodeClass>Object_1</NodeClass>
+      <BrowseName>
+        <NamespaceIndex>1</NamespaceIndex>
+        <Name>Boilers</Name>
+      </BrowseName>
+      <DisplayName>
+        <Locale></Locale>
+        <Text>Boilers</Text>
+      </DisplayName>
+      <Description>
+        <Locale></Locale>
+        <Text>Sample boilers.</Text>
+      </Description>
+      <WriteMask>0</WriteMask>
+      <UserWriteMask>0</UserWriteMask>
+      <RolePermissions />
+      <UserRolePermissions />
+      <AccessRestrictions>0</AccessRestrictions>
+      <References>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=40</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>i=58</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=35</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>i=85</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=35</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=15070</Identifier>
+          </TargetId>
+        </ReferenceNode>
+      </References>
+      <EventNotifier>0</EventNotifier>
+    </Node>
     <Node i:type="DataTypeNode">
       <NodeId>
         <Identifier>ns=1;i=15001</Identifier>
@@ -718,7 +771,7 @@
           </ReferenceTypeId>
           <IsInverse>true</IsInverse>
           <TargetId>
-            <Identifier>i=85</Identifier>
+            <Identifier>ns=1;i=1</Identifier>
           </TargetId>
         </ReferenceNode>
         <ReferenceNode>
@@ -1198,7 +1251,7 @@ DQogIHRhcmdldE5hbWVzcGFjZT0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9Cb2ls
 ZXIiDQogIGVsZW1lbnRGb3JtRGVmYXVsdD0icXVhbGlmaWVkIg0KPg0KICA8eHM6YW5ub3RhdGlv
 bj4NCiAgICA8eHM6YXBwaW5mbz4NCiAgICAgIDx0bnM6TW9kZWwgTW9kZWxVcmk9Imh0dHA6Ly9t
 aWNyb3NvZnQuY29tL09wYy9PcGNQbGMvQm9pbGVyIiBWZXJzaW9uPSIxLjAuMCIgUHVibGljYXRp
-b25EYXRlPSIyMDIzLTA1LTE1VDA3OjMyOjAwLjMwMjUwODlaIiAvPg0KICAgIDwveHM6YXBwaW5m
+b25EYXRlPSIyMDIzLTA1LTE3VDE5OjM0OjE5LjY2Njk2NzNaIiAvPg0KICAgIDwveHM6YXBwaW5m
 bz4NCiAgPC94czphbm5vdGF0aW9uPg0KICANCiAgPHhzOmltcG9ydCBuYW1lc3BhY2U9Imh0dHA6
 Ly9vcGNmb3VuZGF0aW9uLm9yZy9VQS8yMDA4LzAyL1R5cGVzLnhzZCIgLz4NCg0KICA8eHM6Y29t
 cGxleFR5cGUgbmFtZT0iQm9pbGVyRGF0YVR5cGUiPg0KICAgIDx4czphbm5vdGF0aW9uPg0KICAg
