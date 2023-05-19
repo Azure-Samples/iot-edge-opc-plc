@@ -10,7 +10,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-public class PnJsonHelper
+public static class PnJsonHelper
 {
     /// <summary>
     /// Show and save pn.json

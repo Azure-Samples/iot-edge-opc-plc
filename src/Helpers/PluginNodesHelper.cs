@@ -8,7 +8,7 @@ using System;
 /// <summary>
 /// Helper class for plugin nodes.
 /// </summary>
-public class PluginNodesHelper
+public static class PluginNodesHelper
 {
     /// <summary>
     /// Get node with correct type prefix, id, namespace, and intervals.
