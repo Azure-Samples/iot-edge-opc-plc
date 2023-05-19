@@ -121,7 +121,7 @@ public class SlowFastCommon
 
         if (nodes != null)
         {
-            UpdateNodes(nodes, nodeType, StatusCodes.Good, false);
+            UpdateNodes(nodes, nodeType, StatusCodes.Good, addBadValue: false);
         }
 
         if (badNodes != null)
@@ -277,7 +277,7 @@ public class SlowFastCommon
     {
         variable.Value = value;
         variable.Timestamp = TimeService.Now();
-        variable.ClearChangeMasks(_plcNodeManager.SystemContext, false);
+        variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
 
     /// <summary>
