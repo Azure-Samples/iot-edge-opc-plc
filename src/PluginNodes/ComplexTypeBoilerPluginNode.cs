@@ -43,7 +43,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     {
         if (_isEnabled)
         {
-            _nodeGenerator = TimeService.NewTimer(UpdateBoiler1, 1000);
+            _nodeGenerator = TimeService.NewTimer(UpdateBoiler1, intervalInMilliseconds: 1000);
         }
     }
 
@@ -132,9 +132,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         else
         {
             // Heater off, decrease down to a minimum of 20.
-            newTemperature.Bottom = currentTemperatureBottom > 20
-                ? currentTemperatureBottom - 1
-                : currentTemperatureBottom;
+            newTemperature.Bottom = Math.Max(20, currentTemperatureBottom - 1);
         }
 
         // Top is always 5 degrees less than bottom, with a minimum value of 20.
