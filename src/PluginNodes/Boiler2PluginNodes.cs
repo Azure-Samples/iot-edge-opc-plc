@@ -113,8 +113,11 @@ public class Boiler2PluginNodes : IPluginNodes
         _overheatedNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_Overheated, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
         _heaterStateNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_HeaterState, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
 
+        SetValue(_heaterStateNode, true);
+
         // TODO: Add after moving to Boilers folder.
-        ////SetValue(_heaterStateNode, true);
+        // Create heater on/off methods.
+        ////MethodState heaterOnMethod = _plcNodeManager.CreateMethod(
         ////    BoilerModel1.Objects.Boilers,
         ////    path: "HeaterOn",
         ////    name: "HeaterOn",
