@@ -115,25 +115,26 @@ public class Boiler2PluginNodes : IPluginNodes
 
         SetValue(_heaterStateNode, true);
 
-        // TODO: Add after moving to Boilers folder.
+        var methodSetFolder = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Objects.Boilers_Boiler__2_MethodSet, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+
         // Create heater on/off methods.
-        ////MethodState heaterOnMethod = _plcNodeManager.CreateMethod(
-        ////    BoilerModel1.Objects.Boilers,
-        ////    path: "HeaterOn",
-        ////    name: "HeaterOn",
-        ////    "Turn the heater on",
-        ////    NamespaceType.Boiler);
+        MethodState heaterOnMethod = _plcNodeManager.CreateMethod(
+            methodSetFolder,
+            path: "HeaterOn",
+            name: "HeaterOn",
+            "Turn the heater on",
+            NamespaceType.Boiler);
 
-        ////SetHeaterOnMethodProperties(ref heaterOnMethod);
+        SetHeaterOnMethodProperties(ref heaterOnMethod);
 
-        ////MethodState heaterOffMethod = _plcNodeManager.CreateMethod(
-        ////    BoilerModel1.Objects.Boilers,
-        ////    path: "HeaterOff",
-        ////    name: "HeaterOff",
-        ////    "Turn the heater off",
-        ////    NamespaceType.Boiler);
+        MethodState heaterOffMethod = _plcNodeManager.CreateMethod(
+            methodSetFolder,
+            path: "HeaterOff",
+            name: "HeaterOff",
+            "Turn the heater off",
+            NamespaceType.Boiler);
 
-        ////SetHeaterOffMethodProperties(ref heaterOffMethod);
+        SetHeaterOffMethodProperties(ref heaterOffMethod);
 
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
@@ -194,33 +195,33 @@ public class Boiler2PluginNodes : IPluginNodes
         // TODO: Trigger alarm if overheated.
     }
 
-    ////private void SetHeaterOnMethodProperties(ref MethodState method)
-    ////{
-    ////    method.OnCallMethod += OnHeaterOnCall;
-    ////}
+    private void SetHeaterOnMethodProperties(ref MethodState method)
+    {
+        method.OnCallMethod += OnHeaterOnCall;
+    }
 
-    ////private void SetHeaterOffMethodProperties(ref MethodState method)
-    ////{
-    ////    method.OnCallMethod += OnHeaterOffCall;
-    ////}
+    private void SetHeaterOffMethodProperties(ref MethodState method)
+    {
+        method.OnCallMethod += OnHeaterOffCall;
+    }
 
-    /////// <summary>
-    /////// Method to turn the heater on. Executes synchronously.
-    /////// </summary>
-    ////private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-    ////{
-    ////    _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.On;
-    ////    Logger.Debug("OnHeaterOnCall method called");
-    ////    return ServiceResult.Good;
-    ////}
+    /// <summary>
+    /// Method to turn the heater on. Executes synchronously.
+    /// </summary>
+    private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    {
+        SetValue(_heaterStateNode, true);
+        Logger.Debug("OnHeaterOnCall method called");
+        return ServiceResult.Good;
+    }
 
-    /////// <summary>
-    /////// Method to turn the heater off. Executes synchronously.
-    /////// </summary>
-    ////private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-    ////{
-    ////    _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.Off;
-    ////    Logger.Debug("OnHeaterOffCall method called");
-    ////    return ServiceResult.Good;
-    ////}
+    /// <summary>
+    /// Method to turn the heater off. Executes synchronously.
+    /// </summary>
+    private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    {
+        SetValue(_heaterStateNode, false);
+        Logger.Debug("OnHeaterOffCall method called");
+        return ServiceResult.Good;
+    }
 }
