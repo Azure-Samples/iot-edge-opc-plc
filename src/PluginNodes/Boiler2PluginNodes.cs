@@ -72,7 +72,7 @@ public class Boiler2PluginNodes : IPluginNodes
 
         if (_isEnabled)
         {
-            AddNodes(methodsFolder);
+            AddNodes((BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Objects.Boilers_Boiler__2_MethodSet, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState)));
         }
     }
 
@@ -89,7 +89,7 @@ public class Boiler2PluginNodes : IPluginNodes
         }
     }
 
-    private void AddNodes(FolderState methodsFolder)
+    private void AddNodes(BaseObjectState methodSetFolder)
     {
         // Load complex types from binary uanodes file.
         _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
@@ -114,27 +114,7 @@ public class Boiler2PluginNodes : IPluginNodes
         _heaterStateNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_HeaterState, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
 
         SetValue(_heaterStateNode, true);
-
-        var methodSetFolder = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Objects.Boilers_Boiler__2_MethodSet, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
-
-        // Create heater on/off methods.
-        MethodState heaterOnMethod = _plcNodeManager.CreateMethod(
-            methodSetFolder,
-            path: "HeaterOn",
-            name: "HeaterOn",
-            "Turn the heater on",
-            NamespaceType.Boiler);
-
-        SetHeaterOnMethodProperties(ref heaterOnMethod);
-
-        MethodState heaterOffMethod = _plcNodeManager.CreateMethod(
-            methodSetFolder,
-            path: "HeaterOff",
-            name: "HeaterOff",
-            "Turn the heater off",
-            NamespaceType.Boiler);
-
-        SetHeaterOffMethodProperties(ref heaterOffMethod);
+        AddMethods(methodSetFolder);
 
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
@@ -193,6 +173,28 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
 
         // TODO: Trigger alarm if overheated.
+    }
+
+    private void AddMethods(BaseObjectState methodSetFolder)
+    {
+        // Create heater on/off methods.
+        MethodState heaterOnMethod = _plcNodeManager.CreateMethod(
+            methodSetFolder,
+            path: "HeaterOn",
+            name: "HeaterOn",
+            "Turn the heater on",
+            NamespaceType.Boiler);
+
+        SetHeaterOnMethodProperties(ref heaterOnMethod);
+
+        MethodState heaterOffMethod = _plcNodeManager.CreateMethod(
+            methodSetFolder,
+            path: "HeaterOff",
+            name: "HeaterOff",
+            "Turn the heater off",
+            NamespaceType.Boiler);
+
+        SetHeaterOffMethodProperties(ref heaterOffMethod);
     }
 
     private void SetHeaterOnMethodProperties(ref MethodState method)

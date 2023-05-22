@@ -69,24 +69,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 
         _plcNodeManager.AddPredefinedNode(_node);
 
-        // Create heater on/off methods.
-        MethodState heaterOnMethod = _plcNodeManager.CreateMethod(
-            methodsFolder,
-            path: "HeaterOn",
-            name: "HeaterOn",
-            "Turn the heater on",
-            NamespaceType.Boiler);
-
-        SetHeaterOnMethodProperties(ref heaterOnMethod);
-
-        MethodState heaterOffMethod = _plcNodeManager.CreateMethod(
-            methodsFolder,
-            path: "HeaterOff",
-            name: "HeaterOff",
-            "Turn the heater off",
-            NamespaceType.Boiler);
-
-        SetHeaterOffMethodProperties(ref heaterOffMethod);
+        AddMethods(methodsFolder);
 
         // Get BoilerStatus complex type variable.
         var children = new List<BaseInstanceState>();
@@ -144,6 +127,28 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         // Change complex value in one atomic step.
         _node.BoilerStatus.Value = newValue;
         _node.BoilerStatus.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: true);
+    }
+
+    private void AddMethods(NodeState methodsFolder)
+    {
+        // Create heater on/off methods.
+        MethodState heaterOnMethod = _plcNodeManager.CreateMethod(
+            methodsFolder,
+            path: "HeaterOn",
+            name: "HeaterOn",
+            "Turn the heater on",
+            NamespaceType.Boiler);
+
+        SetHeaterOnMethodProperties(ref heaterOnMethod);
+
+        MethodState heaterOffMethod = _plcNodeManager.CreateMethod(
+            methodsFolder,
+            path: "HeaterOff",
+            name: "HeaterOff",
+            "Turn the heater off",
+            NamespaceType.Boiler);
+
+        SetHeaterOffMethodProperties(ref heaterOffMethod);
     }
 
     private void SetHeaterOnMethodProperties(ref MethodState method)
