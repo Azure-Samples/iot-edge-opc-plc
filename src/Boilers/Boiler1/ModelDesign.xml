@@ -71,10 +71,9 @@
     </opc:Children>
   </opc:ObjectType>
 
+  <!-- Create a folder to organize all boilers -->
   <opc:Object SymbolicName="Boilers">
     <opc:BrowseName>Boilers</opc:BrowseName>
-
-    <opc:NodeId>ns=2;i=5001</opc:NodeId>
 
     <opc:Description>Sample boilers.</opc:Description>
 
@@ -98,7 +97,7 @@
 
     <opc:Description>A simple boiler.</opc:Description>
 
-    <!-- Link the instance back to the ObjectsFolder -->
+    <!-- Link the instance back to the Boilers folder -->
     <opc:References>
       <opc:Reference IsInverse="true">
         <opc:ReferenceType>ua:Organizes</opc:ReferenceType>
