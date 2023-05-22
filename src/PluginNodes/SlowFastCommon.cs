@@ -6,7 +6,7 @@ using static OpcPlc.Program;
 
 public class SlowFastCommon
 {
-    private PlcNodeManager _plcNodeManager;
+    private readonly PlcNodeManager _plcNodeManager;
     private readonly Random _random = new Random();
     private BaseDataVariableState _numberOfUpdates;
     private uint _badNodesCycle = 0;
@@ -92,7 +92,7 @@ public class SlowFastCommon
         {
             NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, true, null, null, null),
 
-            NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, (double)0.0, double.Parse(stepSize),
+            NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, 0.0, double.Parse(stepSize),
                 minValue == null
                     ? 0.0
                     : double.Parse(minValue),
@@ -121,7 +121,7 @@ public class SlowFastCommon
 
         if (nodes != null)
         {
-            UpdateNodes(nodes, nodeType, StatusCodes.Good, false);
+            UpdateNodes(nodes, nodeType, StatusCodes.Good, addBadValue: false);
         }
 
         if (badNodes != null)
@@ -213,9 +213,7 @@ public class SlowFastCommon
                         break;
 
                     case NodeType.Bool:
-                        value = extendedNode.Value != null
-                            ? !(bool)extendedNode.Value
-                            : true;
+                        value = extendedNode.Value == null || !(bool)extendedNode.Value;
                         break;
 
                     case NodeType.UIntArray:
@@ -279,7 +277,7 @@ public class SlowFastCommon
     {
         variable.Value = value;
         variable.Timestamp = TimeService.Now();
-        variable.ClearChangeMasks(_plcNodeManager.SystemContext, false);
+        variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
 
     /// <summary>

@@ -128,7 +128,7 @@ public class FastPluginNodes : IPluginNodes
         // since they consume more resources and create an own thread.
         _nodeGenerator = NodeRate >= 50 || !Stopwatch.IsHighResolution ?
             TimeService.NewTimer(UpdateNodes, NodeRate) :
-            TimeService.NewFastTimer(UpdateVeryFastNodes, NodeRate);
+            TimeService.NewFastTimer(UpdateVeryFastNodes, intervalInMilliseconds: NodeRate);
     }
 
     public void StopSimulation()
