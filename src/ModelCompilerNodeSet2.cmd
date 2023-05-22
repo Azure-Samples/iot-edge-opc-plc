@@ -48,11 +48,11 @@ echo Model2 Filename : %filename2%
 echo Model3 Filename : %filename3%
 mkdir temp
 
-IF modelName2 == "" (
+IF "%modelName2%" == "" (
     echo Building Nodeset2 %modelName1%.xml,%namespace1%,%prefix1% ...
     COPY %modelName1%.xml temp
     %MODELCOMPILER% compile -version v104 -id 1000 -d2 "%MODELROOT%/temp/%filename1%.xml,%namespace1%,%prefix1%" -o2 "%MODELROOT%/"
-) ELSE IF modelName3 == "" (
+) ELSE IF "%modelName3%" == "" (
     COPY %modelName1%.xml temp
     COPY %modelName2%.xml temp
     echo Building Nodeset2 %modelName1%.xml,%namespace1%,%prefix1% %modelName2%.xml,%namespace2%,%prefix2%...
