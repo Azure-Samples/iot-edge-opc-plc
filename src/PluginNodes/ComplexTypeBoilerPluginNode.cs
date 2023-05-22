@@ -43,7 +43,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     {
         if (_isEnabled)
         {
-            _nodeGenerator = TimeService.NewTimer(UpdateBoiler1, 1000);
+            _nodeGenerator = TimeService.NewTimer(UpdateBoiler1, intervalInMilliseconds: 1000);
         }
     }
 

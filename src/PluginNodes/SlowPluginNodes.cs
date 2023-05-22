@@ -118,7 +118,7 @@ public class SlowPluginNodes : IPluginNodes
 
     public void StartSimulation()
     {
-        _nodeGenerator = TimeService.NewTimer(UpdateNodes, NodeRate);
+        _nodeGenerator = TimeService.NewTimer(UpdateNodes, intervalInMilliseconds: NodeRate);
     }
 
     public void StopSimulation()
