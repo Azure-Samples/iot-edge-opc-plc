@@ -160,11 +160,23 @@ public class Boiler2PluginNodes : IPluginNodes
         {
             // Heater on, increase by specified speed.
             newTemperature = Math.Min(currentTemperature + tempSpeedDegreesPerSec, targetTempDegrees);
+
+            // Target temp reached, turn off heater.
+            if (newTemperature == targetTempDegrees)
+            {
+                SetValue(_heaterStateNode, false);
+            }
         }
         else
         {
             // Heater off, decrease by specified speed to a minimum of baseTemp.
             newTemperature = Math.Max(baseTempDegrees, currentTemperature - tempSpeedDegreesPerSec);
+
+            // Base temp reached, turn on heater.
+            if (newTemperature == baseTempDegrees)
+            {
+                SetValue(_heaterStateNode, true);
+            }
         }
 
         // Pressure is always 100_000 + bottom temperature.
@@ -174,7 +186,13 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_currentTempDegreesNode, newTemperature);
         SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
 
-        // TODO: Trigger alarm if overheated.
+        // TODO:
+        // The simulation should inject a problem every couple of minutes which will increase the Current_temp to 10 degrees over Overheated_temp, switch off the Heater and:
+        // - Will emit a "CheckFunctionAlarmType" event, when DeviceHealth updates to CHECK_FUNCTION
+        // - Will emit a "FailureAlarmType" event, when DeviceHealth updates to FAILURE
+        // - Will emit an "OffSpecAlarmType" event, when DeviceHealth updates to OFF_SPEC
+        // - Will emit a "MaintenanceRequiredAlarmType", when DeviceHealth updates to MAINTENANCE_REQUIRED
+        // DeviceHealth will be updated with NORMAL when Current_temp enters the range between Base_temp and Target_temp
     }
 
     private void AddMethods()
