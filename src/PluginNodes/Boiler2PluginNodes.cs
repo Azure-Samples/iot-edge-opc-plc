@@ -193,6 +193,8 @@ public class Boiler2PluginNodes : IPluginNodes
         // - Will emit an "OffSpecAlarmType" event, when DeviceHealth updates to OFF_SPEC
         // - Will emit a "MaintenanceRequiredAlarmType", when DeviceHealth updates to MAINTENANCE_REQUIRED
         // DeviceHealth will be updated with NORMAL when Current_temp enters the range between Base_temp and Target_temp
+
+        // TODO: Add maintencance required event using (int)_maintenanceIntervalMinutesNode.Value.
     }
 
     private void AddMethods()
