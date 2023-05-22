@@ -3,8 +3,11 @@
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Timers;
+using static OpcPlc.Program;
 
 /// <summary>
 /// Boiler node that inherits from DI.
@@ -15,8 +18,18 @@ public class Boiler2PluginNodes : IPluginNodes
 
     private bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
-    ////private BoilerState _node;
-    private float _tempSpeedDegrees = 1.0f;
+    private BaseDataVariableState _tempSpeedDegreesPerSecNode;
+    private BaseDataVariableState _baseTempDegreesNode;
+    private BaseDataVariableState _targetTempDegreesNode;
+    private BaseDataVariableState _maintenanceIntervalMinutesNode;
+    private BaseDataVariableState _overheatThresholdDegreesNode;
+    private BaseDataVariableState _currentTempDegreesNode;
+    private BaseDataVariableState _pressureNode;
+    private BaseDataVariableState _overheatedNode;
+    private BaseDataVariableState _heaterStateNode;
+    private ITimer _nodeGenerator;
+
+    private float _tempSpeedDegreesPerSec = 1.0f;
     private float _baseTempDegrees = 10.0f;
     private float _targetTempDegrees = 80.0f;
     private uint _maintenanceIntervalMinutes = 60;
@@ -27,8 +40,8 @@ public class Boiler2PluginNodes : IPluginNodes
 
         optionSet.Add(
             "b2ts|boiler2tempspeed=",
-            $"Boiler #2 temperature change speed in degree per seconds\nDefault: {_tempSpeedDegrees}",
-            (string s) => _tempSpeedDegrees = CliHelper.ParseFloat(s, min: 1.0f, max: 10.0f, optionName: "boiler2tempspeed", digits: 1));
+            $"Boiler #2 temperature change speed in degrees per second\nDefault: {_tempSpeedDegreesPerSec}",
+            (string s) => _tempSpeedDegreesPerSec = CliHelper.ParseFloat(s, min: 1.0f, max: 10.0f, optionName: "boiler2tempspeed", digits: 1));
 
         optionSet.Add(
             "b2bt|boiler2basetemp=",
@@ -45,6 +58,7 @@ public class Boiler2PluginNodes : IPluginNodes
             $"Boiler #2 required maintenance interval in minutes\nDefault: {_maintenanceIntervalMinutes}",
             (string s) => _maintenanceIntervalMinutes = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintint"));
 
+        // TODO: Remove when simulation done:
         //Temperature change speed in degree per seconds (float with 1 decimal place, [1.0, 1.1, ..., 9.9, 10.0], read/write, default: 1.0): Configures heater power
         //Base temperature(float, [1.0, ..., 10.0, ...], write, default: 10.0): Temperature to reach when not heating
         //Target temperature(float, [Base_temp + 10.0, ..., 80.0, ...], read / write, default: 80): Temperature to reach when heating
@@ -64,11 +78,15 @@ public class Boiler2PluginNodes : IPluginNodes
 
     public void StartSimulation()
     {
-        _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
+        _nodeGenerator = TimeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
     }
 
     public void StopSimulation()
     {
+        if (_nodeGenerator != null)
+        {
+            _nodeGenerator.Enabled = false;
+        }
     }
 
     private void AddNodes(FolderState methodsFolder)
@@ -77,29 +95,48 @@ public class Boiler2PluginNodes : IPluginNodes
         _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
 
         // Find the Boiler2 configuration nodes.
-        var tempSpeedDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
-        var baseTempNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
-        var targetTempNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TargetTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
-        var maintenanceIntervalNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_MaintenanceInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
-        var overheatThresholdDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatedThresholdTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        _tempSpeedDegreesPerSecNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        _baseTempDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        _targetTempDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TargetTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        _maintenanceIntervalMinutesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_MaintenanceInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        _overheatThresholdDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatedThresholdTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
 
-        SetValue(tempSpeedDegreesNode, _tempSpeedDegrees);
-        SetValue(baseTempNode, _baseTempDegrees);
-        SetValue(targetTempNode, _targetTempDegrees);
-        SetValue(maintenanceIntervalNode, _maintenanceIntervalMinutes);
-        SetValue(overheatThresholdDegreesNode, _targetTempDegrees + 10.0);
+        SetValue(_tempSpeedDegreesPerSecNode, _tempSpeedDegreesPerSec);
+        SetValue(_baseTempDegreesNode, _baseTempDegrees);
+        SetValue(_targetTempDegreesNode, _targetTempDegrees);
+        SetValue(_maintenanceIntervalMinutesNode, _maintenanceIntervalMinutes);
+        SetValue(_overheatThresholdDegreesNode, _targetTempDegrees + 10.0f);
 
-        // Convert to node that can be manipulated within the server.
-        var node1 = new BaseDataVariableState<float>(null);
-        node1.Create(_plcNodeManager.SystemContext, tempSpeedDegreesNode);
-        ////_node = new BoilerState(null);
-        ////_node.Create(_plcNodeManager.SystemContext, passiveNode);
+        // Find the Boiler2 data nodes.
+        _currentTempDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        _pressureNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_Pressure, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        _overheatedNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_Overheated, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        _heaterStateNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_HeaterState, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
 
-        _plcNodeManager.AddPredefinedNode(node1);
-        _plcNodeManager.AddPredefinedNode(baseTempNode);
-        _plcNodeManager.AddPredefinedNode(targetTempNode);
-        _plcNodeManager.AddPredefinedNode(maintenanceIntervalNode);
-        _plcNodeManager.AddPredefinedNode(overheatThresholdDegreesNode);
+        // TODO: Add after moving to Boilers folder.
+        ////SetValue(_heaterStateNode, true);
+        ////    BoilerModel1.Objects.Boilers,
+        ////    path: "HeaterOn",
+        ////    name: "HeaterOn",
+        ////    "Turn the heater on",
+        ////    NamespaceType.Boiler);
+
+        ////SetHeaterOnMethodProperties(ref heaterOnMethod);
+
+        ////MethodState heaterOffMethod = _plcNodeManager.CreateMethod(
+        ////    BoilerModel1.Objects.Boilers,
+        ////    path: "HeaterOff",
+        ////    name: "HeaterOff",
+        ////    "Turn the heater off",
+        ////    NamespaceType.Boiler);
+
+        ////SetHeaterOffMethodProperties(ref heaterOffMethod);
+
+        // Add to node list for creation of pn.json.
+        Nodes = new List<NodeWithIntervals>
+        {
+            PluginNodesHelper.GetNodeWithIntervals(_currentTempDegreesNode.NodeId, _plcNodeManager),
+        };
     }
 
     /// <summary>
@@ -119,9 +156,68 @@ public class Boiler2PluginNodes : IPluginNodes
 
     private void SetValue<T>(BaseVariableState variable, T value)
     {
-        variable.StatusCode = StatusCodes.Good;
         variable.Value = value;
-        variable.Timestamp = Program.TimeService.Now();
+        variable.Timestamp = TimeService.Now();
         variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
+
+    public void UpdateBoiler2(object state, ElapsedEventArgs elapsedEventArgs)
+    {
+        float currentTemperature = (float)_currentTempDegreesNode.Value;
+        float newTemperature;
+        float tempSpeedDegreesPerSec = (float)_tempSpeedDegreesPerSecNode.Value;
+        float baseTempDegrees = (float)_baseTempDegreesNode.Value;
+        float targetTempDegrees = (float)_targetTempDegreesNode.Value;
+        float overheatThresholdDegrees = (float)_overheatThresholdDegreesNode.Value;
+
+        if ((bool)_heaterStateNode.Value)
+        {
+            // Heater on, increase by specified speed.
+            newTemperature = Math.Min(currentTemperature + tempSpeedDegreesPerSec, targetTempDegrees);
+        }
+        else
+        {
+            // Heater off, decrease by specified speed to a minimum of baseTemp.
+            newTemperature = Math.Max(baseTempDegrees, currentTemperature - tempSpeedDegreesPerSec);
+        }
+
+        // Pressure is always 100_000 + bottom temperature.
+        SetValue(_pressureNode, 100_000 + tempSpeedDegreesPerSec); // TODO: Define pressure!
+
+        // Change other values.
+        SetValue(_currentTempDegreesNode, newTemperature);
+        SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
+
+        // TODO: Trigger alarm if overheated.
+    }
+
+    ////private void SetHeaterOnMethodProperties(ref MethodState method)
+    ////{
+    ////    method.OnCallMethod += OnHeaterOnCall;
+    ////}
+
+    ////private void SetHeaterOffMethodProperties(ref MethodState method)
+    ////{
+    ////    method.OnCallMethod += OnHeaterOffCall;
+    ////}
+
+    /////// <summary>
+    /////// Method to turn the heater on. Executes synchronously.
+    /////// </summary>
+    ////private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    ////{
+    ////    _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.On;
+    ////    Logger.Debug("OnHeaterOnCall method called");
+    ////    return ServiceResult.Good;
+    ////}
+
+    /////// <summary>
+    /////// Method to turn the heater off. Executes synchronously.
+    /////// </summary>
+    ////private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    ////{
+    ////    _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.Off;
+    ////    Logger.Debug("OnHeaterOffCall method called");
+    ////    return ServiceResult.Good;
+    ////}
 }
