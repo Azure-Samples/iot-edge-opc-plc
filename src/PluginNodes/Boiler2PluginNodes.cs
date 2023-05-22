@@ -5,6 +5,7 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Timers;
 using static OpcPlc.Program;
@@ -184,20 +185,12 @@ public class Boiler2PluginNodes : IPluginNodes
     }
 
     /// <summary>
-    /// Toggle the heater on/off. Executes synchronously.
+    /// Set the heater on/off. Executes synchronously.
     /// </summary>
     private ServiceResult SwitchOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
-        if ((bool)_heaterStateNode.Value)
-        {
-            SetValue(_heaterStateNode, false);
-            Logger.Debug("OnHeaterOffCall method called");
-        }
-        else
-        {
-            SetValue(_heaterStateNode, true);
-            Logger.Debug("OnHeaterOnCall method called");
-        }
+        SetValue(_heaterStateNode, inputArguments.First());
+        Logger.Debug($"SwitchOnCall method called with argument: {inputArguments.First()}");
 
         return ServiceResult.Good;
     }
