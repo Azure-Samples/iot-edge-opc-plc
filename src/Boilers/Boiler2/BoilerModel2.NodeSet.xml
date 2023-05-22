@@ -2,7 +2,7 @@
 <NodeSet xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
   <NamespaceUris>
     <String>http://opcfoundation.org/UA/</String>
-    <String>http://microsoft.com/Opc/OpcPlc/Boiler</String>
+    <String>http://microsoft.com/Opc/OpcPlc/Boiler2</String>
     <String>http://opcfoundation.org/UA/DI/</String>
   </NamespaceUris>
   <ServerUris />

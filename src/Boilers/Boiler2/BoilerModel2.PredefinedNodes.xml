@@ -1,10 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <uax:ListOfNodeState xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd">
   <uax:NamespaceUris>
-    <uax:NamespaceUri>http://microsoft.com/Opc/OpcPlc/Boiler</uax:NamespaceUri>
+    <uax:NamespaceUri>http://microsoft.com/Opc/OpcPlc/Boiler2</uax:NamespaceUri>
     <uax:NamespaceUri>http://opcfoundation.org/UA/DI/</uax:NamespaceUri>
+    <uax:NamespaceUri>http://microsoft.com/Opc/OpcPlc/Boiler</uax:NamespaceUri>
   </uax:NamespaceUris>
-  <http___microsoft_com_Opc_OpcPlc_boiler xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+  <http___microsoft_com_Opc_OpcPlc_boiler xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
     <uax:NodeClass>Object_1</uax:NodeClass>
     <uax:NodeId>
       <uax:Identifier>ns=1;i=5000</uax:Identifier>
@@ -238,7 +239,7 @@
       <uax:UserAccessLevel>1</uax:UserAccessLevel>
     </DefaultRolePermissions>
   </http___microsoft_com_Opc_OpcPlc_boiler>
-  <Boiler xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+  <Boiler xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
     <uax:NodeClass>ObjectType_8</uax:NodeClass>
     <uax:NodeId>
       <uax:Identifier>ns=1;i=1000</uax:Identifier>
@@ -272,7 +273,7 @@
         <uax:Identifier>i=78</uax:Identifier>
       </uax:ModellingRuleId>
       <uax:NumericId>5014</uax:NumericId>
-      <TemperatureChangeSpeed xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <TemperatureChangeSpeed xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6025</uax:Identifier>
@@ -298,7 +299,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </TemperatureChangeSpeed>
-      <BaseTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <BaseTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6026</uax:Identifier>
@@ -329,7 +330,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </BaseTemperature>
-      <TargetTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <TargetTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6027</uax:Identifier>
@@ -355,7 +356,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </TargetTemperature>
-      <MaintenanceInterval xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <MaintenanceInterval xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6028</uax:Identifier>
@@ -386,7 +387,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </MaintenanceInterval>
-      <OverheatedThresholdTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <OverheatedThresholdTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6029</uax:Identifier>
@@ -412,7 +413,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </OverheatedThresholdTemperature>
-      <HeaterState xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <HeaterState xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6030</uax:Identifier>
@@ -438,7 +439,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </HeaterState>
-      <CurrentTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <CurrentTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6031</uax:Identifier>
@@ -469,7 +470,7 @@
         <uax:AccessLevel>1</uax:AccessLevel>
         <uax:UserAccessLevel>1</uax:UserAccessLevel>
       </CurrentTemperature>
-      <Pressure xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <Pressure xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6032</uax:Identifier>
@@ -495,7 +496,7 @@
         <uax:AccessLevel>1</uax:AccessLevel>
         <uax:UserAccessLevel>1</uax:UserAccessLevel>
       </Pressure>
-      <Overheated xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <Overheated xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6033</uax:Identifier>
@@ -544,7 +545,7 @@
         <uax:Identifier>i=78</uax:Identifier>
       </uax:ModellingRuleId>
       <uax:NumericId>5013</uax:NumericId>
-      <Switch xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <Switch xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Method_4</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=7000</uax:Identifier>
@@ -1082,7 +1083,7 @@
         <uax:Identifier>i=78</uax:Identifier>
       </uax:ModellingRuleId>
       <uax:NumericId>5002</uax:NumericId>
-      <FailureAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <FailureAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Object_1</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=5003</uax:Identifier>
@@ -1102,7 +1103,7 @@
         </uax:ModellingRuleId>
         <uax:NumericId>5003</uax:NumericId>
       </FailureAlarm>
-      <CheckFunctionAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <CheckFunctionAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Object_1</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=5004</uax:Identifier>
@@ -1122,7 +1123,7 @@
         </uax:ModellingRuleId>
         <uax:NumericId>5004</uax:NumericId>
       </CheckFunctionAlarm>
-      <OffSpecAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <OffSpecAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Object_1</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=5005</uax:Identifier>
@@ -1142,7 +1143,7 @@
         </uax:ModellingRuleId>
         <uax:NumericId>5005</uax:NumericId>
       </OffSpecAlarm>
-      <MaintenanceRequiredAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <MaintenanceRequiredAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Object_1</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=5006</uax:Identifier>
@@ -1164,7 +1165,7 @@
       </MaintenanceRequiredAlarm>
     </DeviceHealthAlarms>
   </Boiler>
-  <Boiler__2 xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+  <Boiler__2 xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
     <uax:NodeClass>Object_1</uax:NodeClass>
     <uax:NodeId>
       <uax:Identifier>ns=1;i=5017</uax:Identifier>
@@ -1196,7 +1197,7 @@
         <uax:Identifier>i=58</uax:Identifier>
       </uax:TypeDefinitionId>
       <uax:NumericId>5020</uax:NumericId>
-      <TemperatureChangeSpeed xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <TemperatureChangeSpeed xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6218</uax:Identifier>
@@ -1224,7 +1225,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </TemperatureChangeSpeed>
-      <BaseTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <BaseTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6210</uax:Identifier>
@@ -1252,7 +1253,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </BaseTemperature>
-      <TargetTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <TargetTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6217</uax:Identifier>
@@ -1280,7 +1281,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </TargetTemperature>
-      <MaintenanceInterval xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <MaintenanceInterval xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6213</uax:Identifier>
@@ -1308,7 +1309,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </MaintenanceInterval>
-      <OverheatedThresholdTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <OverheatedThresholdTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6215</uax:Identifier>
@@ -1336,7 +1337,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </OverheatedThresholdTemperature>
-      <HeaterState xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <HeaterState xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6212</uax:Identifier>
@@ -1359,7 +1360,7 @@
         <uax:AccessLevel>3</uax:AccessLevel>
         <uax:UserAccessLevel>3</uax:UserAccessLevel>
       </HeaterState>
-      <CurrentTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <CurrentTemperature xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6211</uax:Identifier>
@@ -1387,7 +1388,7 @@
         <uax:AccessLevel>1</uax:AccessLevel>
         <uax:UserAccessLevel>1</uax:UserAccessLevel>
       </CurrentTemperature>
-      <Pressure xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <Pressure xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6216</uax:Identifier>
@@ -1410,7 +1411,7 @@
         <uax:AccessLevel>1</uax:AccessLevel>
         <uax:UserAccessLevel>1</uax:UserAccessLevel>
       </Pressure>
-      <Overheated xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <Overheated xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=6214</uax:Identifier>
@@ -1453,7 +1454,7 @@
         <uax:Identifier>i=58</uax:Identifier>
       </uax:TypeDefinitionId>
       <uax:NumericId>5019</uax:NumericId>
-      <Switch xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <Switch xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Method_4</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=7019</uax:Identifier>
@@ -1983,7 +1984,7 @@
         <uax:Identifier>i=61</uax:Identifier>
       </uax:TypeDefinitionId>
       <uax:NumericId>5018</uax:NumericId>
-      <FailureAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <FailureAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Object_1</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=5022</uax:Identifier>
@@ -2963,7 +2964,7 @@
           <uax:UserAccessLevel>1</uax:UserAccessLevel>
         </NormalState>
       </FailureAlarm>
-      <CheckFunctionAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <CheckFunctionAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Object_1</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=5021</uax:Identifier>
@@ -3943,7 +3944,7 @@
           <uax:UserAccessLevel>1</uax:UserAccessLevel>
         </NormalState>
       </CheckFunctionAlarm>
-      <OffSpecAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <OffSpecAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Object_1</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=5024</uax:Identifier>
@@ -4923,7 +4924,7 @@
           <uax:UserAccessLevel>1</uax:UserAccessLevel>
         </NormalState>
       </OffSpecAlarm>
-      <MaintenanceRequiredAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+      <MaintenanceRequiredAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler2">
         <uax:NodeClass>Object_1</uax:NodeClass>
         <uax:NodeId>
           <uax:Identifier>ns=1;i=5023</uax:Identifier>

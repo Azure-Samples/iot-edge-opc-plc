@@ -35,6 +35,7 @@ using System.Xml;
 using System.Runtime.Serialization;
 using Opc.Ua;
 using Opc.Ua.DI;
+using BoilerModel1;
 
 namespace BoilerModel2
 {
@@ -1758,7 +1759,7 @@ namespace BoilerModel2
         /// <summary>
         /// The URI for the Boiler2 namespace (.NET code namespace is 'BoilerModel2').
         /// </summary>
-        public const string Boiler2 = "http://microsoft.com/Opc/OpcPlc/Boiler";
+        public const string Boiler2 = "http://microsoft.com/Opc/OpcPlc/Boiler2";
 
         /// <summary>
         /// The URI for the OpcUa namespace (.NET code namespace is 'Opc.Ua').
@@ -1769,6 +1770,11 @@ namespace BoilerModel2
         /// The URI for the OpcUaDI namespace (.NET code namespace is 'Opc.Ua.DI').
         /// </summary>
         public const string OpcUaDI = "http://opcfoundation.org/UA/DI/";
+
+        /// <summary>
+        /// The URI for the Boiler1 namespace (.NET code namespace is 'BoilerModel1').
+        /// </summary>
+        public const string Boiler1 = "http://microsoft.com/Opc/OpcPlc/Boiler";
     }
     #endregion
 }

@@ -1,13 +1,15 @@
 <opc:TypeDictionary
   xmlns:Opc.Ua.DI="http://opcfoundation.org/UA/DI/"
+  xmlns:BoilerModel1="http://microsoft.com/Opc/OpcPlc/Boiler"
   xmlns:opc="http://opcfoundation.org/BinarySchema/"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns:ua="http://opcfoundation.org/UA/"
-  xmlns:tns="http://microsoft.com/Opc/OpcPlc/Boiler"
+  xmlns:tns="http://microsoft.com/Opc/OpcPlc/Boiler2"
   DefaultByteOrder="LittleEndian"
-  TargetNamespace="http://microsoft.com/Opc/OpcPlc/Boiler"
+  TargetNamespace="http://microsoft.com/Opc/OpcPlc/Boiler2"
 >
   <opc:Import Namespace="http://opcfoundation.org/UA/" Location="Opc.Ua.BinarySchema.bsd"/>
   <opc:Import Namespace="http://opcfoundation.org/UA/DI/" Location="Opc.Ua.DI.BinarySchema.bsd"/>
+  <opc:Import Namespace="http://microsoft.com/Opc/OpcPlc/Boiler" Location="BoilerModel1.BinarySchema.bsd"/>
 
 </opc:TypeDictionary>

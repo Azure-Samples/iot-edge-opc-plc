@@ -1,13 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" LastModified="2023-05-12T00:00:00Z" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
   <NamespaceUris>
-    <Uri>http://microsoft.com/Opc/OpcPlc/Boiler</Uri>
+    <Uri>http://microsoft.com/Opc/OpcPlc/Boiler2</Uri>
     <Uri>http://opcfoundation.org/UA/DI/</Uri>
+    <Uri>http://microsoft.com/Opc/OpcPlc/Boiler</Uri>
   </NamespaceUris>
   <Models>
-    <Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" Version="1.00" PublicationDate="2023-05-12T00:00:00Z">
+    <Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler2" Version="1.00" PublicationDate="2023-05-12T00:00:00Z">
       <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.04.10" PublicationDate="2021-09-15T00:00:00Z" />
       <RequiredModel ModelUri="http://opcfoundation.org/UA/DI/" Version="1.04.0" PublicationDate="2022-11-03T00:00:00Z" />
+      <RequiredModel ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" Version="1.0.0" PublicationDate="2023-05-22T00:00:00Z" />
     </Model>
   </Models>
   <Aliases>

@@ -2,10 +2,10 @@
 <UANodeSet LastModified="2023-05-16T09:46:08.767Z" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd" xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd" xmlns:si="http://www.siemens.com/OPCUA/2017/SimaticNodeSetExtensions" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
     <NamespaceUris>
         <Uri>http://opcfoundation.org/UA/DI/</Uri>
-        <Uri>http://microsoft.com/Opc/OpcPlc/Boiler</Uri>
+        <Uri>http://microsoft.com/Opc/OpcPlc/Boiler2</Uri>
     </NamespaceUris>
     <Models>
-        <Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" PublicationDate="2023-05-12T00:00:00Z" Version="1.00">
+        <Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler2" PublicationDate="2023-05-12T00:00:00Z" Version="1.00">
             <RequiredModel ModelUri="http://opcfoundation.org/UA/" PublicationDate="2021-09-15T00:00:00Z" Version="1.04.10"/>
             <RequiredModel ModelUri="http://opcfoundation.org/UA/DI/" PublicationDate="2022-11-03T00:00:00Z" Version="1.04.0"/>
             <RequiredModel ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" PublicationDate="2023-05-22T06:39:31.65368Z" Version="1.0.0" />
@@ -427,10 +427,10 @@
             <Reference ReferenceType="HasModellingRule">i=78</Reference>
         </References>
     </UAObject>
-    <UAObject SymbolicName="Boiler__2" NodeId="ns=2;i=5017" BrowseName="2:Boiler #2" ParentNodeId="ns=2;i=1">
+    <UAObject SymbolicName="Boiler__2" NodeId="ns=2;i=5017" BrowseName="2:Boiler #2" ParentNodeId="ns=4;i=1">
         <DisplayName>Boiler #2</DisplayName>
         <References>
-            <Reference ReferenceType="Organizes" IsForward="false">ns=2;i=1</Reference>
+            <Reference ReferenceType="Organizes" IsForward="false">ns=4;i=1</Reference>
             <Reference ReferenceType="HasTypeDefinition">ns=2;i=1000</Reference>
         </References>
     </UAObject>
