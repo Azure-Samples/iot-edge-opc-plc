@@ -1,4 +1,4 @@
 @echo off
 
 REM Pass the model file name without .xml extension
-..\..\ModelCompilerNodeSet2.cmd ..\Boiler.NodeSet2 BoilerModel2 Boiler2 ..\..\CompanionSpecs\Opc.Ua.Di.NodeSet2 Opc.Ua.DI OpcUaDI
+..\..\ModelCompilerNodeSet2.cmd ..\BoilerModel2.NodeSet2 BoilerModel2 Boiler2 ..\..\CompanionSpecs\Opc.Ua.Di.NodeSet2 Opc.Ua.DI OpcUaDI ..\Boiler1\BoilerModel1.NodeSet2 BoilerModel1 Boiler1
