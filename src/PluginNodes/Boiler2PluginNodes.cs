@@ -15,7 +15,7 @@ public class Boiler2PluginNodes : IPluginNodes
 
     private bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
-    private BoilerState _node;
+    ////private BoilerState _node;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -47,13 +47,13 @@ public class Boiler2PluginNodes : IPluginNodes
         _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
 
         // Find the Boiler2 node that was created when the model was loaded.
-        var passiveNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        ////var passiveNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
 
         // Convert to node that can be manipulated within the server.
-        _node = new BoilerState(null);
-        _node.Create(_plcNodeManager.SystemContext, passiveNode);
+        ////_node = new BoilerState(null);
+        ////_node.Create(_plcNodeManager.SystemContext, passiveNode);
 
-        _plcNodeManager.AddPredefinedNode(_node);
+        ////_plcNodeManager.AddPredefinedNode(_node);
     }
 
     /// <summary>
