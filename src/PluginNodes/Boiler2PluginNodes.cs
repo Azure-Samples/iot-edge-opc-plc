@@ -5,6 +5,7 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Timers;
 using static OpcPlc.Program;
@@ -72,7 +73,7 @@ public class Boiler2PluginNodes : IPluginNodes
 
         if (_isEnabled)
         {
-            AddNodes(methodsFolder);
+            AddNodes();
         }
     }
 
@@ -89,7 +90,7 @@ public class Boiler2PluginNodes : IPluginNodes
         }
     }
 
-    private void AddNodes(FolderState methodsFolder)
+    private void AddNodes()
     {
         // Load complex types from binary uanodes file.
         _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
@@ -115,25 +116,7 @@ public class Boiler2PluginNodes : IPluginNodes
 
         SetValue(_heaterStateNode, true);
 
-        // TODO: Add after moving to Boilers folder.
-        // Create heater on/off methods.
-        ////MethodState heaterOnMethod = _plcNodeManager.CreateMethod(
-        ////    BoilerModel1.Objects.Boilers,
-        ////    path: "HeaterOn",
-        ////    name: "HeaterOn",
-        ////    "Turn the heater on",
-        ////    NamespaceType.Boiler);
-
-        ////SetHeaterOnMethodProperties(ref heaterOnMethod);
-
-        ////MethodState heaterOffMethod = _plcNodeManager.CreateMethod(
-        ////    BoilerModel1.Objects.Boilers,
-        ////    path: "HeaterOff",
-        ////    name: "HeaterOff",
-        ////    "Turn the heater off",
-        ////    NamespaceType.Boiler);
-
-        ////SetHeaterOffMethodProperties(ref heaterOffMethod);
+        AddMethods();
 
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
@@ -194,33 +177,21 @@ public class Boiler2PluginNodes : IPluginNodes
         // TODO: Trigger alarm if overheated.
     }
 
-    ////private void SetHeaterOnMethodProperties(ref MethodState method)
-    ////{
-    ////    method.OnCallMethod += OnHeaterOnCall;
-    ////}
+    private void AddMethods()
+    {
+        MethodState switchMethodNode = (MethodState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Methods.Boilers_Boiler__2_MethodSet_Switch, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(MethodState));
 
-    ////private void SetHeaterOffMethodProperties(ref MethodState method)
-    ////{
-    ////    method.OnCallMethod += OnHeaterOffCall;
-    ////}
+        switchMethodNode.OnCallMethod += SwitchOnCall;
+    }
 
-    /////// <summary>
-    /////// Method to turn the heater on. Executes synchronously.
-    /////// </summary>
-    ////private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-    ////{
-    ////    _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.On;
-    ////    Logger.Debug("OnHeaterOnCall method called");
-    ////    return ServiceResult.Good;
-    ////}
+    /// <summary>
+    /// Set the heater on/off. Executes synchronously.
+    /// </summary>
+    private ServiceResult SwitchOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    {
+        SetValue(_heaterStateNode, inputArguments.First());
+        Logger.Debug($"SwitchOnCall method called with argument: {inputArguments.First()}");
 
-    /////// <summary>
-    /////// Method to turn the heater off. Executes synchronously.
-    /////// </summary>
-    ////private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
-    ////{
-    ////    _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.Off;
-    ////    Logger.Debug("OnHeaterOffCall method called");
-    ////    return ServiceResult.Good;
-    ////}
+        return ServiceResult.Good;
+    }
 }
