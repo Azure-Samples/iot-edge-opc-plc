@@ -28,7 +28,7 @@ public class ADeviceInformationPluginNodes : IPluginNodes
 
         if (_isEnabled)
         {
-            AddNodes(methodsFolder);
+            AddNodes();
         }
     }
 
@@ -41,7 +41,7 @@ public class ADeviceInformationPluginNodes : IPluginNodes
     {
     }
 
-    private void AddNodes(FolderState methodsFolder)
+    private void AddNodes()
     {
         // Load complex types from binary uanodes file.
         _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
