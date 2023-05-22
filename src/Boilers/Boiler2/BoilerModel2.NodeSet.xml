@@ -316,56 +316,6 @@
     </Node>
     <Node i:type="ObjectNode">
       <NodeId>
-        <Identifier>ns=1;i=5001</Identifier>
-      </NodeId>
-      <NodeClass>Object_1</NodeClass>
-      <BrowseName>
-        <NamespaceIndex>1</NamespaceIndex>
-        <Name>Boilers</Name>
-      </BrowseName>
-      <DisplayName>
-        <Locale></Locale>
-        <Text>Boilers</Text>
-      </DisplayName>
-      <Description i:nil="true" />
-      <WriteMask>0</WriteMask>
-      <UserWriteMask>0</UserWriteMask>
-      <RolePermissions />
-      <UserRolePermissions />
-      <AccessRestrictions>0</AccessRestrictions>
-      <References>
-        <ReferenceNode>
-          <ReferenceTypeId>
-            <Identifier>i=40</Identifier>
-          </ReferenceTypeId>
-          <IsInverse>false</IsInverse>
-          <TargetId>
-            <Identifier>i=61</Identifier>
-          </TargetId>
-        </ReferenceNode>
-        <ReferenceNode>
-          <ReferenceTypeId>
-            <Identifier>i=35</Identifier>
-          </ReferenceTypeId>
-          <IsInverse>true</IsInverse>
-          <TargetId>
-            <Identifier>i=85</Identifier>
-          </TargetId>
-        </ReferenceNode>
-        <ReferenceNode>
-          <ReferenceTypeId>
-            <Identifier>i=35</Identifier>
-          </ReferenceTypeId>
-          <IsInverse>false</IsInverse>
-          <TargetId>
-            <Identifier>ns=1;i=5017</Identifier>
-          </TargetId>
-        </ReferenceNode>
-      </References>
-      <EventNotifier>0</EventNotifier>
-    </Node>
-    <Node i:type="ObjectNode">
-      <NodeId>
         <Identifier>ns=1;i=5002</Identifier>
       </NodeId>
       <NodeClass>Object_1</NodeClass>
@@ -866,15 +816,6 @@
       <UserRolePermissions />
       <AccessRestrictions>0</AccessRestrictions>
       <References>
-        <ReferenceNode>
-          <ReferenceTypeId>
-            <Identifier>i=35</Identifier>
-          </ReferenceTypeId>
-          <IsInverse>true</IsInverse>
-          <TargetId>
-            <Identifier>ns=1;i=5001</Identifier>
-          </TargetId>
-        </ReferenceNode>
         <ReferenceNode>
           <ReferenceTypeId>
             <Identifier>i=40</Identifier>
@@ -6963,6 +6904,15 @@
         </ReferenceNode>
         <ReferenceNode>
           <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6238</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
             <Identifier>i=46</Identifier>
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
@@ -7027,6 +6977,15 @@
         </ReferenceNode>
         <ReferenceNode>
           <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6238</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
             <Identifier>i=46</Identifier>
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
@@ -7087,6 +7046,33 @@
           <IsInverse>false</IsInverse>
           <TargetId>
             <Identifier>i=8995</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6236</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=0</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6237</Identifier>
           </TargetId>
         </ReferenceNode>
         <ReferenceNode>
@@ -8296,6 +8282,15 @@
         </ReferenceNode>
         <ReferenceNode>
           <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6261</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
             <Identifier>i=46</Identifier>
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
@@ -8360,6 +8355,15 @@
         </ReferenceNode>
         <ReferenceNode>
           <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6261</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
             <Identifier>i=46</Identifier>
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
@@ -8420,6 +8424,33 @@
           <IsInverse>false</IsInverse>
           <TargetId>
             <Identifier>i=8995</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6259</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=0</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6260</Identifier>
           </TargetId>
         </ReferenceNode>
         <ReferenceNode>
@@ -9629,6 +9660,15 @@
         </ReferenceNode>
         <ReferenceNode>
           <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6284</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
             <Identifier>i=46</Identifier>
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
@@ -9693,6 +9733,15 @@
         </ReferenceNode>
         <ReferenceNode>
           <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6284</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
             <Identifier>i=46</Identifier>
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
@@ -9753,6 +9802,33 @@
           <IsInverse>false</IsInverse>
           <TargetId>
             <Identifier>i=8995</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6282</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=0</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6283</Identifier>
           </TargetId>
         </ReferenceNode>
         <ReferenceNode>
@@ -10962,6 +11038,15 @@
         </ReferenceNode>
         <ReferenceNode>
           <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6307</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
             <Identifier>i=46</Identifier>
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
@@ -11026,6 +11111,15 @@
         </ReferenceNode>
         <ReferenceNode>
           <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6307</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
             <Identifier>i=46</Identifier>
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
@@ -11086,6 +11180,33 @@
           <IsInverse>false</IsInverse>
           <TargetId>
             <Identifier>i=8995</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6305</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=0</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=9004</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=6306</Identifier>
           </TargetId>
         </ReferenceNode>
         <ReferenceNode>

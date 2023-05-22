@@ -58,7 +58,7 @@
     <Alias Alias="HasAddIn">i=17604</Alias>
     <Alias Alias="HasInterface">i=17603</Alias>
   </Aliases>
-  <UAObject NodeId="ns=1;i=5000" BrowseName="1:http://microsoft.com/Opc/OpcPlc/Boiler" SymbolicName="http___microsoft_com_boiler">
+  <UAObject NodeId="ns=1;i=5000" BrowseName="1:http://microsoft.com/Opc/OpcPlc/Boiler" SymbolicName="http___microsoft_com_Opc_OpcPlc_boiler">
     <DisplayName>http://microsoft.com/Opc/OpcPlc/Boiler</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6002</Reference>
@@ -495,15 +495,7 @@
       <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5002</Reference>
     </References>
   </UAObject>
-  <UAObject NodeId="ns=1;i=5001" BrowseName="1:Boilers">
-    <DisplayName>Boilers</DisplayName>
-    <References>
-      <Reference ReferenceType="Organizes">ns=1;i=5017</Reference>
-      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-    </References>
-  </UAObject>
-  <UAObject NodeId="ns=1;i=5017" BrowseName="1:Boiler #2" SymbolicName="Boiler__2" ParentNodeId="ns=1;i=5001">
+  <UAObject NodeId="ns=1;i=5017" BrowseName="1:Boiler #2" SymbolicName="Boiler__2">
     <DisplayName>Boiler #2</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent">ns=1;i=5020</Reference>
@@ -525,7 +517,6 @@
       <Reference ReferenceType="HasComponent">ns=1;i=6198</Reference>
       <Reference ReferenceType="HasComponent">ns=1;i=5018</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
-      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5001</Reference>
     </References>
   </UAObject>
   <UAObject NodeId="ns=1;i=5020" BrowseName="2:ParameterSet" ParentNodeId="ns=1;i=5017">
@@ -963,6 +954,9 @@
     <DisplayName>EnabledState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6328</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=6259</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=0</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=6260</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5022</Reference>
     </References>
@@ -1099,6 +1093,7 @@
     <DisplayName>AckedState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6325</Reference>
+      <Reference ReferenceType="HasTrueSubState" IsForward="false">ns=1;i=6261</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5022</Reference>
     </References>
@@ -1169,6 +1164,7 @@
     <DisplayName>ActiveState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6327</Reference>
+      <Reference ReferenceType="HasTrueSubState" IsForward="false">ns=1;i=6261</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5022</Reference>
     </References>
@@ -1330,6 +1326,9 @@
     <DisplayName>EnabledState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6320</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=6236</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=0</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=6237</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5021</Reference>
     </References>
@@ -1466,6 +1465,7 @@
     <DisplayName>AckedState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6317</Reference>
+      <Reference ReferenceType="HasTrueSubState" IsForward="false">ns=1;i=6238</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5021</Reference>
     </References>
@@ -1536,6 +1536,7 @@
     <DisplayName>ActiveState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6319</Reference>
+      <Reference ReferenceType="HasTrueSubState" IsForward="false">ns=1;i=6238</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5021</Reference>
     </References>
@@ -1697,6 +1698,9 @@
     <DisplayName>EnabledState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6344</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=6305</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=0</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=6306</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5024</Reference>
     </References>
@@ -1833,6 +1837,7 @@
     <DisplayName>AckedState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6341</Reference>
+      <Reference ReferenceType="HasTrueSubState" IsForward="false">ns=1;i=6307</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5024</Reference>
     </References>
@@ -1903,6 +1908,7 @@
     <DisplayName>ActiveState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6343</Reference>
+      <Reference ReferenceType="HasTrueSubState" IsForward="false">ns=1;i=6307</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5024</Reference>
     </References>
@@ -2064,6 +2070,9 @@
     <DisplayName>EnabledState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6336</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=6282</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=0</Reference>
+      <Reference ReferenceType="HasTrueSubState">ns=1;i=6283</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5023</Reference>
     </References>
@@ -2200,6 +2209,7 @@
     <DisplayName>AckedState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6333</Reference>
+      <Reference ReferenceType="HasTrueSubState" IsForward="false">ns=1;i=6284</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5023</Reference>
     </References>
@@ -2270,6 +2280,7 @@
     <DisplayName>ActiveState</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6335</Reference>
+      <Reference ReferenceType="HasTrueSubState" IsForward="false">ns=1;i=6284</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=8995</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5023</Reference>
     </References>
