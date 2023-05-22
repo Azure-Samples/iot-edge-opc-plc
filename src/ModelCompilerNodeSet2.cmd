@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 setlocal
 set modelName1=%1
 set namespace1=%2
