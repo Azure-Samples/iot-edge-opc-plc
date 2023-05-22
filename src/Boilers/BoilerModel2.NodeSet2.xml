@@ -8,6 +8,7 @@
         <Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" PublicationDate="2023-05-12T00:00:00Z" Version="1.00">
             <RequiredModel ModelUri="http://opcfoundation.org/UA/" PublicationDate="2021-09-15T00:00:00Z" Version="1.04.10"/>
             <RequiredModel ModelUri="http://opcfoundation.org/UA/DI/" PublicationDate="2022-11-03T00:00:00Z" Version="1.04.0"/>
+            <RequiredModel ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" PublicationDate="2023-05-22T06:39:31.65368Z" Version="1.0.0" />
         </Model>
     </Models>
     <Aliases>
@@ -114,13 +115,6 @@
             <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=1002</Reference>
         </References>
     </UAObjectType>
-    <UAObject NodeId="ns=2;i=5001" BrowseName="2:Boilers" ParentNodeId="i=85">
-        <DisplayName>Boilers</DisplayName>
-        <References>
-            <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-            <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-        </References>
-    </UAObject>
     <UAVariable DataType="String" NodeId="ns=2;i=6008" BrowseName="1:AssetId" ParentNodeId="ns=2;i=1000">
         <DisplayName>AssetId</DisplayName>
         <References>
@@ -433,10 +427,10 @@
             <Reference ReferenceType="HasModellingRule">i=78</Reference>
         </References>
     </UAObject>
-    <UAObject SymbolicName="Boiler__2" NodeId="ns=2;i=5017" BrowseName="2:Boiler #2" ParentNodeId="ns=2;i=5001">
+    <UAObject SymbolicName="Boiler__2" NodeId="ns=2;i=5017" BrowseName="2:Boiler #2" ParentNodeId="ns=2;i=1">
         <DisplayName>Boiler #2</DisplayName>
         <References>
-            <Reference ReferenceType="Organizes" IsForward="false">ns=2;i=5001</Reference>
+            <Reference ReferenceType="Organizes" IsForward="false">ns=2;i=1</Reference>
             <Reference ReferenceType="HasTypeDefinition">ns=2;i=1000</Reference>
         </References>
     </UAObject>
