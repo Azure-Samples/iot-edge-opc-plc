@@ -62,11 +62,11 @@ public class Boiler2PluginNodes : IPluginNodes
             (string s) => _maintenanceIntervalMinutes = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintint"));
 
         // TODO: Remove when simulation done:
-        //Temperature change speed in degree per seconds (float with 1 decimal place, [1.0, 1.1, ..., 9.9, 10.0], read/write, default: 1.0): Configures heater power
-        //Base temperature(float, [1.0, ..., 10.0, ...], write, default: 10.0): Temperature to reach when not heating
-        //Target temperature(float, [Base_temp + 10.0, ..., 80.0, ...], read / write, default: 80): Temperature to reach when heating
-        //Maintenance interval(integer, [1, ..., 60, ...], read / write, default: 60): Interval system requires maintenance in minutes
-        //Overheated threshold temperature(float, Target_temp + 10, read)
+        // Temperature change speed in degree per seconds (float with 1 decimal place, [1.0, 1.1, ..., 9.9, 10.0], read/write, default: 1.0): Configures heater power
+        // Base temperature (float, [1.0, ..., 10.0, ...], write, default: 10.0): Temperature to reach when not heating
+        // Target temperature (float, [Base_temp + 10.0, ..., 80.0, ...], read/write, default: 80): Temperature to reach when heating
+        // Maintenance interval (integer, [1, ..., 60, ...], read/write, default: 60): Interval system requires maintenance in minutes
+        // Overheated threshold temperature (float, Target_temp + 10, read)
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
