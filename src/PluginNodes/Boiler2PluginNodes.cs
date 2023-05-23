@@ -11,7 +11,7 @@ using System.Timers;
 using static OpcPlc.Program;
 
 /// <summary>
-/// Boiler node that inherits from DI.
+/// Boiler that inherits from DI companion spec.
 /// </summary>
 public class Boiler2PluginNodes : IPluginNodes
 {
@@ -27,7 +27,7 @@ public class Boiler2PluginNodes : IPluginNodes
     private BaseDataVariableState _pressureNode;
     private BaseDataVariableState _overheatedNode;
     private BaseDataVariableState _heaterStateNode;
-    ////private ITimer _nodeGenerator;
+    private ITimer _nodeGenerator;
 
     private float _tempSpeedDegreesPerSec = 1.0f;
     private float _baseTempDegrees = 10.0f;
@@ -72,20 +72,20 @@ public class Boiler2PluginNodes : IPluginNodes
 
         _plcNodeManager = plcNodeManager;
 
-        ////AddNodes();
+        AddNodes();
     }
 
     public void StartSimulation()
     {
-        ////_nodeGenerator = TimeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
+        _nodeGenerator = TimeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
     }
 
     public void StopSimulation()
     {
-        ////if (_nodeGenerator != null)
-        ////{
-        ////    _nodeGenerator.Enabled = false;
-        ////}
+        if (_nodeGenerator != null)
+        {
+            _nodeGenerator.Enabled = false;
+        }
     }
 
     private void AddNodes()
@@ -134,6 +134,15 @@ public class Boiler2PluginNodes : IPluginNodes
             "Boilers/Boiler2/BoilerModel2.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
             typeof(PlcNodeManager).GetTypeInfo().Assembly,
             updateTables: true);
+
+        // add the predefined nodes to the node manager.
+        ////for (int ii = 0; ii < predefinedNodes.Count; ii++)
+        ////{
+        ////    _plcNodeManager.AddPredefinedNode(predefinedNodes[ii]);
+        ////}
+
+        // ensure the reverse references exist.
+        ////_plcNodeManager.AddReverseReferences(new Dictionary<NodeId, IList<IReference>>());
 
         return predefinedNodes;
     }
