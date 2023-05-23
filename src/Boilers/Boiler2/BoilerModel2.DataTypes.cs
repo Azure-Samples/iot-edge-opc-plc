@@ -34,7 +34,6 @@ using System.Xml;
 using System.Runtime.Serialization;
 using Opc.Ua;
 using Opc.Ua.DI;
-using BoilerModel1;
 
 namespace BoilerModel2
 {

@@ -1,20 +1,18 @@
 <xs:schema
   xmlns:Opc.Ua.DI="http://opcfoundation.org/UA/DI/"
-  xmlns:BoilerModel1="http://microsoft.com/Opc/OpcPlc/Boiler"
   xmlns:xs="http://www.w3.org/2001/XMLSchema"
   xmlns:ua="http://opcfoundation.org/UA/2008/02/Types.xsd"
-  xmlns:tns="http://microsoft.com/Opc/OpcPlc/Boiler2"
-  targetNamespace="http://microsoft.com/Opc/OpcPlc/Boiler2"
+  xmlns:tns="http://microsoft.com/Opc/OpcPlc/Boiler"
+  targetNamespace="http://microsoft.com/Opc/OpcPlc/Boiler"
   elementFormDefault="qualified"
 >
   <xs:annotation>
     <xs:appinfo>
-      <ua:Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler2" Version="1.00" PublicationDate="2023-05-12T00:00:00Z" />
+      <ua:Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" Version="1.00" PublicationDate="2023-05-12T00:00:00Z" />
     </xs:appinfo>
   </xs:annotation>
   
   <xs:import namespace="http://opcfoundation.org/UA/" />
   <xs:import namespace="http://opcfoundation.org/UA/DI/" />
-  <xs:import namespace="http://microsoft.com/Opc/OpcPlc/Boiler" />
 
 </xs:schema>
