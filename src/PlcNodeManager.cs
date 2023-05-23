@@ -220,9 +220,9 @@ public class PlcNodeManager : CustomNodeManager2
     /// <summary>
     /// Loads a predefined node set by using the specified handler.
     /// </summary>
-    public void LoadPredefinedNodes(Func<ISystemContext, NodeStateCollection> loadPredefinedNodeshandler)
+    public void LoadPredefinedNodes(Func<ISystemContext, NodeStateCollection> loadPredefinedNodesHandler)
     {
-        _loadPredefinedNodeshandler = loadPredefinedNodeshandler;
+        _loadPredefinedNodeshandler = loadPredefinedNodesHandler;
 
         base.LoadPredefinedNodes(SystemContext, _externalReferences);
     }
@@ -234,6 +234,11 @@ public class PlcNodeManager : CustomNodeManager2
     {
         base.AddPredefinedNode(SystemContext, node);
     }
+
+    ////public new void AddReverseReferences(IDictionary<NodeId, IList<IReference>> externalReferences)
+    ////{
+    ////    base.AddReverseReferences(externalReferences);
+    ////}
 
     protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
