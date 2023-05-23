@@ -40,10 +40,12 @@ public class UserDefinedPluginNodes : IPluginNodes
 
     public void StartSimulation()
     {
+        // No simulation.
     }
 
     public void StopSimulation()
     {
+        // No simulation.
     }
 
     private void AddNodes(FolderState folder)

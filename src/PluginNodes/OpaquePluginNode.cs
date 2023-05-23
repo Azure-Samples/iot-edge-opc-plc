@@ -12,7 +12,6 @@ public class OpaquePluginNode : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;
 
@@ -20,39 +19,30 @@ public class OpaquePluginNode : IPluginNodes
     {
         // on|opaquenode
         // Add node with an opaque identifier.
-        _isEnabled = true;
+        // Enabled by default.
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
         _plcNodeManager = plcNodeManager;
 
-        if (_isEnabled)
-        {
-            FolderState folder = _plcNodeManager.CreateFolder(
-                telemetryFolder,
-                path: "Special",
-                name: "Special",
-                NamespaceType.OpcPlcApplications);
+        FolderState folder = _plcNodeManager.CreateFolder(
+            telemetryFolder,
+            path: "Special",
+            name: "Special",
+            NamespaceType.OpcPlcApplications);
 
-            AddNodes(folder);
-        }
+        AddNodes(folder);
     }
 
     public void StartSimulation()
     {
-        if (_isEnabled)
-        {
-            _node.Start(value => value + 1, periodMs: 1000);
-        }
+        _node.Start(value => value + 1, periodMs: 1000);
     }
 
     public void StopSimulation()
     {
-        if (_isEnabled)
-        {
-            _node.Stop();
-        }
+        _node.Stop();
     }
 
     private void AddNodes(FolderState folder)

@@ -1,7 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
-using Opc.Ua;
 using BoilerModel1;
+using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
@@ -17,7 +17,6 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
     private BoilerState _node;
     private ITimer _nodeGenerator;
@@ -26,25 +25,19 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     {
         // ctb|complextypeboiler
         // Add complex type (boiler) to address space.
-        _isEnabled = true;
+        // Enabled by default.
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
         _plcNodeManager = plcNodeManager;
 
-        if (_isEnabled)
-        {
-            AddNodes(methodsFolder);
-        }
+        AddNodes(methodsFolder);
     }
 
     public void StartSimulation()
     {
-        if (_isEnabled)
-        {
-            _nodeGenerator = TimeService.NewTimer(UpdateBoiler1, intervalInMilliseconds: 1000);
-        }
+        _nodeGenerator = TimeService.NewTimer(UpdateBoiler1, intervalInMilliseconds: 1000);
     }
 
     public void StopSimulation()
