@@ -17,7 +17,6 @@ public class Boiler2PluginNodes : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState _tempSpeedDegreesPerSecNode;
     private BaseDataVariableState _baseTempDegreesNode;
@@ -37,8 +36,6 @@ public class Boiler2PluginNodes : IPluginNodes
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
-        _isEnabled = true;
-
         optionSet.Add(
             "b2ts|boiler2tempspeed=",
             $"Boiler #2 temperature change speed in degrees per second\nDefault: {_tempSpeedDegreesPerSec}",
@@ -60,21 +57,22 @@ public class Boiler2PluginNodes : IPluginNodes
             (string s) => _maintenanceIntervalMinutes = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintint"));
 
         // TODO: Remove when simulation done:
-        // Temperature change speed in degree per seconds (float with 1 decimal place, [1.0, 1.1, ..., 9.9, 10.0], read/write, default: 1.0): Configures heater power
-        // Base temperature (float, [1.0, ..., 10.0, ...], write, default: 10.0): Temperature to reach when not heating
-        // Target temperature (float, [Base_temp + 10.0, ..., 80.0, ...], read/write, default: 80): Temperature to reach when heating
-        // Maintenance interval (integer, [1, ..., 60, ...], read/write, default: 60): Interval system requires maintenance in minutes
+        // Temperature change speed in degrees per second, read/write
+        // Base temperature, write
+        // Target temperature, read/write
+        // Maintenance interval, read/write
         // Overheated threshold temperature (float, Target_temp + 10, read)
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
+        // Check again if targetTemp is within range, because the minimum uses baseTemp as lower bound and
+        // the order in which the CLI options are specified affects the calculation.
+        _ = CliHelper.ParseFloat(_targetTempDegrees.ToString(), min: _baseTempDegrees + 10.0f, max: float.MaxValue, optionName: "boiler2targettemp", digits: 1);
+
         _plcNodeManager = plcNodeManager;
 
-        if (_isEnabled)
-        {
-            ////AddNodes();
-        }
+        ////AddNodes();
     }
 
     public void StartSimulation()
