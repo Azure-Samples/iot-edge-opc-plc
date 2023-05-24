@@ -142,15 +142,6 @@ public class Boiler2PluginNodes : IPluginNodes
             typeof(PlcNodeManager).GetTypeInfo().Assembly,
             updateTables: true);
 
-        // add the predefined nodes to the node manager.
-        ////for (int ii = 0; ii < predefinedNodes.Count; ii++)
-        ////{
-        ////    _plcNodeManager.AddPredefinedNode(predefinedNodes[ii]);
-        ////}
-
-        // ensure the reverse references exist.
-        ////_plcNodeManager.AddReverseReferences(new Dictionary<NodeId, IList<IReference>>());
-
         return predefinedNodes;
     }
 
