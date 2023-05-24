@@ -2,6 +2,7 @@ BoilerModel1Type,1,Unspecified
 BoilerModel1Type_BoilerStatus,2,Unspecified
 Boiler1Type,3,ObjectType
 Boiler1Type_BoilerStatus,4,Variable
+Boilers,5,Object
 BoilerTemperatureType,15001,DataType
 BoilerType_BoilerStatus,15003,Unspecified
 BoilerTemperatureType_Encoding_DefaultBinary,15004,Object

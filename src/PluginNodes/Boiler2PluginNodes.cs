@@ -12,7 +12,7 @@ using System.Timers;
 using static OpcPlc.Program;
 
 /// <summary>
-/// Boiler node that inherits from DI.
+/// Boiler that inherits from DI companion spec.
 /// </summary>
 public class Boiler2PluginNodes : IPluginNodes
 {

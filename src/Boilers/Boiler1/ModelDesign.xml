@@ -71,6 +71,22 @@
     </opc:Children>
   </opc:ObjectType>
 
+  <!-- Create a folder to organize all boilers -->
+  <opc:Object SymbolicName="Boilers">
+    <opc:BrowseName>Boilers</opc:BrowseName>
+
+    <opc:Description>Sample boilers.</opc:Description>
+
+    <!-- Link the instance back to the ObjectsFolder -->
+    <opc:References>
+      <opc:Reference IsInverse="true">
+        <opc:ReferenceType>ua:Organizes</opc:ReferenceType>
+        <opc:TargetId>ua:ObjectsFolder</opc:TargetId>
+      </opc:Reference>
+    </opc:References>
+
+  </opc:Object>
+
   <!--
   Declare an instance of a Boiler.
   Normally instances are created by program logic instead of being part of the model.
@@ -81,11 +97,11 @@
 
     <opc:Description>A simple boiler.</opc:Description>
 
-    <!-- Link the instance back to the ObjectsFolder -->
+    <!-- Link the instance back to the Boilers folder -->
     <opc:References>
       <opc:Reference IsInverse="true">
         <opc:ReferenceType>ua:Organizes</opc:ReferenceType>
-        <opc:TargetId>ua:ObjectsFolder</opc:TargetId>
+        <opc:TargetId>Boilers</opc:TargetId>
       </opc:Reference>
     </opc:References>
 
