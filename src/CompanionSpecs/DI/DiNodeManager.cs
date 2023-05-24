@@ -89,21 +89,16 @@ public sealed class DiNodeManager : CustomNodeManager2
             }
 
             // check for predefined nodes.
-            if (PredefinedNodes != null)
+            if (PredefinedNodes != null && PredefinedNodes.TryGetValue(nodeId, out NodeState node))
             {
-                NodeState node = null;
-
-                if (PredefinedNodes.TryGetValue(nodeId, out node))
+                var handle = new NodeHandle
                 {
-                    var handle = new NodeHandle
-                    {
-                        NodeId = nodeId,
-                        Validated = true,
-                        Node = node,
-                    };
+                    NodeId = nodeId,
+                    Validated = true,
+                    Node = node,
+                };
 
-                    return handle;
-                }
+                return handle;
             }
 
             return null;
