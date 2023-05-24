@@ -1200,6 +1200,9 @@
         <uax:NamespaceIndex>1</uax:NamespaceIndex>
         <uax:Name>Boiler #2</uax:Name>
       </uax:BrowseName>
+      <uax:Description>
+        <uax:Text>Boiler that inherits from DI companion spec.</uax:Text>
+      </uax:Description>
       <uax:ReferenceTypeId>
         <uax:Identifier>i=35</uax:Identifier>
       </uax:ReferenceTypeId>

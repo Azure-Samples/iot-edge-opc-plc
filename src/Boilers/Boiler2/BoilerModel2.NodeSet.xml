@@ -862,7 +862,10 @@
         <Locale></Locale>
         <Text>Boiler #2</Text>
       </DisplayName>
-      <Description i:nil="true" />
+      <Description>
+        <Locale></Locale>
+        <Text>Boiler that inherits from DI companion spec.</Text>
+      </Description>
       <WriteMask>0</WriteMask>
       <UserWriteMask>0</UserWriteMask>
       <RolePermissions />

@@ -62,6 +62,13 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 
         _plcNodeManager.AddPredefinedNode(_node);
 
+        var boilers1 = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel1.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        var boilers2 = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        var boiler1 = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(15070, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        var boiler2 = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(5017, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        ////boiler1.AddReference(ReferenceTypeIds.Organizes, isInverse: true, new NodeId(BoilerModel1.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        ////boiler2.AddReference(ReferenceTypeIds.Organizes, isInverse: true, new NodeId(BoilerModel1.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+
         AddMethods(methodsFolder);
 
         // Get BoilerStatus complex type variable.
