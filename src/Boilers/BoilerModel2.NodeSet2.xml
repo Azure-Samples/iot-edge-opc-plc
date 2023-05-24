@@ -114,13 +114,6 @@
             <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=1002</Reference>
         </References>
     </UAObjectType>
-    <UAObject NodeId="ns=2;i=5001" BrowseName="2:Boilers" ParentNodeId="i=85">
-        <DisplayName>Boilers</DisplayName>
-        <References>
-            <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-            <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
-        </References>
-    </UAObject>
     <UAVariable DataType="String" NodeId="ns=2;i=6008" BrowseName="1:AssetId" ParentNodeId="ns=2;i=1000">
         <DisplayName>AssetId</DisplayName>
         <References>

@@ -170,7 +170,7 @@ namespace BoilerModel2
         public const uint Boiler2Type_DeviceHealthAlarms_MaintenanceRequiredAlarm = 5006;
 
         /// <remarks />
-        public const uint Boilers = 5001;
+        public const uint Boilers = 1;
 
         /// <remarks />
         public const uint Boilers_Boiler__2_ParameterSet = 5020;
@@ -1660,9 +1660,6 @@ namespace BoilerModel2
 
         /// <remarks />
         public const string Boiler2Type = "Boiler2Type";
-
-        /// <remarks />
-        public const string Boilers = "Boilers";
 
         /// <remarks />
         public const string http___microsoft_com_Opc_OpcPlc_boiler = "http://microsoft.com/Opc/OpcPlc/Boiler";

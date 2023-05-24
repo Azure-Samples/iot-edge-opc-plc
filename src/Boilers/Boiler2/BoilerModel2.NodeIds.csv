@@ -1,6 +1,6 @@
+Boilers,1,Object
 Boiler2Type,1000,ObjectType
 http___microsoft_com_Opc_OpcPlc_boiler,5000,Object
-Boilers,5001,Object
 Boiler2Type_DeviceHealthAlarms,5002,Object
 Boiler2Type_DeviceHealthAlarms_FailureAlarm,5003,Object
 Boiler2Type_DeviceHealthAlarms_CheckFunctionAlarm,5004,Object
