@@ -1,6 +1,5 @@
 ﻿namespace OpcPlc.PluginNodes;
 
-using Newtonsoft.Json.Serialization;
 using Opc.Ua;
 using Opc.Ua.DI;
 using OpcPlc.Helpers;
