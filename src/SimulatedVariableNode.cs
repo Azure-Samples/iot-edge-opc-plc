@@ -5,8 +5,8 @@ using System;
 
 public class SimulatedVariableNode<T> : IDisposable
 {
-    private ISystemContext _context;
-    private BaseDataVariableState _variable;
+    private readonly ISystemContext _context;
+    private readonly BaseDataVariableState _variable;
     private ITimer _timer;
     private readonly TimeService _timeService;
 

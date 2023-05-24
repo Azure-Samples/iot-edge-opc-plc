@@ -381,8 +381,6 @@ public static class Program
         }
 
         Logger = loggerConfiguration.CreateLogger();
-
-        return;
     }
 
     /// <summary>
@@ -393,7 +391,6 @@ public static class Program
         var host = Host.CreateDefaultBuilder(args)
             .ConfigureWebHostDefaults(webBuilder =>
             {
-                var x = Directory.GetCurrentDirectory();
                 webBuilder.UseContentRoot(Directory.GetCurrentDirectory()); // Avoid System.InvalidOperationException.
                     webBuilder.UseUrls($"http://*:{WebServerPort}");
                 webBuilder.UseStartup<Startup>();

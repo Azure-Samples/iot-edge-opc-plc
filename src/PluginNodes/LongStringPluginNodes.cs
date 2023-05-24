@@ -13,7 +13,6 @@ public class LongStringPluginNodes : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private static bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<string> _longStringIdNode10;
     private SimulatedVariableNode<string> _longStringIdNode50;
@@ -25,48 +24,39 @@ public class LongStringPluginNodes : IPluginNodes
     {
         // lsn|longstringnodes
         // Add nodes with string values of 10/50/100/200 kB.
-        _isEnabled = true;
+        // Enabled by default.
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
         _plcNodeManager = plcNodeManager;
 
-        if (_isEnabled)
-        {
-            FolderState folder = _plcNodeManager.CreateFolder(
-                telemetryFolder,
-                path: "Special",
-                name: "Special",
-                NamespaceType.OpcPlcApplications);
+        FolderState folder = _plcNodeManager.CreateFolder(
+            telemetryFolder,
+            path: "Special",
+            name: "Special",
+            NamespaceType.OpcPlcApplications);
 
-            AddNodes(folder);
-        }
+        AddNodes(folder);
     }
 
     public void StartSimulation()
     {
-        if (_isEnabled)
-        {
-            // Change value every second to string containing single repeated uppercase letter.
-            const int A = 65, Z = 90 + 1;
+        // Change value every second to string containing single repeated uppercase letter.
+        const int A = 65, Z = 90 + 1;
 
-            _longStringIdNode10.Start(value => new string((char)_random.Next(A, Z), 10 * 1024), periodMs: 1000);
-            _longStringIdNode50.Start(value => new string((char)_random.Next(A, Z), 50 * 1024), periodMs: 1000);
-            _longStringIdNode100.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 100 * 1024)), periodMs: 1000);
-            _longStringIdNode200.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 200 * 1024)), periodMs: 1000);
-        }
+        _longStringIdNode10.Start(value => new string((char)_random.Next(A, Z), 10 * 1024), periodMs: 1000);
+        _longStringIdNode50.Start(value => new string((char)_random.Next(A, Z), 50 * 1024), periodMs: 1000);
+        _longStringIdNode100.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 100 * 1024)), periodMs: 1000);
+        _longStringIdNode200.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 200 * 1024)), periodMs: 1000);
     }
 
     public void StopSimulation()
     {
-        if (_isEnabled)
-        {
-            _longStringIdNode10.Stop();
-            _longStringIdNode50.Stop();
-            _longStringIdNode100.Stop();
-            _longStringIdNode200.Stop();
-        }
+        _longStringIdNode10.Stop();
+        _longStringIdNode50.Stop();
+        _longStringIdNode100.Stop();
+        _longStringIdNode200.Stop();
     }
 
     private void AddNodes(FolderState folder)

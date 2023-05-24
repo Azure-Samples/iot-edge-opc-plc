@@ -78,11 +78,6 @@ public class PlcSimulation
         UpdateEventInstances();
     }
 
-    private void UpdateVeryFastEventInstances(object state, FastTimerElapsedEventArgs elapsedEventArgs)
-    {
-        UpdateEventInstances();
-    }
-
     private void UpdateEventInstances()
     {
         uint eventInstanceCycle = _eventInstanceCycle++;
@@ -106,7 +101,12 @@ public class PlcSimulation
             e.SetChildValue(_plcServer.PlcNodeManager.SystemContext, BrowseNames.SourceNode, ObjectIds.Server, false);
 
             _plcServer.PlcNodeManager.Server.ReportEvent(e);
-        };
+        }
+    }
+
+    private void UpdateVeryFastEventInstances(object state, FastTimerElapsedEventArgs elapsedEventArgs)
+    {
+        UpdateEventInstances();
     }
 
     private void Disable(ITimer timer)

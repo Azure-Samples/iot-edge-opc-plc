@@ -8,9 +8,6 @@ using static OpcPlc.Program;
 
 public class PlcNodeManager : CustomNodeManager2
 {
-    #region Properties
-    #endregion
-
     public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService)
         : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
     {
@@ -220,9 +217,9 @@ public class PlcNodeManager : CustomNodeManager2
     /// <summary>
     /// Loads a predefined node set by using the specified handler.
     /// </summary>
-    public void LoadPredefinedNodes(Func<ISystemContext, NodeStateCollection> loadPredefinedNodeshandler)
+    public void LoadPredefinedNodes(Func<ISystemContext, NodeStateCollection> loadPredefinedNodesHandler)
     {
-        _loadPredefinedNodeshandler = loadPredefinedNodeshandler;
+        _loadPredefinedNodeshandler = loadPredefinedNodesHandler;
 
         base.LoadPredefinedNodes(SystemContext, _externalReferences);
     }

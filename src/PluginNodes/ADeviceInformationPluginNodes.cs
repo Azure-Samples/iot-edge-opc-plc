@@ -8,39 +8,37 @@ using System.Reflection;
 /// <summary>
 /// Device Information Companion spec.
 /// https://opcfoundation.org/developer-tools/documents/view/197
+/// The prefix "A" in the class name is used to ensure that this plugin is loaded first.
 /// </summary>
 public class ADeviceInformationPluginNodes : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
-    private bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
-        _isEnabled = true;
+        // Enabled by default.
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
         _plcNodeManager = plcNodeManager;
 
-        if (_isEnabled)
-        {
-            AddNodes(methodsFolder);
-        }
+        AddNodes();
     }
 
     public void StartSimulation()
     {
-        _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
+        // No simulation.
     }
 
     public void StopSimulation()
     {
+        // No simulation.
     }
 
-    private void AddNodes(FolderState methodsFolder)
+    private void AddNodes()
     {
         // Load complex types from binary uanodes file.
         _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
