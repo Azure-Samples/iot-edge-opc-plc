@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
+using Opc.Ua.DI;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
@@ -27,6 +28,7 @@ public class Boiler2PluginNodes : IPluginNodes
     private BaseDataVariableState _pressureNode;
     private BaseDataVariableState _overheatedNode;
     private BaseDataVariableState _heaterStateNode;
+    private BaseDataVariableState _deviceHealth;
     private ITimer _nodeGenerator;
 
     private float _tempSpeedDegreesPerSec = 1.0f;
@@ -119,7 +121,12 @@ public class Boiler2PluginNodes : IPluginNodes
 
         SetValue(_heaterStateNode, true);
 
+        // Find the Boiler2 deviceHealth nodes.
+        _deviceHealth = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        SetValue(_deviceHealth, DeviceHealthEnumeration.NORMAL);
+
         AddMethods();
+        AddEvents();
 
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
@@ -225,5 +232,35 @@ public class Boiler2PluginNodes : IPluginNodes
         Logger.Debug($"SwitchOnCall method called with argument: {inputArguments.First()}");
 
         return ServiceResult.Good;
+    }
+
+    private void AddEvents()
+    {
+        // Construct the events.
+        var failureEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
+        var checkFunctionEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
+        var offSpecEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
+        var MaintenanceRequiredEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
+
+        // Init the events
+        failureEv.Initialize(_plcNodeManager.SystemContext,
+                    source: null,
+                    EventSeverity.Max,
+                    new LocalizedText($"Failure Alarm."));
+
+        checkFunctionEv.Initialize(_plcNodeManager.SystemContext,
+                    source: null,
+                    EventSeverity.Low,
+                    new LocalizedText($"CheckFunctionAlarm."));
+
+        offSpecEv.Initialize(_plcNodeManager.SystemContext,
+                    source: null,
+                    EventSeverity.MediumLow,
+                    new LocalizedText($"OffSpecAlarm."));
+
+        MaintenanceRequiredEv.Initialize(_plcNodeManager.SystemContext,
+                    source: null,
+                    EventSeverity.Medium,
+                    new LocalizedText($"MaintenanceRequiredAlarm."));
     }
 }
