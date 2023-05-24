@@ -9,7 +9,7 @@
   <Nodes>
     <Node i:type="ObjectNode">
       <NodeId>
-        <Identifier>ns=1;i=1</Identifier>
+        <Identifier>ns=1;i=5</Identifier>
       </NodeId>
       <NodeClass>Object_1</NodeClass>
       <BrowseName>
@@ -878,7 +878,7 @@
           </ReferenceTypeId>
           <IsInverse>true</IsInverse>
           <TargetId>
-            <Identifier>ns=1;i=1</Identifier>
+            <Identifier>ns=1;i=5</Identifier>
           </TargetId>
         </ReferenceNode>
         <ReferenceNode>

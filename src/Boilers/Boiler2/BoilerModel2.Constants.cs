@@ -170,7 +170,7 @@ namespace BoilerModel2
         public const uint Boiler2Type_DeviceHealthAlarms_MaintenanceRequiredAlarm = 5006;
 
         /// <remarks />
-        public const uint Boilers = 1;
+        public const uint Boilers = 5;
 
         /// <remarks />
         public const uint Boilers_Boiler__2_ParameterSet = 5020;

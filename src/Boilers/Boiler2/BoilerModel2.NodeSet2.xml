@@ -498,7 +498,7 @@
       <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5002</Reference>
     </References>
   </UAObject>
-  <UAObject NodeId="ns=1;i=1" BrowseName="2:Boilers">
+  <UAObject NodeId="ns=1;i=5" BrowseName="2:Boilers">
     <DisplayName>Boilers</DisplayName>
     <Description>Sample boilers.</Description>
     <References>
@@ -507,7 +507,7 @@
       <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
     </References>
   </UAObject>
-  <UAObject NodeId="ns=1;i=5017" BrowseName="1:Boiler #2" SymbolicName="Boiler__2" ParentNodeId="ns=1;i=1">
+  <UAObject NodeId="ns=1;i=5017" BrowseName="1:Boiler #2" SymbolicName="Boiler__2" ParentNodeId="ns=1;i=5">
     <DisplayName>Boiler #2</DisplayName>
     <Description>Boiler that inherits from DI companion spec.</Description>
     <References>
@@ -530,7 +530,7 @@
       <Reference ReferenceType="HasComponent">ns=1;i=6198</Reference>
       <Reference ReferenceType="HasComponent">ns=1;i=5018</Reference>
       <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
-      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=1</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5</Reference>
     </References>
   </UAObject>
   <UAObject NodeId="ns=1;i=5020" BrowseName="2:ParameterSet" ParentNodeId="ns=1;i=5017">
