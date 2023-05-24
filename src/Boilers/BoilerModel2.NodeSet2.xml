@@ -399,14 +399,6 @@
             <uax:Float>20</uax:Float>
         </Value>
     </UAVariable>
-    <UAVariable DataType="Float" NodeId="ns=2;i=6032" BrowseName="2:Pressure" ParentNodeId="ns=2;i=5014">
-        <DisplayName>Pressure</DisplayName>
-        <References>
-            <Reference ReferenceType="HasComponent" IsForward="false">ns=2;i=5014</Reference>
-            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
-            <Reference ReferenceType="HasModellingRule">i=78</Reference>
-        </References>
-    </UAVariable>
     <UAVariable DataType="Boolean" NodeId="ns=2;i=6033" BrowseName="2:Overheated" ParentNodeId="ns=2;i=5014">
         <DisplayName>Overheated</DisplayName>
         <References>
@@ -415,6 +407,17 @@
             <Reference ReferenceType="HasModellingRule">i=78</Reference>
         </References>
     </UAVariable>
+  <UAVariable DataType="Int32" NodeId="ns=2;i=6034" BrowseName="2:OverheatInterval" ParentNodeId="ns=2;i=5014" UserAccessLevel="3" AccessLevel="3">
+    <DisplayName>OverheatInterval</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=2;i=5014</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value>
+      <uax:Int32>60</uax:Int32>
+    </Value>
+  </UAVariable>
     <UAObject NodeId="ns=2;i=5013" BrowseName="1:MethodSet" ParentNodeId="ns=2;i=1000">
         <DisplayName>MethodSet</DisplayName>
         <Description>Flat list of Methods</Description>
@@ -682,6 +685,16 @@
             <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
         </References>
     </UAVariable>
+  <UAVariable DataType="Int32" NodeId="ns=2;i=6350" BrowseName="2:OverheatInterval" ParentNodeId="ns=2;i=5020" UserAccessLevel="3" AccessLevel="3">
+    <DisplayName>OverheatInterval</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=2;i=5020</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value>
+      <uax:Int32>60</uax:Int32>
+    </Value>
+  </UAVariable>
     <UAVariable DataType="Float" NodeId="ns=2;i=6215" BrowseName="2:OverheatedThresholdTemperature" ParentNodeId="ns=2;i=5020">
         <DisplayName>OverheatedThresholdTemperature</DisplayName>
         <References>
@@ -691,13 +704,6 @@
         <Value>
             <uax:Float>90</uax:Float>
         </Value>
-    </UAVariable>
-    <UAVariable DataType="Float" NodeId="ns=2;i=6216" BrowseName="2:Pressure" ParentNodeId="ns=2;i=5020">
-        <DisplayName>Pressure</DisplayName>
-        <References>
-            <Reference ReferenceType="HasComponent" IsForward="false">ns=2;i=5020</Reference>
-            <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
-        </References>
     </UAVariable>
     <UAVariable DataType="Float" NodeId="ns=2;i=6217" BrowseName="2:TargetTemperature" ParentNodeId="ns=2;i=5020" UserAccessLevel="3" AccessLevel="3">
         <DisplayName>TargetTemperature</DisplayName>

@@ -238,14 +238,14 @@
       <uax:UserAccessLevel>1</uax:UserAccessLevel>
     </DefaultRolePermissions>
   </http___microsoft_com_Opc_OpcPlc_boiler>
-  <Boiler2Type xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+  <Boiler xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>ObjectType_8</uax:NodeClass>
     <uax:NodeId>
       <uax:Identifier>ns=1;i=1000</uax:Identifier>
     </uax:NodeId>
     <uax:BrowseName>
       <uax:NamespaceIndex>1</uax:NamespaceIndex>
-      <uax:Name>Boiler2Type</uax:Name>
+      <uax:Name>Boiler</uax:Name>
     </uax:BrowseName>
     <uax:SuperTypeId>
       <uax:Identifier>ns=2;i=1002</uax:Identifier>
@@ -469,32 +469,6 @@
         <uax:AccessLevel>1</uax:AccessLevel>
         <uax:UserAccessLevel>1</uax:UserAccessLevel>
       </CurrentTemperature>
-      <Pressure xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
-        <uax:NodeClass>Variable_2</uax:NodeClass>
-        <uax:NodeId>
-          <uax:Identifier>ns=1;i=6032</uax:Identifier>
-        </uax:NodeId>
-        <uax:BrowseName>
-          <uax:NamespaceIndex>1</uax:NamespaceIndex>
-          <uax:Name>Pressure</uax:Name>
-        </uax:BrowseName>
-        <uax:ReferenceTypeId>
-          <uax:Identifier>i=47</uax:Identifier>
-        </uax:ReferenceTypeId>
-        <uax:TypeDefinitionId>
-          <uax:Identifier>i=63</uax:Identifier>
-        </uax:TypeDefinitionId>
-        <uax:ModellingRuleId>
-          <uax:Identifier>i=78</uax:Identifier>
-        </uax:ModellingRuleId>
-        <uax:NumericId>6032</uax:NumericId>
-        <uax:DataType>
-          <uax:Identifier>i=10</uax:Identifier>
-        </uax:DataType>
-        <uax:ValueRank>-1</uax:ValueRank>
-        <uax:AccessLevel>1</uax:AccessLevel>
-        <uax:UserAccessLevel>1</uax:UserAccessLevel>
-      </Pressure>
       <Overheated xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
         <uax:NodeClass>Variable_2</uax:NodeClass>
         <uax:NodeId>
@@ -521,6 +495,37 @@
         <uax:AccessLevel>1</uax:AccessLevel>
         <uax:UserAccessLevel>1</uax:UserAccessLevel>
       </Overheated>
+      <OverheatInterval xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+        <uax:NodeClass>Variable_2</uax:NodeClass>
+        <uax:NodeId>
+          <uax:Identifier>ns=1;i=6034</uax:Identifier>
+        </uax:NodeId>
+        <uax:BrowseName>
+          <uax:NamespaceIndex>1</uax:NamespaceIndex>
+          <uax:Name>OverheatInterval</uax:Name>
+        </uax:BrowseName>
+        <uax:ReferenceTypeId>
+          <uax:Identifier>i=47</uax:Identifier>
+        </uax:ReferenceTypeId>
+        <uax:TypeDefinitionId>
+          <uax:Identifier>i=63</uax:Identifier>
+        </uax:TypeDefinitionId>
+        <uax:ModellingRuleId>
+          <uax:Identifier>i=78</uax:Identifier>
+        </uax:ModellingRuleId>
+        <uax:NumericId>6034</uax:NumericId>
+        <uax:Value>
+          <uax:Value>
+            <uax:Int32>60</uax:Int32>
+          </uax:Value>
+        </uax:Value>
+        <uax:DataType>
+          <uax:Identifier>i=6</uax:Identifier>
+        </uax:DataType>
+        <uax:ValueRank>-1</uax:ValueRank>
+        <uax:AccessLevel>3</uax:AccessLevel>
+        <uax:UserAccessLevel>3</uax:UserAccessLevel>
+      </OverheatInterval>
     </ParameterSet>
     <MethodSet xmlns="http://opcfoundation.org/UA/DI/">
       <uax:NodeClass>Object_1</uax:NodeClass>
@@ -1163,7 +1168,7 @@
         <uax:NumericId>5006</uax:NumericId>
       </MaintenanceRequiredAlarm>
     </DeviceHealthAlarms>
-  </Boiler2Type>
+  </Boiler>
   <Boilers xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>Object_1</uax:NodeClass>
     <uax:NodeId>
@@ -1360,8 +1365,8 @@
             <uax:Identifier>i=10</uax:Identifier>
           </uax:DataType>
           <uax:ValueRank>-1</uax:ValueRank>
-          <uax:AccessLevel>1</uax:AccessLevel>
-          <uax:UserAccessLevel>1</uax:UserAccessLevel>
+          <uax:AccessLevel>3</uax:AccessLevel>
+          <uax:UserAccessLevel>3</uax:UserAccessLevel>
         </OverheatedThresholdTemperature>
         <HeaterState xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
           <uax:NodeClass>Variable_2</uax:NodeClass>
@@ -1414,29 +1419,6 @@
           <uax:AccessLevel>1</uax:AccessLevel>
           <uax:UserAccessLevel>1</uax:UserAccessLevel>
         </CurrentTemperature>
-        <Pressure xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
-          <uax:NodeClass>Variable_2</uax:NodeClass>
-          <uax:NodeId>
-            <uax:Identifier>ns=1;i=6216</uax:Identifier>
-          </uax:NodeId>
-          <uax:BrowseName>
-            <uax:NamespaceIndex>1</uax:NamespaceIndex>
-            <uax:Name>Pressure</uax:Name>
-          </uax:BrowseName>
-          <uax:ReferenceTypeId>
-            <uax:Identifier>i=47</uax:Identifier>
-          </uax:ReferenceTypeId>
-          <uax:TypeDefinitionId>
-            <uax:Identifier>i=63</uax:Identifier>
-          </uax:TypeDefinitionId>
-          <uax:NumericId>6216</uax:NumericId>
-          <uax:DataType>
-            <uax:Identifier>i=10</uax:Identifier>
-          </uax:DataType>
-          <uax:ValueRank>-1</uax:ValueRank>
-          <uax:AccessLevel>1</uax:AccessLevel>
-          <uax:UserAccessLevel>1</uax:UserAccessLevel>
-        </Pressure>
         <Overheated xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
           <uax:NodeClass>Variable_2</uax:NodeClass>
           <uax:NodeId>
@@ -1460,6 +1442,34 @@
           <uax:AccessLevel>1</uax:AccessLevel>
           <uax:UserAccessLevel>1</uax:UserAccessLevel>
         </Overheated>
+        <OverheatInterval xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+          <uax:NodeClass>Variable_2</uax:NodeClass>
+          <uax:NodeId>
+            <uax:Identifier>ns=1;i=6350</uax:Identifier>
+          </uax:NodeId>
+          <uax:BrowseName>
+            <uax:NamespaceIndex>1</uax:NamespaceIndex>
+            <uax:Name>OverheatInterval</uax:Name>
+          </uax:BrowseName>
+          <uax:ReferenceTypeId>
+            <uax:Identifier>i=47</uax:Identifier>
+          </uax:ReferenceTypeId>
+          <uax:TypeDefinitionId>
+            <uax:Identifier>i=63</uax:Identifier>
+          </uax:TypeDefinitionId>
+          <uax:NumericId>6350</uax:NumericId>
+          <uax:Value>
+            <uax:Value>
+              <uax:Int32>60</uax:Int32>
+            </uax:Value>
+          </uax:Value>
+          <uax:DataType>
+            <uax:Identifier>i=6</uax:Identifier>
+          </uax:DataType>
+          <uax:ValueRank>-1</uax:ValueRank>
+          <uax:AccessLevel>3</uax:AccessLevel>
+          <uax:UserAccessLevel>3</uax:UserAccessLevel>
+        </OverheatInterval>
       </ParameterSet>
       <MethodSet xmlns="http://opcfoundation.org/UA/DI/">
         <uax:NodeClass>Object_1</uax:NodeClass>
