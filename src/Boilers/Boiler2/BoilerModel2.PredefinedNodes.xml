@@ -1169,13 +1169,13 @@
       </MaintenanceRequiredAlarm>
     </DeviceHealthAlarms>
   </Boiler2Type>
-  <Boilers xmlns="http://opcfoundation.org/UA/DI/">
+  <Boilers xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>Object_1</uax:NodeClass>
     <uax:NodeId>
       <uax:Identifier>ns=1;i=5</uax:Identifier>
     </uax:NodeId>
     <uax:BrowseName>
-      <uax:NamespaceIndex>2</uax:NamespaceIndex>
+      <uax:NamespaceIndex>1</uax:NamespaceIndex>
       <uax:Name>Boilers</uax:Name>
     </uax:BrowseName>
     <uax:Description>
@@ -1196,7 +1196,7 @@
         </uax:TargetId>
       </uax:Reference>
     </uax:References>
-    <Boiler__2 xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+    <Boiler__2>
       <uax:NodeClass>Object_1</uax:NodeClass>
       <uax:NodeId>
         <uax:Identifier>ns=1;i=5017</uax:Identifier>

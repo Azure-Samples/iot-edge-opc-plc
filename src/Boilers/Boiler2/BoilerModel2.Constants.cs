@@ -1662,6 +1662,9 @@ namespace BoilerModel2
         public const string Boiler2Type = "Boiler2Type";
 
         /// <remarks />
+        public const string Boilers = "Boilers";
+
+        /// <remarks />
         public const string http___microsoft_com_Opc_OpcPlc_boiler = "http://microsoft.com/Opc/OpcPlc/Boiler";
     }
     #endregion

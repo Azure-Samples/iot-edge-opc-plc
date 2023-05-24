@@ -429,7 +429,7 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAObject>
-  <UAObject NodeId="ns=2;i=5" BrowseName="1:Boilers" ParentNodeId="i=85">
+  <UAObject NodeId="ns=2;i=5" BrowseName="2:Boilers" ParentNodeId="i=85">
     <DisplayName>Boilers</DisplayName>
     <Description>Sample boilers.</Description>
     <References>
