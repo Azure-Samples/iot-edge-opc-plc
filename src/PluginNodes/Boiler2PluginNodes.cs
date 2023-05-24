@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
 using Opc.Ua;
 using Opc.Ua.DI;
