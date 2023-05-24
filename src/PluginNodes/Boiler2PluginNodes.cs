@@ -25,7 +25,7 @@ public class Boiler2PluginNodes : IPluginNodes
     private BaseDataVariableState _maintenanceIntervalMinutesNode;
     private BaseDataVariableState _overheatThresholdDegreesNode;
     private BaseDataVariableState _currentTempDegreesNode;
-    private BaseDataVariableState _pressureNode;
+    private BaseDataVariableState _overheatIntervalNode;
     private BaseDataVariableState _overheatedNode;
     private BaseDataVariableState _heaterStateNode;
     private BaseDataVariableState _deviceHealth;
@@ -35,6 +35,7 @@ public class Boiler2PluginNodes : IPluginNodes
     private float _baseTempDegrees = 10.0f;
     private float _targetTempDegrees = 80.0f;
     private uint _maintenanceIntervalMinutes = 60;
+    private uint _overheatIntervalSeconds = 60;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -57,6 +58,11 @@ public class Boiler2PluginNodes : IPluginNodes
             "b2mi|boiler2maintinterval=",
             $"Boiler #2 required maintenance interval in minutes\nDefault: {_maintenanceIntervalMinutes}",
             (string s) => _maintenanceIntervalMinutes = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintint"));
+
+        optionSet.Add(
+            "b2oi|boiler2overheatinterval=",
+            $"Boiler #2 simulation overheat interval in seconds\nDefault: {_overheatIntervalSeconds}",
+            (string s) => _overheatIntervalSeconds = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2overheatinterval"));
 
         // TODO: Remove when simulation done:
         // Temperature change speed in degrees per second, read/write
@@ -110,11 +116,12 @@ public class Boiler2PluginNodes : IPluginNodes
 
         // Find the Boiler2 data nodes.
         _currentTempDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
-        _pressureNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_Pressure, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        _overheatIntervalNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
         _overheatedNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_Overheated, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
         _heaterStateNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_HeaterState, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
 
         SetValue(_heaterStateNode, true);
+        SetValue(_overheatedNode, _overheatIntervalSeconds);
 
         // Find the Boiler2 deviceHealth nodes.
         _deviceHealth = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
@@ -183,9 +190,6 @@ public class Boiler2PluginNodes : IPluginNodes
                 SetValue(_heaterStateNode, true);
             }
         }
-
-        // Pressure is always 100_000 + bottom temperature.
-        SetValue(_pressureNode, 100_000 + tempSpeedDegreesPerSec); // TODO: Define pressure!
 
         // Change other values.
         SetValue(_currentTempDegreesNode, newTemperature);
