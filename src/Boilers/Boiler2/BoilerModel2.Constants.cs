@@ -143,7 +143,7 @@ namespace BoilerModel2
     public static partial class Objects
     {
         /// <remarks />
-        public const uint http___microsoft_com_boiler = 5000;
+        public const uint http___microsoft_com_Opc_OpcPlc_boiler = 5000;
 
         /// <remarks />
         public const uint Boiler_ParameterSet = 5014;
@@ -213,25 +213,25 @@ namespace BoilerModel2
     public static partial class Variables
     {
         /// <remarks />
-        public const uint http___microsoft_com_boiler_NamespaceUri = 6002;
+        public const uint http___microsoft_com_Opc_OpcPlc_boiler_NamespaceUri = 6002;
 
         /// <remarks />
-        public const uint http___microsoft_com_boiler_NamespaceVersion = 6003;
+        public const uint http___microsoft_com_Opc_OpcPlc_boiler_NamespaceVersion = 6003;
 
         /// <remarks />
-        public const uint http___microsoft_com_boiler_NamespacePublicationDate = 6001;
+        public const uint http___microsoft_com_Opc_OpcPlc_boiler_NamespacePublicationDate = 6001;
 
         /// <remarks />
-        public const uint http___microsoft_com_boiler_IsNamespaceSubset = 6000;
+        public const uint http___microsoft_com_Opc_OpcPlc_boiler_IsNamespaceSubset = 6000;
 
         /// <remarks />
-        public const uint http___microsoft_com_boiler_StaticNodeIdTypes = 6004;
+        public const uint http___microsoft_com_Opc_OpcPlc_boiler_StaticNodeIdTypes = 6004;
 
         /// <remarks />
-        public const uint http___microsoft_com_boiler_StaticNumericNodeIdRange = 6005;
+        public const uint http___microsoft_com_Opc_OpcPlc_boiler_StaticNumericNodeIdRange = 6005;
 
         /// <remarks />
-        public const uint http___microsoft_com_boiler_StaticStringNodeIdPattern = 6006;
+        public const uint http___microsoft_com_Opc_OpcPlc_boiler_StaticStringNodeIdPattern = 6006;
 
         /// <remarks />
         public const uint Boiler_Lock_Locked = 6468;
@@ -360,10 +360,10 @@ namespace BoilerModel2
         public const uint Boiler_ParameterSet_CurrentTemperature = 6031;
 
         /// <remarks />
-        public const uint Boiler_ParameterSet_Pressure = 6032;
+        public const uint Boiler_ParameterSet_Overheated = 6033;
 
         /// <remarks />
-        public const uint Boiler_ParameterSet_Overheated = 6033;
+        public const uint Boiler_ParameterSet_OverheatInterval = 6034;
 
         /// <remarks />
         public const uint Boilers_Boiler__2_Lock_Locked = 6468;
@@ -837,10 +837,10 @@ namespace BoilerModel2
         public const uint Boilers_Boiler__2_ParameterSet_CurrentTemperature = 6211;
 
         /// <remarks />
-        public const uint Boilers_Boiler__2_ParameterSet_Pressure = 6216;
+        public const uint Boilers_Boiler__2_ParameterSet_Overheated = 6214;
 
         /// <remarks />
-        public const uint Boilers_Boiler__2_ParameterSet_Overheated = 6214;
+        public const uint Boilers_Boiler__2_ParameterSet_OverheatInterval = 6350;
     }
     #endregion
 
@@ -949,7 +949,7 @@ namespace BoilerModel2
     public static partial class ObjectIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId http___microsoft_com_boiler = new ExpandedNodeId(BoilerModel2.Objects.http___microsoft_com_boiler, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId http___microsoft_com_Opc_OpcPlc_boiler = new ExpandedNodeId(BoilerModel2.Objects.http___microsoft_com_Opc_OpcPlc_boiler, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
         public static readonly ExpandedNodeId Boiler_ParameterSet = new ExpandedNodeId(BoilerModel2.Objects.Boiler_ParameterSet, BoilerModel2.Namespaces.Boiler2);
@@ -1019,25 +1019,25 @@ namespace BoilerModel2
     public static partial class VariableIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId http___microsoft_com_boiler_NamespaceUri = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_boiler_NamespaceUri, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId http___microsoft_com_Opc_OpcPlc_boiler_NamespaceUri = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_Opc_OpcPlc_boiler_NamespaceUri, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId http___microsoft_com_boiler_NamespaceVersion = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_boiler_NamespaceVersion, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId http___microsoft_com_Opc_OpcPlc_boiler_NamespaceVersion = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_Opc_OpcPlc_boiler_NamespaceVersion, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId http___microsoft_com_boiler_NamespacePublicationDate = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_boiler_NamespacePublicationDate, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId http___microsoft_com_Opc_OpcPlc_boiler_NamespacePublicationDate = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_Opc_OpcPlc_boiler_NamespacePublicationDate, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId http___microsoft_com_boiler_IsNamespaceSubset = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_boiler_IsNamespaceSubset, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId http___microsoft_com_Opc_OpcPlc_boiler_IsNamespaceSubset = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_Opc_OpcPlc_boiler_IsNamespaceSubset, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId http___microsoft_com_boiler_StaticNodeIdTypes = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_boiler_StaticNodeIdTypes, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId http___microsoft_com_Opc_OpcPlc_boiler_StaticNodeIdTypes = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_Opc_OpcPlc_boiler_StaticNodeIdTypes, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId http___microsoft_com_boiler_StaticNumericNodeIdRange = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_boiler_StaticNumericNodeIdRange, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId http___microsoft_com_Opc_OpcPlc_boiler_StaticNumericNodeIdRange = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_Opc_OpcPlc_boiler_StaticNumericNodeIdRange, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId http___microsoft_com_boiler_StaticStringNodeIdPattern = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_boiler_StaticStringNodeIdPattern, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId http___microsoft_com_Opc_OpcPlc_boiler_StaticStringNodeIdPattern = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_Opc_OpcPlc_boiler_StaticStringNodeIdPattern, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
         public static readonly ExpandedNodeId Boiler_Lock_Locked = new ExpandedNodeId(BoilerModel2.Variables.Boiler_Lock_Locked, BoilerModel2.Namespaces.Boiler2);
@@ -1166,10 +1166,10 @@ namespace BoilerModel2
         public static readonly ExpandedNodeId Boiler_ParameterSet_CurrentTemperature = new ExpandedNodeId(BoilerModel2.Variables.Boiler_ParameterSet_CurrentTemperature, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_ParameterSet_Pressure = new ExpandedNodeId(BoilerModel2.Variables.Boiler_ParameterSet_Pressure, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler_ParameterSet_Overheated = new ExpandedNodeId(BoilerModel2.Variables.Boiler_ParameterSet_Overheated, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boiler_ParameterSet_Overheated = new ExpandedNodeId(BoilerModel2.Variables.Boiler_ParameterSet_Overheated, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler_ParameterSet_OverheatInterval = new ExpandedNodeId(BoilerModel2.Variables.Boiler_ParameterSet_OverheatInterval, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
         public static readonly ExpandedNodeId Boilers_Boiler__2_Lock_Locked = new ExpandedNodeId(BoilerModel2.Variables.Boilers_Boiler__2_Lock_Locked, BoilerModel2.Namespaces.Boiler2);
@@ -1643,10 +1643,10 @@ namespace BoilerModel2
         public static readonly ExpandedNodeId Boilers_Boiler__2_ParameterSet_CurrentTemperature = new ExpandedNodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boilers_Boiler__2_ParameterSet_Pressure = new ExpandedNodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_Pressure, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boilers_Boiler__2_ParameterSet_Overheated = new ExpandedNodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_Overheated, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId Boilers_Boiler__2_ParameterSet_Overheated = new ExpandedNodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_Overheated, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boilers_Boiler__2_ParameterSet_OverheatInterval = new ExpandedNodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatInterval, BoilerModel2.Namespaces.Boiler2);
     }
     #endregion
 
@@ -1665,7 +1665,7 @@ namespace BoilerModel2
         public const string Boilers = "Boilers";
 
         /// <remarks />
-        public const string http___microsoft_com_boiler = "http://microsoft.com/Opc/OpcPlc/Boiler";
+        public const string http___microsoft_com_Opc_OpcPlc_boiler = "http://microsoft.com/Opc/OpcPlc/Boiler";
     }
     #endregion
 
