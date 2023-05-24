@@ -192,14 +192,14 @@
       <uax:UserAccessLevel>1</uax:UserAccessLevel>
     </EnumStrings>
   </BoilerHeaterStateType>
-  <BoilerModel1Type xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+  <Boiler1Type xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>ObjectType_8</uax:NodeClass>
     <uax:NodeId>
-      <uax:Identifier>ns=1;i=1</uax:Identifier>
+      <uax:Identifier>ns=1;i=3</uax:Identifier>
     </uax:NodeId>
     <uax:BrowseName>
       <uax:NamespaceIndex>1</uax:NamespaceIndex>
-      <uax:Name>BoilerModel1Type</uax:Name>
+      <uax:Name>Boiler1Type</uax:Name>
     </uax:BrowseName>
     <uax:SuperTypeId>
       <uax:Identifier>i=58</uax:Identifier>
@@ -207,7 +207,7 @@
     <BoilerStatus>
       <uax:NodeClass>Variable_2</uax:NodeClass>
       <uax:NodeId>
-        <uax:Identifier>ns=1;i=2</uax:Identifier>
+        <uax:Identifier>ns=1;i=4</uax:Identifier>
       </uax:NodeId>
       <uax:BrowseName>
         <uax:NamespaceIndex>1</uax:NamespaceIndex>
@@ -222,7 +222,7 @@
       <uax:ModellingRuleId>
         <uax:Identifier>i=78</uax:Identifier>
       </uax:ModellingRuleId>
-      <uax:NumericId>2</uax:NumericId>
+      <uax:NumericId>4</uax:NumericId>
       <uax:Value>
         <uax:Value>
           <uax:ExtensionObject>
@@ -249,7 +249,7 @@
       <uax:AccessLevel>1</uax:AccessLevel>
       <uax:UserAccessLevel>1</uax:UserAccessLevel>
     </BoilerStatus>
-  </BoilerModel1Type>
+  </Boiler1Type>
   <Boiler1 xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>Object_1</uax:NodeClass>
     <uax:NodeId>
@@ -266,7 +266,7 @@
       <uax:Identifier>i=47</uax:Identifier>
     </uax:ReferenceTypeId>
     <uax:TypeDefinitionId>
-      <uax:Identifier>ns=1;i=1</uax:Identifier>
+      <uax:Identifier>ns=1;i=3</uax:Identifier>
     </uax:TypeDefinitionId>
     <uax:NumericId>15070</uax:NumericId>
     <uax:EventNotifier>1</uax:EventNotifier>
@@ -651,7 +651,7 @@ DQogIHRhcmdldE5hbWVzcGFjZT0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9Cb2ls
 ZXIiDQogIGVsZW1lbnRGb3JtRGVmYXVsdD0icXVhbGlmaWVkIg0KPg0KICA8eHM6YW5ub3RhdGlv
 bj4NCiAgICA8eHM6YXBwaW5mbz4NCiAgICAgIDx0bnM6TW9kZWwgTW9kZWxVcmk9Imh0dHA6Ly9t
 aWNyb3NvZnQuY29tL09wYy9PcGNQbGMvQm9pbGVyIiBWZXJzaW9uPSIxLjAuMCIgUHVibGljYXRp
-b25EYXRlPSIyMDIzLTA1LTI0VDA5OjE0OjM5LjQ1MjAwMTZaIiAvPg0KICAgIDwveHM6YXBwaW5m
+b25EYXRlPSIyMDIzLTA1LTI0VDEwOjQwOjI5LjU4MTI2NTdaIiAvPg0KICAgIDwveHM6YXBwaW5m
 bz4NCiAgPC94czphbm5vdGF0aW9uPg0KICANCiAgPHhzOmltcG9ydCBuYW1lc3BhY2U9Imh0dHA6
 Ly9vcGNmb3VuZGF0aW9uLm9yZy9VQS8yMDA4LzAyL1R5cGVzLnhzZCIgLz4NCg0KICA8eHM6Y29t
 cGxleFR5cGUgbmFtZT0iQm9pbGVyRGF0YVR5cGUiPg0KICAgIDx4czphbm5vdGF0aW9uPg0KICAg

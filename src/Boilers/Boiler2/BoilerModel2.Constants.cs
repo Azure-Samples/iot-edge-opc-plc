@@ -45,31 +45,31 @@ namespace BoilerModel2
     public static partial class Methods
     {
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_InitLock = 6166;
+        public const uint Boiler2Type_Lock_InitLock = 6166;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_RenewLock = 6169;
+        public const uint Boiler2Type_Lock_RenewLock = 6169;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_ExitLock = 6171;
+        public const uint Boiler2Type_Lock_ExitLock = 6171;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_BreakLock = 6173;
+        public const uint Boiler2Type_Lock_BreakLock = 6173;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_InitLock = 6166;
+        public const uint Boiler2Type_CPIdentifier_Lock_InitLock = 6166;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_RenewLock = 6169;
+        public const uint Boiler2Type_CPIdentifier_Lock_RenewLock = 6169;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_ExitLock = 6171;
+        public const uint Boiler2Type_CPIdentifier_Lock_ExitLock = 6171;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_BreakLock = 6173;
+        public const uint Boiler2Type_CPIdentifier_Lock_BreakLock = 6173;
 
         /// <remarks />
-        public const uint BoilerModel2Type_MethodSet_Switch = 7000;
+        public const uint Boiler2Type_MethodSet_Switch = 7000;
 
         /// <remarks />
         public const uint Boilers_Boiler__2_Lock_InitLock = 6166;
@@ -146,28 +146,28 @@ namespace BoilerModel2
         public const uint http___microsoft_com_Opc_OpcPlc_boiler = 5000;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ParameterSet = 5014;
+        public const uint Boiler2Type_ParameterSet = 5014;
 
         /// <remarks />
-        public const uint BoilerModel2Type_MethodSet = 5013;
+        public const uint Boiler2Type_MethodSet = 5013;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_NetworkAddress = 6592;
+        public const uint Boiler2Type_CPIdentifier_NetworkAddress = 6592;
 
         /// <remarks />
-        public const uint BoilerModel2Type_DeviceHealthAlarms = 5002;
+        public const uint Boiler2Type_DeviceHealthAlarms = 5002;
 
         /// <remarks />
-        public const uint BoilerModel2Type_DeviceHealthAlarms_FailureAlarm = 5003;
+        public const uint Boiler2Type_DeviceHealthAlarms_FailureAlarm = 5003;
 
         /// <remarks />
-        public const uint BoilerModel2Type_DeviceHealthAlarms_CheckFunctionAlarm = 5004;
+        public const uint Boiler2Type_DeviceHealthAlarms_CheckFunctionAlarm = 5004;
 
         /// <remarks />
-        public const uint BoilerModel2Type_DeviceHealthAlarms_OffSpecAlarm = 5005;
+        public const uint Boiler2Type_DeviceHealthAlarms_OffSpecAlarm = 5005;
 
         /// <remarks />
-        public const uint BoilerModel2Type_DeviceHealthAlarms_MaintenanceRequiredAlarm = 5006;
+        public const uint Boiler2Type_DeviceHealthAlarms_MaintenanceRequiredAlarm = 5006;
 
         /// <remarks />
         public const uint Boilers = 5001;
@@ -202,7 +202,7 @@ namespace BoilerModel2
     public static partial class ObjectTypes
     {
         /// <remarks />
-        public const uint BoilerModel2Type = 1000;
+        public const uint Boiler2Type = 1000;
     }
     #endregion
 
@@ -234,136 +234,136 @@ namespace BoilerModel2
         public const uint http___microsoft_com_Opc_OpcPlc_boiler_StaticStringNodeIdPattern = 6006;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_Locked = 6468;
+        public const uint Boiler2Type_Lock_Locked = 6468;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_LockingClient = 6163;
+        public const uint Boiler2Type_Lock_LockingClient = 6163;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_LockingUser = 6164;
+        public const uint Boiler2Type_Lock_LockingUser = 6164;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_RemainingLockTime = 6165;
+        public const uint Boiler2Type_Lock_RemainingLockTime = 6165;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_InitLock_InputArguments = 6167;
+        public const uint Boiler2Type_Lock_InitLock_InputArguments = 6167;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_InitLock_OutputArguments = 6168;
+        public const uint Boiler2Type_Lock_InitLock_OutputArguments = 6168;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_RenewLock_OutputArguments = 6170;
+        public const uint Boiler2Type_Lock_RenewLock_OutputArguments = 6170;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_ExitLock_OutputArguments = 6172;
+        public const uint Boiler2Type_Lock_ExitLock_OutputArguments = 6172;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Lock_BreakLock_OutputArguments = 6174;
+        public const uint Boiler2Type_Lock_BreakLock_OutputArguments = 6174;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Manufacturer = 6011;
+        public const uint Boiler2Type_Manufacturer = 6011;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ManufacturerUri = 6012;
+        public const uint Boiler2Type_ManufacturerUri = 6012;
 
         /// <remarks />
-        public const uint BoilerModel2Type_Model = 6013;
+        public const uint Boiler2Type_Model = 6013;
 
         /// <remarks />
-        public const uint BoilerModel2Type_HardwareRevision = 6015;
+        public const uint Boiler2Type_HardwareRevision = 6015;
 
         /// <remarks />
-        public const uint BoilerModel2Type_SoftwareRevision = 6016;
+        public const uint Boiler2Type_SoftwareRevision = 6016;
 
         /// <remarks />
-        public const uint BoilerModel2Type_DeviceRevision = 6017;
+        public const uint Boiler2Type_DeviceRevision = 6017;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ProductCode = 6014;
+        public const uint Boiler2Type_ProductCode = 6014;
 
         /// <remarks />
-        public const uint BoilerModel2Type_DeviceManual = 6018;
+        public const uint Boiler2Type_DeviceManual = 6018;
 
         /// <remarks />
-        public const uint BoilerModel2Type_DeviceClass = 6019;
+        public const uint Boiler2Type_DeviceClass = 6019;
 
         /// <remarks />
-        public const uint BoilerModel2Type_SerialNumber = 6020;
+        public const uint Boiler2Type_SerialNumber = 6020;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ProductInstanceUri = 6021;
+        public const uint Boiler2Type_ProductInstanceUri = 6021;
 
         /// <remarks />
-        public const uint BoilerModel2Type_RevisionCounter = 6022;
+        public const uint Boiler2Type_RevisionCounter = 6022;
 
         /// <remarks />
-        public const uint BoilerModel2Type_AssetId = 6008;
+        public const uint Boiler2Type_AssetId = 6008;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ComponentName = 6009;
+        public const uint Boiler2Type_ComponentName = 6009;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_Locked = 6468;
+        public const uint Boiler2Type_CPIdentifier_Lock_Locked = 6468;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_LockingClient = 6163;
+        public const uint Boiler2Type_CPIdentifier_Lock_LockingClient = 6163;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_LockingUser = 6164;
+        public const uint Boiler2Type_CPIdentifier_Lock_LockingUser = 6164;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_RemainingLockTime = 6165;
+        public const uint Boiler2Type_CPIdentifier_Lock_RemainingLockTime = 6165;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_InitLock_InputArguments = 6167;
+        public const uint Boiler2Type_CPIdentifier_Lock_InitLock_InputArguments = 6167;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_InitLock_OutputArguments = 6168;
+        public const uint Boiler2Type_CPIdentifier_Lock_InitLock_OutputArguments = 6168;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_RenewLock_OutputArguments = 6170;
+        public const uint Boiler2Type_CPIdentifier_Lock_RenewLock_OutputArguments = 6170;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_ExitLock_OutputArguments = 6172;
+        public const uint Boiler2Type_CPIdentifier_Lock_ExitLock_OutputArguments = 6172;
 
         /// <remarks />
-        public const uint BoilerModel2Type_CPIdentifier_Lock_BreakLock_OutputArguments = 6174;
+        public const uint Boiler2Type_CPIdentifier_Lock_BreakLock_OutputArguments = 6174;
 
         /// <remarks />
-        public const uint BoilerModel2Type_DeviceHealth = 6010;
+        public const uint Boiler2Type_DeviceHealth = 6010;
 
         /// <remarks />
-        public const uint BoilerModel2Type_MethodSet_Switch_InputArguments = 6023;
+        public const uint Boiler2Type_MethodSet_Switch_InputArguments = 6023;
 
         /// <remarks />
-        public const uint BoilerModel2Type_MethodSet_Switch_OutputArguments = 6024;
+        public const uint Boiler2Type_MethodSet_Switch_OutputArguments = 6024;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ParameterSet_TemperatureChangeSpeed = 6025;
+        public const uint Boiler2Type_ParameterSet_TemperatureChangeSpeed = 6025;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ParameterSet_BaseTemperature = 6026;
+        public const uint Boiler2Type_ParameterSet_BaseTemperature = 6026;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ParameterSet_TargetTemperature = 6027;
+        public const uint Boiler2Type_ParameterSet_TargetTemperature = 6027;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ParameterSet_MaintenanceInterval = 6028;
+        public const uint Boiler2Type_ParameterSet_MaintenanceInterval = 6028;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ParameterSet_OverheatedThresholdTemperature = 6029;
+        public const uint Boiler2Type_ParameterSet_OverheatedThresholdTemperature = 6029;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ParameterSet_HeaterState = 6030;
+        public const uint Boiler2Type_ParameterSet_HeaterState = 6030;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ParameterSet_CurrentTemperature = 6031;
+        public const uint Boiler2Type_ParameterSet_CurrentTemperature = 6031;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ParameterSet_Pressure = 6032;
+        public const uint Boiler2Type_ParameterSet_Pressure = 6032;
 
         /// <remarks />
-        public const uint BoilerModel2Type_ParameterSet_Overheated = 6033;
+        public const uint Boiler2Type_ParameterSet_Overheated = 6033;
 
         /// <remarks />
         public const uint Boilers_Boiler__2_Lock_Locked = 6468;
@@ -851,31 +851,31 @@ namespace BoilerModel2
     public static partial class MethodIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_InitLock = new ExpandedNodeId(BoilerModel2.Methods.BoilerModel2Type_Lock_InitLock, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_InitLock = new ExpandedNodeId(BoilerModel2.Methods.Boiler2Type_Lock_InitLock, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_RenewLock = new ExpandedNodeId(BoilerModel2.Methods.BoilerModel2Type_Lock_RenewLock, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_RenewLock = new ExpandedNodeId(BoilerModel2.Methods.Boiler2Type_Lock_RenewLock, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_ExitLock = new ExpandedNodeId(BoilerModel2.Methods.BoilerModel2Type_Lock_ExitLock, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_ExitLock = new ExpandedNodeId(BoilerModel2.Methods.Boiler2Type_Lock_ExitLock, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_BreakLock = new ExpandedNodeId(BoilerModel2.Methods.BoilerModel2Type_Lock_BreakLock, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_BreakLock = new ExpandedNodeId(BoilerModel2.Methods.Boiler2Type_Lock_BreakLock, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_InitLock = new ExpandedNodeId(BoilerModel2.Methods.BoilerModel2Type_CPIdentifier_Lock_InitLock, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_InitLock = new ExpandedNodeId(BoilerModel2.Methods.Boiler2Type_CPIdentifier_Lock_InitLock, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_RenewLock = new ExpandedNodeId(BoilerModel2.Methods.BoilerModel2Type_CPIdentifier_Lock_RenewLock, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_RenewLock = new ExpandedNodeId(BoilerModel2.Methods.Boiler2Type_CPIdentifier_Lock_RenewLock, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_ExitLock = new ExpandedNodeId(BoilerModel2.Methods.BoilerModel2Type_CPIdentifier_Lock_ExitLock, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_ExitLock = new ExpandedNodeId(BoilerModel2.Methods.Boiler2Type_CPIdentifier_Lock_ExitLock, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_BreakLock = new ExpandedNodeId(BoilerModel2.Methods.BoilerModel2Type_CPIdentifier_Lock_BreakLock, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_BreakLock = new ExpandedNodeId(BoilerModel2.Methods.Boiler2Type_CPIdentifier_Lock_BreakLock, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_MethodSet_Switch = new ExpandedNodeId(BoilerModel2.Methods.BoilerModel2Type_MethodSet_Switch, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_MethodSet_Switch = new ExpandedNodeId(BoilerModel2.Methods.Boiler2Type_MethodSet_Switch, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
         public static readonly ExpandedNodeId Boilers_Boiler__2_Lock_InitLock = new ExpandedNodeId(BoilerModel2.Methods.Boilers_Boiler__2_Lock_InitLock, BoilerModel2.Namespaces.Boiler2);
@@ -952,28 +952,28 @@ namespace BoilerModel2
         public static readonly ExpandedNodeId http___microsoft_com_Opc_OpcPlc_boiler = new ExpandedNodeId(BoilerModel2.Objects.http___microsoft_com_Opc_OpcPlc_boiler, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ParameterSet = new ExpandedNodeId(BoilerModel2.Objects.BoilerModel2Type_ParameterSet, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ParameterSet = new ExpandedNodeId(BoilerModel2.Objects.Boiler2Type_ParameterSet, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_MethodSet = new ExpandedNodeId(BoilerModel2.Objects.BoilerModel2Type_MethodSet, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_MethodSet = new ExpandedNodeId(BoilerModel2.Objects.Boiler2Type_MethodSet, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_NetworkAddress = new ExpandedNodeId(BoilerModel2.Objects.BoilerModel2Type_CPIdentifier_NetworkAddress, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_NetworkAddress = new ExpandedNodeId(BoilerModel2.Objects.Boiler2Type_CPIdentifier_NetworkAddress, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_DeviceHealthAlarms = new ExpandedNodeId(BoilerModel2.Objects.BoilerModel2Type_DeviceHealthAlarms, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_DeviceHealthAlarms = new ExpandedNodeId(BoilerModel2.Objects.Boiler2Type_DeviceHealthAlarms, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_DeviceHealthAlarms_FailureAlarm = new ExpandedNodeId(BoilerModel2.Objects.BoilerModel2Type_DeviceHealthAlarms_FailureAlarm, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_DeviceHealthAlarms_FailureAlarm = new ExpandedNodeId(BoilerModel2.Objects.Boiler2Type_DeviceHealthAlarms_FailureAlarm, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_DeviceHealthAlarms_CheckFunctionAlarm = new ExpandedNodeId(BoilerModel2.Objects.BoilerModel2Type_DeviceHealthAlarms_CheckFunctionAlarm, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_DeviceHealthAlarms_CheckFunctionAlarm = new ExpandedNodeId(BoilerModel2.Objects.Boiler2Type_DeviceHealthAlarms_CheckFunctionAlarm, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_DeviceHealthAlarms_OffSpecAlarm = new ExpandedNodeId(BoilerModel2.Objects.BoilerModel2Type_DeviceHealthAlarms_OffSpecAlarm, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_DeviceHealthAlarms_OffSpecAlarm = new ExpandedNodeId(BoilerModel2.Objects.Boiler2Type_DeviceHealthAlarms_OffSpecAlarm, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_DeviceHealthAlarms_MaintenanceRequiredAlarm = new ExpandedNodeId(BoilerModel2.Objects.BoilerModel2Type_DeviceHealthAlarms_MaintenanceRequiredAlarm, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_DeviceHealthAlarms_MaintenanceRequiredAlarm = new ExpandedNodeId(BoilerModel2.Objects.Boiler2Type_DeviceHealthAlarms_MaintenanceRequiredAlarm, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
         public static readonly ExpandedNodeId Boilers = new ExpandedNodeId(BoilerModel2.Objects.Boilers, BoilerModel2.Namespaces.Boiler2);
@@ -1008,7 +1008,7 @@ namespace BoilerModel2
     public static partial class ObjectTypeIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type = new ExpandedNodeId(BoilerModel2.ObjectTypes.BoilerModel2Type, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type = new ExpandedNodeId(BoilerModel2.ObjectTypes.Boiler2Type, BoilerModel2.Namespaces.Boiler2);
     }
     #endregion
 
@@ -1040,136 +1040,136 @@ namespace BoilerModel2
         public static readonly ExpandedNodeId http___microsoft_com_Opc_OpcPlc_boiler_StaticStringNodeIdPattern = new ExpandedNodeId(BoilerModel2.Variables.http___microsoft_com_Opc_OpcPlc_boiler_StaticStringNodeIdPattern, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_Locked = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Lock_Locked, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_Locked = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Lock_Locked, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_LockingClient = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Lock_LockingClient, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_LockingClient = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Lock_LockingClient, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_LockingUser = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Lock_LockingUser, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_LockingUser = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Lock_LockingUser, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_RemainingLockTime = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Lock_RemainingLockTime, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_RemainingLockTime = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Lock_RemainingLockTime, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_InitLock_InputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Lock_InitLock_InputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_InitLock_InputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Lock_InitLock_InputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_InitLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Lock_InitLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_InitLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Lock_InitLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_RenewLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Lock_RenewLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_RenewLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Lock_RenewLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_ExitLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Lock_ExitLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_ExitLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Lock_ExitLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Lock_BreakLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Lock_BreakLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Lock_BreakLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Lock_BreakLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Manufacturer = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Manufacturer, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Manufacturer = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Manufacturer, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ManufacturerUri = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ManufacturerUri, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ManufacturerUri = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ManufacturerUri, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_Model = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_Model, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_Model = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_Model, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_HardwareRevision = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_HardwareRevision, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_HardwareRevision = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_HardwareRevision, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_SoftwareRevision = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_SoftwareRevision, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_SoftwareRevision = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_SoftwareRevision, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_DeviceRevision = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_DeviceRevision, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_DeviceRevision = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_DeviceRevision, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ProductCode = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ProductCode, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ProductCode = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ProductCode, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_DeviceManual = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_DeviceManual, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_DeviceManual = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_DeviceManual, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_DeviceClass = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_DeviceClass, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_DeviceClass = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_DeviceClass, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_SerialNumber = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_SerialNumber, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_SerialNumber = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_SerialNumber, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ProductInstanceUri = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ProductInstanceUri, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ProductInstanceUri = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ProductInstanceUri, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_RevisionCounter = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_RevisionCounter, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_RevisionCounter = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_RevisionCounter, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_AssetId = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_AssetId, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_AssetId = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_AssetId, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ComponentName = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ComponentName, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ComponentName = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ComponentName, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_Locked = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_CPIdentifier_Lock_Locked, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_Locked = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_CPIdentifier_Lock_Locked, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_LockingClient = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_CPIdentifier_Lock_LockingClient, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_LockingClient = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_CPIdentifier_Lock_LockingClient, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_LockingUser = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_CPIdentifier_Lock_LockingUser, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_LockingUser = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_CPIdentifier_Lock_LockingUser, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_RemainingLockTime = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_CPIdentifier_Lock_RemainingLockTime, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_RemainingLockTime = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_CPIdentifier_Lock_RemainingLockTime, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_InitLock_InputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_CPIdentifier_Lock_InitLock_InputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_InitLock_InputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_CPIdentifier_Lock_InitLock_InputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_InitLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_CPIdentifier_Lock_InitLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_InitLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_CPIdentifier_Lock_InitLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_RenewLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_CPIdentifier_Lock_RenewLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_RenewLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_CPIdentifier_Lock_RenewLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_ExitLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_CPIdentifier_Lock_ExitLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_ExitLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_CPIdentifier_Lock_ExitLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_CPIdentifier_Lock_BreakLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_CPIdentifier_Lock_BreakLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_CPIdentifier_Lock_BreakLock_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_CPIdentifier_Lock_BreakLock_OutputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_DeviceHealth = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_DeviceHealth, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_DeviceHealth = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_DeviceHealth, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_MethodSet_Switch_InputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_MethodSet_Switch_InputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_MethodSet_Switch_InputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_MethodSet_Switch_InputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_MethodSet_Switch_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_MethodSet_Switch_OutputArguments, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_MethodSet_Switch_OutputArguments = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_MethodSet_Switch_OutputArguments, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ParameterSet_TemperatureChangeSpeed = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ParameterSet_TemperatureChangeSpeed, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ParameterSet_TemperatureChangeSpeed = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ParameterSet_TemperatureChangeSpeed, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ParameterSet_BaseTemperature = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ParameterSet_BaseTemperature, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ParameterSet_BaseTemperature = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ParameterSet_BaseTemperature, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ParameterSet_TargetTemperature = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ParameterSet_TargetTemperature, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ParameterSet_TargetTemperature = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ParameterSet_TargetTemperature, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ParameterSet_MaintenanceInterval = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ParameterSet_MaintenanceInterval, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ParameterSet_MaintenanceInterval = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ParameterSet_MaintenanceInterval, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ParameterSet_OverheatedThresholdTemperature = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ParameterSet_OverheatedThresholdTemperature, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ParameterSet_OverheatedThresholdTemperature = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ParameterSet_OverheatedThresholdTemperature, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ParameterSet_HeaterState = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ParameterSet_HeaterState, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ParameterSet_HeaterState = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ParameterSet_HeaterState, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ParameterSet_CurrentTemperature = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ParameterSet_CurrentTemperature, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ParameterSet_CurrentTemperature = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ParameterSet_CurrentTemperature, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ParameterSet_Pressure = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ParameterSet_Pressure, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ParameterSet_Pressure = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ParameterSet_Pressure, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerModel2Type_ParameterSet_Overheated = new ExpandedNodeId(BoilerModel2.Variables.BoilerModel2Type_ParameterSet_Overheated, BoilerModel2.Namespaces.Boiler2);
+        public static readonly ExpandedNodeId Boiler2Type_ParameterSet_Overheated = new ExpandedNodeId(BoilerModel2.Variables.Boiler2Type_ParameterSet_Overheated, BoilerModel2.Namespaces.Boiler2);
 
         /// <remarks />
         public static readonly ExpandedNodeId Boilers_Boiler__2_Lock_Locked = new ExpandedNodeId(BoilerModel2.Variables.Boilers_Boiler__2_Lock_Locked, BoilerModel2.Namespaces.Boiler2);
@@ -1659,7 +1659,7 @@ namespace BoilerModel2
         public const string Boiler__2 = "Boiler #2";
 
         /// <remarks />
-        public const string BoilerModel2Type = "BoilerModel2Type";
+        public const string Boiler2Type = "Boiler2Type";
 
         /// <remarks />
         public const string Boilers = "Boilers";

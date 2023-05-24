@@ -8,16 +8,16 @@
   <Nodes>
     <Node i:type="ObjectTypeNode">
       <NodeId>
-        <Identifier>ns=1;i=1</Identifier>
+        <Identifier>ns=1;i=3</Identifier>
       </NodeId>
       <NodeClass>ObjectType_8</NodeClass>
       <BrowseName>
         <NamespaceIndex>1</NamespaceIndex>
-        <Name>BoilerModel1Type</Name>
+        <Name>Boiler1Type</Name>
       </BrowseName>
       <DisplayName>
         <Locale></Locale>
-        <Text>BoilerModel1Type</Text>
+        <Text>Boiler1Type</Text>
       </DisplayName>
       <Description i:nil="true" />
       <WriteMask>0</WriteMask>
@@ -41,7 +41,7 @@
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
           <TargetId>
-            <Identifier>ns=1;i=2</Identifier>
+            <Identifier>ns=1;i=4</Identifier>
           </TargetId>
         </ReferenceNode>
       </References>
@@ -49,7 +49,7 @@
     </Node>
     <Node i:type="VariableNode">
       <NodeId>
-        <Identifier>ns=1;i=2</Identifier>
+        <Identifier>ns=1;i=4</Identifier>
       </NodeId>
       <NodeClass>Variable_2</NodeClass>
       <BrowseName>
@@ -73,7 +73,7 @@
           </ReferenceTypeId>
           <IsInverse>true</IsInverse>
           <TargetId>
-            <Identifier>ns=1;i=1</Identifier>
+            <Identifier>ns=1;i=3</Identifier>
           </TargetId>
         </ReferenceNode>
         <ReferenceNode>
@@ -709,7 +709,7 @@
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
           <TargetId>
-            <Identifier>ns=1;i=1</Identifier>
+            <Identifier>ns=1;i=3</Identifier>
           </TargetId>
         </ReferenceNode>
         <ReferenceNode>
@@ -1198,7 +1198,7 @@ DQogIHRhcmdldE5hbWVzcGFjZT0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9Cb2ls
 ZXIiDQogIGVsZW1lbnRGb3JtRGVmYXVsdD0icXVhbGlmaWVkIg0KPg0KICA8eHM6YW5ub3RhdGlv
 bj4NCiAgICA8eHM6YXBwaW5mbz4NCiAgICAgIDx0bnM6TW9kZWwgTW9kZWxVcmk9Imh0dHA6Ly9t
 aWNyb3NvZnQuY29tL09wYy9PcGNQbGMvQm9pbGVyIiBWZXJzaW9uPSIxLjAuMCIgUHVibGljYXRp
-b25EYXRlPSIyMDIzLTA1LTI0VDA5OjE0OjM5LjQ1MjAwMTZaIiAvPg0KICAgIDwveHM6YXBwaW5m
+b25EYXRlPSIyMDIzLTA1LTI0VDEwOjQwOjI5LjU4MTI2NTdaIiAvPg0KICAgIDwveHM6YXBwaW5m
 bz4NCiAgPC94czphbm5vdGF0aW9uPg0KICANCiAgPHhzOmltcG9ydCBuYW1lc3BhY2U9Imh0dHA6
 Ly9vcGNmb3VuZGF0aW9uLm9yZy9VQS8yMDA4LzAyL1R5cGVzLnhzZCIgLz4NCg0KICA8eHM6Y29t
 cGxleFR5cGUgbmFtZT0iQm9pbGVyRGF0YVR5cGUiPg0KICAgIDx4czphbm5vdGF0aW9uPg0KICAg

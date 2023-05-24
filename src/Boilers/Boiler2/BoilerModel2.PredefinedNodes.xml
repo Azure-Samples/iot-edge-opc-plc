@@ -238,14 +238,14 @@
       <uax:UserAccessLevel>1</uax:UserAccessLevel>
     </DefaultRolePermissions>
   </http___microsoft_com_Opc_OpcPlc_boiler>
-  <BoilerModel2Type xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+  <Boiler2Type xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>ObjectType_8</uax:NodeClass>
     <uax:NodeId>
       <uax:Identifier>ns=1;i=1000</uax:Identifier>
     </uax:NodeId>
     <uax:BrowseName>
       <uax:NamespaceIndex>1</uax:NamespaceIndex>
-      <uax:Name>BoilerModel2Type</uax:Name>
+      <uax:Name>Boiler2Type</uax:Name>
     </uax:BrowseName>
     <uax:SuperTypeId>
       <uax:Identifier>ns=2;i=1002</uax:Identifier>
@@ -1163,7 +1163,7 @@
         <uax:NumericId>5006</uax:NumericId>
       </MaintenanceRequiredAlarm>
     </DeviceHealthAlarms>
-  </BoilerModel2Type>
+  </Boiler2Type>
   <Boilers xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>Object_1</uax:NodeClass>
     <uax:NodeId>
