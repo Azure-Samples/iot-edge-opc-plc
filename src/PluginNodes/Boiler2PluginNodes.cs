@@ -57,13 +57,6 @@ public class Boiler2PluginNodes : IPluginNodes
             "b2mi|boiler2maintinterval=",
             $"Boiler #2 required maintenance interval in minutes\nDefault: {_maintenanceIntervalMinutes}",
             (string s) => _maintenanceIntervalMinutes = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintint"));
-
-        // TODO: Remove when simulation done:
-        // Temperature change speed in degrees per second, read/write
-        // Base temperature, write
-        // Target temperature, read/write
-        // Maintenance interval, read/write
-        // Overheated threshold temperature (float, Target_temp + 10, read)
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
