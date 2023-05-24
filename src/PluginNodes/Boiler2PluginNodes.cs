@@ -188,13 +188,15 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_currentTempDegreesNode, newTemperature);
         SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
 
+        // Update DeviceHealth status.
+        SetDeviceHealth(currentTemperature, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
+
         // TODO:
         // The simulation should inject a problem every couple of minutes which will increase the Current_temp to 10 degrees over Overheated_temp, switch off the Heater and:
         // - Will emit a "CheckFunctionAlarmType" event, when DeviceHealth updates to CHECK_FUNCTION
         // - Will emit a "FailureAlarmType" event, when DeviceHealth updates to FAILURE
         // - Will emit an "OffSpecAlarmType" event, when DeviceHealth updates to OFF_SPEC
         // - Will emit a "MaintenanceRequiredAlarmType", when DeviceHealth updates to MAINTENANCE_REQUIRED
-        // DeviceHealth will be updated with NORMAL when Current_temp enters the range between Base_temp and Target_temp
 
         // TODO: Add maintenance required event using (int)_maintenanceIntervalMinutesNode.Value.
     }
@@ -245,5 +247,25 @@ public class Boiler2PluginNodes : IPluginNodes
                     source: null,
                     EventSeverity.Medium,
                     new LocalizedText($"MaintenanceRequiredAlarm."));
+    }
+
+    private void SetDeviceHealth(float currentTemp, float baseTemp, float targetTemp, float overheatedTemp)
+    {
+        if (currentTemp > baseTemp && currentTemp < targetTemp)
+        {
+            SetValue(_deviceHealth, DeviceHealthEnumeration.NORMAL);
+        }
+        else if (currentTemp < baseTemp || currentTemp > overheatedTemp + 5)
+        {
+            SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
+        }
+        else if (currentTemp > overheatedTemp)
+        {
+            SetValue(_deviceHealth, DeviceHealthEnumeration.FAILURE);
+        }
+        else if (currentTemp > targetTemp && currentTemp < overheatedTemp)
+        {
+            SetValue(_deviceHealth, DeviceHealthEnumeration.CHECK_FUNCTION);
+        }
     }
 }
