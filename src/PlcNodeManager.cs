@@ -219,7 +219,7 @@ public class PlcNodeManager : CustomNodeManager2
     /// </summary>
     public void LoadPredefinedNodes(Func<ISystemContext, NodeStateCollection> loadPredefinedNodesHandler)
     {
-        _loadPredefinedNodeshandler = loadPredefinedNodesHandler;
+        _loadPredefinedNodesHandler = loadPredefinedNodesHandler;
 
         base.LoadPredefinedNodes(SystemContext, _externalReferences);
     }
@@ -234,11 +234,11 @@ public class PlcNodeManager : CustomNodeManager2
 
     protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
-        return _loadPredefinedNodeshandler?.Invoke(context);
+        return _loadPredefinedNodesHandler?.Invoke(context);
     }
 
     private readonly TimeService _timeService;
 
     private IDictionary<NodeId, IList<IReference>> _externalReferences;
-    private Func<ISystemContext, NodeStateCollection> _loadPredefinedNodeshandler;
+    private Func<ISystemContext, NodeStateCollection> _loadPredefinedNodesHandler;
 }
