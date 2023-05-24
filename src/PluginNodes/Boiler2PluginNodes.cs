@@ -40,7 +40,7 @@ public class Boiler2PluginNodes : IPluginNodes
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
         optionSet.Add(
-            "b2ts|boiler2tempspeed=",
+            "b2ts|boiler2tempspeedboiler2tempspeed=",
             $"Boiler #2 temperature change speed in degrees per second\nDefault: {_tempSpeedDegreesPerSec}",
             (string s) => _tempSpeedDegreesPerSec = CliHelper.ParseFloat(s, min: 1.0f, max: 10.0f, optionName: "boiler2tempspeed", digits: 1));
 
@@ -57,7 +57,7 @@ public class Boiler2PluginNodes : IPluginNodes
         optionSet.Add(
             "b2mi|boiler2maintinterval=",
             $"Boiler #2 required maintenance interval in seconds\nDefault: {_maintenanceIntervalSeconds}",
-            (string s) => _maintenanceIntervalSeconds = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintint"));
+            (string s) => _maintenanceIntervalSeconds = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintinterval"));
 
         optionSet.Add(
             "b2oi|boiler2overheatinterval=",
