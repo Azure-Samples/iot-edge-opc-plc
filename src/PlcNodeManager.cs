@@ -8,9 +8,6 @@ using static OpcPlc.Program;
 
 public class PlcNodeManager : CustomNodeManager2
 {
-    #region Properties
-    #endregion
-
     public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService)
         : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
     {
@@ -234,11 +231,6 @@ public class PlcNodeManager : CustomNodeManager2
     {
         base.AddPredefinedNode(SystemContext, node);
     }
-
-    ////public new void AddReverseReferences(IDictionary<NodeId, IList<IReference>> externalReferences)
-    ////{
-    ////    base.AddReverseReferences(externalReferences);
-    ////}
 
     protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
