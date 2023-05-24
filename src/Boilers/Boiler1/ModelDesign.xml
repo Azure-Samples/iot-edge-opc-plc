@@ -46,7 +46,7 @@
     </opc:Fields>
   </opc:DataType>
 
-  <opc:ObjectType SymbolicName="BoilerType" BaseType="ua:BaseObjectType" SupportsEvents="true">
+  <opc:ObjectType SymbolicName="Boiler1Type" BaseType="ua:BaseObjectType" SupportsEvents="true">
     <opc:Children>
       <opc:Variable SymbolicName="BoilerStatus" DataType="BoilerDataType">
         <opc:DefaultValue>
@@ -76,7 +76,7 @@
   Normally instances are created by program logic instead of being part of the model.
   This is provided as an example of how to do it when there is a need for persistent instances.
   -->
-  <opc:Object SymbolicName="Boiler1" TypeDefinition="BoilerType" SupportsEvents="true">
+  <opc:Object SymbolicName="Boiler1" TypeDefinition="Boiler1Type" SupportsEvents="true">
     <opc:BrowseName>Boiler #1</opc:BrowseName>
 
     <opc:Description>A simple boiler.</opc:Description>

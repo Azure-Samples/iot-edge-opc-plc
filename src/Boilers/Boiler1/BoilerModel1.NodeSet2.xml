@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" LastModified="2023-05-15T07:32:00.3025089Z" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" LastModified="2023-05-24T10:40:29.5812657Z" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
   <NamespaceUris>
     <Uri>http://microsoft.com/Opc/OpcPlc/Boiler</Uri>
   </NamespaceUris>
   <Models>
-    <Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" Version="1.0.0" PublicationDate="2023-05-15T07:32:00.3025089Z">
+    <Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" Version="1.0.0" PublicationDate="2023-05-24T10:40:29.5812657Z">
       <RequiredModel ModelUri="http://opcfoundation.org/UA/" XmlSchemaUri="http://opcfoundation.org/UA/2008/02/Types.xsd" />
     </Model>
   </Models>
@@ -108,19 +108,19 @@
       </ListOfLocalizedText>
     </Value>
   </UAVariable>
-  <UAObjectType NodeId="ns=1;i=15068" BrowseName="1:BoilerType">
-    <DisplayName>BoilerType</DisplayName>
+  <UAObjectType NodeId="ns=1;i=3" BrowseName="1:Boiler1Type">
+    <DisplayName>Boiler1Type</DisplayName>
     <References>
-      <Reference ReferenceType="HasComponent">ns=1;i=15003</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=4</Reference>
       <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
     </References>
   </UAObjectType>
-  <UAVariable NodeId="ns=1;i=15003" BrowseName="1:BoilerStatus" ParentNodeId="ns=1;i=15068" DataType="ns=1;i=15032">
+  <UAVariable NodeId="ns=1;i=4" BrowseName="1:BoilerStatus" ParentNodeId="ns=1;i=3" DataType="ns=1;i=15032">
     <DisplayName>BoilerStatus</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
-      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15068</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=3</Reference>
     </References>
     <Value>
       <ExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
@@ -146,7 +146,7 @@
     <References>
       <Reference ReferenceType="HasComponent">ns=1;i=15013</Reference>
       <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
-      <Reference ReferenceType="HasTypeDefinition">ns=1;i=15068</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=3</Reference>
     </References>
   </UAObject>
   <UAVariable NodeId="ns=1;i=15013" BrowseName="1:BoilerStatus" ParentNodeId="ns=1;i=15070" DataType="ns=1;i=15032">
@@ -302,7 +302,7 @@ DQogIHRhcmdldE5hbWVzcGFjZT0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9Cb2ls
 ZXIiDQogIGVsZW1lbnRGb3JtRGVmYXVsdD0icXVhbGlmaWVkIg0KPg0KICA8eHM6YW5ub3RhdGlv
 bj4NCiAgICA8eHM6YXBwaW5mbz4NCiAgICAgIDx0bnM6TW9kZWwgTW9kZWxVcmk9Imh0dHA6Ly9t
 aWNyb3NvZnQuY29tL09wYy9PcGNQbGMvQm9pbGVyIiBWZXJzaW9uPSIxLjAuMCIgUHVibGljYXRp
-b25EYXRlPSIyMDIzLTA1LTE1VDA3OjMyOjAwLjMwMjUwODlaIiAvPg0KICAgIDwveHM6YXBwaW5m
+b25EYXRlPSIyMDIzLTA1LTI0VDEwOjQwOjI5LjU4MTI2NTdaIiAvPg0KICAgIDwveHM6YXBwaW5m
 bz4NCiAgPC94czphbm5vdGF0aW9uPg0KICANCiAgPHhzOmltcG9ydCBuYW1lc3BhY2U9Imh0dHA6
 Ly9vcGNmb3VuZGF0aW9uLm9yZy9VQS8yMDA4LzAyL1R5cGVzLnhzZCIgLz4NCg0KICA8eHM6Y29t
 cGxleFR5cGUgbmFtZT0iQm9pbGVyRGF0YVR5cGUiPg0KICAgIDx4czphbm5vdGF0aW9uPg0KICAg

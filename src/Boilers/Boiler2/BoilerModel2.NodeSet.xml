@@ -14,11 +14,11 @@
       <NodeClass>ObjectType_8</NodeClass>
       <BrowseName>
         <NamespaceIndex>1</NamespaceIndex>
-        <Name>Boiler</Name>
+        <Name>Boiler2Type</Name>
       </BrowseName>
       <DisplayName>
         <Locale></Locale>
-        <Text>Boiler</Text>
+        <Text>Boiler2Type</Text>
       </DisplayName>
       <Description i:nil="true" />
       <WriteMask>0</WriteMask>
@@ -5780,8 +5780,8 @@
       </DataType>
       <ValueRank>-1</ValueRank>
       <ArrayDimensions />
-      <AccessLevel>3</AccessLevel>
-      <UserAccessLevel>3</UserAccessLevel>
+      <AccessLevel>1</AccessLevel>
+      <UserAccessLevel>1</UserAccessLevel>
       <MinimumSamplingInterval>0</MinimumSamplingInterval>
       <Historizing>false</Historizing>
       <AccessLevelEx>0</AccessLevelEx>
