@@ -18,7 +18,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
     private PlcNodeManager _plcNodeManager;
-    private BoilerState _node;
+    private BoilerModel1State _node;
     private ITimer _nodeGenerator;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
@@ -57,7 +57,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         var passiveNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel1.Objects.Boiler1, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
 
         // Convert to node that can be manipulated within the server.
-        _node = new BoilerState(null);
+        _node = new BoilerModel1State(null);
         _node.Create(_plcNodeManager.SystemContext, passiveNode);
 
         _plcNodeManager.AddPredefinedNode(_node);
