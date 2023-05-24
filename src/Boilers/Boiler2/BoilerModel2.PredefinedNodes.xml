@@ -4,7 +4,7 @@
     <uax:NamespaceUri>http://microsoft.com/Opc/OpcPlc/Boiler</uax:NamespaceUri>
     <uax:NamespaceUri>http://opcfoundation.org/UA/DI/</uax:NamespaceUri>
   </uax:NamespaceUris>
-  <http___microsoft_com_boiler xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+  <http___microsoft_com_Opc_OpcPlc_boiler xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>Object_1</uax:NodeClass>
     <uax:NodeId>
       <uax:Identifier>ns=1;i=5000</uax:Identifier>
@@ -237,15 +237,15 @@
       <uax:AccessLevel>1</uax:AccessLevel>
       <uax:UserAccessLevel>1</uax:UserAccessLevel>
     </DefaultRolePermissions>
-  </http___microsoft_com_boiler>
-  <Boiler xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+  </http___microsoft_com_Opc_OpcPlc_boiler>
+  <BoilerModel2 xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>ObjectType_8</uax:NodeClass>
     <uax:NodeId>
       <uax:Identifier>ns=1;i=1000</uax:Identifier>
     </uax:NodeId>
     <uax:BrowseName>
       <uax:NamespaceIndex>1</uax:NamespaceIndex>
-      <uax:Name>Boiler</uax:Name>
+      <uax:Name>BoilerModel2</uax:Name>
     </uax:BrowseName>
     <uax:SuperTypeId>
       <uax:Identifier>ns=2;i=1002</uax:Identifier>
@@ -1163,7 +1163,7 @@
         <uax:NumericId>5006</uax:NumericId>
       </MaintenanceRequiredAlarm>
     </DeviceHealthAlarms>
-  </Boiler>
+  </BoilerModel2>
   <Boilers xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
     <uax:NodeClass>Object_1</uax:NodeClass>
     <uax:NodeId>
@@ -1360,8 +1360,8 @@
             <uax:Identifier>i=10</uax:Identifier>
           </uax:DataType>
           <uax:ValueRank>-1</uax:ValueRank>
-          <uax:AccessLevel>3</uax:AccessLevel>
-          <uax:UserAccessLevel>3</uax:UserAccessLevel>
+          <uax:AccessLevel>1</uax:AccessLevel>
+          <uax:UserAccessLevel>1</uax:UserAccessLevel>
         </OverheatedThresholdTemperature>
         <HeaterState xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
           <uax:NodeClass>Variable_2</uax:NodeClass>
