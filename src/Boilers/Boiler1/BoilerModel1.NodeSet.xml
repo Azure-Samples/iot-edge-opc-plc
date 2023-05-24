@@ -6,6 +6,125 @@
   </NamespaceUris>
   <ServerUris />
   <Nodes>
+    <Node i:type="ObjectTypeNode">
+      <NodeId>
+        <Identifier>ns=1;i=1</Identifier>
+      </NodeId>
+      <NodeClass>ObjectType_8</NodeClass>
+      <BrowseName>
+        <NamespaceIndex>1</NamespaceIndex>
+        <Name>BoilerModel1Type</Name>
+      </BrowseName>
+      <DisplayName>
+        <Locale></Locale>
+        <Text>BoilerModel1Type</Text>
+      </DisplayName>
+      <Description i:nil="true" />
+      <WriteMask>0</WriteMask>
+      <UserWriteMask>0</UserWriteMask>
+      <RolePermissions />
+      <UserRolePermissions />
+      <AccessRestrictions>0</AccessRestrictions>
+      <References>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=45</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>i=58</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=47</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=2</Identifier>
+          </TargetId>
+        </ReferenceNode>
+      </References>
+      <IsAbstract>false</IsAbstract>
+    </Node>
+    <Node i:type="VariableNode">
+      <NodeId>
+        <Identifier>ns=1;i=2</Identifier>
+      </NodeId>
+      <NodeClass>Variable_2</NodeClass>
+      <BrowseName>
+        <NamespaceIndex>1</NamespaceIndex>
+        <Name>BoilerStatus</Name>
+      </BrowseName>
+      <DisplayName>
+        <Locale></Locale>
+        <Text>BoilerStatus</Text>
+      </DisplayName>
+      <Description i:nil="true" />
+      <WriteMask>0</WriteMask>
+      <UserWriteMask>0</UserWriteMask>
+      <RolePermissions />
+      <UserRolePermissions />
+      <AccessRestrictions>0</AccessRestrictions>
+      <References>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=47</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>true</IsInverse>
+          <TargetId>
+            <Identifier>ns=1;i=1</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=40</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>i=63</Identifier>
+          </TargetId>
+        </ReferenceNode>
+        <ReferenceNode>
+          <ReferenceTypeId>
+            <Identifier>i=37</Identifier>
+          </ReferenceTypeId>
+          <IsInverse>false</IsInverse>
+          <TargetId>
+            <Identifier>i=78</Identifier>
+          </TargetId>
+        </ReferenceNode>
+      </References>
+      <Value>
+        <Value>
+          <ExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+            <TypeId>
+              <Identifier>ns=1;i=15084</Identifier>
+            </TypeId>
+            <Body>
+              <BoilerDataType xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
+                <Temperature>
+                  <Top>20</Top>
+                  <Bottom>20</Bottom>
+                </Temperature>
+                <Pressure>100020</Pressure>
+                <HeaterState>On</HeaterState>
+              </BoilerDataType>
+            </Body>
+          </ExtensionObject>
+        </Value>
+      </Value>
+      <DataType>
+        <Identifier>ns=1;i=15032</Identifier>
+      </DataType>
+      <ValueRank>-1</ValueRank>
+      <ArrayDimensions />
+      <AccessLevel>1</AccessLevel>
+      <UserAccessLevel>1</UserAccessLevel>
+      <MinimumSamplingInterval>0</MinimumSamplingInterval>
+      <Historizing>false</Historizing>
+      <AccessLevelEx>0</AccessLevelEx>
+    </Node>
     <Node i:type="DataTypeNode">
       <NodeId>
         <Identifier>ns=1;i=15001</Identifier>
@@ -68,84 +187,6 @@
       </References>
       <IsAbstract>false</IsAbstract>
       <DataTypeDefinition i:nil="true" />
-    </Node>
-    <Node i:type="VariableNode">
-      <NodeId>
-        <Identifier>ns=1;i=15003</Identifier>
-      </NodeId>
-      <NodeClass>Variable_2</NodeClass>
-      <BrowseName>
-        <NamespaceIndex>1</NamespaceIndex>
-        <Name>BoilerStatus</Name>
-      </BrowseName>
-      <DisplayName>
-        <Locale></Locale>
-        <Text>BoilerStatus</Text>
-      </DisplayName>
-      <Description i:nil="true" />
-      <WriteMask>0</WriteMask>
-      <UserWriteMask>0</UserWriteMask>
-      <RolePermissions />
-      <UserRolePermissions />
-      <AccessRestrictions>0</AccessRestrictions>
-      <References>
-        <ReferenceNode>
-          <ReferenceTypeId>
-            <Identifier>i=47</Identifier>
-          </ReferenceTypeId>
-          <IsInverse>true</IsInverse>
-          <TargetId>
-            <Identifier>ns=1;i=15068</Identifier>
-          </TargetId>
-        </ReferenceNode>
-        <ReferenceNode>
-          <ReferenceTypeId>
-            <Identifier>i=40</Identifier>
-          </ReferenceTypeId>
-          <IsInverse>false</IsInverse>
-          <TargetId>
-            <Identifier>i=63</Identifier>
-          </TargetId>
-        </ReferenceNode>
-        <ReferenceNode>
-          <ReferenceTypeId>
-            <Identifier>i=37</Identifier>
-          </ReferenceTypeId>
-          <IsInverse>false</IsInverse>
-          <TargetId>
-            <Identifier>i=78</Identifier>
-          </TargetId>
-        </ReferenceNode>
-      </References>
-      <Value>
-        <Value>
-          <ExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
-            <TypeId>
-              <Identifier>ns=1;i=15084</Identifier>
-            </TypeId>
-            <Body>
-              <BoilerDataType xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
-                <Temperature>
-                  <Top>20</Top>
-                  <Bottom>20</Bottom>
-                </Temperature>
-                <Pressure>100020</Pressure>
-                <HeaterState>On</HeaterState>
-              </BoilerDataType>
-            </Body>
-          </ExtensionObject>
-        </Value>
-      </Value>
-      <DataType>
-        <Identifier>ns=1;i=15032</Identifier>
-      </DataType>
-      <ValueRank>-1</ValueRank>
-      <ArrayDimensions />
-      <AccessLevel>1</AccessLevel>
-      <UserAccessLevel>1</UserAccessLevel>
-      <MinimumSamplingInterval>0</MinimumSamplingInterval>
-      <Historizing>false</Historizing>
-      <AccessLevelEx>0</AccessLevelEx>
     </Node>
     <Node i:type="ObjectNode">
       <NodeId>
@@ -639,47 +680,6 @@
       <IsAbstract>false</IsAbstract>
       <DataTypeDefinition i:nil="true" />
     </Node>
-    <Node i:type="ObjectTypeNode">
-      <NodeId>
-        <Identifier>ns=1;i=15068</Identifier>
-      </NodeId>
-      <NodeClass>ObjectType_8</NodeClass>
-      <BrowseName>
-        <NamespaceIndex>1</NamespaceIndex>
-        <Name>BoilerType</Name>
-      </BrowseName>
-      <DisplayName>
-        <Locale></Locale>
-        <Text>BoilerType</Text>
-      </DisplayName>
-      <Description i:nil="true" />
-      <WriteMask>0</WriteMask>
-      <UserWriteMask>0</UserWriteMask>
-      <RolePermissions />
-      <UserRolePermissions />
-      <AccessRestrictions>0</AccessRestrictions>
-      <References>
-        <ReferenceNode>
-          <ReferenceTypeId>
-            <Identifier>i=45</Identifier>
-          </ReferenceTypeId>
-          <IsInverse>true</IsInverse>
-          <TargetId>
-            <Identifier>i=58</Identifier>
-          </TargetId>
-        </ReferenceNode>
-        <ReferenceNode>
-          <ReferenceTypeId>
-            <Identifier>i=47</Identifier>
-          </ReferenceTypeId>
-          <IsInverse>false</IsInverse>
-          <TargetId>
-            <Identifier>ns=1;i=15003</Identifier>
-          </TargetId>
-        </ReferenceNode>
-      </References>
-      <IsAbstract>false</IsAbstract>
-    </Node>
     <Node i:type="ObjectNode">
       <NodeId>
         <Identifier>ns=1;i=15070</Identifier>
@@ -709,7 +709,7 @@
           </ReferenceTypeId>
           <IsInverse>false</IsInverse>
           <TargetId>
-            <Identifier>ns=1;i=15068</Identifier>
+            <Identifier>ns=1;i=1</Identifier>
           </TargetId>
         </ReferenceNode>
         <ReferenceNode>
@@ -1198,7 +1198,7 @@ DQogIHRhcmdldE5hbWVzcGFjZT0iaHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9Cb2ls
 ZXIiDQogIGVsZW1lbnRGb3JtRGVmYXVsdD0icXVhbGlmaWVkIg0KPg0KICA8eHM6YW5ub3RhdGlv
 bj4NCiAgICA8eHM6YXBwaW5mbz4NCiAgICAgIDx0bnM6TW9kZWwgTW9kZWxVcmk9Imh0dHA6Ly9t
 aWNyb3NvZnQuY29tL09wYy9PcGNQbGMvQm9pbGVyIiBWZXJzaW9uPSIxLjAuMCIgUHVibGljYXRp
-b25EYXRlPSIyMDIzLTA1LTE1VDA3OjMyOjAwLjMwMjUwODlaIiAvPg0KICAgIDwveHM6YXBwaW5m
+b25EYXRlPSIyMDIzLTA1LTI0VDA5OjE0OjM5LjQ1MjAwMTZaIiAvPg0KICAgIDwveHM6YXBwaW5m
 bz4NCiAgPC94czphbm5vdGF0aW9uPg0KICANCiAgPHhzOmltcG9ydCBuYW1lc3BhY2U9Imh0dHA6
 Ly9vcGNmb3VuZGF0aW9uLm9yZy9VQS8yMDA4LzAyL1R5cGVzLnhzZCIgLz4NCg0KICA8eHM6Y29t
 cGxleFR5cGUgbmFtZT0iQm9pbGVyRGF0YVR5cGUiPg0KICAgIDx4czphbm5vdGF0aW9uPg0KICAg

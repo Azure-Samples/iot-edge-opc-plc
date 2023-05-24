@@ -7,7 +7,7 @@
 >
   <xs:annotation>
     <xs:appinfo>
-      <tns:Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" Version="1.0.0" PublicationDate="2023-05-15T07:32:00.3025089Z" />
+      <tns:Model ModelUri="http://microsoft.com/Opc/OpcPlc/Boiler" Version="1.0.0" PublicationDate="2023-05-24T09:14:39.4520016Z" />
     </xs:appinfo>
   </xs:annotation>
   

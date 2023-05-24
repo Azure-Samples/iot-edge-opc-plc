@@ -36,23 +36,23 @@ using Opc.Ua;
 
 namespace BoilerModel1
 {
-    #region BoilerState Class
-    #if (!OPCUA_EXCLUDE_BoilerState)
+    #region BoilerModel1State Class
+    #if (!OPCUA_EXCLUDE_BoilerModel1State)
     /// <remarks />
     /// <exclude />
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Opc.Ua.ModelCompiler", "1.0.0.0")]
-    public partial class BoilerState : BaseObjectState
+    public partial class BoilerModel1State : BaseObjectState
     {
         #region Constructors
         /// <remarks />
-        public BoilerState(NodeState parent) : base(parent)
+        public BoilerModel1State(NodeState parent) : base(parent)
         {
         }
 
         /// <remarks />
         protected override NodeId GetDefaultTypeDefinitionId(NamespaceTable namespaceUris)
         {
-            return Opc.Ua.NodeId.Create(BoilerModel1.ObjectTypes.BoilerType, BoilerModel1.Namespaces.Boiler, namespaceUris);
+            return Opc.Ua.NodeId.Create(BoilerModel1.ObjectTypes.BoilerModel1Type, BoilerModel1.Namespaces.Boiler, namespaceUris);
         }
 
         #if (!OPCUA_EXCLUDE_InitializationStrings)
@@ -80,12 +80,12 @@ namespace BoilerModel1
         #region Initialization String
         private const string InitializationString =
            "AQAAACYAAABodHRwOi8vbWljcm9zb2Z0LmNvbS9PcGMvT3BjUGxjL0JvaWxlcv////+EYIACAQAAAAEA" +
-           "EgAAAEJvaWxlclR5cGVJbnN0YW5jZQEB3DoBAdw63DoAAAH/////AQAAABVgqQoCAAAAAQAMAAAAQm9p" +
-           "bGVyU3RhdHVzAQGbOgAvAD+bOgAAFgEB7DoCwwAAADxCb2lsZXJEYXRhVHlwZSB4bWxucz0iaHR0cDov" +
-           "L21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9Cb2lsZXIiPjxUZW1wZXJhdHVyZT48VG9wPjIwPC9Ub3A+" +
-           "PEJvdHRvbT4yMDwvQm90dG9tPjwvVGVtcGVyYXR1cmU+PFByZXNzdXJlPjEwMDAyMDwvUHJlc3N1cmU+" +
-           "PEhlYXRlclN0YXRlPk9uPC9IZWF0ZXJTdGF0ZT48L0JvaWxlckRhdGFUeXBlPgEBuDr/////AQH/////" +
-           "AAAAAA==";
+           "GAAAAEJvaWxlck1vZGVsMVR5cGVJbnN0YW5jZQEBAQABAQEAAQAAAAH/////AQAAABVgqQoCAAAAAQAM" +
+           "AAAAQm9pbGVyU3RhdHVzAQECAAAvAD8CAAAAFgEB7DoCwwAAADxCb2lsZXJEYXRhVHlwZSB4bWxucz0i" +
+           "aHR0cDovL21pY3Jvc29mdC5jb20vT3BjL09wY1BsYy9Cb2lsZXIiPjxUZW1wZXJhdHVyZT48VG9wPjIw" +
+           "PC9Ub3A+PEJvdHRvbT4yMDwvQm90dG9tPjwvVGVtcGVyYXR1cmU+PFByZXNzdXJlPjEwMDAyMDwvUHJl" +
+           "c3N1cmU+PEhlYXRlclN0YXRlPk9uPC9IZWF0ZXJTdGF0ZT48L0JvaWxlckRhdGFUeXBlPgEBuDr/////" +
+           "AQH/////AAAAAA==";
         #endregion
         #endif
         #endregion
