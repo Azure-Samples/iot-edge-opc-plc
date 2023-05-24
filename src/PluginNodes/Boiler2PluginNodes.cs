@@ -22,20 +22,22 @@ public class Boiler2PluginNodes : IPluginNodes
     private BaseDataVariableState _tempSpeedDegreesPerSecNode;
     private BaseDataVariableState _baseTempDegreesNode;
     private BaseDataVariableState _targetTempDegreesNode;
-    private BaseDataVariableState _maintenanceIntervalSecondsNode;
-    private BaseDataVariableState _overheatIntervalSecondsNode;
     private BaseDataVariableState _overheatThresholdDegreesNode;
     private BaseDataVariableState _currentTempDegreesNode;
     private BaseDataVariableState _overheatedNode;
     private BaseDataVariableState _heaterStateNode;
     private BaseDataVariableState _deviceHealth;
     private ITimer _nodeGenerator;
+    private ITimer _maintenanceGenerator;
+    private ITimer _overheatGenerator;
 
     private float _tempSpeedDegreesPerSec = 1.0f;
     private float _baseTempDegrees = 10.0f;
     private float _targetTempDegrees = 80.0f;
-    private uint _maintenanceIntervalSeconds = 60;
-    private uint _overheatIntervalSeconds = 60;
+    private uint _maintenanceIntervalSeconds = 300; // 5 min.
+    private uint _overheatIntervalSeconds = 120; // 2 min.
+
+    private bool _isOverheated = false;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -83,9 +85,19 @@ public class Boiler2PluginNodes : IPluginNodes
 
     public void StopSimulation()
     {
-        if (_nodeGenerator != null)
+        if (_nodeGenerator is not null)
         {
             _nodeGenerator.Enabled = false;
+        }
+
+        if (_maintenanceGenerator is not null)
+        {
+            _maintenanceGenerator.Enabled = false;
+        }
+
+        if (_overheatGenerator is not null)
+        {
+            _overheatGenerator.Enabled = false;
         }
     }
 
@@ -98,15 +110,15 @@ public class Boiler2PluginNodes : IPluginNodes
         _tempSpeedDegreesPerSecNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
         _baseTempDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
         _targetTempDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TargetTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
-        _maintenanceIntervalSecondsNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_MaintenanceInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
-        _overheatIntervalSecondsNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        var maintenanceIntervalSecondsNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_MaintenanceInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
+        var overheatIntervalSecondsNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
         _overheatThresholdDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatedThresholdTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
 
         SetValue(_tempSpeedDegreesPerSecNode, _tempSpeedDegreesPerSec);
         SetValue(_baseTempDegreesNode, _baseTempDegrees);
         SetValue(_targetTempDegreesNode, _targetTempDegrees);
-        SetValue(_maintenanceIntervalSecondsNode, _maintenanceIntervalSeconds);
-        SetValue(_overheatIntervalSecondsNode, _overheatIntervalSeconds);
+        SetValue(maintenanceIntervalSecondsNode, _maintenanceIntervalSeconds);
+        SetValue(overheatIntervalSecondsNode, _overheatIntervalSeconds);
         SetValue(_overheatThresholdDegreesNode, _targetTempDegrees + 10.0f);
 
         // Find the Boiler2 data nodes.
@@ -122,6 +134,7 @@ public class Boiler2PluginNodes : IPluginNodes
 
         AddMethods();
         AddEvents();
+        StartTimers();
 
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
@@ -191,14 +204,7 @@ public class Boiler2PluginNodes : IPluginNodes
         // Update DeviceHealth status.
         SetDeviceHealth(currentTemperature, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
 
-        // TODO:
-        // The simulation should inject a problem every couple of minutes which will increase the Current_temp to 10 degrees over Overheated_temp, switch off the Heater and:
-        // - Will emit a "CheckFunctionAlarmType" event, when DeviceHealth updates to CHECK_FUNCTION
-        // - Will emit a "FailureAlarmType" event, when DeviceHealth updates to FAILURE
-        // - Will emit an "OffSpecAlarmType" event, when DeviceHealth updates to OFF_SPEC
-        // - Will emit a "MaintenanceRequiredAlarmType", when DeviceHealth updates to MAINTENANCE_REQUIRED
-
-        // TODO: Add maintenance required event using (int)_maintenanceIntervalMinutesNode.Value.
+        EmitOverheatedEvents();
     }
 
     private void AddMethods()
@@ -266,6 +272,50 @@ public class Boiler2PluginNodes : IPluginNodes
         else if (currentTemp > targetTemp && currentTemp < overheatedTemp)
         {
             SetValue(_deviceHealth, DeviceHealthEnumeration.CHECK_FUNCTION);
+        }
+    }
+
+    private void StartTimers()
+    {
+        _maintenanceGenerator = TimeService.NewTimer(UpdateMaintenance, intervalInMilliseconds: _maintenanceIntervalSeconds * 1000);
+        _overheatGenerator = TimeService.NewTimer(UpdateOverheat, intervalInMilliseconds: _overheatIntervalSeconds * 1000);
+    }
+
+    private void UpdateMaintenance(object state, ElapsedEventArgs elapsedEventArgs)
+    {
+        SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
+    }
+
+    private void UpdateOverheat(object state, ElapsedEventArgs elapsedEventArgs)
+    {
+        SetValue(_currentTempDegreesNode, (float)_overheatThresholdDegreesNode.Value + 10.0f);
+        SetValue(_heaterStateNode, false);
+
+        _isOverheated = true;
+    }
+
+    private void EmitOverheatedEvents()
+    {
+        if(_isOverheated)
+        {
+            switch ((DeviceHealthEnumeration)_deviceHealth.Value)
+            {
+                case DeviceHealthEnumeration.NORMAL:
+                    _isOverheated = false;
+                    break;
+                case DeviceHealthEnumeration.CHECK_FUNCTION:
+                    // TODO: Emit a "CheckFunctionAlarmType" event.
+                    break;
+                case DeviceHealthEnumeration.FAILURE:
+                    // TODO: Emit a "FailureAlarmType" event.
+                    break;
+                case DeviceHealthEnumeration.OFF_SPEC:
+                    // TODO: Emit an "OffSpecAlarmType" event.
+                    break;
+                case DeviceHealthEnumeration.MAINTENANCE_REQUIRED:
+                    // TODO: Emit a "MaintenanceRequiredAlarmType" event.
+                    break;
+            }
         }
     }
 }
