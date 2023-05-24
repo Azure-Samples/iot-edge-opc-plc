@@ -143,8 +143,8 @@
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5000</Reference>
     </References>
   </UAVariable>
-  <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:Boiler">
-    <DisplayName>Boiler</DisplayName>
+  <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:Boiler2Type">
+    <DisplayName>Boiler2Type</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent">ns=1;i=5014</Reference>
       <Reference ReferenceType="HasComponent">ns=1;i=5013</Reference>
@@ -178,8 +178,8 @@
       <Reference ReferenceType="HasComponent">ns=1;i=6029</Reference>
       <Reference ReferenceType="HasComponent">ns=1;i=6030</Reference>
       <Reference ReferenceType="HasComponent">ns=1;i=6031</Reference>
-      <Reference ReferenceType="HasComponent">ns=1;i=6032</Reference>
       <Reference ReferenceType="HasComponent">ns=1;i=6033</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=6034</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
@@ -250,14 +250,6 @@
       <Float xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">20</Float>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=6032" BrowseName="1:Pressure" ParentNodeId="ns=1;i=5014" DataType="Float">
-    <DisplayName>Pressure</DisplayName>
-    <References>
-      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
-      <Reference ReferenceType="HasModellingRule">i=78</Reference>
-      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5014</Reference>
-    </References>
-  </UAVariable>
   <UAVariable NodeId="ns=1;i=6033" BrowseName="1:Overheated" ParentNodeId="ns=1;i=5014" DataType="Boolean">
     <DisplayName>Overheated</DisplayName>
     <References>
@@ -265,6 +257,17 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5014</Reference>
     </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=6034" BrowseName="1:OverheatInterval" ParentNodeId="ns=1;i=5014" DataType="Int32" AccessLevel="3">
+    <DisplayName>OverheatInterval</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5014</Reference>
+    </References>
+    <Value>
+      <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">60</Int32>
+    </Value>
   </UAVariable>
   <UAObject NodeId="ns=1;i=5013" BrowseName="2:MethodSet" ParentNodeId="ns=1;i=1000">
     <DisplayName>MethodSet</DisplayName>
@@ -541,8 +544,8 @@
       <Reference ReferenceType="HasComponent">ns=1;i=6215</Reference>
       <Reference ReferenceType="HasComponent">ns=1;i=6212</Reference>
       <Reference ReferenceType="HasComponent">ns=1;i=6211</Reference>
-      <Reference ReferenceType="HasComponent">ns=1;i=6216</Reference>
       <Reference ReferenceType="HasComponent">ns=1;i=6214</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=6350</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5017</Reference>
     </References>
@@ -587,7 +590,7 @@
       <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">60</Int32>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=6215" BrowseName="1:OverheatedThresholdTemperature" ParentNodeId="ns=1;i=5020" DataType="Float" AccessLevel="3">
+  <UAVariable NodeId="ns=1;i=6215" BrowseName="1:OverheatedThresholdTemperature" ParentNodeId="ns=1;i=5020" DataType="Float">
     <DisplayName>OverheatedThresholdTemperature</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
@@ -614,19 +617,22 @@
       <Float xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">20</Float>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=6216" BrowseName="1:Pressure" ParentNodeId="ns=1;i=5020" DataType="Float">
-    <DisplayName>Pressure</DisplayName>
-    <References>
-      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
-      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5020</Reference>
-    </References>
-  </UAVariable>
   <UAVariable NodeId="ns=1;i=6214" BrowseName="1:Overheated" ParentNodeId="ns=1;i=5020" DataType="Boolean">
     <DisplayName>Overheated</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5020</Reference>
     </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=6350" BrowseName="1:OverheatInterval" ParentNodeId="ns=1;i=5020" DataType="Int32" AccessLevel="3">
+    <DisplayName>OverheatInterval</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5020</Reference>
+    </References>
+    <Value>
+      <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">60</Int32>
+    </Value>
   </UAVariable>
   <UAObject NodeId="ns=1;i=5019" BrowseName="2:MethodSet" ParentNodeId="ns=1;i=5017">
     <DisplayName>MethodSet</DisplayName>

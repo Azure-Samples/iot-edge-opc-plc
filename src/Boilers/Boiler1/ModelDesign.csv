@@ -1,6 +1,9 @@
-Boilers,1,Object
+BoilerModel1Type,1,Unspecified
+BoilerModel1Type_BoilerStatus,2,Unspecified
+Boiler1Type,3,ObjectType
+Boiler1Type_BoilerStatus,4,Variable
 BoilerTemperatureType,15001,DataType
-BoilerType_BoilerStatus,15003,Variable
+BoilerType_BoilerStatus,15003,Unspecified
 BoilerTemperatureType_Encoding_DefaultBinary,15004,Object
 Boiler_BinarySchema_BoilerTemperatureType,15005,Variable
 Boiler_BinarySchema_BoilerTemperatureType_DataTypeVersion,15006,Variable
@@ -14,7 +17,7 @@ Boiler1_BoilerStatus,15013,Variable
 BoilerHeaterStateType,15014,DataType
 BoilerHeaterStateType_EnumStrings,15015,Variable
 BoilerDataType,15032,DataType
-BoilerType,15068,ObjectType
+BoilerType,15068,Unspecified
 Boiler1,15070,Object
 BoilerDataType_Encoding_DefaultBinary,15072,Object
 Boiler_BinarySchema,15074,Variable

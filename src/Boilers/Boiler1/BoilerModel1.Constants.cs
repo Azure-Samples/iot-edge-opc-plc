@@ -93,7 +93,7 @@ namespace BoilerModel1
     public static partial class ObjectTypes
     {
         /// <remarks />
-        public const uint BoilerType = 15068;
+        public const uint Boiler1Type = 3;
     }
     #endregion
 
@@ -107,7 +107,7 @@ namespace BoilerModel1
         public const uint BoilerHeaterStateType_EnumStrings = 15015;
 
         /// <remarks />
-        public const uint BoilerType_BoilerStatus = 15003;
+        public const uint Boiler1Type_BoilerStatus = 4;
 
         /// <remarks />
         public const uint Boiler1_BoilerStatus = 15013;
@@ -200,7 +200,7 @@ namespace BoilerModel1
     public static partial class ObjectTypeIds
     {
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerType = new ExpandedNodeId(BoilerModel1.ObjectTypes.BoilerType, BoilerModel1.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler1Type = new ExpandedNodeId(BoilerModel1.ObjectTypes.Boiler1Type, BoilerModel1.Namespaces.Boiler);
     }
     #endregion
 
@@ -214,7 +214,7 @@ namespace BoilerModel1
         public static readonly ExpandedNodeId BoilerHeaterStateType_EnumStrings = new ExpandedNodeId(BoilerModel1.Variables.BoilerHeaterStateType_EnumStrings, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
-        public static readonly ExpandedNodeId BoilerType_BoilerStatus = new ExpandedNodeId(BoilerModel1.Variables.BoilerType_BoilerStatus, BoilerModel1.Namespaces.Boiler);
+        public static readonly ExpandedNodeId Boiler1Type_BoilerStatus = new ExpandedNodeId(BoilerModel1.Variables.Boiler1Type_BoilerStatus, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
         public static readonly ExpandedNodeId Boiler1_BoilerStatus = new ExpandedNodeId(BoilerModel1.Variables.Boiler1_BoilerStatus, BoilerModel1.Namespaces.Boiler);
@@ -266,6 +266,9 @@ namespace BoilerModel1
         public const string Boiler1 = "Boiler #1";
 
         /// <remarks />
+        public const string Boiler1Type = "Boiler1Type";
+
+        /// <remarks />
         public const string BoilerDataType = "BoilerDataType";
 
         /// <remarks />
@@ -279,9 +282,6 @@ namespace BoilerModel1
 
         /// <remarks />
         public const string BoilerTemperatureType = "BoilerTemperatureType";
-
-        /// <remarks />
-        public const string BoilerType = "BoilerType";
     }
     #endregion
 

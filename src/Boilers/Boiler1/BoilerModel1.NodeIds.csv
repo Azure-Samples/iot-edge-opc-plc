@@ -1,6 +1,7 @@
 Boiler_BinarySchema,15074,Variable
 Boiler_XmlSchema,15086,Variable
 Boiler1,15070,Object
+Boiler1Type,3,ObjectType
 BoilerDataType,15032,DataType
 BoilerDataType_Encoding_DefaultBinary,15072,Object
 BoilerDataType_Encoding_DefaultJson,15096,Object
@@ -11,4 +12,3 @@ BoilerTemperatureType,15001,DataType
 BoilerTemperatureType_Encoding_DefaultBinary,15004,Object
 BoilerTemperatureType_Encoding_DefaultJson,15012,Object
 BoilerTemperatureType_Encoding_DefaultXml,15008,Object
-BoilerType,15068,ObjectType
