@@ -61,7 +61,7 @@ namespace BoilerModel1
     public static partial class Objects
     {
         /// <remarks />
-        public const uint Boilers = 1;
+        public const uint Boilers = 5;
 
         /// <remarks />
         public const uint Boiler1 = 15070;
