@@ -61,6 +61,9 @@ namespace BoilerModel1
     public static partial class Objects
     {
         /// <remarks />
+        public const uint Boilers = 5;
+
+        /// <remarks />
         public const uint Boiler1 = 15070;
 
         /// <remarks />
@@ -165,6 +168,9 @@ namespace BoilerModel1
     public static partial class ObjectIds
     {
         /// <remarks />
+        public static readonly ExpandedNodeId Boilers = new ExpandedNodeId(BoilerModel1.Objects.Boilers, BoilerModel1.Namespaces.Boiler);
+
+        /// <remarks />
         public static readonly ExpandedNodeId Boiler1 = new ExpandedNodeId(BoilerModel1.Objects.Boiler1, BoilerModel1.Namespaces.Boiler);
 
         /// <remarks />
@@ -267,6 +273,9 @@ namespace BoilerModel1
 
         /// <remarks />
         public const string BoilerHeaterStateType = "BoilerHeaterStateType";
+
+        /// <remarks />
+        public const string Boilers = "Boilers";
 
         /// <remarks />
         public const string BoilerStatus = "BoilerStatus";

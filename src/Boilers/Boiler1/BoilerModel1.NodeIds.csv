@@ -7,6 +7,7 @@ BoilerDataType_Encoding_DefaultBinary,15072,Object
 BoilerDataType_Encoding_DefaultJson,15096,Object
 BoilerDataType_Encoding_DefaultXml,15084,Object
 BoilerHeaterStateType,15014,DataType
+Boilers,5,Object
 BoilerTemperatureType,15001,DataType
 BoilerTemperatureType_Encoding_DefaultBinary,15004,Object
 BoilerTemperatureType_Encoding_DefaultJson,15012,Object

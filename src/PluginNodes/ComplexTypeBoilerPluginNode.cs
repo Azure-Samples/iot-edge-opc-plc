@@ -54,11 +54,17 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
         _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
 
         // Find the Boiler1 node that was created when the model was loaded.
-        var passiveNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel1.Objects.Boiler1, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        var passiveBoiler1Node = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel1.Objects.Boiler1, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        var boilersNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        var boiler2Node = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(5017, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
 
         // Convert to node that can be manipulated within the server.
         _node = new Boiler1State(null);
-        _node.Create(_plcNodeManager.SystemContext, passiveNode);
+        _node.Create(_plcNodeManager.SystemContext, passiveBoiler1Node);
+
+        // Put Boiler #2 into Boilers folder.
+        // TODO: Find a better solution to avoid this dependency between boilers.
+        boilersNode.AddChild(boiler2Node);
 
         _plcNodeManager.AddPredefinedNode(_node);
 
