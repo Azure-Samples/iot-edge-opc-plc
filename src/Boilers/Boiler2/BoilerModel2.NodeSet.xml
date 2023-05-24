@@ -14,11 +14,11 @@
       <NodeClass>ObjectType_8</NodeClass>
       <BrowseName>
         <NamespaceIndex>1</NamespaceIndex>
-        <Name>BoilerModel2</Name>
+        <Name>BoilerModel2Type</Name>
       </BrowseName>
       <DisplayName>
         <Locale></Locale>
-        <Text>BoilerModel2</Text>
+        <Text>BoilerModel2Type</Text>
       </DisplayName>
       <Description i:nil="true" />
       <WriteMask>0</WriteMask>

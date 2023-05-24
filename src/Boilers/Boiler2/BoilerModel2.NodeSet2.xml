@@ -143,8 +143,8 @@
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5000</Reference>
     </References>
   </UAVariable>
-  <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:BoilerModel2">
-    <DisplayName>BoilerModel2</DisplayName>
+  <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:BoilerModel2Type">
+    <DisplayName>BoilerModel2Type</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent">ns=1;i=5014</Reference>
       <Reference ReferenceType="HasComponent">ns=1;i=5013</Reference>
