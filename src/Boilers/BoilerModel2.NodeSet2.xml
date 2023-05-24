@@ -408,7 +408,7 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
     <Value>
-      <uax:Int32>60</uax:Int32>
+      <uax:Int32>120</uax:Int32>
     </Value>
   </UAVariable>
   <UAObject NodeId="ns=2;i=5013" BrowseName="1:MethodSet" ParentNodeId="ns=2;i=1000">
@@ -677,7 +677,7 @@
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
     </References>
     <Value>
-      <uax:Int32>60</uax:Int32>
+      <uax:Int32>300</uax:Int32>
     </Value>
   </UAVariable>
   <UAVariable DataType="Boolean" NodeId="ns=2;i=6214" BrowseName="2:Overheated" ParentNodeId="ns=2;i=5020">

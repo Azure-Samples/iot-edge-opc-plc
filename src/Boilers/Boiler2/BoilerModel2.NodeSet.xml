@@ -4595,7 +4595,7 @@
       </References>
       <Value>
         <Value>
-          <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">60</Int32>
+          <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">120</Int32>
         </Value>
       </Value>
       <DataType>
@@ -5668,7 +5668,7 @@
       </References>
       <Value>
         <Value>
-          <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">60</Int32>
+          <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">300</Int32>
         </Value>
       </Value>
       <DataType>
@@ -5676,8 +5676,8 @@
       </DataType>
       <ValueRank>-1</ValueRank>
       <ArrayDimensions />
-      <AccessLevel>3</AccessLevel>
-      <UserAccessLevel>3</UserAccessLevel>
+      <AccessLevel>1</AccessLevel>
+      <UserAccessLevel>1</UserAccessLevel>
       <MinimumSamplingInterval>0</MinimumSamplingInterval>
       <Historizing>false</Historizing>
       <AccessLevelEx>0</AccessLevelEx>
@@ -13492,8 +13492,8 @@
       </DataType>
       <ValueRank>-1</ValueRank>
       <ArrayDimensions />
-      <AccessLevel>3</AccessLevel>
-      <UserAccessLevel>3</UserAccessLevel>
+      <AccessLevel>1</AccessLevel>
+      <UserAccessLevel>1</UserAccessLevel>
       <MinimumSamplingInterval>0</MinimumSamplingInterval>
       <Historizing>false</Historizing>
       <AccessLevelEx>0</AccessLevelEx>
