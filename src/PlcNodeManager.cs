@@ -49,8 +49,8 @@ public class PlcNodeManager : CustomNodeManager2
             _externalReferences = externalReferences;
 
             FolderState root = CreateFolder(null, ProgramName, ProgramName, NamespaceType.OpcPlcApplications);
-            root.AddReference(ReferenceTypes.Organizes, true, ObjectIds.ObjectsFolder);
-            references.Add(new NodeStateReference(ReferenceTypes.Organizes, false, root.NodeId));
+            root.AddReference(ReferenceTypes.Organizes, isInverse: true, ObjectIds.ObjectsFolder);
+            references.Add(new NodeStateReference(ReferenceTypes.Organizes, isInverse: false, root.NodeId));
             root.EventNotifier = EventNotifiers.SubscribeToEvents;
             AddRootNotifier(root);
 
@@ -102,7 +102,7 @@ public class PlcNodeManager : CustomNodeManager2
             DisplayName = new LocalizedText("en", name),
             WriteMask = AttributeWriteMask.None,
             UserWriteMask = AttributeWriteMask.None,
-            EventNotifier = EventNotifiers.None
+            EventNotifier = EventNotifiers.None,
         };
 
         parent?.AddChild(folder);

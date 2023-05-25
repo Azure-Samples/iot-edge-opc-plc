@@ -49,4 +49,9 @@ public static partial class Namespaces
     /// The namespace for the nodes provided by the plc server for alarm instance.
     /// </summary>
     public const string OpcPlcDeterministicAlarmsInstance = "http://microsoft.com/Opc/OpcPlc/DetermAlarmsInstance";
+
+    /// <summary>
+    /// The namespace for DI nodes.
+    /// </summary>
+    public const string DI = "http://opcfoundation.org/UA/DI/";
 }

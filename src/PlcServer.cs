@@ -3,6 +3,7 @@ namespace OpcPlc;
 using AlarmCondition;
 using Opc.Ua;
 using Opc.Ua.Server;
+using OpcPlc.CompanionSpecs.DI;
 using OpcPlc.DeterministicAlarms;
 using OpcPlc.Reference;
 using SimpleEvents;
@@ -42,6 +43,10 @@ public partial class PlcServer : StandardServer
         // Add encodable complex types.
         server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
         EncodeableFactory.GlobalFactory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
+
+        // Add DI node manager first.
+        var diNodeManager = new DiNodeManager(server, configuration);
+        nodeManagers.Add(diNodeManager);
 
         PlcNodeManager = new PlcNodeManager(
             server,
@@ -88,7 +93,7 @@ public partial class PlcServer : StandardServer
             nodeManagers.Add(DeterministicAlarmsNodeManager);
         }
 
-        var masterNodeManager = new MasterNodeManager(server, configuration, null, nodeManagers.ToArray());
+        var masterNodeManager = new MasterNodeManager(server, configuration, dynamicNamespaceUri: null, nodeManagers.ToArray());
 
         return masterNodeManager;
     }
