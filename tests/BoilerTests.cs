@@ -10,9 +10,9 @@ using static System.TimeSpan;
 /// Tests for the Boiler, which is a complex type.
 /// </summary>
 [TestFixture]
-public class BoilerTests : SimulatorTestsBase
+public class Boiler2Tests : SimulatorTestsBase
 {
-    public BoilerTests() : base(new[] { "--ctb" })
+    public Boiler2Tests() : base(new[] { "--b2bt=20 --b2tt=45  --b2ts=1.0 --b2mi=103" })
     {
     }
 
@@ -60,7 +60,7 @@ public class BoilerTests : SimulatorTestsBase
         pressure.Should().BeGreaterThan(10_000, "pressure should start at 10k and get higher");
 
         temperature.Top.Should().Be(pressure - 100_005, "top is always 100,005 less than pressure. Pressure: {0}", pressure);
-        temperature.Bottom.Should().Be(pressure - 100_000, "btoom is always 100,000 less than pressure. Pressure: {0}", pressure);
+        temperature.Bottom.Should().Be(pressure - 100_000, "botom is always 100,000 less than pressure. Pressure: {0}", pressure);
     }
 
     [TestCase]

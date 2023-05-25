@@ -42,7 +42,7 @@ public class Boiler2PluginNodes : IPluginNodes
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
         optionSet.Add(
-            "b2ts|boiler2tempspeedboiler2tempspeed=",
+            "b2ts|boiler2tempspeed=",
             $"Boiler #2 temperature change speed in degrees per second\nDefault: {_tempSpeedDegreesPerSec}",
             (string s) => _tempSpeedDegreesPerSec = CliHelper.ParseFloat(s, min: 1.0f, max: 10.0f, optionName: "boiler2tempspeed", digits: 1));
 
