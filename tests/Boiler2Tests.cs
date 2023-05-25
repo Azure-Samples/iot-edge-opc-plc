@@ -29,7 +29,7 @@ public class Boiler2Tests : SimulatorTestsBase
     }
 
     [TestCase]
-    public void Verify_Fixed_Configuration()
+    public void VerifyFixedConfiguration()
     {
         var nodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var tempSpeedDegreesPerSec = (float)Session.ReadValue(nodeId).Value;
@@ -49,21 +49,29 @@ public class Boiler2Tests : SimulatorTestsBase
     }
 
     [TestCase]
-    public void Heater_AtStartUp_IsTurnedOn()
+    public void TemperatureRisesAndFallsHeaterToggles()
     {
-        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
+        // Temperature rises with heater on for the next 10 s starting at 1°, step 10°.
+        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 10);
 
-        BoilerDataType model = GetBoilerModel();
+        var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
 
-        BoilerHeaterStateType state = model.HeaterState;
-        BoilerTemperatureType temperature = model.Temperature;
-        int pressure = model.Pressure;
+        var heaterStateNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_HeaterState, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var heaterState = (bool)Session.ReadValue(heaterStateNodeId).Value;
 
-        state.Should().Be(BoilerHeaterStateType.On, "heater should start in 'on' state");
-        pressure.Should().BeGreaterThan(10_000, "pressure should start at 10k and get higher");
+        currentTemperatureDegrees.Should().Be(101f);
+        heaterState.Should().BeTrue();
 
-        temperature.Top.Should().Be(pressure - 100_005, "top is always 100,005 less than pressure. Pressure: {0}", pressure);
-        temperature.Bottom.Should().Be(pressure - 100_000, "bottom is always 100,000 less than pressure. Pressure: {0}", pressure);
+        // Temperature rises until 123°, then falls with heater off, step -10°.
+        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 10);
+
+        currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
+
+        heaterState = (bool)Session.ReadValue(heaterStateNodeId).Value;
+
+        currentTemperatureDegrees.Should().Be(53f);
+        heaterState.Should().BeFalse();
     }
 
     ////[TestCase]
