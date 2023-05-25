@@ -10,9 +10,9 @@ using static System.TimeSpan;
 /// Tests for the Boiler, which is a complex type.
 /// </summary>
 [TestFixture]
-public class Boiler2Tests : SimulatorTestsBase
+public class BoilerTests : SimulatorTestsBase
 {
-    public Boiler2Tests() : base(new[] { "--b2bt=20 --b2tt=45  --b2ts=1.0 --b2mi=103" })
+    public BoilerTests() : base(new[] { "--ctb" })
     {
     }
 
