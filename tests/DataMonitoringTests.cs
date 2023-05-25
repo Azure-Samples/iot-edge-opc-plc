@@ -36,7 +36,7 @@ public class DataMonitoringTests : SubscriptionTestsBase
 
         // Act: collect events during 5 seconds
         // Value is updated every second
-        FireTimersWithPeriod(FromSeconds(1), 5);
+        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 5);
 
         // Assert
         var events = ReceiveEvents(6);

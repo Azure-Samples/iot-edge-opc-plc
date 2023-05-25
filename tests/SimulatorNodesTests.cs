@@ -37,7 +37,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         var firstValue = 0u;
         for (int i = 0; i < 10; i++)
         {
-            FireTimersWithPeriod(FromMilliseconds(100), 1);
+            FireTimersWithPeriod(FromMilliseconds(100), numberOfTimes: 1);
 
             var value = ReadValue<uint>(nodeId);
             if (firstValue == 0)
@@ -77,7 +77,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
                 lastValue = value;
             }
 
-            FireTimersWithPeriod(FromSeconds(1), 1);
+            FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
         }
 
         lastValue++;
@@ -86,13 +86,13 @@ public class SimulatorNodesTests : SimulatorTestsBase
 
         var nextValue = ReadValue<uint>(nodeId);
         Assert.AreEqual(lastValue, nextValue);
-        FireTimersWithPeriod(FromSeconds(1), 1);
+        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
         nextValue = ReadValue<uint>(nodeId);
         Assert.AreEqual(lastValue, nextValue);
-        FireTimersWithPeriod(FromSeconds(1), 1);
+        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         CallMethod("StartUpdateFastNodes");
-        FireTimersWithPeriod(FromSeconds(1), 1);
+        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         nextValue = ReadValue<uint>(nodeId);
         Assert.AreEqual(lastValue + 1, nextValue);
@@ -111,7 +111,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         // take 100 measurements, which is enough that at least a few outliers should be present
         for (int i = 0; i < 100; i++)
         {
-            FireTimersWithPeriod(FromMilliseconds(100), 1);
+            FireTimersWithPeriod(FromMilliseconds(100), numberOfTimes: 1);
 
             var value = ReadValue<double>(nodeId);
 
@@ -151,7 +151,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         var numberOfValueChanges = 0;
         for (int i = 0; i < 4; i++)
         {
-            FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), invocations);
+            FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations);
 
             var value = Session.ReadValue(nodeId).Value;
             value.Should().BeOfType(type);
@@ -180,7 +180,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         var values = Enumerable.Range(0, cycles)
             .Select(i =>
             {
-                FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), invocations);
+                FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations);
 
                 try
                 {
@@ -229,7 +229,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         WriteValue(numberOfUpdatesNode, 6);
 
         // Fire the timer 6 times, should increase the value each time.
-        FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), 6);
+        FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: 6);
         var value2 = ReadValue<uint>(nodeId);
         value2.Should().Be(value1 + 6);
 
@@ -237,7 +237,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         for (var i = 0; i < 10; i++)
         {
             ReadValue<int>(numberOfUpdatesNode).Should().Be(0);
-            FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), 1);
+            FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: 1);
             var value3 = ReadValue<uint>(nodeId);
             value3.Should().Be(value1 + 6);
         }
@@ -245,7 +245,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         // Change the value of the NumberOfUpdates control variable to -1.
         // The Fast node value should now increase indefinitely.
         WriteValue(numberOfUpdatesNode, NoLimit);
-        FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), 3);
+        FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: 3);
         var value4 = ReadValue<uint>(nodeId);
         value4.Should().Be(value1 + 6 + 3);
         ReadValue<int>(numberOfUpdatesNode).Should().Be(NoLimit, "NumberOfUpdates node value should not change when it is {0}", NoLimit);
@@ -258,10 +258,10 @@ public class SimulatorNodesTests : SimulatorTestsBase
     {
         var nodeId = GetOpcPlcNodeId(identifier);
 
-        FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), invocations * RampUpPeriods);
+        FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations * RampUpPeriods);
 
         var firstValue = ReadValue<double>(nodeId);
-        FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), invocations);
+        FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations);
         var secondValue = ReadValue<double>(nodeId);
         if (increasing)
         {

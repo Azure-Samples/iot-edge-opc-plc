@@ -43,7 +43,7 @@ public class EventInstancesTests : SubscriptionTestsBase
 
         // Act
         // Event is fired every second
-        FireTimersWithPeriod(FromSeconds(1), 5);
+        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 5);
 
         // Assert
         var events = ReceiveAtMostEvents(5);

@@ -48,33 +48,33 @@ public class Boiler2Tests : SimulatorTestsBase
         _overheatThresholdDegrees.Should().Be(123.0f + 10.0f);
     }
 
-    ////[TestCase]
-    ////public void Heater_AtStartUp_IsTurnedOn()
-    ////{
-    ////    FireTimersWithPeriod(FromSeconds(1), 1000);
+    [TestCase]
+    public void Heater_AtStartUp_IsTurnedOn()
+    {
+        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
 
-    ////    BoilerDataType model = GetBoilerModel();
+        BoilerDataType model = GetBoilerModel();
 
-    ////    BoilerHeaterStateType state = model.HeaterState;
-    ////    BoilerTemperatureType temperature = model.Temperature;
-    ////    int pressure = model.Pressure;
+        BoilerHeaterStateType state = model.HeaterState;
+        BoilerTemperatureType temperature = model.Temperature;
+        int pressure = model.Pressure;
 
-    ////    state.Should().Be(BoilerHeaterStateType.On, "heater should start in 'on' state");
-    ////    pressure.Should().BeGreaterThan(10_000, "pressure should start at 10k and get higher");
+        state.Should().Be(BoilerHeaterStateType.On, "heater should start in 'on' state");
+        pressure.Should().BeGreaterThan(10_000, "pressure should start at 10k and get higher");
 
-    ////    temperature.Top.Should().Be(pressure - 100_005, "top is always 100,005 less than pressure. Pressure: {0}", pressure);
-    ////    temperature.Bottom.Should().Be(pressure - 100_000, "bottom is always 100,000 less than pressure. Pressure: {0}", pressure);
-    ////}
+        temperature.Top.Should().Be(pressure - 100_005, "top is always 100,005 less than pressure. Pressure: {0}", pressure);
+        temperature.Bottom.Should().Be(pressure - 100_000, "bottom is always 100,000 less than pressure. Pressure: {0}", pressure);
+    }
 
     ////[TestCase]
     ////public void Heater_CanBeTurnedOff()
     ////{
     ////    // let heater run for a few seconds to make temperature rise
-    ////    FireTimersWithPeriod(FromSeconds(1), 1000);
+    ////    FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
 
     ////    TurnHeaterOff();
 
-    ////    FireTimersWithPeriod(FromSeconds(1), 1000);
+    ////    FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
 
     ////    BoilerDataType model = GetBoilerModel();
 
@@ -95,7 +95,7 @@ public class Boiler2Tests : SimulatorTestsBase
     ////    int previousPressure = 0;
     ////    for (int i = 0; i < 5; i++)
     ////    {
-    ////        FireTimersWithPeriod(FromSeconds(1), 1000);
+    ////        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
     ////        BoilerDataType model = GetBoilerModel();
     ////        int pressure = model.Pressure;
 
@@ -110,7 +110,7 @@ public class Boiler2Tests : SimulatorTestsBase
     ////    int previousPressure = 0;
     ////    for (int i = 0; i < 10; i++)
     ////    {
-    ////        FireTimersWithPeriod(FromSeconds(1), 1000);
+    ////        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
     ////        BoilerDataType model = GetBoilerModel();
     ////        int pressure = model.Pressure;
 
@@ -122,7 +122,7 @@ public class Boiler2Tests : SimulatorTestsBase
 
     ////    for (int i = 0; i < 5; i++)
     ////    {
-    ////        FireTimersWithPeriod(FromSeconds(1), 1000);
+    ////        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
     ////        BoilerDataType model = GetBoilerModel();
     ////        int pressure = model.Pressure;
 
