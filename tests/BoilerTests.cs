@@ -60,7 +60,7 @@ public class BoilerTests : SimulatorTestsBase
         pressure.Should().BeGreaterThan(10_000, "pressure should start at 10k and get higher");
 
         temperature.Top.Should().Be(pressure - 100_005, "top is always 100,005 less than pressure. Pressure: {0}", pressure);
-        temperature.Bottom.Should().Be(pressure - 100_000, "botom is always 100,000 less than pressure. Pressure: {0}", pressure);
+        temperature.Bottom.Should().Be(pressure - 100_000, "bottom is always 100,000 less than pressure. Pressure: {0}", pressure);
     }
 
     [TestCase]
