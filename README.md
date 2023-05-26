@@ -170,7 +170,7 @@ Simulation details:
   - Emits a "MaintenanceRequiredAlarmType" when DeviceHealth is MAINTENANCE_REQUIRED
 
 DeviceHealth (DeviceHealthEnumeration) details:
-- NORMAL: Base temperature < temperature < target temperature
+- NORMAL: Base temperature <= temperature <= target temperature
 - FAILURE: Temperature > overheated temperature
 - CHECK_FUNCTION: Target temperature < Temperature < overheated temperature
 - OFF_SPEC: Temperature < base temperature or temperature > overheated temperature + 5
