@@ -316,6 +316,7 @@ public class Boiler2PluginNodes : IPluginNodes
 
         SetValue(_currentTempDegreesNode, (float)_overheatThresholdDegreesNode.Value + 10.0f);
         SetValue(_heaterStateNode, false);
+        SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
 
         _isOverheated = true;
 
