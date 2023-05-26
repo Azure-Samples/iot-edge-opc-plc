@@ -212,7 +212,7 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
 
         // Update DeviceHealth status.
-        SetDeviceHealth(currentTemperatureDegrees, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
+        SetDeviceHealth(newTemperature, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
 
         EmitOverheatedEvents();
 
