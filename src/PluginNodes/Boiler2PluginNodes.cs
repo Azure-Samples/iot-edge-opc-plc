@@ -38,8 +38,8 @@ public class Boiler2PluginNodes : IPluginNodes
     private float _tempSpeedDegreesPerSec = 1.0f;
     private float _baseTempDegrees = 10.0f;
     private float _targetTempDegrees = 80.0f;
-    private uint _maintenanceIntervalSeconds = 300; // 5 min.
-    private uint _overheatIntervalSeconds = 120; // 2 min.
+    private TimeSpan _maintenanceInterval = TimeSpan.FromSeconds(300); // 5 min.
+    private TimeSpan _overheatInterval = TimeSpan.FromSeconds(120); // 2 min.
 
     private bool _isOverheated = false;
 
@@ -62,13 +62,13 @@ public class Boiler2PluginNodes : IPluginNodes
 
         optionSet.Add(
             "b2mi|boiler2maintinterval=",
-            $"Boiler #2 required maintenance interval in seconds\nDefault: {_maintenanceIntervalSeconds}",
-            (string s) => _maintenanceIntervalSeconds = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintinterval"));
+            $"Boiler #2 required maintenance interval in seconds\nDefault: {_maintenanceInterval.TotalSeconds}",
+            (string s) => _maintenanceInterval = TimeSpan.FromSeconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintinterval")));
 
         optionSet.Add(
             "b2oi|boiler2overheatinterval=",
-            $"Boiler #2 overheat interval in seconds\nDefault: {_overheatIntervalSeconds}",
-            (string s) => _overheatIntervalSeconds = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2overheatinterval"));
+            $"Boiler #2 overheat interval in seconds\nDefault: {_overheatInterval.TotalSeconds}",
+            (string s) => _overheatInterval = TimeSpan.FromSeconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2overheatinterval")));
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
@@ -121,8 +121,8 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_tempSpeedDegreesPerSecNode, _tempSpeedDegreesPerSec);
         SetValue(_baseTempDegreesNode, _baseTempDegrees);
         SetValue(_targetTempDegreesNode, _targetTempDegrees);
-        SetValue(maintenanceIntervalSecondsNode, _maintenanceIntervalSeconds);
-        SetValue(overheatIntervalSecondsNode, _overheatIntervalSeconds);
+        SetValue(maintenanceIntervalSecondsNode, (uint)_maintenanceInterval.TotalSeconds);
+        SetValue(overheatIntervalSecondsNode, (uint)_overheatInterval.TotalSeconds);
         SetValue(_overheatThresholdDegreesNode, _targetTempDegrees + 10.0f);
 
         // Find the Boiler2 data nodes.
@@ -260,15 +260,15 @@ public class Boiler2PluginNodes : IPluginNodes
                     EventSeverity.Medium,
                     new LocalizedText($"MaintenanceRequiredAlarm."));
 
-        _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Overheat", copy: false);
-        _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Overheat", copy: false);
-        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Overheat", copy: false);
-        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Maintenance", copy: false);
+        _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Overheated", copy: false);
+        _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Check function", copy: false);
+        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Off spec", copy: false);
+        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Maintenance", copy: false);
     }
 
     private void SetDeviceHealth(float currentTemp, float baseTemp, float targetTemp, float overheatedTemp)
     {
-        if (currentTemp > baseTemp && currentTemp < targetTemp)
+        if (currentTemp >= baseTemp && currentTemp <= targetTemp)
         {
             SetValue(_deviceHealth, DeviceHealthEnumeration.NORMAL);
         }
@@ -276,26 +276,27 @@ public class Boiler2PluginNodes : IPluginNodes
         {
             SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
         }
-        else if (currentTemp > overheatedTemp)
-        {
-            SetValue(_deviceHealth, DeviceHealthEnumeration.FAILURE);
-        }
         else if (currentTemp > targetTemp && currentTemp < overheatedTemp)
         {
             SetValue(_deviceHealth, DeviceHealthEnumeration.CHECK_FUNCTION);
+        }
+        else if (currentTemp > overheatedTemp)
+        {
+            SetValue(_deviceHealth, DeviceHealthEnumeration.FAILURE);
         }
     }
 
     private void StartTimers()
     {
-        _maintenanceGenerator = TimeService.NewTimer(UpdateMaintenance, intervalInMilliseconds: _maintenanceIntervalSeconds * 1000);
-        _overheatGenerator = TimeService.NewTimer(UpdateOverheat, intervalInMilliseconds: _overheatIntervalSeconds * 1000);
+        _maintenanceGenerator = TimeService.NewTimer(UpdateMaintenance, intervalInMilliseconds: (uint)_maintenanceInterval.TotalMilliseconds);
+        _overheatGenerator = TimeService.NewTimer(UpdateOverheat, intervalInMilliseconds: (uint)_overheatInterval.TotalMilliseconds);
     }
 
     private void UpdateMaintenance(object state, ElapsedEventArgs elapsedEventArgs)
     {
         SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
-        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+
+        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
         _plcNodeManager.Server.ReportEvent(_maintenanceRequiredEv);
     }
 
@@ -317,15 +318,15 @@ public class Boiler2PluginNodes : IPluginNodes
                     _isOverheated = false;
                     break;
                 case DeviceHealthEnumeration.CHECK_FUNCTION:
-                    _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+                    _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
                     _plcNodeManager.Server.ReportEvent(_checkFunctionEv);
                     break;
                 case DeviceHealthEnumeration.FAILURE:
-                    _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+                    _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
                     _plcNodeManager.Server.ReportEvent(_failureEv);
                     break;
                 case DeviceHealthEnumeration.OFF_SPEC:
-                    _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+                    _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
                     _plcNodeManager.Server.ReportEvent(_offSpecEv);
                     break;
             }

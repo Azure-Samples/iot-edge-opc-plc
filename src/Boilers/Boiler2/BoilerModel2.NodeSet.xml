@@ -4275,11 +4275,11 @@
       </References>
       <Value>
         <Value>
-          <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">60</Int32>
+          <UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">300</UInt32>
         </Value>
       </Value>
       <DataType>
-        <Identifier>i=6</Identifier>
+        <Identifier>i=7</Identifier>
       </DataType>
       <ValueRank>-1</ValueRank>
       <ArrayDimensions />
@@ -4595,11 +4595,11 @@
       </References>
       <Value>
         <Value>
-          <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">120</Int32>
+          <UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">120</UInt32>
         </Value>
       </Value>
       <DataType>
-        <Identifier>i=6</Identifier>
+        <Identifier>i=7</Identifier>
       </DataType>
       <ValueRank>-1</ValueRank>
       <ArrayDimensions />
@@ -5668,11 +5668,11 @@
       </References>
       <Value>
         <Value>
-          <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">300</Int32>
+          <UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">300</UInt32>
         </Value>
       </Value>
       <DataType>
-        <Identifier>i=6</Identifier>
+        <Identifier>i=7</Identifier>
       </DataType>
       <ValueRank>-1</ValueRank>
       <ArrayDimensions />
@@ -13484,11 +13484,11 @@
       </References>
       <Value>
         <Value>
-          <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">60</Int32>
+          <UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">120</UInt32>
         </Value>
       </Value>
       <DataType>
-        <Identifier>i=6</Identifier>
+        <Identifier>i=7</Identifier>
       </DataType>
       <ValueRank>-1</ValueRank>
       <ArrayDimensions />

@@ -25,7 +25,7 @@ public abstract class SimulatorTestsBase
     /// <summary>A Bogus data generator.</summary>
     protected static readonly Faker Fake = new Faker();
 
-    private PlcSimulatorFixture _simulator;
+    private readonly PlcSimulatorFixture _simulator;
 
     protected SimulatorTestsBase(string[] args = default)
     {
