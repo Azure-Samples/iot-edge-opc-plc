@@ -141,15 +141,41 @@ A number of changing nodes can be simulated with the following options. The node
 The options `--sph` and `--sp` show and dump an OPC Publisher configuration file (default name: `pn.json`) that matches the configuration. In addition, a web server hosts the file on a configurable port (`--wp`, default 8080): e.g. http://localhost:8080/pn.json
 Additionally, you can set the configuration file name via the option `--spf`.
 
-## Complex type (boiler)
+## Complex type (Boiler #1)
  
 Adds a simple boiler to the address space.
 
 Features:
-- BoilerStatus is a complex type that shows: temperature, pressure and heater state
+- BoilerStatus is a complex type that shows: Temperature, pressure and heater state
 - Method to turn heater on/off
 - When the heater is on, the bottom temperature increases by 1 degree/s, the top temperature is always 5 degrees less than the bottom one
 - Pressure is calculated as 100000 + bottom temperature
+
+## Boiler #2 derived from the Device Information (DI) companion spec
+ 
+Adds a configurable boiler that exposes DI properties such as AssetId (ITagNameplate, IVendorNameplate) and DeviceHealth.
+
+Features:
+- Configure and expose: Base temperature, target temperature, temperature change speed, current temperature, heater state, overheated state, miantenance
+- Method to switch heater on/off
+- The maintenance and overheated intervals both trigger events
+
+Simulation details:
+- When the heater is off, the temperature falls to the base temperature and the heater is switched on
+- When the heater is on, the temperature raises to the target temperature and the heater is switched off
+- The overheat interval increases the temperature to 10 degrees above the overheated temperature threshold, the heater is switched off and:
+  - Emits a "CheckFunctionAlarmType" event when DeviceHealth updates to CHECK_FUNCTION
+  - Emits a "FailureAlarmType" event when DeviceHealth updates to FAILURE
+  - Emits an "OffSpecAlarmType" event when DeviceHealth updates to OFF_SPEC
+  - Emits a "MaintenanceRequiredAlarmType" when DeviceHealth updates to MAINTENANCE_REQUIRED
+
+DeviceHealth (DeviceHealthEnumeration) details:
+- NORMAL: Base temperature < temperature < target temperature
+- FAILURE: Temperature > overheated temperature
+- CHECK_FUNCTION: Target temperature < Temperature < overheated temperature
+- OFF_SPEC: Temperature < base temperature or temperature > overheated temperature + 5
+- MAINTENANCE_REQUIRED: Triggered by the maintenance interval
+
 
 ## Simple Events
 
@@ -431,6 +457,23 @@ Options:
                                values; no spaces allowed)
                                Default: DNS hostname
   -h, --help                 show this message and exit
+      --b2ts, --boiler2tempspeed=VALUE
+                             Boiler #2 temperature change speed in degrees per
+                               second
+                               Default: 1
+      --b2bt, --boiler2basetemp=VALUE
+                             Boiler #2 base temperature to reach when not
+                               heating
+                               Default: 10
+      --b2tt, --boiler2targettemp=VALUE
+                             Boiler #2 target temperature to reach when heating
+                               Default: 80
+      --b2mi, --boiler2maintinterval=VALUE
+                             Boiler #2 required maintenance interval in seconds
+                               Default: 300
+      --b2oi, --boiler2overheatinterval=VALUE
+                             Boiler #2 overheat interval in seconds
+                               Default: 120
       --nv, --nodatavalues   do not generate data values
                                Default: False
       --gn, --guidnodes=VALUE
