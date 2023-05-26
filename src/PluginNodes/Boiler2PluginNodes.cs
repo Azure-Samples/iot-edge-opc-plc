@@ -137,7 +137,7 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_deviceHealth, DeviceHealthEnumeration.NORMAL);
 
         AddMethods();
-        AddEvents();
+        InitEvents();
         StartTimers();
 
         // Add to node list for creation of pn.json.
@@ -229,7 +229,7 @@ public class Boiler2PluginNodes : IPluginNodes
         return ServiceResult.Good;
     }
 
-    private void AddEvents()
+    private void InitEvents()
     {
         // Construct the events.
         _failureEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
