@@ -27,6 +27,10 @@ public class Boiler2PluginNodes : IPluginNodes
     private BaseDataVariableState _overheatedNode;
     private BaseDataVariableState _heaterStateNode;
     private BaseDataVariableState _deviceHealth;
+    private DeviceHealthDiagnosticAlarmTypeState _failureEv;
+    private DeviceHealthDiagnosticAlarmTypeState _checkFunctionEv;
+    private DeviceHealthDiagnosticAlarmTypeState _offSpecEv;
+    private DeviceHealthDiagnosticAlarmTypeState _maintenanceRequiredEv;
     private ITimer _nodeGenerator;
     private ITimer _maintenanceGenerator;
     private ITimer _overheatGenerator;
@@ -135,7 +139,7 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_deviceHealth, DeviceHealthEnumeration.NORMAL);
 
         AddMethods();
-        AddEvents();
+        InitEvents();
         StartTimers();
 
         // Add to node list for creation of pn.json.
@@ -227,34 +231,39 @@ public class Boiler2PluginNodes : IPluginNodes
         return ServiceResult.Good;
     }
 
-    private void AddEvents()
+    private void InitEvents()
     {
         // Construct the events.
-        var failureEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
-        var checkFunctionEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
-        var offSpecEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
-        var MaintenanceRequiredEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
+        _failureEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
+        _checkFunctionEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
+        _offSpecEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
+        _maintenanceRequiredEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
 
         // Init the events
-        failureEv.Initialize(_plcNodeManager.SystemContext,
+        _failureEv.Initialize(_plcNodeManager.SystemContext,
                     source: null,
                     EventSeverity.Max,
                     new LocalizedText($"Failure Alarm."));
 
-        checkFunctionEv.Initialize(_plcNodeManager.SystemContext,
+        _checkFunctionEv.Initialize(_plcNodeManager.SystemContext,
                     source: null,
                     EventSeverity.Low,
                     new LocalizedText($"CheckFunctionAlarm."));
 
-        offSpecEv.Initialize(_plcNodeManager.SystemContext,
+        _offSpecEv.Initialize(_plcNodeManager.SystemContext,
                     source: null,
                     EventSeverity.MediumLow,
                     new LocalizedText($"OffSpecAlarm."));
 
-        MaintenanceRequiredEv.Initialize(_plcNodeManager.SystemContext,
+        _maintenanceRequiredEv.Initialize(_plcNodeManager.SystemContext,
                     source: null,
                     EventSeverity.Medium,
                     new LocalizedText($"MaintenanceRequiredAlarm."));
+
+        _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Overheat", copy: false);
+        _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Overheat", copy: false);
+        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Overheat", copy: false);
+        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Maintenance", copy: false);
     }
 
     private void SetDeviceHealth(float currentTemp, float baseTemp, float targetTemp, float overheatedTemp)
@@ -286,6 +295,8 @@ public class Boiler2PluginNodes : IPluginNodes
     private void UpdateMaintenance(object state, ElapsedEventArgs elapsedEventArgs)
     {
         SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
+        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+        _plcNodeManager.Server.ReportEvent(_maintenanceRequiredEv);
     }
 
     private void UpdateOverheat(object state, ElapsedEventArgs elapsedEventArgs)
@@ -298,7 +309,7 @@ public class Boiler2PluginNodes : IPluginNodes
 
     private void EmitOverheatedEvents()
     {
-        if(_isOverheated)
+        if (_isOverheated)
         {
             switch ((DeviceHealthEnumeration)_deviceHealth.Value)
             {
@@ -306,16 +317,16 @@ public class Boiler2PluginNodes : IPluginNodes
                     _isOverheated = false;
                     break;
                 case DeviceHealthEnumeration.CHECK_FUNCTION:
-                    // TODO: Emit a "CheckFunctionAlarmType" event.
+                    _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+                    _plcNodeManager.Server.ReportEvent(_checkFunctionEv);
                     break;
                 case DeviceHealthEnumeration.FAILURE:
-                    // TODO: Emit a "FailureAlarmType" event.
+                    _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+                    _plcNodeManager.Server.ReportEvent(_failureEv);
                     break;
                 case DeviceHealthEnumeration.OFF_SPEC:
-                    // TODO: Emit an "OffSpecAlarmType" event.
-                    break;
-                case DeviceHealthEnumeration.MAINTENANCE_REQUIRED:
-                    // TODO: Emit a "MaintenanceRequiredAlarmType" event.
+                    _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+                    _plcNodeManager.Server.ReportEvent(_offSpecEv);
                     break;
             }
         }
