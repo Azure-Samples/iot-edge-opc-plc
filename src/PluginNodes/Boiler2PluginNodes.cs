@@ -62,12 +62,12 @@ public class Boiler2PluginNodes : IPluginNodes
 
         optionSet.Add(
             "b2mi|boiler2maintinterval=",
-            $"Boiler #2 required maintenance interval in seconds\nDefault: {_maintenanceInterval}",
+            $"Boiler #2 required maintenance interval in seconds\nDefault: {_maintenanceInterval.TotalSeconds}",
             (string s) => _maintenanceInterval = TimeSpan.FromSeconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintinterval")));
 
         optionSet.Add(
             "b2oi|boiler2overheatinterval=",
-            $"Boiler #2 overheat interval in seconds\nDefault: {_overheatInterval}",
+            $"Boiler #2 overheat interval in seconds\nDefault: {_overheatInterval.TotalSeconds}",
             (string s) => _overheatInterval = TimeSpan.FromSeconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2overheatinterval")));
     }
 
