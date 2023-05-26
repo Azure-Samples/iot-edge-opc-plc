@@ -260,15 +260,15 @@ public class Boiler2PluginNodes : IPluginNodes
                     EventSeverity.Medium,
                     new LocalizedText($"MaintenanceRequiredAlarm."));
 
-        _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Overheat", copy: false);
-        _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Overheat", copy: false);
-        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Overheat", copy: false);
-        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, "Maintenance", copy: false);
+        _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Overheated", copy: false);
+        _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Check function", copy: false);
+        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Off spec", copy: false);
+        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Maintenance", copy: false);
     }
 
     private void SetDeviceHealth(float currentTemp, float baseTemp, float targetTemp, float overheatedTemp)
     {
-        if (currentTemp > baseTemp && currentTemp < targetTemp)
+        if (currentTemp >= baseTemp && currentTemp <= targetTemp)
         {
             SetValue(_deviceHealth, DeviceHealthEnumeration.NORMAL);
         }
@@ -276,13 +276,13 @@ public class Boiler2PluginNodes : IPluginNodes
         {
             SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
         }
-        else if (currentTemp > overheatedTemp)
-        {
-            SetValue(_deviceHealth, DeviceHealthEnumeration.FAILURE);
-        }
         else if (currentTemp > targetTemp && currentTemp < overheatedTemp)
         {
             SetValue(_deviceHealth, DeviceHealthEnumeration.CHECK_FUNCTION);
+        }
+        else if (currentTemp > overheatedTemp)
+        {
+            SetValue(_deviceHealth, DeviceHealthEnumeration.FAILURE);
         }
     }
 
@@ -295,7 +295,8 @@ public class Boiler2PluginNodes : IPluginNodes
     private void UpdateMaintenance(object state, ElapsedEventArgs elapsedEventArgs)
     {
         SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
-        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+
+        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
         _plcNodeManager.Server.ReportEvent(_maintenanceRequiredEv);
     }
 
@@ -317,15 +318,15 @@ public class Boiler2PluginNodes : IPluginNodes
                     _isOverheated = false;
                     break;
                 case DeviceHealthEnumeration.CHECK_FUNCTION:
-                    _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+                    _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
                     _plcNodeManager.Server.ReportEvent(_checkFunctionEv);
                     break;
                 case DeviceHealthEnumeration.FAILURE:
-                    _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+                    _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
                     _plcNodeManager.Server.ReportEvent(_failureEv);
                     break;
                 case DeviceHealthEnumeration.OFF_SPEC:
-                    _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, DateTime.Now, copy: false);
+                    _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
                     _plcNodeManager.Server.ReportEvent(_offSpecEv);
                     break;
             }
