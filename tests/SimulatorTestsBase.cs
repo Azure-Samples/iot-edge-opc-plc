@@ -124,7 +124,7 @@ public abstract class SimulatorTestsBase
         return (T)Session.ReadValue(nodeId, typeof(T));
     }
 
-    protected StatusCodeCollection WriteValue(NodeId nodeId, object newValue)
+    protected StatusCode WriteValue(NodeId nodeId, object newValue)
     {
         var valuesToWrite = new WriteValueCollection
             {
@@ -146,7 +146,7 @@ public abstract class SimulatorTestsBase
             out var results,
             out _);
 
-        return results;
+        return results.FirstOrDefault();
     }
 
     /// <summary>

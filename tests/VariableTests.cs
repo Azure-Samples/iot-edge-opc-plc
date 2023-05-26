@@ -41,7 +41,7 @@ public class VariableTests : SimulatorTestsBase
 
         var results = WriteValue(nodeId, newValue);
 
-        results.Should().BeEquivalentTo(new[] { StatusCodes.Good });
+        results.Should().Be(StatusCodes.Good);
 
         Session.ReadValue(nodeId)
             .Value

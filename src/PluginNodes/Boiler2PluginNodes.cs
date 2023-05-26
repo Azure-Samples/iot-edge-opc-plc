@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Timers;
 using static OpcPlc.Program;
 
@@ -42,6 +43,7 @@ public class Boiler2PluginNodes : IPluginNodes
     private TimeSpan _overheatInterval = TimeSpan.FromSeconds(120); // 2 min.
 
     private bool _isOverheated = false;
+    private readonly SemaphoreSlim _lock = new(1, 1);
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -85,6 +87,7 @@ public class Boiler2PluginNodes : IPluginNodes
     public void StartSimulation()
     {
         _nodeGenerator = TimeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
+        StartTimers();
     }
 
     public void StopSimulation()
@@ -140,7 +143,6 @@ public class Boiler2PluginNodes : IPluginNodes
 
         AddMethods();
         InitEvents();
-        StartTimers();
 
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
@@ -173,6 +175,8 @@ public class Boiler2PluginNodes : IPluginNodes
 
     public void UpdateBoiler2(object state, ElapsedEventArgs elapsedEventArgs)
     {
+        _lock.Wait();
+
         float currentTemperatureDegrees = (float)_currentTempDegreesNode.Value;
         float newTemperature;
         float tempSpeedDegreesPerSec = (float)_tempSpeedDegreesPerSecNode.Value;
@@ -182,7 +186,7 @@ public class Boiler2PluginNodes : IPluginNodes
 
         if ((bool)_heaterStateNode.Value)
         {
-            // Heater on, increase by specified speed.
+            // Heater on, increase by specified speed to a maximum of targetTemp.
             newTemperature = Math.Min(currentTemperatureDegrees + tempSpeedDegreesPerSec, targetTempDegrees);
 
             // Target temp reached, turn off heater.
@@ -208,9 +212,11 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
 
         // Update DeviceHealth status.
-        SetDeviceHealth(currentTemperatureDegrees, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
+        SetDeviceHealth(newTemperature, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
 
         EmitOverheatedEvents();
+
+        _lock.Release();
     }
 
     private void AddMethods()
@@ -294,18 +300,27 @@ public class Boiler2PluginNodes : IPluginNodes
 
     private void UpdateMaintenance(object state, ElapsedEventArgs elapsedEventArgs)
     {
+        _lock.Wait();
+
         SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
 
         _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
         _plcNodeManager.Server.ReportEvent(_maintenanceRequiredEv);
+
+        _lock.Release();
     }
 
     private void UpdateOverheat(object state, ElapsedEventArgs elapsedEventArgs)
     {
+        _lock.Wait();
+
         SetValue(_currentTempDegreesNode, (float)_overheatThresholdDegreesNode.Value + 10.0f);
         SetValue(_heaterStateNode, false);
+        SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
 
         _isOverheated = true;
+
+        _lock.Release();
     }
 
     private void EmitOverheatedEvents()
