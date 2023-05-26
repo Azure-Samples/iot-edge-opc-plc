@@ -7,7 +7,7 @@ using Opc.Ua;
 using static System.TimeSpan;
 
 /// <summary>
-/// Tests for OPC-UA Monitoring for Data changes.
+/// Tests deterministic GUID nodes.
 /// </summary>
 [TestFixture]
 public class GuidNodesTests : SubscriptionTestsBase
