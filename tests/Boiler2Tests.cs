@@ -49,11 +49,14 @@ public class Boiler2Tests : SimulatorTestsBase
     [TestCase]
     public void TemperatureRisesAndFallsHeaterToggles()
     {
+        var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
+        currentTemperatureDegrees.Should().Be(1f);
+
         // Temperature rises with heater on for the next 10 s starting at 1°, step 10°.
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 10);
 
-        var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
+        currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
 
         var heaterStateNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_HeaterState, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var heaterState = (bool)Session.ReadValue(heaterStateNodeId).Value;
