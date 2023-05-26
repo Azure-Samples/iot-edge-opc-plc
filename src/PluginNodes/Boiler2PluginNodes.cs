@@ -63,12 +63,12 @@ public class Boiler2PluginNodes : IPluginNodes
         optionSet.Add(
             "b2mi|boiler2maintinterval=",
             $"Boiler #2 required maintenance interval in seconds\nDefault: {_maintenanceInterval}",
-            (string s) => _maintenanceInterval = TimeSpan.FromMilliseconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintinterval")));
+            (string s) => _maintenanceInterval = TimeSpan.FromSeconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintinterval")));
 
         optionSet.Add(
             "b2oi|boiler2overheatinterval=",
             $"Boiler #2 overheat interval in seconds\nDefault: {_overheatInterval}",
-            (string s) => _overheatInterval = TimeSpan.FromMilliseconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2overheatinterval")));
+            (string s) => _overheatInterval = TimeSpan.FromSeconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2overheatinterval")));
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
@@ -121,8 +121,8 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_tempSpeedDegreesPerSecNode, _tempSpeedDegreesPerSec);
         SetValue(_baseTempDegreesNode, _baseTempDegrees);
         SetValue(_targetTempDegreesNode, _targetTempDegrees);
-        SetValue(maintenanceIntervalSecondsNode, _maintenanceInterval);
-        SetValue(overheatIntervalSecondsNode, _overheatInterval);
+        SetValue(maintenanceIntervalSecondsNode, (uint)_maintenanceInterval.TotalSeconds);
+        SetValue(overheatIntervalSecondsNode, (uint)_overheatInterval.TotalSeconds);
         SetValue(_overheatThresholdDegreesNode, _targetTempDegrees + 10.0f);
 
         // Find the Boiler2 data nodes.
