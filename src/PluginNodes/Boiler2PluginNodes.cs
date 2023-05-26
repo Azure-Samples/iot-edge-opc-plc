@@ -39,7 +39,7 @@ public class Boiler2PluginNodes : IPluginNodes
     private float _baseTempDegrees = 10.0f;
     private float _targetTempDegrees = 80.0f;
     private TimeSpan _maintenanceInterval = TimeSpan.FromSeconds(300); // 5 min.
-    private TimeSpan _overheatInterval = TimeSpan.FromSeconds(120);; // 2 min.
+    private TimeSpan _overheatInterval = TimeSpan.FromSeconds(120); // 2 min.
 
     private bool _isOverheated = false;
 
@@ -63,12 +63,12 @@ public class Boiler2PluginNodes : IPluginNodes
         optionSet.Add(
             "b2mi|boiler2maintinterval=",
             $"Boiler #2 required maintenance interval in seconds\nDefault: {_maintenanceInterval}",
-            (string s) => _maintenanceInterval = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintinterval"));
+            (string s) => _maintenanceInterval = TimeSpan.FromMilliseconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintinterval")));
 
         optionSet.Add(
             "b2oi|boiler2overheatinterval=",
             $"Boiler #2 overheat interval in seconds\nDefault: {_overheatInterval}",
-            (string s) => _overheatInterval = (uint)CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2overheatinterval"));
+            (string s) => _overheatInterval = TimeSpan.FromMilliseconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2overheatinterval")));
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
