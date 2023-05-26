@@ -164,10 +164,10 @@ Simulation details:
 - When the heater is off, the temperature falls to the base temperature and the heater is switched on
 - When the heater is on, the temperature raises to the target temperature and the heater is switched off
 - The overheat interval increases the temperature to 10 degrees above the overheated temperature threshold, the heater is switched off and:
-  - Emits a "CheckFunctionAlarmType" event when DeviceHealth updates to CHECK_FUNCTION
-  - Emits a "FailureAlarmType" event when DeviceHealth updates to FAILURE
-  - Emits an "OffSpecAlarmType" event when DeviceHealth updates to OFF_SPEC
-  - Emits a "MaintenanceRequiredAlarmType" when DeviceHealth updates to MAINTENANCE_REQUIRED
+  - Emits a "CheckFunctionAlarmType" event when DeviceHealth is CHECK_FUNCTION
+  - Emits a "FailureAlarmType" event when DeviceHealth is FAILURE
+  - Emits an "OffSpecAlarmType" event when DeviceHealth is OFF_SPEC
+  - Emits a "MaintenanceRequiredAlarmType" when DeviceHealth is MAINTENANCE_REQUIRED
 
 DeviceHealth (DeviceHealthEnumeration) details:
 - NORMAL: Base temperature < temperature < target temperature
@@ -175,7 +175,6 @@ DeviceHealth (DeviceHealthEnumeration) details:
 - CHECK_FUNCTION: Target temperature < Temperature < overheated temperature
 - OFF_SPEC: Temperature < base temperature or temperature > overheated temperature + 5
 - MAINTENANCE_REQUIRED: Triggered by the maintenance interval
-
 
 ## Simple Events
 
