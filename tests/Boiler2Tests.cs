@@ -2,6 +2,7 @@ namespace OpcPlc.Tests;
 
 using FluentAssertions;
 using NUnit.Framework;
+using NUnit.Framework.Constraints;
 using Opc.Ua;
 using static System.TimeSpan;
 
@@ -70,5 +71,16 @@ public class Boiler2Tests : SimulatorTestsBase
 
         currentTemperatureDegrees.Should().Be(53f);
         heaterState.Should().BeFalse();
+    }
+
+    [TestCase]
+    public void TestDeviceHealth()
+    {
+        // DeviceHealth (DeviceHealthEnumeration) details:
+        //-NORMAL: Base temperature <= temperature <= target temperature
+        //- FAILURE: Temperature > overheated temperature
+        //- CHECK_FUNCTION: Target temperature < Temperature < overheated temperature
+        //- OFF_SPEC: Temperature < base temperature or temperature > overheated temperature + 5
+        //- MAINTENANCE_REQUIRED: Triggered by the maintenance interval
     }
 }
