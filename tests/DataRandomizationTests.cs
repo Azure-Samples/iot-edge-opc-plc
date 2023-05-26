@@ -35,7 +35,7 @@ public class DataRandomizationTests : SubscriptionTestsBase
 
         // Act: collect events during 50 seconds
         // Value is updated every 10 seconds
-        FireTimersWithPeriod(FromSeconds(10), 5);
+        FireTimersWithPeriod(FromSeconds(10), numberOfTimes: 5);
 
         // Assert
         var events = ReceiveEvents(6);

@@ -46,7 +46,7 @@ public class Boiler2PluginNodes : IPluginNodes
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
         optionSet.Add(
-            "b2ts|boiler2tempspeedboiler2tempspeed=",
+            "b2ts|boiler2tempspeed=",
             $"Boiler #2 temperature change speed in degrees per second\nDefault: {_tempSpeedDegreesPerSec}",
             (string s) => _tempSpeedDegreesPerSec = CliHelper.ParseFloat(s, min: 1.0f, max: 10.0f, optionName: "boiler2tempspeed", digits: 1));
 
@@ -130,6 +130,8 @@ public class Boiler2PluginNodes : IPluginNodes
         _overheatedNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_Overheated, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
         _heaterStateNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_HeaterState, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
 
+        SetValue(_currentTempDegreesNode, _baseTempDegrees);
+        SetValue(_overheatedNode, false);
         SetValue(_heaterStateNode, true);
 
         // Find the Boiler2 deviceHealth nodes.
@@ -171,7 +173,7 @@ public class Boiler2PluginNodes : IPluginNodes
 
     public void UpdateBoiler2(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        float currentTemperature = (float)_currentTempDegreesNode.Value;
+        float currentTemperatureDegrees = (float)_currentTempDegreesNode.Value;
         float newTemperature;
         float tempSpeedDegreesPerSec = (float)_tempSpeedDegreesPerSecNode.Value;
         float baseTempDegrees = (float)_baseTempDegreesNode.Value;
@@ -181,7 +183,7 @@ public class Boiler2PluginNodes : IPluginNodes
         if ((bool)_heaterStateNode.Value)
         {
             // Heater on, increase by specified speed.
-            newTemperature = Math.Min(currentTemperature + tempSpeedDegreesPerSec, targetTempDegrees);
+            newTemperature = Math.Min(currentTemperatureDegrees + tempSpeedDegreesPerSec, targetTempDegrees);
 
             // Target temp reached, turn off heater.
             if (newTemperature == targetTempDegrees)
@@ -192,7 +194,7 @@ public class Boiler2PluginNodes : IPluginNodes
         else
         {
             // Heater off, decrease by specified speed to a minimum of baseTemp.
-            newTemperature = Math.Max(baseTempDegrees, currentTemperature - tempSpeedDegreesPerSec);
+            newTemperature = Math.Max(baseTempDegrees, currentTemperatureDegrees - tempSpeedDegreesPerSec);
 
             // Base temp reached, turn on heater.
             if (newTemperature == baseTempDegrees)
@@ -206,7 +208,7 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
 
         // Update DeviceHealth status.
-        SetDeviceHealth(currentTemperature, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
+        SetDeviceHealth(currentTemperatureDegrees, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
 
         EmitOverheatedEvents();
     }
