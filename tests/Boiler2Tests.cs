@@ -28,7 +28,7 @@ public class Boiler2Tests : SimulatorTestsBase
     {
     }
 
-    [TestCase, Order(1)]
+    [TestCase]
     public void VerifyFixedConfiguration()
     {
         var nodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
@@ -48,7 +48,7 @@ public class Boiler2Tests : SimulatorTestsBase
         _overheatThresholdDegrees.Should().Be(123f + 10f);
     }
 
-    [TestCase, Order(2)]
+    [TestCase, Order(1)]
     public void TemperatureRisesAndFallsHeaterToggles()
     {
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
@@ -77,7 +77,7 @@ public class Boiler2Tests : SimulatorTestsBase
         heaterState.Should().BeFalse();
     }
 
-    [TestCase, Order(3)]
+    [TestCase, Order(2)]
     public void DeviceHealth_Normal()
     {
         // 1. NORMAL: Base temperature <= temperature <= target temperature
@@ -88,7 +88,7 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.NORMAL);
     }
 
-    [TestCase, Order(4)]
+    [TestCase, Order(3)]
     public void DeviceHealth_MaintenanceRequired()
     {
         // 2. MAINTENANCE_REQUIRED: Triggered by the maintenance interval
@@ -103,7 +103,7 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
     }
 
-    [TestCase, Order(5)]
+    [TestCase, Order(4)]
     public void DeviceHealth_Failure()
     {
         // 3. FAILURE: Temperature > overheated temperature
@@ -123,7 +123,7 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.FAILURE);
     }
 
-    [TestCase, Order(6)]
+    [TestCase, Order(5)]
     public void DeviceHealth_CheckFunction()
     {
         // 4. CHECK_FUNCTION: Target temperature < Temperature < overheated temperature
@@ -142,13 +142,10 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.CHECK_FUNCTION);
     }
 
-    [TestCase, Order(7)]
+    [TestCase, Order(6)]
     public void DeviceHealth_OffSpec1()
     {
         // 5. OFF_SPEC 1: Temperature < base temperature
-
-        // Cool down for 5 s.
-        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 5);
 
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
@@ -166,7 +163,7 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.OFF_SPEC);
     }
 
-    [TestCase, Order(8)]
+    [TestCase, Order(7)]
     public void DeviceHealth_OffSpec2()
     {
         // 6. OFF_SPEC 2: Temperature > overheated temperature + 5
