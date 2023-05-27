@@ -28,7 +28,7 @@ public class Boiler2Tests : SimulatorTestsBase
     {
     }
 
-    [TestCase]
+    [TestCase, Order(1)]
     public void VerifyFixedConfiguration()
     {
         var nodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
@@ -48,7 +48,7 @@ public class Boiler2Tests : SimulatorTestsBase
         _overheatThresholdDegrees.Should().Be(123f + 10f);
     }
 
-    [TestCase]
+    [TestCase, Order(2)]
     public void TemperatureRisesAndFallsHeaterToggles()
     {
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
@@ -77,8 +77,8 @@ public class Boiler2Tests : SimulatorTestsBase
         heaterState.Should().BeFalse();
     }
 
-    [TestCase]
-    public void TestDeviceHealth()
+    [TestCase, Order(3)]
+    public void DeviceHealth_Normal()
     {
         // 1. NORMAL: Base temperature <= temperature <= target temperature
 
@@ -86,17 +86,26 @@ public class Boiler2Tests : SimulatorTestsBase
         var deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
 
         deviceHealth.Should().Be(DeviceHealthEnumeration.NORMAL);
+    }
 
+    [TestCase, Order(4)]
+    public void DeviceHealth_MaintenanceRequired()
+    {
         // 2. MAINTENANCE_REQUIRED: Triggered by the maintenance interval
 
         // Fast forward to trigger maintenance required.
         FireTimersWithPeriod(FromSeconds(567), numberOfTimes: 1);
 
-        deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
+        var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
 
         // TODO: Fix spec, bcs state is overwritten immediately!
         deviceHealth.Should().Be(DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
+    }
 
+    [TestCase, Order(5)]
+    public void DeviceHealth_Failure()
+    {
         // 3. FAILURE: Temperature > overheated temperature
 
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
@@ -107,30 +116,42 @@ public class Boiler2Tests : SimulatorTestsBase
 
         var currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
 
-        deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
+        var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
 
         currentTemperatureDegrees.Should().Be(133);
         deviceHealth.Should().Be(DeviceHealthEnumeration.FAILURE);
+    }
 
+    [TestCase, Order(6)]
+    public void DeviceHealth_CheckFunction()
+    {
         // 4. CHECK_FUNCTION: Target temperature < Temperature < overheated temperature
 
         // Fast forward to trigger overheat, then cool down for 3 s.
         FireTimersWithPeriod(FromSeconds(678), numberOfTimes: 1);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 3);
 
-        currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
+        var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
 
-        deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
+        var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
 
         currentTemperatureDegrees.Should().Be(128);
         deviceHealth.Should().Be(DeviceHealthEnumeration.CHECK_FUNCTION);
+    }
 
+    [TestCase, Order(7)]
+    public void DeviceHealth_OffSpec1()
+    {
         // 5. OFF_SPEC 1: Temperature < base temperature
 
         // Cool down for 5 s.
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 5);
 
-        currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
+        var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
 
         var baseTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = WriteValue(baseTemperatureNodeId, currentTemperatureDegrees + 10f);
@@ -139,18 +160,25 @@ public class Boiler2Tests : SimulatorTestsBase
         // Fast forward 1 s to update the DeviceHealth.
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
-        deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
+        var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
 
         deviceHealth.Should().Be(DeviceHealthEnumeration.OFF_SPEC);
+    }
 
+    [TestCase, Order(8)]
+    public void DeviceHealth_OffSpec2()
+    {
         // 6. OFF_SPEC 2: Temperature > overheated temperature + 5
 
         // Fast forward to trigger overheat.
         FireTimersWithPeriod(FromSeconds(678), numberOfTimes: 1);
 
-        currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
+        var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
 
-        deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
+        var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
 
         currentTemperatureDegrees.Should().Be(143);
         deviceHealth.Should().Be(DeviceHealthEnumeration.OFF_SPEC);
