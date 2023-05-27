@@ -141,8 +141,7 @@ public class Boiler2Tests : SimulatorTestsBase
 
         deviceHealth = (DeviceHealthEnumeration)Session.ReadValue(deviceHealthNodeId).Value;
 
-        // TODO: Simulation does not allow base temp > current temp due to Min/Max.
-        ////deviceHealth.Should().Be(DeviceHealthEnumeration.OFF_SPEC);
+        deviceHealth.Should().Be(DeviceHealthEnumeration.OFF_SPEC);
 
         // 6. OFF_SPEC 2: Temperature > overheated temperature + 5
 
