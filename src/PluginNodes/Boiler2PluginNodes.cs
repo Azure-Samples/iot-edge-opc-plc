@@ -186,22 +186,22 @@ public class Boiler2PluginNodes : IPluginNodes
 
         if ((bool)_heaterStateNode.Value)
         {
-            // Heater on, increase by specified speed to a maximum of targetTemp.
-            newTemperature = Math.Min(currentTemperatureDegrees + tempSpeedDegreesPerSec, targetTempDegrees);
+            // Heater on, increase by specified speed, but the step should not be bigger than targetTemp.
+            newTemperature = currentTemperatureDegrees + Math.Min(tempSpeedDegreesPerSec, Math.Abs(targetTempDegrees - currentTemperatureDegrees));
 
             // Target temp reached, turn off heater.
-            if (newTemperature == targetTempDegrees)
+            if (newTemperature >= targetTempDegrees)
             {
                 SetValue(_heaterStateNode, false);
             }
         }
         else
         {
-            // Heater off, decrease by specified speed to a minimum of baseTemp.
-            newTemperature = Math.Max(baseTempDegrees, currentTemperatureDegrees - tempSpeedDegreesPerSec);
+            // Heater off, decrease by specified speed, but the step should not be bigger than baseTemp.
+            newTemperature = currentTemperatureDegrees - Math.Min(tempSpeedDegreesPerSec, Math.Abs(currentTemperatureDegrees - baseTempDegrees));
 
             // Base temp reached, turn on heater.
-            if (newTemperature == baseTempDegrees)
+            if (newTemperature <= baseTempDegrees)
             {
                 SetValue(_heaterStateNode, true);
             }
