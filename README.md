@@ -146,7 +146,7 @@ Additionally, you can set the configuration file name via the option `--spf`.
 Adds a simple boiler to the address space.
 
 Features:
-- BoilerStatus is a complex type that shows: Temperature, pressure and heater state
+- BoilerStatus is a complex type that shows: Temperature, Pressure and HeaterState
 - Method to turn heater on/off
 - When the heater is on, the bottom temperature increases by 1 degree/s, the top temperature is always 5 degrees less than the bottom one
 - Pressure is calculated as 100000 + bottom temperature
@@ -156,25 +156,25 @@ Features:
 Adds a configurable boiler that exposes DI properties such as AssetId (ITagNameplate, IVendorNameplate) and DeviceHealth.
 
 Features:
-- Configure and expose: Base temperature, target temperature, temperature change speed, current temperature, heater state, overheated state, miantenance
+- Configure and expose: BaseTemperature, TargetTemperature, TemperatureChangeSpeed, CurrentTemperature, HeaterState, Overheated, OverheatThresholdTemperature
 - Method to switch heater on/off
-- The maintenance and overheated intervals both trigger events
+- The MaintenanceInterval and OverheatInterval both emit events
 
 Simulation details:
-- When the heater is off, the temperature falls to the base temperature and the heater is switched on
-- When the heater is on, the temperature raises to the target temperature and the heater is switched off
-- The overheat interval increases the temperature to 10 degrees above the overheated temperature threshold, the heater is switched off and:
+- When the heater is off, the CurrentTemperature falls to the BaseTemperature and the heater is switched on
+- When the heater is on, the CurrentTemperature raises to the TargetTemperature and the heater is switched off
+- The OverheatInterval increases the temperature to 10 degrees above the OverheatThresholdTemperature, the heater is switched off and:
   - Emits a "CheckFunctionAlarmType" event when DeviceHealth is CHECK_FUNCTION
   - Emits a "FailureAlarmType" event when DeviceHealth is FAILURE
   - Emits an "OffSpecAlarmType" event when DeviceHealth is OFF_SPEC
   - Emits a "MaintenanceRequiredAlarmType" when DeviceHealth is MAINTENANCE_REQUIRED
 
 DeviceHealth (DeviceHealthEnumeration) details:
-- NORMAL: Base temperature <= temperature <= target temperature
-- FAILURE: Temperature > overheated temperature
-- CHECK_FUNCTION: Target temperature < Temperature < overheated temperature
-- OFF_SPEC: Temperature < base temperature or temperature > overheated temperature + 5
-- MAINTENANCE_REQUIRED: Triggered by the maintenance interval
+- NORMAL: BaseTemperature <= CurrentTemperature <= TargetTemperature
+- FAILURE: Temperature > OverheatThresholdTemperature
+- CHECK_FUNCTION: TargetTemperature < CurrentTemperature < OverheatThresholdTemperature
+- OFF_SPEC: CurrentTemperature < BaseTemperature or CurrentTemperature > OverheatThresholdTemperature + 5
+- MAINTENANCE_REQUIRED: Triggered by MaintenanceInterval
 
 ## Simple Events
 
