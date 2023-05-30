@@ -12,11 +12,11 @@ using static System.TimeSpan;
 /// Tests for Boiler2 DeviceHealth events.
 /// </summary>
 [TestFixture]
-public class DeviceHealthEventsTests : SubscriptionTestsBase
+public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
 {
     private NodeId _eventType;
 
-    public DeviceHealthEventsTests() : base(new[] {
+    public Boiler2DeviceHealthEventsTests() : base(new[] {
         "--b2ts=5",
         "--b2bt=1",
         "--b2tt=123",
