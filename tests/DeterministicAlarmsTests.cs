@@ -1,10 +1,10 @@
 namespace OpcPlc.Tests;
 
-using System.Collections.Generic;
-using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
+using System.Collections.Generic;
+using System.Linq;
 using static System.TimeSpan;
 
 [TestFixture]
@@ -18,8 +18,8 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
 
     public DeterministicAlarmsTests() : base(new[]
         {
-                "--dalm=DeterministicAlarmsTests/dalm001.json",
-            })
+            "--dalm=DeterministicAlarmsTests/dalm001.json",
+        })
     {
     }
 

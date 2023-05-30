@@ -212,7 +212,7 @@
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5014</Reference>
     </References>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=6028" BrowseName="1:MaintenanceInterval" ParentNodeId="ns=1;i=5014" DataType="Int32" AccessLevel="3">
+  <UAVariable NodeId="ns=1;i=6028" BrowseName="1:MaintenanceInterval" ParentNodeId="ns=1;i=5014" DataType="UInt32" AccessLevel="3">
     <DisplayName>MaintenanceInterval</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
@@ -220,7 +220,7 @@
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5014</Reference>
     </References>
     <Value>
-      <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">60</Int32>
+      <UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">300</UInt32>
     </Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=6029" BrowseName="1:OverheatedThresholdTemperature" ParentNodeId="ns=1;i=5014" DataType="Float" AccessLevel="3">
@@ -258,7 +258,7 @@
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5014</Reference>
     </References>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=6034" BrowseName="1:OverheatInterval" ParentNodeId="ns=1;i=5014" DataType="Int32" AccessLevel="3">
+  <UAVariable NodeId="ns=1;i=6034" BrowseName="1:OverheatInterval" ParentNodeId="ns=1;i=5014" DataType="UInt32" AccessLevel="3">
     <DisplayName>OverheatInterval</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
@@ -266,7 +266,7 @@
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5014</Reference>
     </References>
     <Value>
-      <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">120</Int32>
+      <UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">120</UInt32>
     </Value>
   </UAVariable>
   <UAObject NodeId="ns=1;i=5013" BrowseName="2:MethodSet" ParentNodeId="ns=1;i=1000">
@@ -580,14 +580,14 @@
       <Float xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">80</Float>
     </Value>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=6213" BrowseName="1:MaintenanceInterval" ParentNodeId="ns=1;i=5020" DataType="Int32">
+  <UAVariable NodeId="ns=1;i=6213" BrowseName="1:MaintenanceInterval" ParentNodeId="ns=1;i=5020" DataType="UInt32">
     <DisplayName>MaintenanceInterval</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5020</Reference>
     </References>
     <Value>
-      <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">300</Int32>
+      <UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">300</UInt32>
     </Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=6215" BrowseName="1:OverheatedThresholdTemperature" ParentNodeId="ns=1;i=5020" DataType="Float">
@@ -624,14 +624,14 @@
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5020</Reference>
     </References>
   </UAVariable>
-  <UAVariable NodeId="ns=1;i=6350" BrowseName="1:OverheatInterval" ParentNodeId="ns=1;i=5020" DataType="Int32">
+  <UAVariable NodeId="ns=1;i=6350" BrowseName="1:OverheatInterval" ParentNodeId="ns=1;i=5020" DataType="UInt32">
     <DisplayName>OverheatInterval</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5020</Reference>
     </References>
     <Value>
-      <Int32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">60</Int32>
+      <UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">120</UInt32>
     </Value>
   </UAVariable>
   <UAObject NodeId="ns=1;i=5019" BrowseName="2:MethodSet" ParentNodeId="ns=1;i=5017">

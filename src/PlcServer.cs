@@ -44,7 +44,7 @@ public partial class PlcServer : StandardServer
         server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
         EncodeableFactory.GlobalFactory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
 
-        // Add DI node manager first.
+        // Add DI node manager first so that it gets the namespace index 2.
         var diNodeManager = new DiNodeManager(server, configuration);
         nodeManagers.Add(diNodeManager);
 

@@ -156,12 +156,9 @@ public class SimulatorNodesTests : SimulatorTestsBase
             var value = Session.ReadValue(nodeId).Value;
             value.Should().BeOfType(type);
 
-            if (i > 0)
+            if (i > 0 && ((IComparable)value).CompareTo(lastValue) != 0)
             {
-                if (((IComparable)value).CompareTo(lastValue) != 0)
-                {
-                    numberOfValueChanges++;
-                }
+                numberOfValueChanges++;
             }
 
             lastValue = value;

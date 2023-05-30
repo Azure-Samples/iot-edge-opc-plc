@@ -14,6 +14,7 @@
     <Alias Alias="Boolean">i=1</Alias>
     <Alias Alias="UInt16">i=5</Alias>
     <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
     <Alias Alias="Float">i=10</Alias>
     <Alias Alias="DateTime">i=13</Alias>
     <Alias Alias="String">i=12</Alias>
@@ -354,7 +355,7 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAVariable>
-  <UAVariable DataType="Int32" NodeId="ns=2;i=6028" BrowseName="2:MaintenanceInterval" ParentNodeId="ns=2;i=5014" UserAccessLevel="3" AccessLevel="3">
+  <UAVariable DataType="UInt32" NodeId="ns=2;i=6028" BrowseName="2:MaintenanceInterval" ParentNodeId="ns=2;i=5014" UserAccessLevel="3" AccessLevel="3">
     <DisplayName>MaintenanceInterval</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=2;i=5014</Reference>
@@ -362,7 +363,7 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
     <Value>
-      <uax:Int32>60</uax:Int32>
+      <uax:UInt32>300</uax:UInt32>
     </Value>
   </UAVariable>
   <UAVariable DataType="Float" NodeId="ns=2;i=6029" BrowseName="2:OverheatedThresholdTemperature" ParentNodeId="ns=2;i=5014" UserAccessLevel="3" AccessLevel="3">
@@ -400,7 +401,7 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAVariable>
-  <UAVariable DataType="Int32" NodeId="ns=2;i=6034" BrowseName="2:OverheatInterval" ParentNodeId="ns=2;i=5014" UserAccessLevel="3" AccessLevel="3">
+  <UAVariable DataType="UInt32" NodeId="ns=2;i=6034" BrowseName="2:OverheatInterval" ParentNodeId="ns=2;i=5014" UserAccessLevel="3" AccessLevel="3">
     <DisplayName>OverheatInterval</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=2;i=5014</Reference>
@@ -408,7 +409,7 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
     <Value>
-      <uax:Int32>120</uax:Int32>
+      <uax:UInt32>120</uax:UInt32>
     </Value>
   </UAVariable>
   <UAObject NodeId="ns=2;i=5013" BrowseName="1:MethodSet" ParentNodeId="ns=2;i=1000">
@@ -670,14 +671,14 @@
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
     </References>
   </UAVariable>
-  <UAVariable DataType="Int32" NodeId="ns=2;i=6213" BrowseName="2:MaintenanceInterval" ParentNodeId="ns=2;i=5020">
+  <UAVariable DataType="UInt32" NodeId="ns=2;i=6213" BrowseName="2:MaintenanceInterval" ParentNodeId="ns=2;i=5020">
     <DisplayName>MaintenanceInterval</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=2;i=5020</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
     </References>
     <Value>
-      <uax:Int32>300</uax:Int32>
+      <uax:UInt32>300</uax:UInt32>
     </Value>
   </UAVariable>
   <UAVariable DataType="Boolean" NodeId="ns=2;i=6214" BrowseName="2:Overheated" ParentNodeId="ns=2;i=5020">
@@ -687,14 +688,14 @@
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
     </References>
   </UAVariable>
-  <UAVariable DataType="Int32" NodeId="ns=2;i=6350" BrowseName="2:OverheatInterval" ParentNodeId="ns=2;i=5020">
+  <UAVariable DataType="UInt32" NodeId="ns=2;i=6350" BrowseName="2:OverheatInterval" ParentNodeId="ns=2;i=5020">
     <DisplayName>OverheatInterval</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=2;i=5020</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
     </References>
     <Value>
-      <uax:Int32>60</uax:Int32>
+      <uax:UInt32>120</uax:UInt32>
     </Value>
   </UAVariable>
   <UAVariable DataType="Float" NodeId="ns=2;i=6215" BrowseName="2:OverheatedThresholdTemperature" ParentNodeId="ns=2;i=5020">
