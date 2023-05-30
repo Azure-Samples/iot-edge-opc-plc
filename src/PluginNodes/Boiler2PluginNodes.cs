@@ -214,7 +214,7 @@ public class Boiler2PluginNodes : IPluginNodes
         // Update DeviceHealth status.
         SetDeviceHealth(newTemperature, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
 
-        EmitOverheatedEvents();
+        EmitEvents();
 
         _lock.Release();
     }
@@ -249,7 +249,7 @@ public class Boiler2PluginNodes : IPluginNodes
         _failureEv.Initialize(_plcNodeManager.SystemContext,
                     source: null,
                     EventSeverity.Max,
-                    new LocalizedText($"Failure Alarm."));
+                    new LocalizedText($"FailureAlarm."));
 
         _checkFunctionEv.Initialize(_plcNodeManager.SystemContext,
                     source: null,
@@ -318,12 +318,15 @@ public class Boiler2PluginNodes : IPluginNodes
         SetValue(_heaterStateNode, false);
         SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
 
+        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+        _plcNodeManager.Server.ReportEvent(_offSpecEv);
+
         _isOverheated = true;
 
         _lock.Release();
     }
 
-    private void EmitOverheatedEvents()
+    private void EmitEvents()
     {
         if (_isOverheated)
         {
@@ -340,11 +343,13 @@ public class Boiler2PluginNodes : IPluginNodes
                     _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
                     _plcNodeManager.Server.ReportEvent(_failureEv);
                     break;
-                case DeviceHealthEnumeration.OFF_SPEC:
-                    _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
-                    _plcNodeManager.Server.ReportEvent(_offSpecEv);
-                    break;
             }
+        }
+
+        if ((DeviceHealthEnumeration)_deviceHealth.Value == DeviceHealthEnumeration.OFF_SPEC)
+        {
+            _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+            _plcNodeManager.Server.ReportEvent(_offSpecEv);
         }
     }
 }
