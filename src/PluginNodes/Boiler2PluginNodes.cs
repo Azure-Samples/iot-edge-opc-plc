@@ -274,22 +274,16 @@ public class Boiler2PluginNodes : IPluginNodes
 
     private void SetDeviceHealth(float currentTemp, float baseTemp, float targetTemp, float overheatedTemp)
     {
-        if (currentTemp >= baseTemp && currentTemp <= targetTemp)
+        DeviceHealthEnumeration deviceHealth = currentTemp switch
         {
-            SetValue(_deviceHealth, DeviceHealthEnumeration.NORMAL);
-        }
-        else if (currentTemp < baseTemp || currentTemp > overheatedTemp + 5)
-        {
-            SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
-        }
-        else if (currentTemp > targetTemp && currentTemp < overheatedTemp)
-        {
-            SetValue(_deviceHealth, DeviceHealthEnumeration.CHECK_FUNCTION);
-        }
-        else if (currentTemp > overheatedTemp)
-        {
-            SetValue(_deviceHealth, DeviceHealthEnumeration.FAILURE);
-        }
+            _ when currentTemp >= baseTemp && currentTemp <= targetTemp => DeviceHealthEnumeration.NORMAL,
+            _ when currentTemp > targetTemp && currentTemp < overheatedTemp => DeviceHealthEnumeration.CHECK_FUNCTION,
+            _ when currentTemp >= overheatedTemp => DeviceHealthEnumeration.FAILURE,
+            _ when currentTemp < baseTemp || currentTemp > overheatedTemp + 5 => DeviceHealthEnumeration.OFF_SPEC,
+            _ => throw new ArgumentOutOfRangeException(nameof(currentTemp))
+        };
+
+        SetValue(_deviceHealth, deviceHealth);
     }
 
     private void StartTimers()
