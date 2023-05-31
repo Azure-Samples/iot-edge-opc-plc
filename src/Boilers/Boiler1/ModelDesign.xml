@@ -72,7 +72,7 @@
   </opc:ObjectType>
 
   <!-- Create a folder to organize all boilers -->
-  <opc:Object SymbolicName="Boilers">
+  <opc:Object SymbolicName="Boilers" TypeDefinition="ua:FolderType">
     <opc:BrowseName>Boilers</opc:BrowseName>
 
     <opc:Description>Sample boilers.</opc:Description>
