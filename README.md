@@ -22,7 +22,7 @@ Implements an OPC-UA server with different nodes generating random data, anomali
 The following nodes are part of the PLC simulation:
 - Alternating boolean
 - Random signed 32-bit integer
-- Random unsigend 32-bit integer
+- Random unsigned 32-bit integer
 - Sine wave with a spike anomaly
 - Sine wave with a dip anomaly
 - Value showing a positive trend
@@ -34,19 +34,16 @@ By default everything is enabled, use command line options to disable certain an
 Additionally to those nodes with simulated data, a JSON configuration file allows nodes to be created as specified. Finally, the simulation supports a number of nodes of specific types that can change at a configurable rate.
 
 ## Getting Started
-
 ### Prerequisites
-
 The implementation is based on .NET Core so it is cross-platform. The recommended hosting environment is Docker.
 
 ### Quickstart
-
 A Docker container of the component is hosted in the Microsoft Container Registry (MCR) and can be pulled by:
 ~~~
 docker pull mcr.microsoft.com/iotedge/opc-plc:<See version.json>
 ~~~
 
-The tags of the container match the tags of this repository and the containers are available for Windows and Linux. 
+The tags of the container match the tags of this repository and the containers are available for Windows and Linux.
 
 Sample start command for Docker:
 ~~~
@@ -72,10 +69,10 @@ Here's a sample node configuration file:
 ~~~
 {
   "Folder": "MyTelemetry",
-  "FolderList": [    
+  "FolderList": [
     {
       "Folder": "Directory",
-      "NodeList": [        
+      "NodeList": [
         {
           "NodeId": "ChildNode"
         },
@@ -104,10 +101,10 @@ Here's a sample node configuration file:
 ~~~
 - Folder: Defines the name of the folder under which the user specified nodes should be created. This folder is created below the root of the OPC UA server.
 - FolderList: Defines the list of child folders, which will be published by the emulated server. (Optional)
-- NodeList: Defines the list of nodes, which will be published by the emulated server. Nodes specified in the list can be browsed and changed by OPC UA applications. This enables developers to easyly implement and test OPC UA client applications.
+- NodeList: Defines the list of nodes, which will be published by the emulated server. Nodes specified in the list can be browsed and changed by OPC UA applications. This enables developers to easily implement and test OPC UA client applications.
 - NodeId: Specifies the identifier of the node and is required. This value can be a decimal or string value. Every other JSON type is converted to a string identifier.
 - Name: The display name of the tag. If not set it will be set to the NodeId. (Optional)
-- DataType: The OPC UA valid type. It specifies one of types defined by BuiltInType. If an invalid type is specified or if it is ommitted it defaults to 'Int32'. (Optional)
+- DataType: The OPC UA valid type. It specifies one of types defined by BuiltInType. If an invalid type is specified or if it is omitted it defaults to 'Int32'. (Optional)
 - ValueRank: As defined by type ValueRanks. If omitted it will be set to the value '-1' (Scalar). (Optional)
 - AccessLevel: Specifies one of access levels defined by type AccessLevels. If an invalid access level is specified or if it is omitted it defaults to 'CurrentReadOrWrite'. (Optional)
 - Description: Description of the node. If not set it will be set to the NodeId. (Optional)
@@ -137,12 +134,10 @@ A number of changing nodes can be simulated with the following options. The node
 - UIntArray: 32 values that increase by 1
 
 ## OPC Publisher file (pn.json)
-
 The options `--sph` and `--sp` show and dump an OPC Publisher configuration file (default name: `pn.json`) that matches the configuration. In addition, a web server hosts the file on a configurable port (`--wp`, default 8080): e.g. http://localhost:8080/pn.json
 Additionally, you can set the configuration file name via the option `--spf`.
 
 ## Complex type (Boiler #1)
- 
 Adds a simple boiler to the address space.
 
 Features:
@@ -152,7 +147,6 @@ Features:
 - Pressure is calculated as 100000 + bottom temperature
 
 ## Boiler #2 derived from the Device Information (DI) companion spec
- 
 Adds a configurable boiler that exposes DI properties such as AssetId (ITagNameplate, IVendorNameplate) and DeviceHealth.
 
 Features:
@@ -176,8 +170,17 @@ DeviceHealth (DeviceHealthEnumeration) details:
 - OFF_SPEC: CurrentTemperature < BaseTemperature or CurrentTemperature > OverheatThresholdTemperature + 5
 - MAINTENANCE_REQUIRED: Triggered by MaintenanceInterval
 
-## Simple Events
+| Temperature                        | DeviceHealth   |
+| ---------------------------------- | -------------- |
+| < BaseTemperature                  | OFF_SPEC       |
+| >= BaseTemperature                 | NORMAL         |
+| <= TargetTemperature               | NORMAL         |
+| > TargetTemperature                | CHECK_FUNCTION |
+| > OverheatThresholdTemperature     | FAILURE        |
+| > OverheatThresholdTemperature + 5 | OFF_SPEC       |
 
+
+## Simple Events
 The option `--ses` enables simple events from the [quickstart sample](https://github.com/OPCFoundation/UA-.NETStandard-Samples/tree/master/Workshop/SimpleEvents) from OPC Foundation.
 
 Simple Events defines four new event types. _SystemCycleStatusEventType_ is inherited from the [_SystemEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/SystemEventType/) and
@@ -191,7 +194,6 @@ structure is hard coded to Name: Step 1 and Duration: 1000.
 
 
 ## Alarms and Condition
-
 The option `--alm` enables Alarm and Condition [quickstart sample](https://github.com/OPCFoundation/UA-.NETStandard-Samples/tree/master/Workshop/AlarmCondition) from OPC Foundation.
 
 It creates a hierarchical folder structure from _Server_, starting with _Green_ and _Yellow_. The leaf nodes
@@ -210,13 +212,11 @@ This simulation also emits two types of system events: [_SystemEventType_](https
  and [_AuditEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/AuditEventType/), every 1000 ms.
 
 ## Deterministic Alarms testing
-
 The option `--dalm=<file>` enables deterministic testing of Alarms and Conditions.
 
-More information about this feature can be found [here](deterministic-alarms.md).   
+More information about this feature can be found [here](deterministic-alarms.md).
 
 ## Other features
- 
 - Node with special characters in name and NodeId:
 - Node with long ID (3950 bytes)
 - Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray)
@@ -231,20 +231,18 @@ More information about this feature can be found [here](deterministic-alarms.md)
 - Load *.NodeSet2.xml file(s): `--ns2=<NodeSet2_xml>`
 
 ## OPC UA Methods
-
-| Name | Description | Prerequisite
----|---|---
-ResetTrend | Reset the trend values to their baseline value | Generate positive or negative trends activated
-ResetStepUp | Resets the StepUp counter to 0 | Generate data activated
-StopStepUp | Stops the StepUp counter | Generate data activated
-StartStepUp | Starts the StepUp counter | Generate data activated
-StopUpdateSlowNodes | Stops the increase of value of slow nodes | slow nodes activated
-StopUpdateFastNodes | Stops the increase of value of fast nodes | fast nodes activated
-StartUpdateSlowNodes | Start the increase of value of slow nodes | slow nodes activated
-StartUpdateFastNodes | Start the increase of value of fast nodes | fast nodes activated
+| Name                 | Description                                    | Prerequisite                                   |
+| -------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| ResetTrend           | Reset the trend values to their baseline value | Generate positive or negative trends activated |
+| ResetStepUp          | Resets the StepUp counter to 0                 | Generate data activated                        |
+| StopStepUp           | Stops the StepUp counter                       | Generate data activated                        |
+| StartStepUp          | Starts the StepUp counter                      | Generate data activated                        |
+| StopUpdateSlowNodes  | Stops the increase of value of slow nodes      | slow nodes activated                           |
+| StopUpdateFastNodes  | Stops the increase of value of fast nodes      | fast nodes activated                           |
+| StartUpdateSlowNodes | Start the increase of value of slow nodes      | slow nodes activated                           |
+| StartUpdateFastNodes | Start the increase of value of fast nodes      | fast nodes activated                           |
 
 ## Build
-
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR you need to:
 
 - Create a **service connection** called azureiiot to the subscription/resource group in which your ACR is located
@@ -257,8 +255,7 @@ Using `<reporoot>/tools/scripts/build.ps1` you can also build with Docker Deskto
 
 If you want to build using Docker yourself, it is a bit more complicated, since the dockerfile is generated by the scripts.
 So first run the `build.ps1` script as above, then locate the dockerfile for your configuration and target runtime under `<reporoot>/src/bin/publish`.
-Next, make your modifications and publish the opc-plc project in Visual Studio. Ensure that you have chosen "Self-Contained" as "Deployment Mode" and the 
-correct "Target runtime" in the Visual Studio Publish configuration. Finally, run the `docker build` command in the folder you published to using the dockerfile of your configuration and target runtime. 
+Next, make your modifications and publish the opc-plc project in Visual Studio. Ensure that you have chosen "Self-Contained" as "Deployment Mode" and the correct "Target runtime" in the Visual Studio Publish configuration. Finally, run the `docker build` command in the folder you published to using the dockerfile of your configuration and target runtime.
 
 Building with PowerShell is even simpler. Here's an example for a linux-x64 build:
 ~~~
@@ -267,7 +264,6 @@ docker build -f .\src\bin\publish\Release\linux-x64\Dockerfile.linux-amd64 -t io
 ~~~
 
 ## Notes
-
 X.509 certificates:
 
 * Running on Windows natively, you cannot use an application certificate store of type `Directory`, since the access to the private key will fail. Use the option `--at X509Store` in this case.
@@ -275,7 +271,6 @@ X.509 certificates:
 * Running as Linux Docker container using an X509Store for the application certificate, you need to use the Docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
 
 ## Resources
-
 - [The OPC Foundation OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard)
 
 ## Command-line reference
