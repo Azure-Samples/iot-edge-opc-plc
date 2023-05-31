@@ -249,22 +249,22 @@ public class Boiler2PluginNodes : IPluginNodes
         _failureEv.Initialize(_plcNodeManager.SystemContext,
                     source: null,
                     EventSeverity.Max,
-                    new LocalizedText($"FailureAlarm."));
+                    new LocalizedText($"Temperature is above overheat threshold!"));
 
         _checkFunctionEv.Initialize(_plcNodeManager.SystemContext,
                     source: null,
                     EventSeverity.Low,
-                    new LocalizedText($"CheckFunctionAlarm."));
+                    new LocalizedText($"Temperature is above target!"));
 
         _offSpecEv.Initialize(_plcNodeManager.SystemContext,
                     source: null,
                     EventSeverity.MediumLow,
-                    new LocalizedText($"OffSpecAlarm."));
+                    new LocalizedText($"Temperature is off spec!"));
 
         _maintenanceRequiredEv.Initialize(_plcNodeManager.SystemContext,
                     source: null,
                     EventSeverity.Medium,
-                    new LocalizedText($"MaintenanceRequiredAlarm."));
+                    new LocalizedText($"Maintenance required!"));
 
         _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Overheated", copy: false);
         _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Check function", copy: false);

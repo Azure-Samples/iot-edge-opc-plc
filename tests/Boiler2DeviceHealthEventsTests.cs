@@ -3,7 +3,6 @@
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
-using Opc.Ua.DI;
 using System.Collections.Generic;
 using System.Linq;
 using static System.TimeSpan;
@@ -17,11 +16,11 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
     private NodeId _eventType;
 
     public Boiler2DeviceHealthEventsTests() : base(new[] {
-        "--b2ts=5",
-        "--b2bt=1",
-        "--b2tt=123",
-        "--b2mi=567",
-        "--b2oi=678",
+        "--b2ts=5",    // Temperature change speed.
+        "--b2bt=1",    // Base temperature.
+        "--b2tt=123",  // Target temperature.
+        "--b2mi=567",  // Maintenance interval.
+        "--b2oi=678",  // Overheat interval.
     })
     {
     }
@@ -42,7 +41,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
     }
 
     [TestCase, Order(1)]
-    public void EventSubscribed_FiresNotification_Maintenance()
+    public void FiresEvent_Maintenance()
     {
         // 1. MAINTENANCE_REQUIRED: Triggered by the maintenance interval
 
@@ -55,6 +54,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         var values = events
             .Select(a => (EventFieldList)a.NotificationValue)
             .Select(EventFieldListToDictionary);
+
         foreach (var value in values)
         {
             value.Should().Contain(new Dictionary<string, object>
@@ -64,12 +64,12 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
             });
             value.Should().ContainKey("/Message")
                 .WhoseValue.Should().BeOfType<LocalizedText>()
-                .Which.Text.Should().Contain("MaintenanceRequiredAlarm.");
+                .Which.Text.Should().Be("Maintenance required!");
         }
     }
 
     [TestCase, Order(2)]
-    public void EventSubscribed_FiresNotification_Failure()
+    public void FiresEvent_Failure()
     {
         // 2. FAILURE: Temperature > overheated temperature
 
@@ -83,6 +83,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         var values = events
             .Select(a => (EventFieldList)a.NotificationValue)
             .Select(EventFieldListToDictionary);
+
         int i = 0;
         foreach (var value in values)
         {
@@ -95,13 +96,13 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
                 });
                 value.Should().ContainKey("/Message")
                     .WhoseValue.Should().BeOfType<LocalizedText>()
-                    .Which.Text.Should().Contain("FailureAlarm.");
+                    .Which.Text.Should().Be("Temperature is above overheat threshold!");
             }
         }
     }
 
     [TestCase, Order(3)]
-    public void EventSubscribed_FiresNotification_CheckFunction()
+    public void FiresEvent_CheckFunction()
     {
         // 3. CHECK_FUNCTION: Target temperature < Temperature < overheated temperature
 
@@ -115,6 +116,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         var values = events
             .Select(a => (EventFieldList)a.NotificationValue)
             .Select(EventFieldListToDictionary);
+
         int i = 0;
         foreach (var value in values)
         {
@@ -127,7 +129,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
                 });
                 value.Should().ContainKey("/Message")
                     .WhoseValue.Should().BeOfType<LocalizedText>()
-                    .Which.Text.Should().Contain("CheckFunctionAlarm.");
+                    .Which.Text.Should().Be("Temperature is above target!");
             }
             i++;
         }
@@ -135,7 +137,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
 
 
     [TestCase, Order(4)]
-    public void EventSubscribed_FiresNotification_OffSpec1()
+    public void FiresEvent_OffSpec1()
     {
         // 4. OFF_SPEC 1: Temperature < base temperature
 
@@ -146,6 +148,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
 
         var baseTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = WriteValue(baseTemperatureNodeId, currentTemperatureDegrees + 10f);
+        statusCode.Should().Be(StatusCodes.Good);
 
         // Fast forward 1 s to update the DeviceHealth.
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
@@ -154,6 +157,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         var values = events
             .Select(a => (EventFieldList)a.NotificationValue)
             .Select(EventFieldListToDictionary);
+
         foreach (var value in values)
         {
             value.Should().Contain(new Dictionary<string, object>
@@ -163,12 +167,12 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
             });
             value.Should().ContainKey("/Message")
                 .WhoseValue.Should().BeOfType<LocalizedText>()
-                .Which.Text.Should().Contain("OffSpecAlarm.");
+                .Which.Text.Should().Be("Temperature is off spec!");
         }
     }
 
     [TestCase, Order(5)]
-    public void EventSubscribed_FiresNotification_OffSpec2()
+    public void FiresEvent_OffSpec2()
     {
         // 5. OFF_SPEC 2: Temperature > overheated temperature + 5
 
@@ -181,6 +185,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         var values = events
             .Select(a => (EventFieldList)a.NotificationValue)
             .Select(EventFieldListToDictionary);
+
         foreach (var value in values)
         {
             value.Should().Contain(new Dictionary<string, object>
@@ -190,7 +195,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
             });
             value.Should().ContainKey("/Message")
                 .WhoseValue.Should().BeOfType<LocalizedText>()
-                .Which.Text.Should().Contain("OffSpecAlarm.");
+                .Which.Text.Should().Be("Temperature is off spec!");
         }
     }
 }

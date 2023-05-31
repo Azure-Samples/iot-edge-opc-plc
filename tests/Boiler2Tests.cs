@@ -14,11 +14,11 @@ using static System.TimeSpan;
 public class Boiler2Tests : SimulatorTestsBase
 {
     public Boiler2Tests() : base(new[] {
-        "--b2ts=5",
-        "--b2bt=1",
-        "--b2tt=123",
-        "--b2mi=567",
-        "--b2oi=678",
+        "--b2ts=5",    // Temperature change speed.
+        "--b2bt=1",    // Base temperature.
+        "--b2tt=123",  // Target temperature.
+        "--b2mi=567",  // Maintenance interval.
+        "--b2oi=678",  // Overheat interval.
     })
     {
     }
