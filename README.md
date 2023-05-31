@@ -166,7 +166,7 @@ Simulation details:
 DeviceHealth (DeviceHealthEnumeration) details:
 - NORMAL: BaseTemperature <= CurrentTemperature <= TargetTemperature
 - CHECK_FUNCTION: TargetTemperature < CurrentTemperature < OverheatThresholdTemperature
-- FAILURE: Temperature > OverheatThresholdTemperature
+- FAILURE: Temperature >= OverheatThresholdTemperature
 - OFF_SPEC: CurrentTemperature < BaseTemperature or CurrentTemperature > OverheatThresholdTemperature + 5
 - MAINTENANCE_REQUIRED: Triggered by MaintenanceInterval
 
@@ -176,7 +176,7 @@ DeviceHealth (DeviceHealthEnumeration) details:
 | >= BaseTemperature                 | NORMAL         |
 | <= TargetTemperature               | NORMAL         |
 | > TargetTemperature                | CHECK_FUNCTION |
-| > OverheatThresholdTemperature     | FAILURE        |
+| >= OverheatThresholdTemperature    | FAILURE        |
 | > OverheatThresholdTemperature + 5 | OFF_SPEC       |
 
 
