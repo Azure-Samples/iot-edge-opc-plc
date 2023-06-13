@@ -86,6 +86,9 @@ public class CliOptions
 
             { "to|trustowncert", $"the own certificate is put into the trusted certificate store automatically.\nDefault: {TrustMyself}", (string s) => TrustMyself = s != null },
 
+            { "msec|maxsessioncount=", $"maximum number of paralel sessions.\nDefault: {MaxSessionCount}", (ushort i) => MaxSessionCount = i },
+            { "msuc|maxsubscriptioncount=", $"maximum number of subscriptions.\nDefault: {MaxSubscriptionCount}", (ushort i) => MaxSubscriptionCount = i },
+
             // cert store options
             { "at|appcertstoretype=", $"the own application cert store type. \n(allowed values: Directory, X509Store)\nDefault: '{OpcOwnCertStoreType}'", (string s) => {
                     if (s.Equals(CertificateStoreType.X509Store, StringComparison.OrdinalIgnoreCase) || s.Equals(CertificateStoreType.Directory, StringComparison.OrdinalIgnoreCase))
@@ -187,6 +190,7 @@ public class CliOptions
             { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {Program.PnJson}", (string s) => Program.PnJson = s },
             { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {Program.WebServerPort}", (uint i) => Program.WebServerPort = i },
             { "cdn|certdnsnames=", "add additional DNS names or IP addresses to this application's certificate (comma separated values; no spaces allowed)\nDefault: DNS hostname", (string s) => DnsNames = ParseListOfStrings(s) },
+
             { "h|help", "show this message and exit", (string s) => Program.ShowHelp = s != null },
         };
 

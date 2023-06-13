@@ -31,6 +31,8 @@ public partial class OpcApplicationConfiguration
     public static string ProductUri => "https://github.com/azure-samples/iot-edge-opc-plc";
     public static ushort ServerPort { get; set; } = 50000;
     public static string ServerPath { get; set; } = string.Empty;
+    public static int MaxSessionCount { get; set; } = 100;
+    public static int MaxSubscriptionCount { get; set; } = 100;
 
     /// <summary>
     /// Default endpoint security of the application.
@@ -208,6 +210,11 @@ public partial class OpcApplicationConfiguration
 
         // show certificate store information
         await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
+        ApplicationConfiguration.ServerConfiguration.MaxSessionCount = MaxSessionCount;
+        ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount = MaxSubscriptionCount;
+        Logger.Information("Application configured with MaxSessionCount: {maxSessionCount} and MaxSubscriptionCount: {maxSubscriptionCount}",
+            ApplicationConfiguration.ServerConfiguration.MaxSessionCount,
+            ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount);
 
         return ApplicationConfiguration;
     }

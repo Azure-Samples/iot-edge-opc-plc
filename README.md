@@ -337,6 +337,12 @@ Options:
       --to, --trustowncert   the own certificate is put into the trusted
                                certificate store automatically.
                                Default: False
+      --msec, --maxsessioncount
+                             maximum number of paralel sessions.
+                               Default: 100
+      --msuc, --maxsubscriptioncount
+                             maximum number of subscriptions.
+                               Default: 100
       --at, --appcertstoretype=VALUE
                              the own application cert store type.
                                (allowed values: Directory, X509Store)
