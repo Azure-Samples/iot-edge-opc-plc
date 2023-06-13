@@ -338,7 +338,8 @@ Options:
                                certificate store automatically.
                                Default: False
       --msec, --maxsessioncount
-                             maximum number of paralel sessions.
+                             maximum number of parallel sessions.
+
                                Default: 100
       --msuc, --maxsubscriptioncount
                              maximum number of subscriptions.

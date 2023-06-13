@@ -86,8 +86,9 @@ public class CliOptions
 
             { "to|trustowncert", $"the own certificate is put into the trusted certificate store automatically.\nDefault: {TrustMyself}", (string s) => TrustMyself = s != null },
 
-            { "msec|maxsessioncount=", $"maximum number of paralel sessions.\nDefault: {MaxSessionCount}", (ushort i) => MaxSessionCount = i },
-            { "msuc|maxsubscriptioncount=", $"maximum number of subscriptions.\nDefault: {MaxSubscriptionCount}", (ushort i) => MaxSubscriptionCount = i },
+            { "msec|maxsessioncount=", $"maximum number of parallel sessions.\nDefault: {MaxSessionCount}", (int i) => MaxSessionCount = i },
+
+            { "msuc|maxsubscriptioncount=", $"maximum number of subscriptions.\nDefault: {MaxSubscriptionCount}", (int i) => MaxSubscriptionCount = i },
 
             // cert store options
             { "at|appcertstoretype=", $"the own application cert store type. \n(allowed values: Directory, X509Store)\nDefault: '{OpcOwnCertStoreType}'", (string s) => {

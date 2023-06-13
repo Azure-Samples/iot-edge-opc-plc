@@ -212,7 +212,8 @@ public partial class OpcApplicationConfiguration
         await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
         ApplicationConfiguration.ServerConfiguration.MaxSessionCount = MaxSessionCount;
         ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount = MaxSubscriptionCount;
-        Logger.Information("Application configured with MaxSessionCount: {maxSessionCount} and MaxSubscriptionCount: {maxSubscriptionCount}",
+        Logger.Information("Application configured with MaxSessionCount {maxSessionCount} and MaxSubscriptionCount {maxSubscriptionCount}",
+
             ApplicationConfiguration.ServerConfiguration.MaxSessionCount,
             ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount);
 
