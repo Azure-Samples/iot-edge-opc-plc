@@ -136,7 +136,10 @@ public partial class OpcApplicationConfiguration
             .SetMaxRegistrationInterval(LdsRegistrationInterval)
             // enable auditing events and diagnostics
             .SetDiagnosticsEnabled(true)
-            .SetAuditingEnabled(true);
+            .SetAuditingEnabled(true)
+            // set the server capabilities
+            .SetMaxSessionCount(MaxSessionCount)
+            .SetMaxSubscriptionCount(MaxSubscriptionCount);
 
         // security configuration
         ApplicationConfiguration = await InitApplicationSecurityAsync(securityBuilder).ConfigureAwait(false);
@@ -210,10 +213,7 @@ public partial class OpcApplicationConfiguration
 
         // show certificate store information
         await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
-        ApplicationConfiguration.ServerConfiguration.MaxSessionCount = MaxSessionCount;
-        ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount = MaxSubscriptionCount;
         Logger.Information("Application configured with MaxSessionCount {maxSessionCount} and MaxSubscriptionCount {maxSubscriptionCount}",
-
             ApplicationConfiguration.ServerConfiguration.MaxSessionCount,
             ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount);
 
