@@ -89,6 +89,7 @@ public class CliOptions
             { "msec|maxsessioncount=", $"maximum number of parallel sessions.\nDefault: {MaxSessionCount}", (int i) => MaxSessionCount = i },
 
             { "msuc|maxsubscriptioncount=", $"maximum number of subscriptions.\nDefault: {MaxSubscriptionCount}", (int i) => MaxSubscriptionCount = i },
+            { "mqrc|maxqueuedrequestcount=", $"maximum number of requests that will be queued waiting for a thread.\nDefault: {MaxQueuedRequestCount}", (int i) => MaxQueuedRequestCount = i },
 
             // cert store options
             { "at|appcertstoretype=", $"the own application cert store type. \n(allowed values: Directory, X509Store)\nDefault: '{OpcOwnCertStoreType}'", (string s) => {
