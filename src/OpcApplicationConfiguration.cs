@@ -242,7 +242,7 @@ public partial class OpcApplicationConfiguration
 
     private const int MAX_MESSAGE_QUEUE_SIZE = 200000;
     private const int MAX_NOTIFICATIONS_PER_PUBLISH = 200000;
-    private const int MAX_PUBLISH_REQUEST_COUNT = MAX_SUBSCRIPTION_COUNT;
+    private const int MAX_PUBLISH_REQUEST_COUNT = 200;
     private const int MAX_REQUEST_THREAD_COUNT = MAX_PUBLISH_REQUEST_COUNT;
 
     private static string _hostname = Utils.GetHostName().ToLowerInvariant();
