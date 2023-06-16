@@ -162,13 +162,15 @@ public static class Program
         Logger.Information("Log file: {logFileName}", Path.GetFullPath(LogFileName));
         Logger.Information("Log level: {logLevel}", LogLevel);
 
-        //show version
+        // Show version.
         var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
         Logger.Information("{ProgramName} {version} starting up ...",
             ProgramName,
-            $"v{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart}");
+            $"v{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} (SDK {Utils.GetAssemblyBuildNumber()})");
         Logger.Debug("Informational version: {version}",
-            $"v{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
+            $"v{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion} (SDK {Utils.GetAssemblySoftwareVersion()} from {Utils.GetAssemblyTimestamp()})");
+        Logger.Debug("Build date: {date}",
+            $"{File.GetCreationTime(Assembly.GetExecutingAssembly().Location)}");
 
         using var host = CreateHostBuilder(args);
         if (ShowPublisherConfigJsonIp || ShowPublisherConfigJsonPh)

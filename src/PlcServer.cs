@@ -9,6 +9,7 @@ using OpcPlc.Reference;
 using SimpleEvents;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
@@ -106,14 +107,16 @@ public partial class PlcServer : StandardServer
     /// </remarks>
     protected override ServerProperties LoadServerProperties()
     {
+        var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
+
         var properties = new ServerProperties
         {
             ManufacturerName = "Microsoft",
-            ProductName = "IoTEdge OPC UA PLC",
-            ProductUri = "https://github.com/Azure/iot-edge-opc-plc.git",
-            SoftwareVersion = Utils.GetAssemblySoftwareVersion(),
-            BuildNumber = Utils.GetAssemblyBuildNumber(),
-            BuildDate = Utils.GetAssemblyTimestamp()
+            ProductName = "IoT Edge OPC UA PLC",
+            ProductUri = "https://github.com/Azure-Samples/iot-edge-opc-plc",
+            SoftwareVersion = $"{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} (SDK {Utils.GetAssemblyBuildNumber()})",
+            BuildNumber = $"{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion} (SDK {Utils.GetAssemblySoftwareVersion()} from {Utils.GetAssemblyTimestamp()})",
+            BuildDate = File.GetCreationTime(Assembly.GetExecutingAssembly().Location)
         };
         return properties;
     }
