@@ -109,15 +109,20 @@ public partial class PlcServer : StandardServer
     {
         var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
 
+        string opcPlcBuildNumber = fileVersion.ProductVersion[(fileVersion.ProductVersion.IndexOf('+') + 1)..];
+        string opcUaSdkVersion = Utils.GetAssemblySoftwareVersion();
+        string opcUaSdkBuildNumber = opcUaSdkVersion[(opcUaSdkVersion.IndexOf('+') + 1)..];
+
         var properties = new ServerProperties
         {
             ManufacturerName = "Microsoft",
             ProductName = "IoT Edge OPC UA PLC",
             ProductUri = "https://github.com/Azure-Samples/iot-edge-opc-plc",
-            SoftwareVersion = $"{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} (SDK {Utils.GetAssemblyBuildNumber()})",
-            BuildNumber = $"{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion} (SDK {Utils.GetAssemblySoftwareVersion()} from {Utils.GetAssemblyTimestamp()})",
-            BuildDate = File.GetCreationTime(Assembly.GetExecutingAssembly().Location)
+            SoftwareVersion = $"{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} (OPC UA SDK {Utils.GetAssemblyBuildNumber()})",
+            BuildNumber = $"{opcPlcBuildNumber} (OPC UA SDK {opcUaSdkBuildNumber} from {Utils.GetAssemblyTimestamp()})",
+            BuildDate = File.GetCreationTime(Assembly.GetExecutingAssembly().Location),
         };
+
         return properties;
     }
 
@@ -175,9 +180,9 @@ public partial class PlcServer : StandardServer
         try
         {
             // check for connected clients
-            IList<Session> currentessions = ServerInternal.SessionManager.GetSessions();
+            IList<Session> currentSessions = ServerInternal.SessionManager.GetSessions();
 
-            if (currentessions.Count > 0)
+            if (currentSessions.Count > 0)
             {
                 // provide some time for the connected clients to detect the shutdown state.
                 ServerInternal.Status.Value.ShutdownReason = new LocalizedText("en-US", "Application closed.");
