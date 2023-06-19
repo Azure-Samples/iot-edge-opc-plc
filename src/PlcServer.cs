@@ -119,8 +119,8 @@ public partial class PlcServer : StandardServer
             ProductName = "IoT Edge OPC UA PLC",
             ProductUri = "https://github.com/Azure-Samples/iot-edge-opc-plc",
             SoftwareVersion = $"{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} (OPC UA SDK {Utils.GetAssemblyBuildNumber()})",
-            BuildNumber = $"{opcPlcBuildNumber} (OPC UA SDK {opcUaSdkBuildNumber} from {Utils.GetAssemblyTimestamp()})",
-            BuildDate = File.GetCreationTime(Assembly.GetExecutingAssembly().Location),
+            BuildNumber = $"{opcPlcBuildNumber} (OPC UA SDK {opcUaSdkBuildNumber} from {Utils.GetAssemblyTimestamp():yyyy-MM-ddTHH:mm:ssZ})",
+            BuildDate = File.GetLastWriteTimeUtc(Assembly.GetExecutingAssembly().Location),
         };
 
         return properties;
