@@ -166,11 +166,11 @@
                                         "name": "[concat(variables('aciPlc'), add(copyIndex(), 1))]",
                                         "properties": {
                                             "image": "[concat(parameters('containerServer'), '/', parameters('containerImage'))]",
-                                            "command": [
-                                                "/bin/sh",
-                                                "-c",
-                                                "[concat('./opcplc --pn=50000 --autoaccept --sph --wp=80 --alm --ses --sn=', parameters('numberOfSlowNodes'), ' --sr=', parameters('slowNodeRate'), ' --st=', parameters('slowNodeType'), ' --fn=', parameters('numberOfFastNodes'), ' --fr=', parameters('fastNodeRate'), ' --ft=', parameters('fastNodeType'), ' --ph=', variables('aciPlc'), add(copyIndex(), 1), '.', resourceGroup().location, '.azurecontainer.io')]"
-                                            ],
+                                          "command": [
+                                            "/bin/sh",
+                                            "-c",
+                                            "[concat('./opcplc --pn=50000 --autoaccept --unsecuretransport --sph --wp=80 --alm --ses --gn=5 --sn=', parameters('numberOfSlowNodes'), ' --sr=', parameters('slowNodeRate'), ' --st=', parameters('slowNodeType'), ' --fn=', parameters('numberOfFastNodes'), ' --fr=', parameters('fastNodeRate'), ' --ft=', parameters('fastNodeType'), ' --ph=', variables('aciPlc'), add(copyIndex(), 1), '.', resourceGroup().location, '.azurecontainer.io')]"
+                                          ],
                                             "ports": [
                                                 {
                                                     "protocol": "TCP",
