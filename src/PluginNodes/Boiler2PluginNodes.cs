@@ -249,7 +249,7 @@ public class Boiler2PluginNodes : IPluginNodes
         _failureEv.Initialize(_plcNodeManager.SystemContext,
             source: null,
             EventSeverity.Max,
-            new LocalizedText($"Temperature is above overheat threshold!"));
+            new LocalizedText($"Temperature is above or equal to overheat threshold!"));
 
         _checkFunctionEv.Initialize(_plcNodeManager.SystemContext,
             source: null,
