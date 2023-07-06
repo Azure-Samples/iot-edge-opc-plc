@@ -501,7 +501,7 @@
           </TargetId>
         </ReferenceNode>
       </References>
-      <EventNotifier>0</EventNotifier>
+      <EventNotifier>1</EventNotifier>
     </Node>
     <Node i:type="ObjectNode">
       <NodeId>
@@ -551,7 +551,7 @@
           </TargetId>
         </ReferenceNode>
       </References>
-      <EventNotifier>0</EventNotifier>
+      <EventNotifier>1</EventNotifier>
     </Node>
     <Node i:type="ObjectNode">
       <NodeId>
@@ -601,7 +601,7 @@
           </TargetId>
         </ReferenceNode>
       </References>
-      <EventNotifier>0</EventNotifier>
+      <EventNotifier>1</EventNotifier>
     </Node>
     <Node i:type="ObjectNode">
       <NodeId>
@@ -651,7 +651,7 @@
           </TargetId>
         </ReferenceNode>
       </References>
-      <EventNotifier>0</EventNotifier>
+      <EventNotifier>1</EventNotifier>
     </Node>
     <Node i:type="ObjectNode">
       <NodeId>
@@ -1053,7 +1053,7 @@
           </TargetId>
         </ReferenceNode>
       </References>
-      <EventNotifier>0</EventNotifier>
+      <EventNotifier>1</EventNotifier>
     </Node>
     <Node i:type="ObjectNode">
       <NodeId>
@@ -1592,7 +1592,7 @@
           </TargetId>
         </ReferenceNode>
       </References>
-      <EventNotifier>0</EventNotifier>
+      <EventNotifier>1</EventNotifier>
     </Node>
     <Node i:type="ObjectNode">
       <NodeId>
@@ -1876,7 +1876,7 @@
           </TargetId>
         </ReferenceNode>
       </References>
-      <EventNotifier>0</EventNotifier>
+      <EventNotifier>1</EventNotifier>
     </Node>
     <Node i:type="ObjectNode">
       <NodeId>
@@ -2160,7 +2160,7 @@
           </TargetId>
         </ReferenceNode>
       </References>
-      <EventNotifier>0</EventNotifier>
+      <EventNotifier>1</EventNotifier>
     </Node>
     <Node i:type="ObjectNode">
       <NodeId>
@@ -2444,7 +2444,7 @@
           </TargetId>
         </ReferenceNode>
       </References>
-      <EventNotifier>0</EventNotifier>
+      <EventNotifier>1</EventNotifier>
     </Node>
     <Node i:type="VariableNode">
       <NodeId>

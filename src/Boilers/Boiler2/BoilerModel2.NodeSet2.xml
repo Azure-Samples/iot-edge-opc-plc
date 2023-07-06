@@ -466,7 +466,7 @@
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
     </References>
   </UAObject>
-  <UAObject NodeId="ns=1;i=5003" BrowseName="1:FailureAlarm" ParentNodeId="ns=1;i=5002">
+  <UAObject NodeId="ns=1;i=5003" BrowseName="1:FailureAlarm" ParentNodeId="ns=1;i=5002" EventNotifier="1">
     <DisplayName>FailureAlarm</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">ns=2;i=15292</Reference>
@@ -474,7 +474,7 @@
       <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5002</Reference>
     </References>
   </UAObject>
-  <UAObject NodeId="ns=1;i=5004" BrowseName="1:CheckFunctionAlarm" ParentNodeId="ns=1;i=5002">
+  <UAObject NodeId="ns=1;i=5004" BrowseName="1:CheckFunctionAlarm" ParentNodeId="ns=1;i=5002" EventNotifier="1">
     <DisplayName>CheckFunctionAlarm</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">ns=2;i=15441</Reference>
@@ -482,7 +482,7 @@
       <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5002</Reference>
     </References>
   </UAObject>
-  <UAObject NodeId="ns=1;i=5005" BrowseName="1:OffSpecAlarm" ParentNodeId="ns=1;i=5002">
+  <UAObject NodeId="ns=1;i=5005" BrowseName="1:OffSpecAlarm" ParentNodeId="ns=1;i=5002" EventNotifier="1">
     <DisplayName>OffSpecAlarm</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">ns=2;i=15590</Reference>
@@ -490,7 +490,7 @@
       <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5002</Reference>
     </References>
   </UAObject>
-  <UAObject NodeId="ns=1;i=5006" BrowseName="1:MaintenanceRequiredAlarm" ParentNodeId="ns=1;i=5002">
+  <UAObject NodeId="ns=1;i=5006" BrowseName="1:MaintenanceRequiredAlarm" ParentNodeId="ns=1;i=5002" EventNotifier="1">
     <DisplayName>MaintenanceRequiredAlarm</DisplayName>
     <References>
       <Reference ReferenceType="HasTypeDefinition">ns=2;i=15739</Reference>
@@ -507,7 +507,7 @@
       <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
     </References>
   </UAObject>
-  <UAObject NodeId="ns=1;i=5017" BrowseName="1:Boiler #2" SymbolicName="Boiler__2" ParentNodeId="ns=1;i=5">
+  <UAObject NodeId="ns=1;i=5017" BrowseName="1:Boiler #2" SymbolicName="Boiler__2" ParentNodeId="ns=1;i=5" EventNotifier="1">
     <DisplayName>Boiler #2</DisplayName>
     <Description>Boiler that inherits from DI companion spec.</Description>
     <References>
@@ -842,7 +842,7 @@
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5017</Reference>
     </References>
   </UAObject>
-  <UAObject NodeId="ns=1;i=5022" BrowseName="1:FailureAlarm" ParentNodeId="ns=1;i=5018">
+  <UAObject NodeId="ns=1;i=5022" BrowseName="1:FailureAlarm" ParentNodeId="ns=1;i=5018" EventNotifier="1">
     <DisplayName>FailureAlarm</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6242</Reference>
@@ -1209,7 +1209,7 @@
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5022</Reference>
     </References>
   </UAVariable>
-  <UAObject NodeId="ns=1;i=5021" BrowseName="1:CheckFunctionAlarm" ParentNodeId="ns=1;i=5018">
+  <UAObject NodeId="ns=1;i=5021" BrowseName="1:CheckFunctionAlarm" ParentNodeId="ns=1;i=5018" EventNotifier="1">
     <DisplayName>CheckFunctionAlarm</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6219</Reference>
@@ -1576,7 +1576,7 @@
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5021</Reference>
     </References>
   </UAVariable>
-  <UAObject NodeId="ns=1;i=5024" BrowseName="1:OffSpecAlarm" ParentNodeId="ns=1;i=5018">
+  <UAObject NodeId="ns=1;i=5024" BrowseName="1:OffSpecAlarm" ParentNodeId="ns=1;i=5018" EventNotifier="1">
     <DisplayName>OffSpecAlarm</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6288</Reference>
@@ -1943,7 +1943,7 @@
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5024</Reference>
     </References>
   </UAVariable>
-  <UAObject NodeId="ns=1;i=5023" BrowseName="1:MaintenanceRequiredAlarm" ParentNodeId="ns=1;i=5018">
+  <UAObject NodeId="ns=1;i=5023" BrowseName="1:MaintenanceRequiredAlarm" ParentNodeId="ns=1;i=5018" EventNotifier="1">
     <DisplayName>MaintenanceRequiredAlarm</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty">ns=1;i=6265</Reference>
