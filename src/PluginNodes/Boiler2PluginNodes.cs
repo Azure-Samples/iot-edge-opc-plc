@@ -266,9 +266,6 @@ public class Boiler2PluginNodes : IPluginNodes
             EventSeverity.Medium,
             new LocalizedText($"Maintenance required!"));
 
-        _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Overheated", copy: false);
-        _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Check function", copy: false);
-        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Off spec", copy: false);
         _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Maintenance", copy: false);
     }
 
