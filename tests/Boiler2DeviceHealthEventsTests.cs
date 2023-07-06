@@ -96,7 +96,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
                 });
                 value.Should().ContainKey("/Message")
                     .WhoseValue.Should().BeOfType<LocalizedText>()
-                    .Which.Text.Should().Be("Temperature is above or equal to overheat threshold!");
+                    .Which.Text.Should().Be("Temperature is above or equal to the overheat threshold!");
             }
         }
     }
