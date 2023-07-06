@@ -1106,6 +1106,7 @@
           <uax:Identifier>i=78</uax:Identifier>
         </uax:ModellingRuleId>
         <uax:NumericId>5003</uax:NumericId>
+        <uax:EventNotifier>1</uax:EventNotifier>
       </FailureAlarm>
       <CheckFunctionAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
         <uax:NodeClass>Object_1</uax:NodeClass>
@@ -1126,6 +1127,7 @@
           <uax:Identifier>i=78</uax:Identifier>
         </uax:ModellingRuleId>
         <uax:NumericId>5004</uax:NumericId>
+        <uax:EventNotifier>1</uax:EventNotifier>
       </CheckFunctionAlarm>
       <OffSpecAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
         <uax:NodeClass>Object_1</uax:NodeClass>
@@ -1146,6 +1148,7 @@
           <uax:Identifier>i=78</uax:Identifier>
         </uax:ModellingRuleId>
         <uax:NumericId>5005</uax:NumericId>
+        <uax:EventNotifier>1</uax:EventNotifier>
       </OffSpecAlarm>
       <MaintenanceRequiredAlarm xmlns="http://microsoft.com/Opc/OpcPlc/Boiler">
         <uax:NodeClass>Object_1</uax:NodeClass>
@@ -1166,6 +1169,7 @@
           <uax:Identifier>i=78</uax:Identifier>
         </uax:ModellingRuleId>
         <uax:NumericId>5006</uax:NumericId>
+        <uax:EventNotifier>1</uax:EventNotifier>
       </MaintenanceRequiredAlarm>
     </DeviceHealthAlarms>
   </Boiler2Type>
@@ -1215,6 +1219,7 @@
         <uax:Identifier>ns=1;i=1000</uax:Identifier>
       </uax:TypeDefinitionId>
       <uax:NumericId>5017</uax:NumericId>
+      <uax:EventNotifier>1</uax:EventNotifier>
       <ParameterSet xmlns="http://opcfoundation.org/UA/DI/">
         <uax:NodeClass>Object_1</uax:NodeClass>
         <uax:NodeId>
@@ -2042,6 +2047,7 @@
             <uax:Identifier>ns=2;i=15292</uax:Identifier>
           </uax:TypeDefinitionId>
           <uax:NumericId>5022</uax:NumericId>
+          <uax:EventNotifier>1</uax:EventNotifier>
           <EventId xmlns="http://opcfoundation.org/UA/">
             <uax:NodeClass>Variable_2</uax:NodeClass>
             <uax:NodeId>
@@ -2974,6 +2980,7 @@
             <uax:Identifier>ns=2;i=15441</uax:Identifier>
           </uax:TypeDefinitionId>
           <uax:NumericId>5021</uax:NumericId>
+          <uax:EventNotifier>1</uax:EventNotifier>
           <EventId xmlns="http://opcfoundation.org/UA/">
             <uax:NodeClass>Variable_2</uax:NodeClass>
             <uax:NodeId>
@@ -3906,6 +3913,7 @@
             <uax:Identifier>ns=2;i=15590</uax:Identifier>
           </uax:TypeDefinitionId>
           <uax:NumericId>5024</uax:NumericId>
+          <uax:EventNotifier>1</uax:EventNotifier>
           <EventId xmlns="http://opcfoundation.org/UA/">
             <uax:NodeClass>Variable_2</uax:NodeClass>
             <uax:NodeId>
@@ -4838,6 +4846,7 @@
             <uax:Identifier>ns=2;i=15739</uax:Identifier>
           </uax:TypeDefinitionId>
           <uax:NumericId>5023</uax:NumericId>
+          <uax:EventNotifier>1</uax:EventNotifier>
           <EventId xmlns="http://opcfoundation.org/UA/">
             <uax:NodeClass>Variable_2</uax:NodeClass>
             <uax:NodeId>
