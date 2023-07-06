@@ -92,7 +92,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
                 value.Should().Contain(new Dictionary<string, object>
                 {
                     ["/EventType"] = _eventType,
-                    ["/SourceName"] = "Overheated",
+                    ["/SourceName"] = "CurrentTemperature",
                 });
                 value.Should().ContainKey("/Message")
                     .WhoseValue.Should().BeOfType<LocalizedText>()
@@ -125,7 +125,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
                 value.Should().Contain(new Dictionary<string, object>
                 {
                     ["/EventType"] = _eventType,
-                    ["/SourceName"] = "Check function",
+                    ["/SourceName"] = "CurrentTemperature",
                 });
                 value.Should().ContainKey("/Message")
                     .WhoseValue.Should().BeOfType<LocalizedText>()
@@ -163,7 +163,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
             value.Should().Contain(new Dictionary<string, object>
             {
                 ["/EventType"] = _eventType,
-                ["/SourceName"] = "Off spec",
+                ["/SourceName"] = "CurrentTemperature",
             });
             value.Should().ContainKey("/Message")
                 .WhoseValue.Should().BeOfType<LocalizedText>()
@@ -191,7 +191,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
             value.Should().Contain(new Dictionary<string, object>
             {
                 ["/EventType"] = _eventType,
-                ["/SourceName"] = "Off spec",
+                ["/SourceName"] = "CurrentTemperature",
             });
             value.Should().ContainKey("/Message")
                 .WhoseValue.Should().BeOfType<LocalizedText>()
