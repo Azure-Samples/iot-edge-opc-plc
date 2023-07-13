@@ -19,6 +19,7 @@ public class Boiler2PluginNodes : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
+    private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState _tempSpeedDegreesPerSecNode;
     private BaseDataVariableState _baseTempDegreesNode;
@@ -48,6 +49,11 @@ public class Boiler2PluginNodes : IPluginNodes
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
         optionSet.Add(
+            "nb2|noboiler2",
+            $"do not add Boiler #2 to address space.\nDefault: {!_isEnabled}",
+            (string s) => _isEnabled = s == null);
+
+        optionSet.Add(
             "b2ts|boiler2tempspeed=",
             $"Boiler #2 temperature change speed in degrees per second\nDefault: {_tempSpeedDegreesPerSec}",
             (string s) => _tempSpeedDegreesPerSec = CliHelper.ParseFloat(s, min: 1.0f, max: 10.0f, optionName: "boiler2tempspeed", digits: 1));
@@ -75,19 +81,25 @@ public class Boiler2PluginNodes : IPluginNodes
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
-        // Check again if targetTemp is within range, because the minimum uses baseTemp as lower bound and
-        // the order in which the CLI options are specified affects the calculation.
-        _ = CliHelper.ParseFloat(_targetTempDegrees.ToString(), min: _baseTempDegrees + 10.0f, max: float.MaxValue, optionName: "boiler2targettemp", digits: 1);
-
         _plcNodeManager = plcNodeManager;
 
-        AddNodes();
+        if (_isEnabled)
+        {
+            // Check again if targetTemp is within range, because the minimum uses baseTemp as lower bound and
+            // the order in which the CLI options are specified affects the calculation.
+            _ = CliHelper.ParseFloat(_targetTempDegrees.ToString(), min: _baseTempDegrees + 10.0f, max: float.MaxValue, optionName: "boiler2targettemp", digits: 1);
+
+            AddNodes();
+        }
     }
 
     public void StartSimulation()
     {
-        _nodeGenerator = TimeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
-        StartTimers();
+        if (_isEnabled)
+        {
+            _nodeGenerator = TimeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
+            StartTimers();
+        }
     }
 
     public void StopSimulation()

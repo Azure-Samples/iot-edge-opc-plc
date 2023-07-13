@@ -17,27 +17,35 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
+    private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
     private Boiler1State _node;
     private ITimer _nodeGenerator;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
-        // ctb|complextypeboiler
-        // Add complex type (boiler) to address space.
-        // Enabled by default.
+        optionSet.Add(
+            "nb1|nocomplextypeboiler",
+            $"do not complex type (boiler) to address space.\nDefault: {!_isEnabled}",
+            (string s) => _isEnabled = s == null);
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
         _plcNodeManager = plcNodeManager;
 
-        AddNodes(methodsFolder);
+        if (_isEnabled)
+        {
+            AddNodes(methodsFolder);
+        }
     }
 
     public void StartSimulation()
     {
-        _nodeGenerator = TimeService.NewTimer(UpdateBoiler1, intervalInMilliseconds: 1000);
+        if (_isEnabled)
+        {
+            _nodeGenerator = TimeService.NewTimer(UpdateBoiler1, intervalInMilliseconds: 1000);
+        }
     }
 
     public void StopSimulation()

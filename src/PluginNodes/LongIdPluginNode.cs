@@ -13,37 +13,48 @@ public class LongIdPluginNode : IPluginNodes
 {
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
+    private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
-        // lid|longid
-        // Add node with ID of 3950 chars.
-        // Enabled by default.
+        optionSet.Add(
+            "nli|nolongids",
+            $"do not generate long id nodes\nDefault: {!_isEnabled}",
+            (string s) => _isEnabled = s == null);
     }
 
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
         _plcNodeManager = plcNodeManager;
 
-        FolderState folder = _plcNodeManager.CreateFolder(
-            telemetryFolder,
-            path: "Special",
-            name: "Special",
-            NamespaceType.OpcPlcApplications);
+        if (_isEnabled)
+        {
+            FolderState folder = _plcNodeManager.CreateFolder(
+                telemetryFolder,
+                path: "Special",
+                name: "Special",
+                NamespaceType.OpcPlcApplications);
 
-        AddNodes(folder);
+            AddNodes(folder);
+        }
     }
 
     public void StartSimulation()
     {
-        _node.Start(value => value + 1, periodMs: 1000);
+        if (_isEnabled)
+        {
+            _node.Start(value => value + 1, periodMs: 1000);
+        }
     }
 
     public void StopSimulation()
     {
-        _node.Stop();
+        if (_isEnabled)
+        {
+            _node.Stop();
+        }
     }
 
     private void AddNodes(FolderState folder)
