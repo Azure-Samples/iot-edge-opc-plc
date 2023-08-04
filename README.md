@@ -187,7 +187,7 @@ Simple Events defines four new event types. _SystemCycleStatusEventType_ is inhe
 _SystemCycleStartedEventType_, _SystemCycleAbortedEventType_, _SystemCycleFinishedEventType_ from _SystemCycleStatusEventType_.
 
 Every 3000 ms a new _SystemCycleStartedEventState_ is triggered. (The other event types are not used.)
-A _message_ is generated with a counter "The system cycle '\{counter}' has started." for each event.
+Two _messages_ are generated with a counter "The system cycle '\{counter}' has started." for each event, one has severity 1 and the other one severity 2.
 
 A structure of type _CycleStepDataType_ is added to _SystemCycleStartedEventState_ event. The values in that
 structure is hard coded to Name: Step 1 and Duration: 1000.
