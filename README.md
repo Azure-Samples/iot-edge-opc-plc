@@ -205,7 +205,7 @@ The alarms are of different types:
 - Silver - [NonExclusiveLevelAlarmType](https://reference.opcfoundation.org/v104/Core/ObjectTypes/NonExclusiveLevelAlarmType/)
 - OnlineState - [DialogConditionType](https://reference.opcfoundation.org/v104/Core/ObjectTypes/DialogConditionType/)
 
-All these alarms will update on a regular interval. It is also possible to _Acknowledge_, _Confirm_ and and add _Comment_ 
+All these alarms will update on a regular interval. It is also possible to _Acknowledge_, _Confirm_ and add _Comment_ 
 to them.
 
 This simulation also emits two types of system events: [_SystemEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/SystemEventType/)
