@@ -82,7 +82,7 @@ namespace AlarmCondition
 
         #region Public Interface
         /// <summary>
-        /// Returns the last event produced for any conditions belonging to the node or its chilren.
+        /// Returns the last event produced for any conditions belonging to the node or its children.
         /// </summary>
         /// <param name="context">The system context.</param>
         /// <param name="events">The list of condition events to return.</param>
@@ -92,29 +92,23 @@ namespace AlarmCondition
             // need to check if this source has already been processed during this refresh operation.
             for (int ii = 0; ii < events.Count; ii++)
             {
-                InstanceStateSnapshot e = events[ii] as InstanceStateSnapshot;
-
-                if (e != null && Object.ReferenceEquals(e.Handle, this))
+                if (events[ii] is InstanceStateSnapshot e && ReferenceEquals(e.Handle, this))
                 {
                     return;
                 }
             }
 
             // report the dialog.
-            if (m_dialog != null)
+            if (m_dialog != null && m_dialog.Retain.Value)
             {
-                // do not refresh dialogs that are not active.
-                if (m_dialog.Retain.Value)
-                {
-                    // create a snapshot.
-                    InstanceStateSnapshot e = new InstanceStateSnapshot();
-                    e.Initialize(context, m_dialog);
+                // create a snapshot.
+                var e = new InstanceStateSnapshot();
+                e.Initialize(context, m_dialog);
 
-                    // set the handle of the snapshot to check for duplicates.
-                    e.Handle = this;
+                // set the handle of the snapshot to check for duplicates.
+                e.Handle = this;
 
-                    events.Add(e);
-                }
+                events.Add(e);
             }
 
             // the alarm objects act as a cache for the last known state and are used to generate refresh events.
@@ -127,7 +121,7 @@ namespace AlarmCondition
                 }
 
                 // create a snapshot.
-                InstanceStateSnapshot e = new InstanceStateSnapshot();
+                InstanceStateSnapshot e = new();
                 e.Initialize(context, alarm);
 
                 // set the handle of the snapshot to check for duplicates.
@@ -140,7 +134,7 @@ namespace AlarmCondition
             foreach (AlarmConditionState alarm in m_branches.Values)
             {
                 // create a snapshot.
-                InstanceStateSnapshot e = new InstanceStateSnapshot();
+                var e = new InstanceStateSnapshot();
                 e.Initialize(context, alarm);
 
                 // set the handle of the snapshot to check for duplicates.
@@ -165,9 +159,7 @@ namespace AlarmCondition
                     var branchId = new NodeId(alarm.RecordNumber, NodeId.NamespaceIndex);
 
                     // find the alarm branch.
-                    AlarmConditionState branch = null;
-
-                    if (!m_branches.TryGetValue(new NodeId(alarm.Name, NodeId.NamespaceIndex), out branch))
+                    if (!m_branches.TryGetValue(new NodeId(alarm.Name, NodeId.NamespaceIndex), out AlarmConditionState branch))
                     {
                         m_branches[branchId] = branch = CreateAlarm(alarm, branchId);
                     }
@@ -186,9 +178,7 @@ namespace AlarmCondition
                 }
 
                 // find the alarm node.
-                AlarmConditionState node = null;
-
-                if (!m_alarms.TryGetValue(alarm.Name, out node))
+                if (!m_alarms.TryGetValue(alarm.Name, out AlarmConditionState node))
                 {
                     m_alarms[alarm.Name] = node = CreateAlarm(alarm, null);
                 }
@@ -206,9 +196,10 @@ namespace AlarmCondition
         {
             ISystemContext context = m_nodeManager.SystemContext;
 
-            DialogConditionState node = new DialogConditionState(this);
-
-            node.SymbolicName = dialogName;
+            var node = new DialogConditionState(this)
+            {
+                SymbolicName = dialogName,
+            };
 
             // specify optional fields.
             node.EnabledState = new TwoStateVariableState(node);
@@ -220,7 +211,7 @@ namespace AlarmCondition
             node.ReferenceTypeId = ReferenceTypeIds.HasComponent;
 
             // This call initializes the condition from the type model (i.e. creates all of the objects
-            // and variables requried to store its state). The information about the type model was
+            // and variables required to store its state). The information about the type model was
             // incorporated into the class when the class was created.
             node.Create(
                 context,
@@ -292,7 +283,7 @@ namespace AlarmCondition
             {
                 case "HighAlarm":
                     {
-                        ExclusiveDeviationAlarmState node2 = new ExclusiveDeviationAlarmState(this);
+                        ExclusiveDeviationAlarmState node2 = new(this);
                         node = node2;
                         node2.HighLimit = new PropertyState<double>(node2);
                         break;
@@ -300,7 +291,7 @@ namespace AlarmCondition
 
                 case "HighLowAlarm":
                     {
-                        NonExclusiveLevelAlarmState node2 = new NonExclusiveLevelAlarmState(this);
+                        NonExclusiveLevelAlarmState node2 = new(this);
                         node = node2;
 
                         node2.HighHighLimit = new PropertyState<double>(node2);
@@ -345,7 +336,7 @@ namespace AlarmCondition
             }
 
             // adding optional components to children is a little more complicated since the
-            // necessary initilization strings defined by the class that represents the child.
+            // necessary initialization strings defined by the class that represents the child.
             // in this case we pre-create the child, add the optional components
             // and call create without assigning NodeIds. The NodeIds will be assigned when the
             // parent object is created.
@@ -456,9 +447,7 @@ namespace AlarmCondition
                 }
 
                 // handle high alarms.
-                ExclusiveLimitAlarmState highAlarm = node as ExclusiveLimitAlarmState;
-
-                if (highAlarm != null)
+                if (node is ExclusiveLimitAlarmState highAlarm)
                 {
                     highAlarm.HighLimit.Value = alarm.Limits[0];
 
@@ -469,9 +458,7 @@ namespace AlarmCondition
                 }
 
                 // handle high-low alarms.
-                NonExclusiveLimitAlarmState highLowAlarm = node as NonExclusiveLimitAlarmState;
-
-                if (highLowAlarm != null)
+                if (node is NonExclusiveLimitAlarmState highLowAlarm)
                 {
                     highLowAlarm.HighHighLimit.Value = alarm.Limits[0];
                     highLowAlarm.HighLimit.Value = alarm.Limits[1];
@@ -664,7 +651,7 @@ namespace AlarmCondition
             if (AreEventsMonitored)
             {
                 // create a snapshot.
-                InstanceStateSnapshot e = new InstanceStateSnapshot();
+                InstanceStateSnapshot e = new();
                 e.Initialize(m_nodeManager.SystemContext, alarm);
 
                 // report the event.
@@ -684,9 +671,7 @@ namespace AlarmCondition
                 return null;
             }
 
-            AlarmConditionState alarm = null;
-
-            if (!m_events.TryGetValue(Utils.ToHexString(eventId), out alarm))
+            if (!m_events.TryGetValue(Utils.ToHexString(eventId), out AlarmConditionState alarm))
             {
                 return null;
             }
