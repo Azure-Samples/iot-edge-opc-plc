@@ -17,40 +17,46 @@ public class UserDefinedNodesTests : SubscriptionTestsBase
     [Test]
     public void TestUserDefinedNodes()
     {
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "Child", "9999")
+        var myTelemetryNode = FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry");
+        myTelemetryNode.Should().NotBeNull();
+
+        var childNode = FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "Child");
+        childNode.Should().NotBeNull();
+
+        FindNode(childNode, Namespaces.OpcPlcApplications, "9999")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "Child", "Guid")
+        FindNode(childNode, Namespaces.OpcPlcApplications, "Guid")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1023")
+        FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1023")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "aRMS")
+        FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "aRMS")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1025")
+        FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1025")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1026")
+        FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1026")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1027")
+        FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1027")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1029")
+        FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1029")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1030")
+        FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1030")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1031")
+        FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1031")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1032")
+        FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1032")
         .Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1033")
+        FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1033")
         .Should().NotBeNull();
     }
 }
