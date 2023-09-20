@@ -20,7 +20,13 @@ public class UserDefinedNodesTests : SubscriptionTestsBase
         FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "Child", "9999")
         .Should().NotBeNull();
 
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "Child", "Guid")
+        .Should().NotBeNull();
+
         FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1023")
+        .Should().NotBeNull();
+
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "aRMS")
         .Should().NotBeNull();
 
         FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1025")
