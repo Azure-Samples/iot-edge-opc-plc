@@ -167,7 +167,7 @@ namespace AlarmCondition
                     // find the alarm branch.
                     AlarmConditionState branch = null;
 
-                    if (!m_branches.TryGetValue(alarm.Name, out branch))
+                    if (!m_branches.TryGetValue(new NodeId(alarm.Name, NodeId.NamespaceIndex), out branch))
                     {
                         m_branches[branchId] = branch = CreateAlarm(alarm, branchId);
                     }
