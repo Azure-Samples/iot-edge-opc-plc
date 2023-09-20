@@ -1,10 +1,7 @@
 ﻿namespace OpcPlc.Tests;
 
-using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
-using Opc.Ua;
-using static System.TimeSpan;
 
 /// <summary>
 /// Tests deterministic GUID nodes.
@@ -20,10 +17,10 @@ public class GuidNodesTests : SubscriptionTestsBase
     [Test]
     public void TestDeterministicNodes()
     {
-        var guidNode1 = GetOpcPlcNodeId("51b74e55-f2e3-4a4d-b79c-bf57c76ea67c");
+        var guidNode1 = FindNode(ObjectsFolder, OpcPlc.Namespaces.OpcPlcApplications, "OpcPlc", "Telemetry", "Deterministic GUID", "51b74e55-f2e3-4a4d-b79c-bf57c76ea67c");
         guidNode1.Should().NotBeNull();
 
-        var guidNode2 = GetOpcPlcNodeId("1313895e-c776-4201-b893-e514864c6692");
+        var guidNode2 = FindNode(ObjectsFolder, OpcPlc.Namespaces.OpcPlcApplications, "OpcPlc", "Telemetry", "Deterministic GUID", "1313895e-c776-4201-b893-e514864c6692");
         guidNode2.Should().NotBeNull();
     }
 }
