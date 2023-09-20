@@ -11,8 +11,8 @@ public class SimSourceNodeState : BaseObjectState
 {
     private readonly DeterministicAlarmsNodeManager _nodeManager;
     private readonly SimSourceNodeBackend _simSourceNodeBackend;
-    private readonly Dictionary<string, ConditionState> _alarmNodes = new Dictionary<string, ConditionState>();
-    private readonly Dictionary<string, ConditionState> _events = new Dictionary<string, ConditionState>();
+    private readonly Dictionary<string, ConditionState> _alarmNodes = new();
+    private readonly Dictionary<string, ConditionState> _events = new();
 
     public SimSourceNodeState(DeterministicAlarmsNodeManager nodeManager, NodeId nodeId, string name, List<Alarm> alarms) : base(null)
     {
@@ -42,8 +42,8 @@ public class SimSourceNodeState : BaseObjectState
     {
         foreach (var @event in events)
         {
-            var instanceSnapShotForExistingEvent = @event as InstanceStateSnapshot;
-            if (instanceSnapShotForExistingEvent != null && Object.ReferenceEquals(instanceSnapShotForExistingEvent.Handle, this))
+            if (@event is InstanceStateSnapshot instanceSnapShotForExistingEvent &&
+                Object.ReferenceEquals(instanceSnapShotForExistingEvent.Handle, this))
             {
                 return;
             }
@@ -96,30 +96,22 @@ public class SimSourceNodeState : BaseObjectState
         // All alarms inherent from AlarmConditionState
         else
         {
-            switch (alarm.AlarmType)
+            node = alarm.AlarmType switch
             {
-                case AlarmObjectStates.TripAlarmType:
-                    node = new TripAlarmState(this);
-                    break;
-                case AlarmObjectStates.LimitAlarmType:
-                    node = new LimitAlarmState(this);
-                    break;
-                case AlarmObjectStates.OffNormalAlarmType:
-                    node = new OffNormalAlarmState(this);
-                    break;
-                default:
-                    node = new AlarmConditionState(this);
-                    break;
-            }
+                AlarmObjectStates.TripAlarmType => new TripAlarmState(this),
+                AlarmObjectStates.LimitAlarmType => new LimitAlarmState(this),
+                AlarmObjectStates.OffNormalAlarmType => new OffNormalAlarmState(this),
+                _ => new AlarmConditionState(this),
+            };
 
             // create elements that conditiontype doesn't have
             CreateAlarmSpecificElements(context, (AlarmConditionState)node, branchId);
         }
 
-        CreateCommonFieldsForAlarmAndCondition(context, node, alarm, branchId);
+        CreateCommonFieldsForAlarmAndCondition(context, node, alarm);
 
         // This call initializes the condition from the type model (i.e. creates all of the objects
-        // and variables requried to store its state). The information about the type model was
+        // and variables required to store its state). The information about the type model was
         // incorporated into the class when the class was created.
         //
         // This method also assigns new NodeIds to all of the components by calling the INodeIdFactory.New
@@ -167,7 +159,7 @@ public class SimSourceNodeState : BaseObjectState
         node.ActiveState.Create(context, null, BrowseNames.ActiveState, null, false);
     }
 
-    private void CreateCommonFieldsForAlarmAndCondition(ISystemContext context, ConditionState node, SimAlarmStateBackend alarm, NodeId branchId)
+    private void CreateCommonFieldsForAlarmAndCondition(ISystemContext context, ConditionState node, SimAlarmStateBackend alarm)
     {
         node.SymbolicName = alarm.Name;
 
@@ -177,7 +169,7 @@ public class SimSourceNodeState : BaseObjectState
         node.AddComment = new AddCommentMethodState(node);
 
         // adding optional components to children is a little more complicated since the
-        // necessary initilization strings defined by the class that represents the child.
+        // necessary initialization strings defined by the class that represents the child.
         // in this case we pre-create the child, add the optional components
         // and call create without assigning NodeIds. The NodeIds will be assigned when the
         // parent object is created.
@@ -219,9 +211,8 @@ public class SimSourceNodeState : BaseObjectState
             node.EnabledState.TransitionTime.Value = alarm.EnableTime;
             node.SetEnableState(context, (alarm.State & SimConditionStatesEnum.Enabled) != 0);
 
-            if (node is AlarmConditionState)
+            if (node is AlarmConditionState nodeAlarm)
             {
-                var nodeAlarm = (AlarmConditionState)node;
                 nodeAlarm.SetAcknowledgedState(context, (alarm.State & SimConditionStatesEnum.Acknowledged) != 0);
                 nodeAlarm.SetConfirmedState(context, (alarm.State & SimConditionStatesEnum.Confirmed) != 0);
                 nodeAlarm.SetActiveState(context, (alarm.State & SimConditionStatesEnum.Active) != 0);
