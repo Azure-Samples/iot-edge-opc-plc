@@ -1,13 +1,10 @@
 ﻿namespace OpcPlc.Tests;
 
-using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
-using Opc.Ua;
-using static System.TimeSpan;
 
 /// <summary>
-/// Tests for nodes configured via JSON file.
+/// Tests the nodes configured via nodesfile.json.
 /// </summary>
 [TestFixture]
 public class UserDefinedNodesTests : SubscriptionTestsBase
@@ -20,10 +17,34 @@ public class UserDefinedNodesTests : SubscriptionTestsBase
     [Test]
     public void TestUserDefinedNodes()
     {
-        var node1 = GetOpcPlcNodeId("99bdhbdhjbd9");
-        node1.Should().NotBeNull();
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "Child", "9999")
+        .Should().NotBeNull();
 
-        var node2 = GetOpcPlcNodeId("1023");
-        node2.Should().NotBeNull();
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1023")
+        .Should().NotBeNull();
+
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1025")
+        .Should().NotBeNull();
+
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1026")
+        .Should().NotBeNull();
+
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1027")
+        .Should().NotBeNull();
+
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1029")
+        .Should().NotBeNull();
+
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1030")
+        .Should().NotBeNull();
+
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1031")
+        .Should().NotBeNull();
+
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1032")
+        .Should().NotBeNull();
+
+        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry", "1033")
+        .Should().NotBeNull();
     }
 }
