@@ -17,10 +17,10 @@ public class GuidNodesTests : SubscriptionTestsBase
     [Test]
     public void TestDeterministicNodes()
     {
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "Telemetry", "Deterministic GUID", "51b74e55-f2e3-4a4d-b79c-bf57c76ea67c")
-        .Should().NotBeNull();
+        var guidNode1 = FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "Telemetry", "Deterministic GUID", "51b74e55-f2e3-4a4d-b79c-bf57c76ea67c");
+        guidNode1.Should().NotBeNull();
 
-        FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "Telemetry", "Deterministic GUID", "1313895e-c776-4201-b893-e514864c6692")
-        .Should().NotBeNull();
+        var guidNode2 = FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "Telemetry", "Deterministic GUID", "1313895e-c776-4201-b893-e514864c6692");
+        guidNode2.Should().NotBeNull();
     }
 }
