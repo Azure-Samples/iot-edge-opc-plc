@@ -339,7 +339,7 @@ namespace AlarmCondition
 
                 if (parsedNodeId != null)
                 {
-                    NodeHandle handle = new NodeHandle();
+                    var handle = new NodeHandle();
 
                     handle.NodeId = nodeId;
                     handle.Validated = false;

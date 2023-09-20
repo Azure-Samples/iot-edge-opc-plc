@@ -3747,12 +3747,12 @@ namespace AlarmCondition
             NodeHandle handle)
         {
             // check for valid monitored item.
-            MonitoredItem datachangeItem = monitoredItem as MonitoredItem;
+            var dataChangeItem = monitoredItem as MonitoredItem;
 
             // check if the node is already being monitored.
             if (m_monitoredNodes.TryGetValue(handle.NodeId, out MonitoredNode monitoredNode))
             {
-                monitoredNode.Remove(datachangeItem);
+                monitoredNode.Remove(dataChangeItem);
 
                 // check if node is no longer being monitored.
                 if (!monitoredNode.HasMonitoredItems)
@@ -3765,7 +3765,7 @@ namespace AlarmCondition
             m_monitoredItems.Remove(monitoredItem.Id);
 
             // report change.
-            OnMonitoredItemDeleted(context, handle, datachangeItem);
+            OnMonitoredItemDeleted(context, handle, dataChangeItem);
 
             return ServiceResult.Good;
         }
@@ -4120,13 +4120,13 @@ namespace AlarmCondition
         #endregion
 
         #region Private Fields
-        private object m_lock = new();
-        private IServerInternal m_server;
-        private ServerSystemContext m_systemContext;
+        private readonly object m_lock = new();
+        private readonly IServerInternal m_server;
+        private readonly ServerSystemContext m_systemContext;
         private string[] m_namespaceUris;
         private ushort[] m_namespaceIndexes;
-        private Dictionary<uint, IDataChangeMonitoredItem> m_monitoredItems;
-        private Dictionary<NodeId, MonitoredNode> m_monitoredNodes;
+        private readonly Dictionary<uint, IDataChangeMonitoredItem> m_monitoredItems;
+        private readonly Dictionary<NodeId, MonitoredNode> m_monitoredNodes;
         private Dictionary<NodeId, CacheEntry> m_componentCache;
         private NodeIdDictionary<NodeState> m_predefinedNodes;
         private List<NodeState> m_rootNotifiers;
