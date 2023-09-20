@@ -52,10 +52,8 @@ public abstract class SimulatorTestsBase
     }
 
     /// <summary>
-    /// Retrieve a node from the OPC-PLC namespace given its identifier.
+    /// Get a <see cref="NodeId"/> from an identifier.
     /// </summary>
-    /// <param name="identifier">Node string identifier to retrieve.</param>
-    /// <returns>The node identifier.</returns>
     protected NodeId GetOpcPlcNodeId(string identifier)
         => NodeId.Create(identifier, OpcPlc.Namespaces.OpcPlcApplications, Session.NamespaceUris);
 
@@ -106,7 +104,7 @@ public abstract class SimulatorTestsBase
             };
 
         Session.TranslateBrowsePathsToNodeIds(
-            null,
+            requestHeader: null,
             browsePaths,
             out var results,
             out _);
@@ -116,6 +114,7 @@ public abstract class SimulatorTestsBase
             .Subject.Targets
             .Should().ContainSingle("search for {0} should retain a result target", relativePath)
             .Subject.TargetId;
+
         return ToNodeId(nodeId);
     }
 
