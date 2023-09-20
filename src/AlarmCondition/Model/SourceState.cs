@@ -67,15 +67,15 @@ namespace AlarmCondition
             TypeDefinitionId = ObjectTypeIds.BaseObjectType;
             EventNotifier = EventNotifiers.None;
 
-            //// create a dialog.
+            // create a dialog.
             m_dialog = CreateDialog("OnlineState");
 
-            //// create the table of conditions.
+            // create the table of conditions.
             m_alarms = new Dictionary<string, AlarmConditionState>();
             m_events = new Dictionary<string, AlarmConditionState>();
             m_branches = new Dictionary<NodeId, AlarmConditionState>();
 
-            //// request an updated for all alarms.
+            // request an updated for all alarms.
             //m_source.Refresh();
         }
         #endregion

@@ -70,6 +70,8 @@ public class PlcSimulatorFixture
     public PlcSimulatorFixture(string[] args)
     {
         _args = args ?? Array.Empty<string>();
+
+        Task.Run(async () => await Stop().ConfigureAwait(false))
     }
 
     /// <summary>
