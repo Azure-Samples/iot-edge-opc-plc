@@ -39,7 +39,7 @@ namespace AlarmCondition
     /// A node manager for a simple server that exposes several Areas, Sources and Conditions.
     /// </summary>
     /// <remarks>
-    /// This node manager presumes that the information model consists of a hierachy of predefined
+    /// This node manager presumes that the information model consists of a hierarchy of predefined
     /// Areas with a number of Sources contained within them. Each individual Source is
     /// identified by a fully qualified path. The underlying system knows how to access the source
     /// configuration when it is provided the fully qualified path.
@@ -67,16 +67,13 @@ namespace AlarmCondition
 
         #region IDisposable Members
         /// <summary>
-        /// An overrideable version of the Dispose.
+        /// An overridable version of the Dispose.
         /// </summary>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                if (m_system != null)
-                {
-                    m_system.Dispose();
-                }
+                m_system?.Dispose();
             }
 
             base.Dispose(disposing);
@@ -203,7 +200,7 @@ namespace AlarmCondition
         {
             try
             {
-                SystemEventState e = new SystemEventState(null);
+                SystemEventState e = new(null);
 
                 e.Initialize(
                     SystemContext,
@@ -248,13 +245,10 @@ namespace AlarmCondition
             NodeId areaId = ModelUtils.ConstructIdForArea(areaPath, NamespaceIndex);
 
             // create the object that will be used to access the area and any variables contained within it.
-            AreaState area = new AreaState(SystemContext, parent, areaId, configuration);
+            AreaState area = new(SystemContext, parent, areaId, configuration);
             m_areas[areaPath] = area;
 
-            if (parent != null)
-            {
-                parent.AddChild(area);
-            }
+            parent?.AddChild(area);
 
             // create an index any sub-areas defined for the area.
             if (configuration.SubAreas != null)
@@ -273,9 +267,8 @@ namespace AlarmCondition
                     string sourcePath = configuration.SourcePaths[ii];
 
                     // check if the source already exists because it is referenced by another area.
-                    SourceState source = null;
 
-                    if (!m_sources.TryGetValue(sourcePath, out source))
+                    if (!m_sources.TryGetValue(sourcePath, out SourceState source))
                     {
                         NodeId sourceId = ModelUtils.ConstructIdForSource(sourcePath, NamespaceIndex);
                         m_sources[sourcePath] = source = new SourceState(this, sourceId, sourcePath);
@@ -321,15 +314,15 @@ namespace AlarmCondition
                 }
 
                 // check for check for nodes that are being currently monitored.
-                MonitoredNode monitoredNode = null;
 
-                if (MonitoredNodes.TryGetValue(nodeId, out monitoredNode))
+                if (MonitoredNodes.TryGetValue(nodeId, out MonitoredNode monitoredNode))
                 {
-                    NodeHandle handle = new NodeHandle();
-
-                    handle.NodeId = nodeId;
-                    handle.Validated = true;
-                    handle.Node = monitoredNode.Node;
+                    NodeHandle handle = new()
+                    {
+                        NodeId = nodeId,
+                        Validated = true,
+                        Node = monitoredNode.Node,
+                    };
 
                     return handle;
                 }
@@ -339,12 +332,13 @@ namespace AlarmCondition
 
                 if (parsedNodeId != null)
                 {
-                    NodeHandle handle = new NodeHandle();
-
-                    handle.NodeId = nodeId;
-                    handle.Validated = false;
-                    handle.Node = null;
-                    handle.ParsedNodeId = parsedNodeId;
+                    var handle = new NodeHandle
+                    {
+                        NodeId = nodeId,
+                        Validated = false,
+                        Node = null,
+                        ParsedNodeId = parsedNodeId
+                    };
 
                     return handle;
                 }
@@ -407,9 +401,8 @@ namespace AlarmCondition
                 // validate area.
                 if (handle.ParsedNodeId.RootType == ModelUtils.Area)
                 {
-                    AreaState area = null;
 
-                    if (!m_areas.TryGetValue(handle.ParsedNodeId.RootId, out area))
+                    if (!m_areas.TryGetValue(handle.ParsedNodeId.RootId, out AreaState area))
                     {
                         return null;
                     }
@@ -417,12 +410,11 @@ namespace AlarmCondition
                     root = area;
                 }
 
-                // validate soucre.
+                // validate source.
                 else if (handle.ParsedNodeId.RootType == ModelUtils.Source)
                 {
-                    SourceState source = null;
 
-                    if (!m_sources.TryGetValue(handle.ParsedNodeId.RootId, out source))
+                    if (!m_sources.TryGetValue(handle.ParsedNodeId.RootId, out SourceState source))
                     {
                         return null;
                     }
@@ -461,19 +453,16 @@ namespace AlarmCondition
             finally
             {
                 // store the node in the cache to optimize subsequent lookups.
-                if (cache != null)
-                {
-                    cache.Add(handle.NodeId, target);
-                }
+                cache?.Add(handle.NodeId, target);
             }
         }
         #endregion
 
         #region Private Fields
-        private UnderlyingSystem m_system;
+        private readonly UnderlyingSystem m_system;
 //        private AlarmConditionServerConfiguration m_configuration;
-        private Dictionary<string, AreaState> m_areas;
-        private Dictionary<string, SourceState> m_sources;
+        private readonly Dictionary<string, AreaState> m_areas;
+        private readonly Dictionary<string, SourceState> m_sources;
         private Timer m_simulationTimer;
         #endregion
     }

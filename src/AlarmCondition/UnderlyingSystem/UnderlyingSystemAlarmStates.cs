@@ -74,22 +74,22 @@ namespace AlarmCondition
         Shelved = 0x20,
 
         /// <summary>
-        /// The condition has exceeed the high-high limit.
+        /// The condition has exceed the high-high limit.
         /// </summary>
         HighHigh = 0x40,
 
         /// <summary>
-        /// The condition has exceeed the high limit.
+        /// The condition has exceed the high limit.
         /// </summary>
         High = 0x80,
 
         /// <summary>
-        /// The condition has exceeed the low limit.
+        /// The condition has exceed the low limit.
         /// </summary>
         Low = 0x100,
 
         /// <summary>
-        /// The condition has exceeed the low-low limit.
+        /// The condition has exceed the low-low limit.
         /// </summary>
         LowLow = 0x200,
 

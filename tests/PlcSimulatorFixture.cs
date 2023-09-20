@@ -47,17 +47,17 @@ public class PlcSimulatorFixture
     /// Registry of mocked timers.
     /// </summary>
     private readonly ConcurrentBag<(ITimer timer, ElapsedEventHandler handler)> _timers
-        = new ConcurrentBag<(ITimer, ElapsedEventHandler)>();
+        = new();
 
     /// <summary>
     /// Registry of mocked fast timers.
     /// </summary>
     private readonly ConcurrentBag<(ITimer timer, FastTimerElapsedEventHandler handler)> _fastTimers
-        = new ConcurrentBag<(ITimer, FastTimerElapsedEventHandler)>();
+        = new();
 
     private Task _serverTask;
 
-    private readonly CancellationTokenSource _serverCancellationTokenSource = new CancellationTokenSource();
+    private readonly CancellationTokenSource _serverCancellationTokenSource = new();
 
     private ApplicationConfiguration _config;
 

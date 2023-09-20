@@ -23,7 +23,7 @@ public abstract class SimulatorTestsBase
     protected static readonly NodeId ObjectsFolder = ObjectIds.ObjectsFolder;
 
     /// <summary>A Bogus data generator.</summary>
-    protected static readonly Faker Fake = new Faker();
+    protected static readonly Faker Fake = new();
 
     private readonly PlcSimulatorFixture _simulator;
 

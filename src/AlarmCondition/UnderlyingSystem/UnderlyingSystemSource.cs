@@ -59,31 +59,19 @@ namespace AlarmCondition
         /// Gets or sets the name of the source.
         /// </summary>
         /// <value>The name.</value>
-        public string Name
-        {
-            get { return m_name; }
-            set { m_name = value; }
-        }
+        public string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the fully qualified name for the source.
         /// </summary>
         /// <value>The fully qualified name for a source.</value>
-        public string SourcePath
-        {
-            get { return m_sourcePath; }
-            set { m_sourcePath = value; }
-        }
+        public string SourcePath { get; set; }
 
         /// <summary>
         /// Gets or sets the type of the source.
         /// </summary>
         /// <value>The type of the source.</value>
-        public string SourceType
-        {
-            get { return m_sourceType; }
-            set { m_sourceType = value; }
-        }
+        public string SourceType { get; set; }
 
         /// <summary>
         /// Creates a new active alarm for the source.
@@ -92,20 +80,21 @@ namespace AlarmCondition
         /// <param name="alarmType">Type of the alarm.</param>
         public void CreateAlarm(string alarmName, string alarmType)
         {
-            UnderlyingSystemAlarm alarm = new UnderlyingSystemAlarm();
-
-            alarm.Source = this;
-            alarm.Name = alarmName;
-            alarm.AlarmType = alarmType;
-            alarm.RecordNumber = 0;
-            alarm.Reason = "Alarm created.";
-            alarm.Time = DateTime.UtcNow;
-            alarm.Severity = EventSeverity.Low;
-            alarm.Comment = null;
-            alarm.UserName = null;
-            alarm.State = UnderlyingSystemAlarmStates.Active | UnderlyingSystemAlarmStates.Enabled;
-            alarm.EnableTime = DateTime.UtcNow;
-            alarm.ActiveTime = DateTime.UtcNow;
+            UnderlyingSystemAlarm alarm = new()
+            {
+                Source = this,
+                Name = alarmName,
+                AlarmType = alarmType,
+                RecordNumber = 0,
+                Reason = "Alarm created.",
+                Time = DateTime.UtcNow,
+                Severity = EventSeverity.Low,
+                Comment = null,
+                UserName = null,
+                State = UnderlyingSystemAlarmStates.Active | UnderlyingSystemAlarmStates.Enabled,
+                EnableTime = DateTime.UtcNow,
+                ActiveTime = DateTime.UtcNow,
+            };
 
             switch (alarmType)
             {
@@ -137,7 +126,7 @@ namespace AlarmCondition
         /// <param name="enabling">if set to <c>true</c> the alarm is enabled.</param>
         public void EnableAlarm(string alarmName, bool enabling)
         {
-            List<UnderlyingSystemAlarm> snapshots = new List<UnderlyingSystemAlarm>();
+            List<UnderlyingSystemAlarm> snapshots = new();
 
             lock (m_alarms)
             {
@@ -236,7 +225,7 @@ namespace AlarmCondition
                     if (alarm.SetStateBits(UnderlyingSystemAlarmStates.Acknowledged, true))
                     {
                         alarm.Time = DateTime.UtcNow;
-                        alarm.Reason = "The alarm was acknoweledged.";
+                        alarm.Reason = "The alarm was acknowledged.";
                         alarm.Comment = Utils.Format("{0}", comment);
                         alarm.UserName = userName;
 
@@ -306,7 +295,7 @@ namespace AlarmCondition
         /// </summary>
         public void Refresh()
         {
-            List<UnderlyingSystemAlarm> snapshots = new List<UnderlyingSystemAlarm>();
+            List<UnderlyingSystemAlarm> snapshots = new();
 
             lock (m_alarms)
             {
@@ -325,13 +314,13 @@ namespace AlarmCondition
         }
 
         /// <summary>
-        /// Sets the state of the source (surpresses any active alarms).
+        /// Sets the state of the source (suppresses any active alarms).
         /// </summary>
         /// <param name="offline">if set to <c>true</c> the source is offline.</param>
         public void SetOfflineState(bool offline)
         {
-            m_isOffline = offline;
-            List<UnderlyingSystemAlarm> snapshots = new List<UnderlyingSystemAlarm>();
+            IsOffline = offline;
+            List<UnderlyingSystemAlarm> snapshots = new();
 
             lock (m_alarms)
             {
@@ -369,10 +358,7 @@ namespace AlarmCondition
         /// <remarks>
         /// All alarms for offline sources are suppressed.
         /// </remarks>
-        public bool IsOffline
-        {
-            get { return m_isOffline; }
-        }
+        public bool IsOffline { get; private set; }
 
         /// <summary>
         /// Simulates a source by updating the state of the alarms belonging to the condition.
@@ -402,7 +388,7 @@ namespace AlarmCondition
             }
             catch (Exception e)
             {
-                Utils.Trace(e, "Unexpected error running simulation for source {0}", m_sourcePath);
+                Utils.Trace(e, "Unexpected error running simulation for source {0}", SourcePath);
             }
         }
         #endregion
@@ -421,9 +407,7 @@ namespace AlarmCondition
                 // look up archived alarm.
                 if (recordNumber != 0)
                 {
-                    UnderlyingSystemAlarm alarm = null;
-
-                    if (!m_archive.TryGetValue(recordNumber, out alarm))
+                    if (!m_archive.TryGetValue(recordNumber, out UnderlyingSystemAlarm alarm))
                     {
                         return null;
                     }
@@ -460,7 +444,7 @@ namespace AlarmCondition
                 }
                 catch (Exception e)
                 {
-                    Utils.Trace(e, "Unexpected error reporting change to an Alarm for Source {0}.", m_sourcePath);
+                    Utils.Trace(e, "Unexpected error reporting change to an Alarm for Source {0}.", SourcePath);
                 }
             }
         }
@@ -594,13 +578,8 @@ namespace AlarmCondition
         #endregion
 
         #region Private Fields
-        private object m_lock = new object();
-        private string m_name;
-        private string m_sourcePath;
-        private string m_sourceType;
-        private List<UnderlyingSystemAlarm> m_alarms;
-        private Dictionary<uint,UnderlyingSystemAlarm> m_archive;
-        private bool m_isOffline;
+        private readonly List<UnderlyingSystemAlarm> m_alarms;
+        private readonly Dictionary<uint,UnderlyingSystemAlarm> m_archive;
         private uint m_nextRecordNumber;
         #endregion
     }

@@ -83,8 +83,8 @@ public class UserDefinedPluginNodes : IPluginNodes
 
         foreach (var node in cfgFolder.NodeList)
         {
-            bool isDecimal = node.NodeId.GetType() == Type.GetType("System.Int64");
-            bool isString = node.NodeId.GetType() == Type.GetType("System.String");
+            bool isDecimal = node.NodeId is long;
+            bool isString = node.NodeId is string;
 
             if (!isDecimal && !isString)
             {
@@ -123,7 +123,11 @@ public class UserDefinedPluginNodes : IPluginNodes
 
             CreateBaseVariable(userNodesFolder, node);
 
-            yield return PluginNodesHelper.GetNodeWithIntervals((NodeId)node.NodeId, _plcNodeManager);
+            var nodeId = isString
+                ? new NodeId(node.NodeId, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications])
+                : (NodeId)node.NodeId;
+
+            yield return PluginNodesHelper.GetNodeWithIntervals(nodeId, _plcNodeManager);
         }
 
         foreach (var childNode in AddFolders(userNodesFolder, cfgFolder))
