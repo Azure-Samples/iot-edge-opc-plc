@@ -39,7 +39,7 @@ namespace AlarmCondition
     /// A node manager for a simple server that exposes several Areas, Sources and Conditions.
     /// </summary>
     /// <remarks>
-    /// This node manager presumes that the information model consists of a hierachy of predefined
+    /// This node manager presumes that the information model consists of a hierarchy of predefined
     /// Areas with a number of Sources contained within them. Each individual Source is
     /// identified by a fully qualified path. The underlying system knows how to access the source
     /// configuration when it is provided the fully qualified path.
@@ -67,7 +67,7 @@ namespace AlarmCondition
 
         #region IDisposable Members
         /// <summary>
-        /// An overrideable version of the Dispose.
+        /// An overridable version of the Dispose.
         /// </summary>
         protected override void Dispose(bool disposing)
         {
@@ -410,7 +410,7 @@ namespace AlarmCondition
                     root = area;
                 }
 
-                // validate soucre.
+                // validate source.
                 else if (handle.ParsedNodeId.RootType == ModelUtils.Source)
                 {
 
@@ -463,6 +463,7 @@ namespace AlarmCondition
 //        private AlarmConditionServerConfiguration m_configuration;
         private readonly Dictionary<string, AreaState> m_areas;
         private readonly Dictionary<string, SourceState> m_sources;
+        private Timer m_simulationTimer;
         #endregion
     }
 }

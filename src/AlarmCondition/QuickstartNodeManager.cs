@@ -69,12 +69,9 @@ namespace AlarmCondition
             // set defaults.
             MaxQueueSize = 1000;
 
-            if (configuration != null)
+            if (configuration != null && configuration.ServerConfiguration != null)
             {
-                if (configuration.ServerConfiguration != null)
-                {
-                    MaxQueueSize = (uint)configuration.ServerConfiguration.MaxNotificationQueueSize;
-                }
+                MaxQueueSize = (uint)configuration.ServerConfiguration.MaxNotificationQueueSize;
             }
 
             // save a reference to the UA server instance that owns the node manager.
@@ -121,7 +118,7 @@ namespace AlarmCondition
         }
 
         /// <summary>
-        /// An overrideable version of the Dispose.
+        /// An overridable version of the Dispose.
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
@@ -1397,7 +1394,7 @@ namespace AlarmCondition
                     {
                         errors[ii] = StatusCodes.BadNodeIdUnknown;
 
-                        // must validate node in a seperate operation
+                        // must validate node in a separate operation
                         handle.Index = ii;
                         nodesToValidate.Add(handle);
 
@@ -1633,7 +1630,7 @@ namespace AlarmCondition
                     {
                         errors[ii] = StatusCodes.BadNodeIdUnknown;
 
-                        // must validate node in a seperate operation.
+                        // must validate node in a separate operation.
                         handle.Index = ii;
                         nodesToValidate.Add(handle);
 
@@ -1767,7 +1764,7 @@ namespace AlarmCondition
                     {
                         errors[ii] = StatusCodes.BadNodeIdUnknown;
 
-                        // must validate node in a seperate operation
+                        // must validate node in a separate operation
                         handle.Index = ii;
                         nodesToProcess.Add(handle);
 
@@ -2160,7 +2157,7 @@ namespace AlarmCondition
                     {
                         errors[ii] = StatusCodes.BadNodeIdUnknown;
 
-                        // must validate node in a seperate operation
+                        // must validate node in a separate operation
                         handle.Index = ii;
                         nodesToProcess.Add(handle);
                         continue;
@@ -3027,7 +3024,7 @@ namespace AlarmCondition
                     // owned by this node manager.
                     itemToCreate.Processed = true;
 
-                    // must validate node in a seperate operation.
+                    // must validate node in a separate operation.
                     errors[ii] = StatusCodes.BadNodeIdUnknown;
 
                     handle.Index = ii;

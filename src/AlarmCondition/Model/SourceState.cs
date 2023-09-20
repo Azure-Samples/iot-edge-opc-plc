@@ -355,7 +355,7 @@ namespace AlarmCondition
             node.ReferenceTypeId = ReferenceTypeIds.HasComponent;
 
             // This call initializes the condition from the type model (i.e. creates all of the objects
-            // and variables requried to store its state). The information about the type model was
+            // and variables required to store its state). The information about the type model was
             // incorporated into the class when the class was created.
             //
             // This method also assigns new NodeIds to all of the components by calling the INodeIdFactory.New
@@ -623,7 +623,7 @@ namespace AlarmCondition
                 m_source.SetOfflineState(false);
             }
 
-            // response 1 means set the source offine.
+            // response 1 means set the source offline.
             if (selectedResponse == 1)
             {
                 m_source.SetOfflineState(true);
