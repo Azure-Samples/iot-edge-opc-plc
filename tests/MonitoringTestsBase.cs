@@ -25,7 +25,7 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
 
     private Subscription _subscription;
 
-    private readonly ConcurrentQueue<MonitoredItemNotificationEventArgs> _receivedEvents = new ConcurrentQueue<MonitoredItemNotificationEventArgs>();
+    private readonly ConcurrentQueue<MonitoredItemNotificationEventArgs> _receivedEvents = new();
 
     protected SubscriptionTestsBase(string[] args = default) : base(args)
     {

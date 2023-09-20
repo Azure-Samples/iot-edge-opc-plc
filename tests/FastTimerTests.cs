@@ -109,7 +109,7 @@ public class FastTimerTests
     }
 
 
-    private readonly List<DateTime> _callbacks = new List<DateTime>();
+    private readonly List<DateTime> _callbacks = new();
 
     private void Callback(object state, FastTimerElapsedEventArgs elapsedEventArgs)
     {
