@@ -58,14 +58,14 @@ namespace AlarmCondition
             m_source = ((UnderlyingSystem)nodeManager.SystemContext.SystemHandle).CreateSource(sourcePath, OnAlarmChanged);
 
             // initialize the area with the fixed metadata.
-            this.SymbolicName = m_source.Name;
-            this.NodeId = nodeId;
-            this.BrowseName = new QualifiedName(Utils.Format("{0}", m_source.Name), nodeId.NamespaceIndex);
-            this.DisplayName = BrowseName.Name;
-            this.Description = null;
-            this.ReferenceTypeId = null;
-            this.TypeDefinitionId = ObjectTypeIds.BaseObjectType;
-            this.EventNotifier = EventNotifiers.None;
+            SymbolicName = m_source.Name;
+            NodeId = nodeId;
+            BrowseName = new QualifiedName(Utils.Format("{0}", m_source.Name), nodeId.NamespaceIndex);
+            DisplayName = BrowseName.Name;
+            Description = null;
+            ReferenceTypeId = null;
+            TypeDefinitionId = ObjectTypeIds.BaseObjectType;
+            EventNotifier = EventNotifiers.None;
 
             //// create a dialog.
             m_dialog = CreateDialog("OnlineState");
@@ -162,7 +162,7 @@ namespace AlarmCondition
                 // ignore archived alarms for now.
                 if (alarm.RecordNumber != 0)
                 {
-                    NodeId branchId = new NodeId(alarm.RecordNumber, this.NodeId.NamespaceIndex);
+                    var branchId = new NodeId(alarm.RecordNumber, NodeId.NamespaceIndex);
 
                     // find the alarm branch.
                     AlarmConditionState branch = null;
@@ -225,17 +225,17 @@ namespace AlarmCondition
             node.Create(
                 context,
                 null,
-                new QualifiedName(dialogName, this.BrowseName.NamespaceIndex),
+                new QualifiedName(dialogName, BrowseName.NamespaceIndex),
                 null,
                 true);
 
-            this.AddChild(node);
+            AddChild(node);
 
             // initialize event information.
             node.EventId.Value = Guid.NewGuid().ToByteArray();
             node.EventType.Value = node.TypeDefinitionId;
-            node.SourceNode.Value = this.NodeId;
-            node.SourceName.Value = this.SymbolicName;
+            node.SourceNode.Value = NodeId;
+            node.SourceName.Value = SymbolicName;
             node.ConditionName.Value = node.SymbolicName;
             node.Time.Value = DateTime.UtcNow;
             node.ReceiveTime.Value = node.Time.Value;
@@ -268,7 +268,7 @@ namespace AlarmCondition
         /// <summary>
         /// The responses used with the dialog condition.
         /// </summary>
-        private LocalizedText[] s_ResponseOptions = new LocalizedText[]
+        private readonly LocalizedText[] s_ResponseOptions = new LocalizedText[]
         {
             "Online",
             "Offline",
@@ -373,20 +373,20 @@ namespace AlarmCondition
             node.Create(
                 context,
                 null,
-                new QualifiedName(alarm.Name, this.BrowseName.NamespaceIndex),
+                new QualifiedName(alarm.Name, BrowseName.NamespaceIndex),
                 null,
                 true);
 
             // don't add branches to the address space.
             if (NodeId.IsNull(branchId))
             {
-                this.AddChild(node);
+                AddChild(node);
             }
 
             // initialize event information.node
             node.EventType.Value = node.TypeDefinitionId;
-            node.SourceNode.Value = this.NodeId;
-            node.SourceName.Value = this.SymbolicName;
+            node.SourceNode.Value = NodeId;
+            node.SourceName.Value = SymbolicName;
             node.ConditionName.Value = node.SymbolicName;
             node.Time.Value = DateTime.UtcNow;
             node.ReceiveTime.Value = node.Time.Value;
@@ -661,7 +661,7 @@ namespace AlarmCondition
             alarm.ClearChangeMasks(m_nodeManager.SystemContext, true);
 
             // check if events are being monitored for the source.
-            if (this.AreEventsMonitored)
+            if (AreEventsMonitored)
             {
                 // create a snapshot.
                 InstanceStateSnapshot e = new InstanceStateSnapshot();
@@ -736,12 +736,12 @@ namespace AlarmCondition
         #endregion
 
         #region Private Fields
-        private AlarmConditionServerNodeManager m_nodeManager;
-        private UnderlyingSystemSource m_source;
-        private Dictionary<string, AlarmConditionState> m_alarms;
-        private Dictionary<string, AlarmConditionState> m_events;
-        private Dictionary<NodeId, AlarmConditionState> m_branches;
-        private DialogConditionState m_dialog;
+        private readonly AlarmConditionServerNodeManager m_nodeManager;
+        private readonly UnderlyingSystemSource m_source;
+        private readonly Dictionary<string, AlarmConditionState> m_alarms;
+        private readonly Dictionary<string, AlarmConditionState> m_events;
+        private readonly Dictionary<NodeId, AlarmConditionState> m_branches;
+        private readonly DialogConditionState m_dialog;
         #endregion
     }
 }
