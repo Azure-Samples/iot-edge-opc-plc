@@ -2,7 +2,7 @@
  * Copyright (c) 2005-2019 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +11,7 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
@@ -49,17 +49,17 @@ namespace AlarmCondition
         Enabled = 0x1,
 
         /// <summary>
-        /// The condition requires acknowledgement by the user. 
+        /// The condition requires acknowledgement by the user.
         /// </summary>
         Acknowledged = 0x2,
 
         /// <summary>
-        /// The condition requires that the used confirm that action was taken. 
+        /// The condition requires that the used confirm that action was taken.
         /// </summary>
         Confirmed = 0x4,
 
         /// <summary>
-        /// The condition is active. 
+        /// The condition is active.
         /// </summary>
         Active = 0x8,
 
@@ -74,22 +74,22 @@ namespace AlarmCondition
         Shelved = 0x20,
 
         /// <summary>
-        /// The condition has exceed the high-high limit.
+        /// The condition has exceeded the high-high limit.
         /// </summary>
         HighHigh = 0x40,
 
         /// <summary>
-        /// The condition has exceed the high limit.
+        /// The condition has exceeded the high limit.
         /// </summary>
         High = 0x80,
 
         /// <summary>
-        /// The condition has exceed the low limit.
+        /// The condition has exceeded the low limit.
         /// </summary>
         Low = 0x100,
 
         /// <summary>
-        /// The condition has exceed the low-low limit.
+        /// The condition has exceeded the low-low limit.
         /// </summary>
         LowLow = 0x200,
 
