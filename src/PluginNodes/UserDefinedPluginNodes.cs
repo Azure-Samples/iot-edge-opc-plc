@@ -123,7 +123,11 @@ public class UserDefinedPluginNodes : IPluginNodes
 
             CreateBaseVariable(userNodesFolder, node);
 
-            yield return PluginNodesHelper.GetNodeWithIntervals((NodeId)node.NodeId, _plcNodeManager);
+            var nodeId = node.NodeId is string
+                ? new NodeId(node.NodeId, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications])
+                : (NodeId)node.NodeId;
+
+            yield return PluginNodesHelper.GetNodeWithIntervals(nodeId, _plcNodeManager);
         }
 
         foreach (var childNode in AddFolders(userNodesFolder, cfgFolder))
