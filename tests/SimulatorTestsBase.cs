@@ -110,9 +110,9 @@ public abstract class SimulatorTestsBase
             out _);
 
         var nodeId = results
-            .Should().ContainSingle("search should retain a result")
+            .Should().ContainSingle("search should contain a result")
             .Subject.Targets
-            .Should().ContainSingle("search for {0} should retain a result target", relativePath)
+            .Should().ContainSingle("search for {0} should contain a result target", relativePath)
             .Subject.TargetId;
 
         return ToNodeId(nodeId);
