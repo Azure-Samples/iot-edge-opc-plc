@@ -9,6 +9,7 @@ using Serilog;
 using Serilog.Core;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -30,6 +31,8 @@ public abstract class SimulatorTestsBase
 
     private readonly PlcSimulatorFixture _simulator;
 
+    private readonly TextWriter _logger;
+
     protected Logger Logger { get; private set; }
 
     protected SimulatorTestsBase(string[] args = default)
@@ -39,6 +42,8 @@ public abstract class SimulatorTestsBase
         Logger = new LoggerConfiguration()
             .WriteTo.NUnitOutput()
             .CreateLogger();
+
+        _logger = TestContext.Progress;
     }
 
     /// <summary>The current OPC-UA Session.</summary>
@@ -118,13 +123,14 @@ public abstract class SimulatorTestsBase
             out var results,
             out var diagnosticInfos);
 
-        Logger.Information("Collected {resultsCount} results", results.Count);
+        _logger.WriteLine($"Collected {results.Count} results");
+        Logger.Information($"Collected {results.Count} results too!");
         if(!results.Any())
         {
-            Logger.Information("Diagnostic infos: ", JsonSerializer.Serialize(diagnosticInfos));
+            _logger.WriteLine($"Diagnostic infos: {JsonSerializer.Serialize(diagnosticInfos)}");
         }
 
-        Logger.Information("results: ", JsonSerializer.Serialize(results));
+        _logger.WriteLine($"results: {JsonSerializer.Serialize(results)}");
 
         var nodeId = results
             .Should().ContainSingle("search should contain a result")
