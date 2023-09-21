@@ -8,6 +8,7 @@ using Opc.Ua.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -107,7 +108,12 @@ public abstract class SimulatorTestsBase
             requestHeader: null,
             browsePaths,
             out var results,
-            out _);
+            out var diagnosticInfos);
+
+        if(!results.Any())
+        {
+            Console.WriteLine(JsonSerializer.Serialize(diagnosticInfos));
+        }
 
         var nodeId = results
             .Should().ContainSingle("search should contain a result")
