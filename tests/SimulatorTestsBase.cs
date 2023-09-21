@@ -5,6 +5,8 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
+using Serilog;
+using Serilog.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,9 +30,15 @@ public abstract class SimulatorTestsBase
 
     private readonly PlcSimulatorFixture _simulator;
 
+    protected Logger Logger { get; private set; }
+
     protected SimulatorTestsBase(string[] args = default)
     {
         _simulator = new PlcSimulatorFixture(args);
+
+        Logger = new LoggerConfiguration()
+            .WriteTo.NUnitOutput()
+            .CreateLogger();
     }
 
     /// <summary>The current OPC-UA Session.</summary>
@@ -110,9 +118,10 @@ public abstract class SimulatorTestsBase
             out var results,
             out var diagnosticInfos);
 
+        Logger.Information("Collected {resultsCount} results", results.Count);
         if(!results.Any())
         {
-            Console.WriteLine(JsonSerializer.Serialize(diagnosticInfos));
+            Logger.Information("Diagnostic infos: ", JsonSerializer.Serialize(diagnosticInfos));
         }
 
         var nodeId = results
