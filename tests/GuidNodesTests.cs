@@ -2,6 +2,8 @@
 
 using FluentAssertions;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +15,7 @@ using System.Threading.Tasks;
 public class GuidNodesTests : SubscriptionTestsBase
 {
     // Set any cmd params needed for the plc server explicitly
-    public GuidNodesTests() : base(new[] { "--gn=2" })
+    public GuidNodesTests() : base(new[] { "--gn=2", "--sph" })
     {
     }
 
@@ -23,7 +25,9 @@ public class GuidNodesTests : SubscriptionTestsBase
         var deterministicGuidNode = FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "Telemetry", "Deterministic GUID");
         deterministicGuidNode.Should().NotBeNull();
 
-        await Task.Delay(10_000);
+        // Wait for web server to be ready.
+        var client = new HttpClient();
+        _ = await client.GetStringAsync($"http://{IPAddress.Loopback}:{Program.WebServerPort}/pn.json").ConfigureAwait(false);
 
         var guidNode1 = FindNode(deterministicGuidNode, Namespaces.OpcPlcApplications, "51b74e55-f2e3-4a4d-b79c-bf57c76ea67c");
         guidNode1.Should().NotBeNull();
