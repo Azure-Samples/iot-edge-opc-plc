@@ -124,6 +124,8 @@ public abstract class SimulatorTestsBase
             Logger.Information("Diagnostic infos: ", JsonSerializer.Serialize(diagnosticInfos));
         }
 
+        Logger.Information("results: ", JsonSerializer.Serialize(results));
+
         var nodeId = results
             .Should().ContainSingle("search should contain a result")
             .Subject.Targets
