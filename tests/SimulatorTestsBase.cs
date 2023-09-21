@@ -5,11 +5,8 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
-using Serilog;
-using Serilog.Core;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -31,19 +28,9 @@ public abstract class SimulatorTestsBase
 
     private readonly PlcSimulatorFixture _simulator;
 
-    private readonly TextWriter _logger;
-
-    protected Logger Logger { get; private set; }
-
     protected SimulatorTestsBase(string[] args = default)
     {
         _simulator = new PlcSimulatorFixture(args);
-
-        Logger = new LoggerConfiguration()
-            .WriteTo.NUnitOutput()
-            .CreateLogger();
-
-        _logger = TestContext.Progress;
     }
 
     /// <summary>The current OPC-UA Session.</summary>
@@ -121,21 +108,12 @@ public abstract class SimulatorTestsBase
             requestHeader: null,
             browsePaths,
             out var results,
-            out var diagnosticInfos);
-
-        _logger.WriteLine($"Collected {results.Count} results");
-        Logger.Information($"Collected {results.Count} results too!");
-        if(!results.Any())
-        {
-            _logger.WriteLine($"Diagnostic infos: {JsonSerializer.Serialize(diagnosticInfos)}");
-        }
-
-        _logger.WriteLine($"results: {JsonSerializer.Serialize(results)}");
+            out _);
 
         var nodeId = results
             .Should().ContainSingle("search should contain a result")
             .Subject.Targets
-            .Should().ContainSingle("search for {0} should contain a result target (diagnostic: {1})", relativePath, JsonSerializer.Serialize(results))
+            .Should().ContainSingle("search for {0} should contain a result target (Results: {1})", relativePath, JsonSerializer.Serialize(results))
             .Subject.TargetId;
 
         return ToNodeId(nodeId);
