@@ -2,7 +2,9 @@
 
 using FluentAssertions;
 using NUnit.Framework;
+using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Tests deterministic GUID nodes.
@@ -16,12 +18,12 @@ public class GuidNodesTests : SubscriptionTestsBase
     }
 
     [Test]
-    public void TestDeterministicGuidNodes()
+    public async Task TestDeterministicGuidNodes()
     {
         var deterministicGuidNode = FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "Telemetry", "Deterministic GUID");
         deterministicGuidNode.Should().NotBeNull();
 
-        Thread.Sleep(5000);
+        await Task.Delay(10_000);
 
         var guidNode1 = FindNode(deterministicGuidNode, Namespaces.OpcPlcApplications, "51b74e55-f2e3-4a4d-b79c-bf57c76ea67c");
         guidNode1.Should().NotBeNull();
