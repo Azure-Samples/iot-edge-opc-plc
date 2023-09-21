@@ -135,7 +135,7 @@ public abstract class SimulatorTestsBase
         var nodeId = results
             .Should().ContainSingle("search should contain a result")
             .Subject.Targets
-            .Should().ContainSingle("search for {0} should contain a result target (diagnostic: {1})", relativePath, JsonSerializer.Serialize(diagnosticInfos))
+            .Should().ContainSingle("search for {0} should contain a result target (diagnostic: {1})", relativePath, JsonSerializer.Serialize(results))
             .Subject.TargetId;
 
         return ToNodeId(nodeId);
