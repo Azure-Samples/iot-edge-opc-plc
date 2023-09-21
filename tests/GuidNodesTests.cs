@@ -2,7 +2,6 @@
 
 using FluentAssertions;
 using NUnit.Framework;
-using System.Threading.Tasks;
 
 /// <summary>
 /// Tests deterministic GUID nodes.
