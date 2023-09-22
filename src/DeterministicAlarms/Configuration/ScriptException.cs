@@ -2,7 +2,7 @@
 
 using System;
 
-class ScriptException : Exception
+public class ScriptException : Exception
 {
 #nullable enable
     public ScriptException(string? message) : base(message)

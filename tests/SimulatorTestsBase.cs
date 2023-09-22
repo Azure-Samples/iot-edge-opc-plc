@@ -8,6 +8,7 @@ using Opc.Ua.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -52,10 +53,8 @@ public abstract class SimulatorTestsBase
     }
 
     /// <summary>
-    /// Retrieve a node from the OPC-PLC namespace given its identifier.
+    /// Get a <see cref="NodeId"/> from an identifier.
     /// </summary>
-    /// <param name="identifier">Node string identifier to retrieve.</param>
-    /// <returns>The node identifier.</returns>
     protected NodeId GetOpcPlcNodeId(string identifier)
         => NodeId.Create(identifier, OpcPlc.Namespaces.OpcPlcApplications, Session.NamespaceUris);
 
@@ -106,16 +105,17 @@ public abstract class SimulatorTestsBase
             };
 
         Session.TranslateBrowsePathsToNodeIds(
-            null,
+            requestHeader: null,
             browsePaths,
             out var results,
             out _);
 
         var nodeId = results
-            .Should().ContainSingle("search should retain a result")
+            .Should().ContainSingle("search should contain a result")
             .Subject.Targets
-            .Should().ContainSingle("search for {0} should retain a result target", relativePath)
+            .Should().ContainSingle("search for {0} should contain a result target (Results: {1})", relativePath, JsonSerializer.Serialize(results))
             .Subject.TargetId;
+
         return ToNodeId(nodeId);
     }
 

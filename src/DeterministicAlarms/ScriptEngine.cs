@@ -27,12 +27,7 @@ public class ScriptEngine
     /// <param name="timeService"></param>
     public ScriptEngine(Script script, NextScriptStepAvailable scriptCallback, TimeService timeService)
     {
-        if (scriptCallback == null)
-        {
-            throw new ScriptException("Script Callback is not defined");
-        }
-
-        OnNextScriptStepAvailable += scriptCallback;
+        OnNextScriptStepAvailable += scriptCallback ?? throw new ScriptException("Script Callback is not defined");
 
         _script = script;
         _timeService = timeService;
