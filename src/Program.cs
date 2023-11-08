@@ -3,6 +3,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Opc.Ua;
+using OpcPlc.Extensions;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using Serilog;
@@ -321,10 +322,7 @@ public static class Program
             eArgs.Cancel = true;
         };
 
-        while (!cancellationTokenSource.Token.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(1000)))
-        {
-            // Wait for cancellation.
-        }
+        await cancellationTokenSource.Token.WhenCanceled().ConfigureAwait(false);
 
         PlcSimulation.Stop();
         PlcServer.Stop();
