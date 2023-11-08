@@ -321,7 +321,7 @@ public static class Program
             eArgs.Cancel = true;
         };
 
-        while (!cancellationTokenSource.Token.WaitHandle.WaitOne(1000))
+        while (!cancellationTokenSource.Token.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(1000)))
         {
             // Wait for cancellation.
         }
