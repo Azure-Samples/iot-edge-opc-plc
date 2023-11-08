@@ -17,11 +17,11 @@ using static Program;
 
 public partial class PlcServer : StandardServer
 {
-    public PlcNodeManager PlcNodeManager = null;
-    public AlarmConditionServerNodeManager AlarmNodeManager = null;
-    public SimpleEventsNodeManager SimpleEventsNodeManager = null;
-    public ReferenceNodeManager SimulationNodeManager = null;
-    public DeterministicAlarmsNodeManager DeterministicAlarmsNodeManager = null;
+    public PlcNodeManager PlcNodeManager;
+    public AlarmConditionServerNodeManager AlarmNodeManager;
+    public SimpleEventsNodeManager SimpleEventsNodeManager;
+    public ReferenceNodeManager SimulationNodeManager;
+    public DeterministicAlarmsNodeManager DeterministicAlarmsNodeManager;
     public readonly TimeService TimeService;
 
     public PlcServer(TimeService timeService)

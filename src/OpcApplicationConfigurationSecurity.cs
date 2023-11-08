@@ -17,10 +17,10 @@ public partial class OpcApplicationConfiguration
     /// <summary>
     /// Add own certificate to trusted peer store.
     /// </summary>
-    public static bool TrustMyself { get; set; } = false;
+    public static bool TrustMyself { get; set; }
 
     /// <summary>
-    /// Certficate store configuration for own, trusted peer, issuer and rejected stores.
+    /// Certificate store configuration for own, trusted peer, issuer and rejected stores.
     /// </summary>
     public static string OpcOwnPKIRootDefault => "pki";
     public static string OpcOwnCertStoreType { get; set; } = CertificateStoreType.Directory;
@@ -40,55 +40,55 @@ public partial class OpcApplicationConfiguration
     /// <summary>
     /// Accept certs of the clients automatically.
     /// </summary>
-    public static bool AutoAcceptCerts { get; set; } = false;
+    public static bool AutoAcceptCerts { get; set; }
 
     /// <summary>
     /// Don't reject chain validation with CA certs with unknown revocation status,
     /// e.g. when the CRL is not available or the OCSP provider is offline.
     /// The default value is <see langword="false"/>, so rejection is enabled.
     /// </summary>
-    public static bool DontRejectUnknownRevocationStatus { get; set; } = false;
+    public static bool DontRejectUnknownRevocationStatus { get; set; }
 
     /// <summary>
     /// Show CSR information during startup.
     /// </summary>
-    public static bool ShowCreateSigningRequestInfo { get; set; } = false;
+    public static bool ShowCreateSigningRequestInfo { get; set; }
 
     /// <summary>
     /// Update application certificate.
     /// </summary>
-    public static string NewCertificateBase64String { get; set; } = null;
-    public static string NewCertificateFileName { get; set; } = null;
+    public static string NewCertificateBase64String { get; set; }
+    public static string NewCertificateFileName { get; set; }
     public static string CertificatePassword { get; set; } = string.Empty;
 
     /// <summary>
     /// If there is no application cert installed we need to install the private key as well.
     /// </summary>
-    public static string PrivateKeyBase64String { get; set; } = null;
-    public static string PrivateKeyFileName { get; set; } = null;
+    public static string PrivateKeyBase64String { get; set; }
+    public static string PrivateKeyFileName { get; set; }
 
     /// <summary>
     /// Issuer certificates to add.
     /// </summary>
-    public static List<string> IssuerCertificateBase64Strings = null;
-    public static List<string> IssuerCertificateFileNames = null;
+    public static List<string> IssuerCertificateBase64Strings;
+    public static List<string> IssuerCertificateFileNames;
 
     /// <summary>
     /// Trusted certificates to add.
     /// </summary>
-    public static List<string> TrustedCertificateBase64Strings = null;
-    public static List<string> TrustedCertificateFileNames = null;
+    public static List<string> TrustedCertificateBase64Strings;
+    public static List<string> TrustedCertificateFileNames;
 
     /// <summary>
     /// CRL to update/install.
     /// </summary>
-    public static string CrlFileName { get; set; } = null;
-    public static string CrlBase64String { get; set; } = null;
+    public static string CrlFileName { get; set; }
+    public static string CrlBase64String { get; set; }
 
     /// <summary>
     /// Thumbprint of certificates to delete.
     /// </summary>
-    public static List<string> ThumbprintsToRemove = null;
+    public static List<string> ThumbprintsToRemove;
 
     /// <summary>
     /// Additional certificate DNS names.
