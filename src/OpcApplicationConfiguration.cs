@@ -33,7 +33,7 @@ public partial class OpcApplicationConfiguration
     public static string ServerPath { get; set; } = string.Empty;
     public static int MaxSessionCount { get; set; } = 100;
     public static int MaxSubscriptionCount { get; set; } = 100;
-    public static int MaxQueuedRequestCount { get; set; } = 2000;
+    public static int MaxQueuedRequestCount { get; set; } = 2_000;
 
     /// <summary>
     /// Default endpoint security of the application.
@@ -46,7 +46,7 @@ public partial class OpcApplicationConfiguration
     public static bool EnableUnsecureTransport { get; set; } = false;
 
     /// <summary>
-    /// Sets the LDS registration interval.
+    /// Sets the LDS registration interval in milliseconds.
     /// </summary>
     public static int LdsRegistrationInterval { get; set; } = 0;
 
@@ -85,8 +85,8 @@ public partial class OpcApplicationConfiguration
         var transportQuotas = new TransportQuotas
         {
             MaxStringLength = OpcMaxStringLength,
-            MaxMessageSize = 4 * 1024 * 1024,
-            MaxByteStringLength = 4 * 1024 * 1024,
+            MaxMessageSize = 4 * 1024 * 1024, // 4 kB.
+            MaxByteStringLength = 4 * 1024 * 1024, // 4 kB.
         };
 
         var alternateBaseAddresses = from dnsName in DnsNames
@@ -130,20 +130,21 @@ public partial class OpcApplicationConfiguration
         // Support larger number of nodes.
         var securityBuilder = serverBuilder
             .SetMaxMessageQueueSize(MAX_MESSAGE_QUEUE_SIZE)
+            .SetMaxNotificationQueueSize(MAX_NOTIFICATION_QUEUE_SIZE)
             .SetMaxNotificationsPerPublish(MAX_NOTIFICATIONS_PER_PUBLISH)
             .SetMaxPublishRequestCount(MAX_PUBLISH_REQUEST_COUNT)
             .SetMaxRequestThreadCount(MAX_REQUEST_THREAD_COUNT)
-            // LDS registration interval
+            // LDS registration interval.
             .SetMaxRegistrationInterval(LdsRegistrationInterval)
-            // enable auditing events and diagnostics
+            // Enable auditing events and diagnostics.
             .SetDiagnosticsEnabled(true)
             .SetAuditingEnabled(true)
-            // set the server capabilities
+            // Set the server capabilities.
             .SetMaxSessionCount(MaxSessionCount)
             .SetMaxSubscriptionCount(MaxSubscriptionCount)
             .SetMaxQueuedRequestCount(MaxQueuedRequestCount);
 
-        // security configuration
+        // Security configuration.
         ApplicationConfiguration = await InitApplicationSecurityAsync(securityBuilder).ConfigureAwait(false);
 
         foreach (var policy in ApplicationConfiguration.ServerConfiguration.SecurityPolicies)
@@ -240,10 +241,23 @@ public partial class OpcApplicationConfiguration
         }
     }
 
-    private const int MAX_MESSAGE_QUEUE_SIZE = 200000;
-    private const int MAX_NOTIFICATIONS_PER_PUBLISH = 200000;
-    private const int MAX_PUBLISH_REQUEST_COUNT = 200;
-    private const int MAX_REQUEST_THREAD_COUNT = MAX_PUBLISH_REQUEST_COUNT;
+    // Number of publish responses that can be cached per subscription for republish.
+    // If this value is too high and if the publish responses are not acknowledged,
+    // the server may run out of memory for large number of subscriptions.
+    private const int MAX_MESSAGE_QUEUE_SIZE = 20;
+
+    // Max. queue size for monitored items.
+    private const int MAX_NOTIFICATION_QUEUE_SIZE = 1_000;
+
+    // Max. number of notifications per publish response. Limit on server side.
+    private const int MAX_NOTIFICATIONS_PER_PUBLISH = 2_000;
+
+    // Max. number of publish requests per session that can be queued for processing.
+    private const int MAX_PUBLISH_REQUEST_COUNT = 20;
+
+    // Max. number of threads that can be used for processing service requests.
+    // The value should be higher than MAX_PUBLISH_REQUEST_COUNT to avoid a deadlock.
+    private const int MAX_REQUEST_THREAD_COUNT = 200;
 
     private static string _hostname = Utils.GetHostName().ToLowerInvariant();
 }
