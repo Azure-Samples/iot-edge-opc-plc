@@ -191,13 +191,13 @@ public partial class PlcServer : StandardServer
                 ServerInternal.Status.Variable.State.Value = ServerState.Shutdown;
                 ServerInternal.Status.Variable.ClearChangeMasks(ServerInternal.DefaultSystemContext, true);
 
-                for (uint timeTillShutdown = _plcShutdownWaitPeriod; timeTillShutdown > 0; timeTillShutdown--)
+                for (uint secondsUntilShutdown = _plcShutdownWaitSeconds; secondsUntilShutdown > 0; secondsUntilShutdown--)
                 {
-                    ServerInternal.Status.Value.SecondsTillShutdown = timeTillShutdown;
-                    ServerInternal.Status.Variable.SecondsTillShutdown.Value = timeTillShutdown;
-                    ServerInternal.Status.Variable.ClearChangeMasks(ServerInternal.DefaultSystemContext, true);
+                    ServerInternal.Status.Value.SecondsTillShutdown = secondsUntilShutdown;
+                    ServerInternal.Status.Variable.SecondsTillShutdown.Value = secondsUntilShutdown;
+                    ServerInternal.Status.Variable.ClearChangeMasks(ServerInternal.DefaultSystemContext, includeChildren: true);
 
-                    Thread.Sleep(1000);
+                    Thread.Sleep(TimeSpan.FromSeconds(1));
                 }
             }
         }
@@ -209,5 +209,5 @@ public partial class PlcServer : StandardServer
         base.OnServerStopping();
     }
 
-    private const uint _plcShutdownWaitPeriod = 10;
+    private const uint _plcShutdownWaitSeconds = 10;
 }
