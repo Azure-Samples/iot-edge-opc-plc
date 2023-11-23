@@ -1,4 +1,4 @@
-﻿/* ========================================================================
+/* ========================================================================
  * Copyright (c) 2005-2020 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
@@ -1767,7 +1767,7 @@ namespace OpcPlc.Reference
         /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private DataItemState CreateTwoStateDiscreteItemVariable(NodeState parent, string path, string name, string trueState, string falseState)
+        private TwoStateDiscreteState CreateTwoStateDiscreteItemVariable(NodeState parent, string path, string name, string trueState, string falseState)
         {
             TwoStateDiscreteState variable = new TwoStateDiscreteState(parent);
 
@@ -1814,7 +1814,7 @@ namespace OpcPlc.Reference
         /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private DataItemState CreateMultiStateDiscreteItemVariable(NodeState parent, string path, string name, params string[] values)
+        private MultiStateDiscreteState CreateMultiStateDiscreteItemVariable(NodeState parent, string path, string name, params string[] values)
         {
             MultiStateDiscreteState variable = new MultiStateDiscreteState(parent);
 
@@ -1865,7 +1865,7 @@ namespace OpcPlc.Reference
         /// <summary>
         /// Creates a new UInt32 variable.
         /// </summary>
-        private DataItemState CreateMultiStateValueDiscreteItemVariable(NodeState parent, string path, string name, params string[] enumNames)
+        private MultiStateValueDiscreteState CreateMultiStateValueDiscreteItemVariable(NodeState parent, string path, string name, params string[] enumNames)
         {
             return CreateMultiStateValueDiscreteItemVariable(parent, path, name, null, enumNames);
         }
@@ -1873,7 +1873,7 @@ namespace OpcPlc.Reference
         /// <summary>
         /// Creates a new variable.
         /// </summary>
-        private DataItemState CreateMultiStateValueDiscreteItemVariable(NodeState parent, string path, string name, NodeId nodeId, params string[] enumNames)
+        private MultiStateValueDiscreteState CreateMultiStateValueDiscreteItemVariable(NodeState parent, string path, string name, NodeId nodeId, params string[] enumNames)
         {
             MultiStateValueDiscreteState variable = new MultiStateValueDiscreteState(parent);
 
@@ -2236,7 +2236,7 @@ namespace OpcPlc.Reference
         /// <summary>
         /// Creates a new variable type.
         /// </summary>
-        private BaseVariableTypeState CreateVariableType(NodeState parent, IDictionary<NodeId, IList<IReference>> externalReferences, string path, string name, BuiltInType dataType, int valueRank)
+        private BaseDataVariableTypeState CreateVariableType(NodeState parent, IDictionary<NodeId, IList<IReference>> externalReferences, string path, string name, BuiltInType dataType, int valueRank)
         {
             BaseDataVariableTypeState type = new BaseDataVariableTypeState();
 

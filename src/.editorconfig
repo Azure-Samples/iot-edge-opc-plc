@@ -310,3 +310,10 @@ dotnet_diagnostic.CA1848.severity                                             = 
 
 # CA1852: Seal internal Types
 dotnet_diagnostic.CA1852.severity                                             = none
+
+# CA1860: Avoid using 'Enumerable.Any()' extension method
+dotnet_diagnostic.CA1860.severity 											  = suggestion
+
+# CA1861: Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array	
+dotnet_diagnostic.CA1861.severity 											  = suggestion
+
