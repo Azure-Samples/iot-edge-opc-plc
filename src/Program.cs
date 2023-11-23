@@ -1,12 +1,13 @@
-﻿namespace OpcPlc;
+namespace OpcPlc;
 
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Extensions;
 using OpcPlc.Helpers;
+using OpcPlc.Logging;
 using OpcPlc.PluginNodes.Models;
-using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -28,9 +29,14 @@ public static class Program
     public const string ProgramName = "OpcPlc";
 
     /// <summary>
+    /// 
+    /// </summary>
+    public static ILoggerFactory LoggerFactory = null;
+
+    /// <summary>
     /// Logging object.
     /// </summary>
-    public static Serilog.Core.Logger Logger = null;
+    public static ILogger Logger = null;
 
     /// <summary>
     /// Nodes to extend the address space.
@@ -109,7 +115,7 @@ public static class Program
     /// Logging configuration.
     /// </summary>
     public static string LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
-    public static string LogLevel = "info";
+    public static string LogLevelCli = "info";
     public static TimeSpan LogFileFlushTimeSpanSec = TimeSpan.FromSeconds(30);
 
     public enum NodeType
@@ -153,24 +159,24 @@ public static class Program
         // Validate and parse extra arguments
         if (extraArgs.Count > 0)
         {
-            Logger.Warning($"Found one or more invalid command line arguments: {string.Join(" ", extraArgs)}");
+            Logger.LogWarning($"Found one or more invalid command line arguments: {string.Join(" ", extraArgs)}");
             CliOptions.PrintUsage(options);
         }
 
         LogLogo();
 
-        Logger.Information("Current directory: {currentDirectory}", Directory.GetCurrentDirectory());
-        Logger.Information("Log file: {logFileName}", Path.GetFullPath(LogFileName));
-        Logger.Information("Log level: {logLevel}", LogLevel);
+        Logger.LogInformation("Current directory: {currentDirectory}", Directory.GetCurrentDirectory());
+        Logger.LogInformation("Log file: {logFileName}", Path.GetFullPath(LogFileName));
+        Logger.LogInformation("Log level: {logLevel}", LogLevelCli);
 
         // Show version.
         var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
-        Logger.Information("{ProgramName} {version} starting up ...",
+        Logger.LogInformation("{ProgramName} {version} starting up ...",
             ProgramName,
             $"v{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} (SDK {Utils.GetAssemblyBuildNumber()})");
-        Logger.Debug("Informational version: {version}",
+        Logger.LogDebug("Informational version: {version}",
             $"v{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion} (SDK {Utils.GetAssemblySoftwareVersion()} from {Utils.GetAssemblyTimestamp()})");
-        Logger.Debug("Build date: {date}",
+        Logger.LogDebug("Build date: {date}",
             $"{File.GetCreationTime(Assembly.GetExecutingAssembly().Location)}");
 
         using var host = CreateHostBuilder(args);
@@ -185,10 +191,10 @@ public static class Program
         }
         catch (Exception ex)
         {
-            Logger.Fatal(ex, "OPC UA server failed unexpectedly");
+            Logger.LogCritical(ex, "OPC UA server failed unexpectedly");
         }
 
-        Logger.Information("OPC UA server exiting...");
+        Logger.LogInformation("OPC UA server exiting...");
     }
 
     /// <summary>
@@ -218,20 +224,20 @@ public static class Program
 
             if (ShowPublisherConfigJsonIp)
             {
-                Logger.Information("Web server started: {pnJsonUri}", $"http://{GetIpAddress()}:{WebServerPort}/{PnJson}");
+                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{GetIpAddress()}:{WebServerPort}/{PnJson}");
             }
             else if (ShowPublisherConfigJsonPh)
             {
-                Logger.Information("Web server started: {pnJsonUri}", $"http://{Hostname}:{WebServerPort}/{PnJson}");
+                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{Hostname}:{WebServerPort}/{PnJson}");
             }
             else
             {
-                Logger.Information("Web server started on port {webServerPort}", WebServerPort);
+                Logger.LogInformation("Web server started on port {webServerPort}", WebServerPort);
             }
         }
         catch (Exception e)
         {
-            Logger.Error("Could not start web server on port {webServerPort}: {message}",
+            Logger.LogError("Could not start web server on port {webServerPort}: {message}",
                 WebServerPort,
                 e.Message);
         }
@@ -268,27 +274,27 @@ public static class Program
         ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync().ConfigureAwait(false);
 
         // start the server.
-        Logger.Information("Starting server on endpoint {endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
-        Logger.Information("Simulation settings are:");
-        Logger.Information("One simulation phase consists of {SimulationCycleCount} cycles", SimulationCycleCount);
-        Logger.Information("One cycle takes {SimulationCycleLength} ms", SimulationCycleLength);
-        Logger.Information("Reference test simulation: {addReferenceTestSimulation}",
+        Logger.LogInformation("Starting server on endpoint {endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
+        Logger.LogInformation("Simulation settings are:");
+        Logger.LogInformation("One simulation phase consists of {SimulationCycleCount} cycles", SimulationCycleCount);
+        Logger.LogInformation("One cycle takes {SimulationCycleLength} ms", SimulationCycleLength);
+        Logger.LogInformation("Reference test simulation: {addReferenceTestSimulation}",
             AddReferenceTestSimulation ? "Enabled" : "Disabled");
-        Logger.Information("Simple events: {addSimpleEventsSimulation}",
+        Logger.LogInformation("Simple events: {addSimpleEventsSimulation}",
             AddSimpleEventsSimulation ? "Enabled" : "Disabled");
-        Logger.Information("Alarms: {addAlarmSimulation}", AddAlarmSimulation ? "Enabled" : "Disabled");
-        Logger.Information("Deterministic alarms: {deterministicAlarmSimulation}",
+        Logger.LogInformation("Alarms: {addAlarmSimulation}", AddAlarmSimulation ? "Enabled" : "Disabled");
+        Logger.LogInformation("Deterministic alarms: {deterministicAlarmSimulation}",
             DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
 
-        Logger.Information("Anonymous authentication: {anonymousAuth}", DisableAnonymousAuth ? "Disabled" : "Enabled");
-        Logger.Information("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
-        Logger.Information("Username/Password authentication: {usernamePasswordAuth}", DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
-        Logger.Information("Certificate authentication: {certAuth}", DisableCertAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Anonymous authentication: {anonymousAuth}", DisableAnonymousAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
+        Logger.LogInformation("Username/Password authentication: {usernamePasswordAuth}", DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Certificate authentication: {certAuth}", DisableCertAuth ? "Disabled" : "Enabled");
 
         // Add simple events, alarms, reference test simulation and deterministic alarms.
         PlcServer = new PlcServer(TimeService);
         PlcServer.Start(plcApplicationConfiguration);
-        Logger.Information("OPC UA Server started");
+        Logger.LogInformation("OPC UA Server started");
 
         // Add remaining base simulations.
         PlcSimulation = new PlcSimulation(PlcServer);
@@ -312,7 +318,7 @@ public static class Program
         }
 
         Ready = true;
-        Logger.Information("PLC simulation started, press Ctrl+C to exit ...");
+        Logger.LogInformation("PLC simulation started, press Ctrl+C to exit ...");
 
         // Wait for Ctrl-C to allow canceling the connection process.
         var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -333,48 +339,51 @@ public static class Program
     /// </summary>
     private static void InitLogging()
     {
-        var loggerConfiguration = new LoggerConfiguration();
+        LogLevel logLevel = LogLevel.Information;
 
         // set the log level
-        switch (LogLevel)
+        switch (Program.LogLevelCli)
         {
-            case "fatal":
-                loggerConfiguration.MinimumLevel.Fatal();
+            case "critical":
+                logLevel = LogLevel.Critical;
                 OpcStackTraceMask = OpcTraceToLoggerFatal = 0;
                 break;
             case "error":
-                loggerConfiguration.MinimumLevel.Error();
+                logLevel = LogLevel.Error;
                 OpcStackTraceMask = OpcTraceToLoggerError = Utils.TraceMasks.Error;
                 break;
             case "warn":
-                loggerConfiguration.MinimumLevel.Warning();
+                logLevel = LogLevel.Warning;
                 OpcStackTraceMask = OpcTraceToLoggerError = Utils.TraceMasks.Error | Utils.TraceMasks.StackTrace;
                 OpcTraceToLoggerWarning = Utils.TraceMasks.StackTrace;
                 OpcStackTraceMask |= OpcTraceToLoggerWarning;
                 break;
             case "info":
-                loggerConfiguration.MinimumLevel.Information();
+                logLevel = LogLevel.Information;
                 OpcTraceToLoggerError = Utils.TraceMasks.Error;
                 OpcTraceToLoggerWarning = Utils.TraceMasks.StackTrace;
                 OpcTraceToLoggerInformation = Utils.TraceMasks.Security;
                 OpcStackTraceMask = OpcTraceToLoggerError | OpcTraceToLoggerInformation | OpcTraceToLoggerWarning;
                 break;
             case "debug":
-                loggerConfiguration.MinimumLevel.Debug();
+                logLevel = LogLevel.Debug;
                 OpcTraceToLoggerError = Utils.TraceMasks.Error;
                 OpcTraceToLoggerWarning = Utils.TraceMasks.StackTrace;
                 OpcTraceToLoggerInformation = Utils.TraceMasks.Security;
                 OpcTraceToLoggerDebug = Utils.TraceMasks.Operation | Utils.TraceMasks.StartStop | Utils.TraceMasks.ExternalSystem;
                 OpcStackTraceMask = OpcTraceToLoggerError | OpcTraceToLoggerInformation | OpcTraceToLoggerDebug | OpcTraceToLoggerWarning;
                 break;
-            case "verbose":
-                loggerConfiguration.MinimumLevel.Verbose();
+            case "trace":
+                logLevel = LogLevel.Trace;
                 OpcTraceToLoggerError = Utils.TraceMasks.Error | Utils.TraceMasks.StackTrace;
                 OpcTraceToLoggerInformation = Utils.TraceMasks.Security;
                 OpcStackTraceMask = OpcTraceToLoggerVerbose = Utils.TraceMasks.All;
                 break;
         }
 
+        LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(logLevel);
+
+#if TODO
         // set logging sinks
         loggerConfiguration.WriteTo.Console();
 
@@ -390,8 +399,8 @@ public static class Program
             const int MAX_RETAINED_LOGFILES = 2;
             loggerConfiguration.WriteTo.File(LogFileName, fileSizeLimitBytes: MAX_LOGFILE_SIZE, flushToDiskInterval: LogFileFlushTimeSpanSec, rollOnFileSizeLimit: true, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
         }
-
-        Logger = loggerConfiguration.CreateLogger();
+#endif
+        Logger = LoggerFactory.CreateLogger("opcPlc");
     }
 
     /// <summary>
@@ -412,7 +421,7 @@ public static class Program
 
     private static void LogLogo()
     {
-        Logger.Information(
+        Logger.LogInformation(
             @"
  ██████╗ ██████╗  ██████╗    ██████╗ ██╗      ██████╗
 ██╔═══██╗██╔══██╗██╔════╝    ██╔══██╗██║     ██╔════╝

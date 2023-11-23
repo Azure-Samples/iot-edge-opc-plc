@@ -1,7 +1,9 @@
 namespace OpcPlc;
 
 using AlarmCondition;
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
+using Opc.Ua.Bindings;
 using Opc.Ua.Server;
 using OpcPlc.CompanionSpecs.DI;
 using OpcPlc.DeterministicAlarms;
@@ -12,6 +14,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using static Program;
 
@@ -80,13 +83,13 @@ public partial class PlcServer : StandardServer
             if (string.IsNullOrWhiteSpace(scriptFileName))
             {
                 string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";
-                Logger.Error(errorMessage);
+                Logger.LogError(errorMessage);
                 throw new Exception(errorMessage);
             }
             if (!File.Exists(scriptFileName))
             {
                 string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist.";
-                Logger.Error(errorMessage);
+                Logger.LogError(errorMessage);
                 throw new Exception(errorMessage);
             }
 
