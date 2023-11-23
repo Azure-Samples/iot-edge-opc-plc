@@ -56,21 +56,6 @@ public partial class OpcApplicationConfiguration
     public static int OpcMaxStringLength { get; set; } = 4 * 1024 * 1024;
 
     /// <summary>
-    /// Mapping of the application logging levels to OPC stack logging levels.
-    /// </summary>
-    public static int OpcTraceToLoggerVerbose = 0;
-    public static int OpcTraceToLoggerDebug = 0;
-    public static int OpcTraceToLoggerInformation = 0;
-    public static int OpcTraceToLoggerWarning = 0;
-    public static int OpcTraceToLoggerError = 0;
-    public static int OpcTraceToLoggerFatal = 0;
-
-    /// <summary>
-    /// Set the OPC stack log level.
-    /// </summary>
-    public static int OpcStackTraceMask { get; set; } = 0;
-
-    /// <summary>
     /// Configures all OPC stack settings.
     /// </summary>
     public async Task<ApplicationConfiguration> ConfigureAsync()
@@ -178,11 +163,6 @@ public partial class OpcApplicationConfiguration
 
         Logger.LogInformation("LDS(-ME) registration interval set to {ldsRegistrationInterval} ms (0 means no registration)",
             LdsRegistrationInterval);
-
-        // configure OPC stack tracing
-        Utils.SetTraceMask(OpcStackTraceMask);
-        Logger.LogInformation("The OPC UA trace mask is set to: {opcStackTraceMask}",
-            $"0x{OpcStackTraceMask:X}");
 
         var microsoftLogger = Program.LoggerFactory.CreateLogger("Opc");
 

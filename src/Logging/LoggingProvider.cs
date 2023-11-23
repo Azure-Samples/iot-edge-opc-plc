@@ -6,6 +6,7 @@
 namespace OpcPlc.Logging;
 
 using Microsoft.Extensions.Logging;
+using System;
 
 /// <summary>
 /// Provides utility for creating logger factory.
@@ -18,20 +19,13 @@ public static class LoggingProvider
     public static ILoggerFactory CreateDefaultLoggerFactory(LogLevel level)
     {
         var loggerFactory = LoggerFactory.Create(builder =>
+        {
             builder.AddConsole(options => options.FormatterName = nameof(SyslogFormatter))
-#if mist
-            builder.AddSimpleConsole(options => {
-                options.UseUtcTimestamp = true;
-                options.IncludeScopes = true;
-                options.TimestampFormat = IoTEdgeSyslogFormatterOptions.DefaultTimestampFormat;
-                options.SingleLine = true;
-                options.ColorBehavior = Microsoft.Extensions.Logging.Console.LoggerColorBehavior.Enabled;
-            })
-#endif
             .SetMinimumLevel(level)
             .AddConsoleFormatter<
                 SyslogFormatter,
-                SyslogFormatterOptions>());
+                SyslogFormatterOptions>();
+        });
 
         return loggerFactory;
     }

@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 
 public class Configuration
 {
-    static JsonSerializerOptions fromJsonOptions = new JsonSerializerOptions {
+    static readonly JsonSerializerOptions _fromJsonOptions = new JsonSerializerOptions {
         ReadCommentHandling = JsonCommentHandling.Skip,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters =
@@ -15,7 +15,7 @@ public class Configuration
         },
     };
 
-    static JsonSerializerOptions toJsonOptions = new JsonSerializerOptions {
+    static readonly JsonSerializerOptions _toJsonOptions = new JsonSerializerOptions {
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -31,11 +31,11 @@ public class Configuration
 
     public string ToJson()
     {
-        return JsonSerializer.Serialize(this, toJsonOptions);
+        return JsonSerializer.Serialize(this, _toJsonOptions);
     }
 
     public static Configuration FromJson(string json)
     {
-        return JsonSerializer.Deserialize<Configuration>(json, fromJsonOptions);
+        return JsonSerializer.Deserialize<Configuration>(json, _fromJsonOptions);
     }
 }

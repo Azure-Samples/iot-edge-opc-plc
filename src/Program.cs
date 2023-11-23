@@ -11,6 +11,7 @@ using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -322,8 +323,7 @@ public static class Program
 
         // Wait for Ctrl-C to allow canceling the connection process.
         var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        Console.CancelKeyPress += (_, eArgs) =>
-        {
+        Console.CancelKeyPress += (_, eArgs) => {
             cancellationTokenSource.Cancel();
             eArgs.Cancel = true;
         };
@@ -342,50 +342,31 @@ public static class Program
         LogLevel logLevel = LogLevel.Information;
 
         // set the log level
-        switch (Program.LogLevelCli)
+        switch (LogLevelCli)
         {
             case "critical":
                 logLevel = LogLevel.Critical;
-                OpcStackTraceMask = OpcTraceToLoggerFatal = 0;
                 break;
             case "error":
                 logLevel = LogLevel.Error;
-                OpcStackTraceMask = OpcTraceToLoggerError = Utils.TraceMasks.Error;
                 break;
             case "warn":
                 logLevel = LogLevel.Warning;
-                OpcStackTraceMask = OpcTraceToLoggerError = Utils.TraceMasks.Error | Utils.TraceMasks.StackTrace;
-                OpcTraceToLoggerWarning = Utils.TraceMasks.StackTrace;
-                OpcStackTraceMask |= OpcTraceToLoggerWarning;
                 break;
             case "info":
                 logLevel = LogLevel.Information;
-                OpcTraceToLoggerError = Utils.TraceMasks.Error;
-                OpcTraceToLoggerWarning = Utils.TraceMasks.StackTrace;
-                OpcTraceToLoggerInformation = Utils.TraceMasks.Security;
-                OpcStackTraceMask = OpcTraceToLoggerError | OpcTraceToLoggerInformation | OpcTraceToLoggerWarning;
                 break;
             case "debug":
                 logLevel = LogLevel.Debug;
-                OpcTraceToLoggerError = Utils.TraceMasks.Error;
-                OpcTraceToLoggerWarning = Utils.TraceMasks.StackTrace;
-                OpcTraceToLoggerInformation = Utils.TraceMasks.Security;
-                OpcTraceToLoggerDebug = Utils.TraceMasks.Operation | Utils.TraceMasks.StartStop | Utils.TraceMasks.ExternalSystem;
-                OpcStackTraceMask = OpcTraceToLoggerError | OpcTraceToLoggerInformation | OpcTraceToLoggerDebug | OpcTraceToLoggerWarning;
                 break;
             case "trace":
                 logLevel = LogLevel.Trace;
-                OpcTraceToLoggerError = Utils.TraceMasks.Error | Utils.TraceMasks.StackTrace;
-                OpcTraceToLoggerInformation = Utils.TraceMasks.Security;
-                OpcStackTraceMask = OpcTraceToLoggerVerbose = Utils.TraceMasks.All;
                 break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(LogLevelCli), $"Unknown log level: {LogLevelCli}");
         }
 
         LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(logLevel);
-
-#if TODO
-        // set logging sinks
-        loggerConfiguration.WriteTo.Console();
 
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("_GW_LOGP")))
         {
@@ -397,9 +378,9 @@ public static class Program
             // configure rolling file sink
             const int MAX_LOGFILE_SIZE = 1024 * 1024;
             const int MAX_RETAINED_LOGFILES = 2;
-            loggerConfiguration.WriteTo.File(LogFileName, fileSizeLimitBytes: MAX_LOGFILE_SIZE, flushToDiskInterval: LogFileFlushTimeSpanSec, rollOnFileSizeLimit: true, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
+            LoggerFactory.AddFile(LogFileName, logLevel, null, false, fileSizeLimitBytes: MAX_LOGFILE_SIZE, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
         }
-#endif
+
         Logger = LoggerFactory.CreateLogger("opcPlc");
     }
 
@@ -409,10 +390,9 @@ public static class Program
     public static IHost CreateHostBuilder(string[] args)
     {
         var host = Host.CreateDefaultBuilder(args)
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
+            .ConfigureWebHostDefaults(webBuilder => {
                 webBuilder.UseContentRoot(Directory.GetCurrentDirectory()); // Avoid System.InvalidOperationException.
-                    webBuilder.UseUrls($"http://*:{WebServerPort}");
+                webBuilder.UseUrls($"http://*:{WebServerPort}");
                 webBuilder.UseStartup<Startup>();
             }).Build();
 
