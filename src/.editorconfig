@@ -139,7 +139,7 @@ csharp_style_var_elsewhere                                                    = 
 csharp_style_prefer_index_operator                                            = true : warning
 csharp_style_prefer_not_pattern                                               = true : warning
 csharp_style_prefer_pattern_matching                                          = true : suggestion
-csharp_style_prefer_switch_expression                                         = true : warning
+csharp_style_prefer_switch_expression                                         = true : suggestion
 csharp_style_prefer_range_operator                                            = false : warning
 
 #Style - unused values
