@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.PluginNodes.Models;
 using System;
@@ -179,7 +180,7 @@ public class DataPluginNodes : IPluginNodes
     private ServiceResult OnResetStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         ResetStepUpData();
-        Logger.Debug("ResetStepUp method called");
+        Logger.LogDebug("ResetStepUp method called");
         return ServiceResult.Good;
     }
 
@@ -189,7 +190,7 @@ public class DataPluginNodes : IPluginNodes
     private ServiceResult OnStartStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         StartStepUp();
-        Logger.Debug("StartStepUp method called");
+        Logger.LogDebug("StartStepUp method called");
         return ServiceResult.Good;
     }
 
@@ -199,7 +200,7 @@ public class DataPluginNodes : IPluginNodes
     private ServiceResult OnStopStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         StopStepUp();
-        Logger.Debug("StopStepUp method called");
+        Logger.LogDebug("StopStepUp method called");
         return ServiceResult.Good;
     }
 
@@ -234,7 +235,7 @@ public class DataPluginNodes : IPluginNodes
         bool nextAlternatingBoolean = _alternatingBooleanCycleInPhase % PlcSimulation.SimulationCycleCount == 0 ? !value : value;
         if (value != nextAlternatingBoolean)
         {
-            Logger.Verbose($"Data change to: {nextAlternatingBoolean}");
+            Logger.LogTrace($"Data change to: {nextAlternatingBoolean}");
         }
 
         // end of cycle: reset cycle count

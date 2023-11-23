@@ -1,7 +1,7 @@
 ﻿namespace OpcPlc.Helpers;
 
+using Microsoft.Extensions.Logging;
 using OpcPlc.PluginNodes.Models;
-using Serilog;
 using System;
 using System.Collections.Immutable;
 using System.IO;
@@ -53,7 +53,7 @@ public static class PnJsonHelper
         sb.AppendLine("]");
 
         string pnJson = sb.ToString();
-        logger.Information("OPC Publisher configuration file: {pnJsonFile}", $"{pnJsonFileName}{pnJson}");
+        logger.LogInformation("OPC Publisher configuration file: {pnJsonFile}", $"{pnJsonFileName}{pnJson}");
 
         await File.WriteAllTextAsync(pnJsonFileName, pnJson.Trim()).ConfigureAwait(false);
     }

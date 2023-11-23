@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -63,11 +64,11 @@ public class UaNodesPluginNodes : IPluginNodes
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Error loading binary uanodes file {file}: {error}", file, e.Message);
+                Logger.LogError(e, "Error loading binary uanodes file {file}: {error}", file, e.Message);
             }
         }
 
-        Logger.Information("Completed processing binary uanodes file(s)");
+        Logger.LogInformation("Completed processing binary uanodes file(s)");
     }
 
     /// <summary>

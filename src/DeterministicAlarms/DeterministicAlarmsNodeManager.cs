@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using static OpcPlc.Program;
+using Microsoft.Extensions.Logging;
 
 public class DeterministicAlarmsNodeManager : CustomNodeManager2
 {
@@ -49,7 +50,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Cannot read or decode deterministic alarm script file");
+            Logger.LogError(ex, "Cannot read or decode deterministic alarm script file");
         }
     }
 
@@ -115,12 +116,12 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         try
         {
             VerifyScriptConfiguration(scriptConfiguration);
-            Logger.Information("Script starts executing");
+            Logger.LogInformation("Script starts executing");
             var scriptEngine = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable, _timeService);
         }
         catch (ScriptException ex)
         {
-            Logger.Error($"Script Engine Exception '{ex.Message}'\nSCRIPT WILL NOT START");
+            Logger.LogError($"Script Engine Exception '{ex.Message}'\nSCRIPT WILL NOT START");
             throw;
         }
     }
@@ -134,7 +135,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
     {
         if (step == null)
         {
-            Logger.Information("SCRIPT ENDED");
+            Logger.LogInformation("SCRIPT ENDED");
         }
         else
         {
@@ -199,16 +200,16 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
     {
         if (step.Event != null)
         {
-            Logger.Information($"({loopNumber}) -\t{step.Event.AlarmId}\t{step.Event.Reason}");
+            Logger.LogInformation($"({loopNumber}) -\t{step.Event.AlarmId}\t{step.Event.Reason}");
             foreach (var sc in step.Event.StateChanges)
             {
-                Logger.Information($"\t\t{sc.StateType} - {sc.State}");
+                Logger.LogInformation($"\t\t{sc.StateType} - {sc.State}");
             }
         }
 
         if (step.SleepInSeconds > 0)
         {
-            Logger.Information($"({loopNumber}) -\tSleep: {step.SleepInSeconds}");
+            Logger.LogInformation($"({loopNumber}) -\tSleep: {step.SleepInSeconds}");
         }
     }
 

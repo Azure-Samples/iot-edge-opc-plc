@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -59,11 +60,11 @@ public class NodeSet2PluginNodes : IPluginNodes
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Error loading NodeSet2 file {file}: {error}", file, e.Message);
+                Logger.LogError(e, "Error loading NodeSet2 file {file}: {error}", file, e.Message);
             }
         }
 
-        Logger.Information("Completed processing NodeSet2 file(s)");
+        Logger.LogInformation("Completed processing NodeSet2 file(s)");
     }
 
     /// <summary>

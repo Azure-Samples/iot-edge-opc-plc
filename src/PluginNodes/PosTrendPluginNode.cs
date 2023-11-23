@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -54,7 +55,7 @@ public class PosTrendPluginNode : IPluginNodes
         {
             _posTrendAnomalyPhase = _random.Next(10);
             _posTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
-            Logger.Verbose($"First pos trend anomaly phase: {_posTrendAnomalyPhase}");
+            Logger.LogTrace($"First pos trend anomaly phase: {_posTrendAnomalyPhase}");
 
             _node.Start(PosTrendGenerator, PlcSimulation.SimulationCycleLength);
         }
@@ -112,7 +113,7 @@ public class PosTrendPluginNode : IPluginNodes
         if (_isEnabled && _posTrendPhase >= _posTrendAnomalyPhase)
         {
             nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10d);
-            Logger.Verbose("Generate postrend anomaly");
+            Logger.LogTrace("Generate postrend anomaly");
         }
 
         // end of cycle: reset cycle count and calc next anomaly cycle
@@ -120,7 +121,7 @@ public class PosTrendPluginNode : IPluginNodes
         {
             _posTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
             _posTrendPhase++;
-            Logger.Verbose($"Pos trend phase: {_posTrendPhase}, data: {nextValue}");
+            Logger.LogTrace($"Pos trend phase: {_posTrendPhase}, data: {nextValue}");
         }
 
         return nextValue;
@@ -137,7 +138,7 @@ public class PosTrendPluginNode : IPluginNodes
     private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         ResetTrendData();
-        Logger.Debug("ResetPosTrend method called");
+        Logger.LogDebug("ResetPosTrend method called");
         return ServiceResult.Good;
     }
 

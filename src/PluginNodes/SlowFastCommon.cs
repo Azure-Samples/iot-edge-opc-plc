@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using System;
 using static OpcPlc.Program;
@@ -37,9 +38,9 @@ public class SlowFastCommon
 
         if (count > 0)
         {
-            Logger.Information($"Creating {count} {name} nodes of type: {type}");
-            Logger.Information("Node values will change every " + nodeRate + " ms");
-            Logger.Information("Node values sampling rate is " + nodeSamplingInterval + " ms");
+            Logger.LogInformation($"Creating {count} {name} nodes of type: {type}");
+            Logger.LogInformation("Node values will change every " + nodeRate + " ms");
+            Logger.LogInformation("Node values sampling rate is " + nodeSamplingInterval + " ms");
         }
 
         for (int i = 0; i < count; i++)
@@ -135,7 +136,7 @@ public class SlowFastCommon
     {
         if (nodes == null || nodes.Length == 0)
         {
-            Logger.Warning("Invalid argument {argument} provided.", nodes);
+            Logger.LogWarning("Invalid argument {argument} provided.", nodes);
             return;
         }
 

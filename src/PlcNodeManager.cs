@@ -1,5 +1,6 @@
 namespace OpcPlc;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
 using System;
@@ -67,7 +68,7 @@ public class PlcNodeManager : CustomNodeManager2
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Error creating address space");
+                Logger.LogError(e, "Error creating address space");
             }
 
             AddPredefinedNode(SystemContext, root);
@@ -182,7 +183,7 @@ public class PlcNodeManager : CustomNodeManager2
         }
         else
         {
-            Logger.Debug("NodeId type is {nodeIdType}", path.GetType().ToString());
+            Logger.LogDebug("NodeId type is {nodeIdType}", (string)path.GetType().ToString());
             baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
         }

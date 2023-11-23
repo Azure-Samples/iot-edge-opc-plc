@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -65,8 +66,8 @@ public class DeterministicGuidPluginNodes : IPluginNodes
 
         if (NodeCount > 0)
         {
-            Logger.Information($"Creating {NodeCount} GUID node(s) of type: {NodeType}");
-            Logger.Information($"Node values will change every {NodeRate} ms");
+            Logger.LogInformation($"Creating {NodeCount} GUID node(s) of type: {NodeType}");
+            Logger.LogInformation($"Node values will change every {NodeRate} ms");
         }
 
         for (int i = 0; i < NodeCount; i++)

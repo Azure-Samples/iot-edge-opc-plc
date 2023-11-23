@@ -27,11 +27,8 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using System;
-using System.Collections.Generic;
 using System.Text;
 using Opc.Ua;
-using Opc.Ua.Server;
 
 namespace AlarmCondition
 {
