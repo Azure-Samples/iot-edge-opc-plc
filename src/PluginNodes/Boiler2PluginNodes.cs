@@ -33,9 +33,9 @@ public class Boiler2PluginNodes : IPluginNodes
     private DeviceHealthDiagnosticAlarmTypeState _checkFunctionEv;
     private DeviceHealthDiagnosticAlarmTypeState _offSpecEv;
     private DeviceHealthDiagnosticAlarmTypeState _maintenanceRequiredEv;
-    private ITimer _nodeGenerator;
-    private ITimer _maintenanceGenerator;
-    private ITimer _overheatGenerator;
+    private OpcPlc.ITimer _nodeGenerator;
+    private OpcPlc.ITimer _maintenanceGenerator;
+    private OpcPlc.ITimer _overheatGenerator;
 
     private float _tempSpeedDegreesPerSec = 1.0f;
     private float _baseTempDegrees = 10.0f;

@@ -47,13 +47,13 @@ public class PlcSimulatorFixture
     /// <summary>
     /// Registry of mocked timers.
     /// </summary>
-    private readonly ConcurrentBag<(ITimer timer, ElapsedEventHandler handler)> _timers
+    private readonly ConcurrentBag<(OpcPlc.ITimer timer, ElapsedEventHandler handler)> _timers
         = new();
 
     /// <summary>
     /// Registry of mocked fast timers.
     /// </summary>
-    private readonly ConcurrentBag<(ITimer timer, FastTimerElapsedEventHandler handler)> _fastTimers
+    private readonly ConcurrentBag<(OpcPlc.ITimer timer, FastTimerElapsedEventHandler handler)> _fastTimers
         = new();
 
     private Task _serverTask;
@@ -90,7 +90,7 @@ public class PlcSimulatorFixture
         mock.Setup(f => f.NewTimer(It.IsAny<ElapsedEventHandler>(), It.IsAny<uint>()))
             .Returns((ElapsedEventHandler handler, uint intervalInMilliseconds) =>
             {
-                var mockTimer = new Mock<ITimer>();
+                var mockTimer = new Mock<OpcPlc.ITimer>();
                 mockTimer.SetupAllProperties();
                 var timer = mockTimer.Object;
                 timer.Interval = intervalInMilliseconds;
@@ -103,7 +103,7 @@ public class PlcSimulatorFixture
         mock.Setup(f => f.NewFastTimer(It.IsAny<FastTimerElapsedEventHandler>(), It.IsAny<uint>()))
             .Returns((FastTimerElapsedEventHandler handler, uint intervalInMilliseconds) =>
             {
-                var mockTimer = new Mock<ITimer>();
+                var mockTimer = new Mock<OpcPlc.ITimer>();
                 mockTimer.SetupAllProperties();
                 var timer = mockTimer.Object;
                 timer.Interval = intervalInMilliseconds;
