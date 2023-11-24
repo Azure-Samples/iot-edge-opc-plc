@@ -339,6 +339,11 @@ public static class Program
     /// </summary>
     private static void InitLogging()
     {
+        if (LoggerFactory != null && Logger != null)
+        {
+            return;
+        }
+
         LogLevel logLevel = LogLevel.Information;
 
         // set the log level

@@ -44,6 +44,18 @@ public sealed class SyslogFormatter : ConsoleFormatter, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="SyslogFormatter"/> class.
     /// </summary>
+    public SyslogFormatter(SyslogFormatterOptions options)
+        : base(nameof(SyslogFormatter))
+    {
+        _optionsReloadToken = null;
+        _serviceId = options.ServiceId;
+        _timestampFormat = options.TimestampFormat ?? SyslogFormatterOptions.DefaultTimestampFormat;
+        _includeScopes = options.IncludeScopes;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SyslogFormatter"/> class.
+    /// </summary>
     public SyslogFormatter(IOptionsMonitor<SyslogFormatterOptions> options)
         : base(nameof(SyslogFormatter))
     {

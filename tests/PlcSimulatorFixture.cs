@@ -9,7 +9,6 @@ using Opc.Ua.Client;
 using Opc.Ua.Configuration;
 using OpcPlc;
 using OpcPlc.Logging;
-using Serilog;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -82,13 +81,8 @@ public class PlcSimulatorFixture
     {
         Reset();
 
-        var nunitLogger =new LoggerConfiguration()
-            .WriteTo.NUnitOutput()
-            .CreateLogger();
-
         Program.LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(LogLevel.Information);
-        Program.LoggerFactory.AddSerilog(nunitLogger);
-        Program.Logger = Program.LoggerFactory.CreateLogger("PlcSimulatorFixture");
+        Program.Logger = new TestLogger<PlcSimulatorFixture>(TestContext.Progress, new SyslogFormatter(new SyslogFormatterOptions()));
 
         _log = TestContext.Progress;
 
