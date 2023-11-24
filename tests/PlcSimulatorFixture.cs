@@ -9,6 +9,7 @@ using Opc.Ua.Client;
 using Opc.Ua.Configuration;
 using OpcPlc;
 using OpcPlc.Logging;
+using Serilog;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -81,7 +82,12 @@ public class PlcSimulatorFixture
     {
         Reset();
 
+        var nunitLogger =new LoggerConfiguration()
+            .WriteTo.NUnitOutput()
+            .CreateLogger();
+
         Program.LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(LogLevel.Information);
+        Program.LoggerFactory.AddSerilog(nunitLogger);
         Program.Logger = Program.LoggerFactory.CreateLogger("PlcSimulatorFixture");
 
         _log = TestContext.Progress;
@@ -236,7 +242,6 @@ public class PlcSimulatorFixture
         var config = await application.LoadApplicationConfiguration(silent: false).ConfigureAwait(false);
 
         // check the application certificate.
-        await application.DeleteApplicationInstanceCertificate().ConfigureAwait(false);    
         bool haveAppCertificate = await application.CheckApplicationInstanceCertificate(silent: false, minimumKeySize: 0).ConfigureAwait(false);
         if (!haveAppCertificate)
         {
