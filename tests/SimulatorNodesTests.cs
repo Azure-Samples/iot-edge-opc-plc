@@ -73,7 +73,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
             }
             else
             {
-                Assert.AreEqual(lastValue + 1, value);
+                value.Should().Be(lastValue + 1);
                 lastValue = value;
             }
 
@@ -85,17 +85,17 @@ public class SimulatorNodesTests : SimulatorTestsBase
         CallMethod("StopUpdateFastNodes");
 
         var nextValue = ReadValue<uint>(nodeId);
-        Assert.AreEqual(lastValue, nextValue);
+        nextValue.Should().Be(lastValue);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
         nextValue = ReadValue<uint>(nodeId);
-        Assert.AreEqual(lastValue, nextValue);
+        nextValue.Should().Be(lastValue);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         CallMethod("StartUpdateFastNodes");
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         nextValue = ReadValue<uint>(nodeId);
-        Assert.AreEqual(lastValue + 1, nextValue);
+        nextValue.Should().Be(lastValue + 1);
     }
 
     [TestCase("DipData", -1000)]

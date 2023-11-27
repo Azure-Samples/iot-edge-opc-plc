@@ -40,8 +40,8 @@ public abstract class SimulatorTestsBase
     [OneTimeSetUp]
     public async Task Setup()
     {
-        await _simulator.Start();
-        Session = await _simulator.CreateSessionAsync(GetType().Name);
+        await _simulator.StartAsync().ConfigureAwait(false);
+        Session = await _simulator.CreateSessionAsync(GetType().Name).ConfigureAwait(false);
     }
 
     /// <summary>Closes the OPC-UA session and stops the simulator.</summary>
@@ -49,7 +49,7 @@ public abstract class SimulatorTestsBase
     public async Task TearDown()
     {
         Session.Close();
-        await _simulator.Stop();
+        await _simulator.StopAsync().ConfigureAwait(false);
     }
 
     /// <summary>

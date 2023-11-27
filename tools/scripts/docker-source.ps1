@@ -52,6 +52,7 @@ if ($projFile) {
             $argumentList += "-r"
             $argumentList += $runtimeId
             $argumentList += "/p:TargetLatestRuntimePatch=true"
+            $argumentList += "--self-contained"
         }
         else {
             $runtimeId = "portable"

@@ -70,8 +70,8 @@ public partial class OpcApplicationConfiguration
         var transportQuotas = new TransportQuotas
         {
             MaxStringLength = OpcMaxStringLength,
-            MaxMessageSize = 4 * 1024 * 1024, // 4MB.
-            MaxByteStringLength = 4 * 1024 * 1024, // 4MB.
+            MaxMessageSize = 4 * 1024 * 1024, // 4 MB.
+            MaxByteStringLength = 4 * 1024 * 1024, // 4 MB.
         };
 
         var operationLimits = new OperationLimits()
