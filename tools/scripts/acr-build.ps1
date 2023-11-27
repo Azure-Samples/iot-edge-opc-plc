@@ -204,7 +204,7 @@ if (![string]::IsNullOrEmpty($metadata.tag)) {
 $fullImageName = "$($Registry).azurecr.io/$($namespace)$($imageName):$($tagPrefix)$($sourceTag)$($tagPostfix)"
 Write-Host "Full image name: $($fullImageName)"
 
-$manifest = @" 
+$manifest = @"
 image: $($fullImageName)
 tags: [$($tagPrefix)$($latestTag)$($tagPostfix)]
 manifests:
