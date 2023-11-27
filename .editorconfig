@@ -207,7 +207,6 @@ dotnet_naming_symbols.constants_with_k.applicable_accessibilities             = 
 dotnet_naming_symbols.constants_with_k.required_modifiers                     = const
 
 dotnet_naming_style.constants_with_k_style.capitalization                     = pascal_case
-dotnet_naming_style.constants_with_k_style.required_prefix                    = k
 
 # Constants are PascalCase
 dotnet_naming_rule.constants_should_be_pascal_case.severity = suggestion
@@ -314,6 +313,6 @@ dotnet_diagnostic.CA1852.severity                                             = 
 # CA1860: Avoid using 'Enumerable.Any()' extension method
 dotnet_diagnostic.CA1860.severity 											  = suggestion
 
-# CA1861: Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array	
+# CA1861: Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array
 dotnet_diagnostic.CA1861.severity 											  = suggestion
 
