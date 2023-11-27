@@ -53,7 +53,7 @@ public class DeterministicAlarmsTests2 : SubscriptionTestsBase
 
         NodeShouldHaveStates(doorOpen1, Inactive, Disabled);
 
-        Assert.AreNotEqual(timeForFirstEvent, timeForNextEvent);
+        timeForFirstEvent.Should().NotBe(timeForNextEvent);
     }
 
     private void AdvanceToNextStep()
