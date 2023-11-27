@@ -1,5 +1,6 @@
 namespace OpcPlc.Tests;
 
+using System;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
@@ -13,7 +14,7 @@ using static System.TimeSpan;
 public class DataMonitoringTests : SubscriptionTestsBase
 {
     // Set any cmd params needed for the plc server explicitly.
-    public DataMonitoringTests() : base(new string[] { })
+    public DataMonitoringTests() : base(Array.Empty<string>())
     {
     }
 

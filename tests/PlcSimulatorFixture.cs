@@ -77,7 +77,7 @@ public class PlcSimulatorFixture
     /// Configure and run the simulator in a background thread, run once for the entire assembly.
     /// The simulator is instrumented with mock time services.
     /// </summary>
-    public async Task Start()
+    public async Task StartAsync()
     {
         Reset();
 
@@ -137,7 +137,7 @@ public class PlcSimulatorFixture
             .GetAwaiter().GetResult());
 
         string endpointUrl = WaitForServerUp();
-        await _log.WriteAsync($"Found server at: {endpointUrl}");
+        await _log.WriteAsync($"Found server at: {endpointUrl}").ConfigureAwait(false);
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
@@ -146,14 +146,14 @@ public class PlcSimulatorFixture
             // Use the Loopback IP address as a workaround.
             // In contrast, on Windows Azure DevOps builds, this results in issues.
             endpointUrl = $"opc.tcp://{IPAddress.Loopback}:{Port}";
-            await _log.WriteAsync($"Connecting to server URL: {endpointUrl}");
+            await _log.WriteAsync($"Connecting to server URL: {endpointUrl}").ConfigureAwait(false);
         }
 
-        _config = await GetConfigurationAsync();
+        _config = await GetConfigurationAsync().ConfigureAwait(false);
         _serverEndpoint = GetServerEndpoint(endpointUrl);
     }
 
-    public Task Stop()
+    public Task StopAsync()
     {
         // shutdown simulator
         _serverCancellationTokenSource.Cancel();
@@ -223,7 +223,7 @@ public class PlcSimulatorFixture
 
     private async Task<ApplicationConfiguration> GetConfigurationAsync()
     {
-        await _log.WriteLineAsync("Create Application Configuration");
+        await _log.WriteLineAsync("Create Application Configuration").ConfigureAwait(false);
 
         var application = new ApplicationInstance
         {
