@@ -30,7 +30,7 @@ public static class Program
     public const string ProgramName = "OpcPlc";
 
     /// <summary>
-    /// 
+    /// The LoggerFactory used to create logging objects.
     /// </summary>
     public static ILoggerFactory LoggerFactory = null;
 

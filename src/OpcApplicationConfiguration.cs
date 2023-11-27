@@ -164,7 +164,7 @@ public partial class OpcApplicationConfiguration
         Logger.LogInformation("LDS(-ME) registration interval set to {ldsRegistrationInterval} ms (0 means no registration)",
             LdsRegistrationInterval);
 
-        var microsoftLogger = Program.LoggerFactory.CreateLogger("Opc");
+        var microsoftLogger = Program.LoggerFactory.CreateLogger("OpcUa");
 
         // set logger interface, disables TraceEvent
         Utils.SetLogger(microsoftLogger);

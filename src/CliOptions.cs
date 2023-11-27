@@ -32,7 +32,7 @@ public class CliOptions
                     }
                 }
             },
-            { "ll|loglevel=", "the loglevel to use (allowed: critical, warn, info, debug, trace Default: info", (string s) => {
+            { "ll|loglevel=", "the loglevel to use (allowed: critical, warn, info, debug, trace).\nDefault: info", (string s) => {
                     var logLevels = new List<string> {"critical", "error", "warn", "info", "debug", "trace"};
                     if (logLevels.Contains(s.ToLowerInvariant()))
                     {
