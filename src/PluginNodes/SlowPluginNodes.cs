@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.PluginNodes.Models;
 using System;
@@ -184,7 +185,7 @@ public class SlowPluginNodes : IPluginNodes
     private ServiceResult OnStopUpdateSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _updateNodes = false;
-        Logger.Debug("StopUpdateSlowNodes method called");
+        Logger.LogDebug("StopUpdateSlowNodes method called");
         return ServiceResult.Good;
     }
 
@@ -194,7 +195,7 @@ public class SlowPluginNodes : IPluginNodes
     private ServiceResult OnStartUpdateSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _updateNodes = true;
-        Logger.Debug("StartUpdateSlowNodes method called");
+        Logger.LogDebug("StartUpdateSlowNodes method called");
         return ServiceResult.Good;
     }
 

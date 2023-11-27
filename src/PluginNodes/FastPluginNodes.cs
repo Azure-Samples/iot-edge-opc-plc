@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.PluginNodes.Models;
 using System;
@@ -194,7 +195,7 @@ public class FastPluginNodes : IPluginNodes
     private ServiceResult OnStopUpdateFastNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _updateNodes = false;
-        Logger.Debug("StopUpdateFastNodes method called");
+        Logger.LogDebug("StopUpdateFastNodes method called");
         return ServiceResult.Good;
     }
 
@@ -204,7 +205,7 @@ public class FastPluginNodes : IPluginNodes
     private ServiceResult OnStartUpdateFastNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _updateNodes = true;
-        Logger.Debug("StartUpdateFastNodes method called");
+        Logger.LogDebug("StartUpdateFastNodes method called");
         return ServiceResult.Good;
     }
 

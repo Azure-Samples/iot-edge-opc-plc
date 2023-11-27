@@ -1,8 +1,8 @@
-﻿namespace OpcPlc;
+namespace OpcPlc;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Configuration;
-using Serilog.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -27,7 +27,7 @@ public partial class OpcApplicationConfiguration
                                             ? _hostname[.._hostname.IndexOf('.')]
                                             : _hostname;
     public static string ApplicationName => ProgramName;
-    public static string ApplicationUri => $"urn:{ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath) ? string.Empty : (ServerPath.StartsWith("/") ? string.Empty : ":"))}{ServerPath.Replace("/", ":")}";
+    public static string ApplicationUri => $"urn:{ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath) ? string.Empty : (ServerPath.StartsWith('/') ? string.Empty : ":"))}{ServerPath.Replace('/', ':')}";
     public static string ProductUri => "https://github.com/azure-samples/iot-edge-opc-plc";
     public static ushort ServerPort { get; set; } = 50000;
     public static string ServerPath { get; set; } = string.Empty;
@@ -56,21 +56,6 @@ public partial class OpcApplicationConfiguration
     public static int OpcMaxStringLength { get; set; } = 4 * 1024 * 1024;
 
     /// <summary>
-    /// Mapping of the application logging levels to OPC stack logging levels.
-    /// </summary>
-    public static int OpcTraceToLoggerVerbose = 0;
-    public static int OpcTraceToLoggerDebug = 0;
-    public static int OpcTraceToLoggerInformation = 0;
-    public static int OpcTraceToLoggerWarning = 0;
-    public static int OpcTraceToLoggerError = 0;
-    public static int OpcTraceToLoggerFatal = 0;
-
-    /// <summary>
-    /// Set the OPC stack log level.
-    /// </summary>
-    public static int OpcStackTraceMask { get; set; } = 0;
-
-    /// <summary>
     /// Configures all OPC stack settings.
     /// </summary>
     public async Task<ApplicationConfiguration> ConfigureAsync()
@@ -85,8 +70,24 @@ public partial class OpcApplicationConfiguration
         var transportQuotas = new TransportQuotas
         {
             MaxStringLength = OpcMaxStringLength,
-            MaxMessageSize = 4 * 1024 * 1024, // 4 kB.
-            MaxByteStringLength = 4 * 1024 * 1024, // 4 kB.
+            MaxMessageSize = 4 * 1024 * 1024, // 4MB.
+            MaxByteStringLength = 4 * 1024 * 1024, // 4MB.
+        };
+
+        var operationLimits = new OperationLimits()
+        {
+            MaxMonitoredItemsPerCall = 2500,
+            MaxNodesPerBrowse = 2500,
+            MaxNodesPerHistoryReadData = 1000,
+            MaxNodesPerHistoryReadEvents = 1000,
+            MaxNodesPerHistoryUpdateData = 1000,
+            MaxNodesPerHistoryUpdateEvents = 1000,
+            MaxNodesPerMethodCall = 1000,
+            MaxNodesPerNodeManagement = 1000,
+            MaxNodesPerRead = 2500,
+            MaxNodesPerWrite = 1000,
+            MaxNodesPerRegisterNodes = 1000,
+            MaxNodesPerTranslateBrowsePathsToNodeIds = 1000,
         };
 
         var alternateBaseAddresses = from dnsName in DnsNames
@@ -101,11 +102,11 @@ public partial class OpcApplicationConfiguration
             }
             catch (Exception ex)
             {
-                Logger.Warning(ex, "Could not get hostname.");
+                Logger.LogWarning(ex, "Could not get hostname.");
             }
         }
 
-        Logger.Information("Alternate base addresses (for server binding and certificate DNSNames and IPAddresses extensions): {alternateBaseAddresses}", alternateBaseAddresses);
+        Logger.LogInformation("Alternate base addresses (for server binding and certificate DNSNames and IPAddresses extensions): {alternateBaseAddresses}", alternateBaseAddresses);
 
         // configure OPC UA server
         var serverBuilder = application.Build(ApplicationUri, ProductUri)
@@ -142,33 +143,28 @@ public partial class OpcApplicationConfiguration
             // Set the server capabilities.
             .SetMaxSessionCount(MaxSessionCount)
             .SetMaxSubscriptionCount(MaxSubscriptionCount)
-            .SetMaxQueuedRequestCount(MaxQueuedRequestCount);
+            .SetMaxQueuedRequestCount(MaxQueuedRequestCount)
+            .SetOperationLimits(operationLimits);
 
         // Security configuration.
         ApplicationConfiguration = await InitApplicationSecurityAsync(securityBuilder).ConfigureAwait(false);
 
         foreach (var policy in ApplicationConfiguration.ServerConfiguration.SecurityPolicies)
         {
-            Logger.Information("Added security policy {securityPolicyUri} with mode {securityMode}",
+            Logger.LogInformation("Added security policy {securityPolicyUri} with mode {securityMode}",
                 policy.SecurityPolicyUri,
                 policy.SecurityMode);
 
             if (policy.SecurityMode == MessageSecurityMode.None)
             {
-                Logger.Warning("Security policy {none} is a security risk and needs to be disabled for production use", "None");
+                Logger.LogWarning("Security policy {none} is a security risk and needs to be disabled for production use", "None");
             }
         }
 
-        Logger.Information("LDS(-ME) registration interval set to {ldsRegistrationInterval} ms (0 means no registration)",
+        Logger.LogInformation("LDS(-ME) registration interval set to {ldsRegistrationInterval} ms (0 means no registration)",
             LdsRegistrationInterval);
 
-        // configure OPC stack tracing
-        Utils.SetTraceMask(OpcStackTraceMask);
-        Logger.Information("The OPC UA trace mask is set to: {opcStackTraceMask}",
-            $"0x{OpcStackTraceMask:X}");
-
-        var microsoftLogger = new SerilogLoggerFactory(Logger)
-            .CreateLogger("OPC");
+        var microsoftLogger = Program.LoggerFactory.CreateLogger("OpcUa");
 
         // set logger interface, disables TraceEvent
         Utils.SetLogger(microsoftLogger);
@@ -177,7 +173,7 @@ public partial class OpcApplicationConfiguration
         var certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
         if (certificate == null)
         {
-            Logger.Information("No existing application certificate found. Creating a self-signed application certificate valid since yesterday for {defaultLifeTime} months, " +
+            Logger.LogInformation("No existing application certificate found. Creating a self-signed application certificate valid since yesterday for {defaultLifeTime} months, " +
                 "with a {defaultKeySize} bit key and {defaultHashSize} bit hash",
                 CertificateFactory.DefaultLifeTime,
                 CertificateFactory.DefaultKeySize,
@@ -185,7 +181,7 @@ public partial class OpcApplicationConfiguration
         }
         else
         {
-            Logger.Information("Application certificate with thumbprint {thumbprint} found in the application certificate store",
+            Logger.LogInformation("Application certificate with thumbprint {thumbprint} found in the application certificate store",
                 certificate.Thumbprint);
         }
 
@@ -199,11 +195,11 @@ public partial class OpcApplicationConfiguration
         if (certificate == null)
         {
             certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
-            Logger.Information("Application certificate with thumbprint {thumbprint} created",
+            Logger.LogInformation("Application certificate with thumbprint {thumbprint} created",
                 certificate.Thumbprint);
         }
 
-        Logger.Information("Application certificate is for ApplicationUri {applicationUri}, ApplicationName {applicationName} and Subject is {subject}",
+        Logger.LogInformation("Application certificate is for ApplicationUri {applicationUri}, ApplicationName {applicationName} and Subject is {subject}",
             ApplicationConfiguration.ApplicationUri,
             ApplicationConfiguration.ApplicationName,
             ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate.Subject);
@@ -216,7 +212,7 @@ public partial class OpcApplicationConfiguration
 
         // show certificate store information
         await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
-        Logger.Information("Application configured with MaxSessionCount {maxSessionCount} and MaxSubscriptionCount {maxSubscriptionCount}",
+        Logger.LogInformation("Application configured with MaxSessionCount {maxSessionCount} and MaxSubscriptionCount {maxSubscriptionCount}",
             ApplicationConfiguration.ServerConfiguration.MaxSessionCount,
             ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount);
 

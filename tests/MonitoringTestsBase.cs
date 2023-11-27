@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
+using OpcPlc.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -37,6 +38,7 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     [SetUp]
     public void CreateSubscription()
     {
+        Utils.SetLogger(new TestLogger<SubscriptionTestsBase>(TestContext.Out, new SyslogFormatter(new SyslogFormatterOptions())));
         _subscription = Session.DefaultSubscription;
         Session.AddSubscription(_subscription);
         _subscription.Create();

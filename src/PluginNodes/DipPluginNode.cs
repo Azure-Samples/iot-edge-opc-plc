@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -52,7 +53,7 @@ public class DipPluginNode : IPluginNodes
         {
             _dipCycleInPhase = PlcSimulation.SimulationCycleCount;
             _dipAnomalyCycle = _random.Next(PlcSimulation.SimulationCycleCount);
-            Logger.Verbose($"First dip anomaly cycle: {_dipAnomalyCycle}");
+            Logger.LogTrace($"First dip anomaly cycle: {_dipAnomalyCycle}");
 
             _node.Start(DipGenerator, PlcSimulation.SimulationCycleLength);
         }
@@ -98,20 +99,20 @@ public class DipPluginNode : IPluginNodes
         if (_isEnabled && _dipCycleInPhase == _dipAnomalyCycle)
         {
             nextValue = SimulationMaxAmplitude * -10;
-            Logger.Verbose("Generate dip anomaly");
+            Logger.LogTrace("Generate dip anomaly");
         }
         else
         {
             nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / PlcSimulation.SimulationCycleCount) * _dipCycleInPhase);
         }
-        Logger.Verbose($"Spike cycle: {_dipCycleInPhase} data: {nextValue}");
+        Logger.LogTrace($"Spike cycle: {_dipCycleInPhase} data: {nextValue}");
 
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_dipCycleInPhase == 0)
         {
             _dipCycleInPhase = PlcSimulation.SimulationCycleCount;
             _dipAnomalyCycle = _random.Next(PlcSimulation.SimulationCycleCount);
-            Logger.Verbose($"Next dip anomaly cycle: {_dipAnomalyCycle}");
+            Logger.LogTrace($"Next dip anomaly cycle: {_dipAnomalyCycle}");
         }
 
         return nextValue;

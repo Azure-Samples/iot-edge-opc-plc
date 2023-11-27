@@ -1,7 +1,9 @@
 namespace OpcPlc;
 
 using AlarmCondition;
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
+using Opc.Ua.Bindings;
 using Opc.Ua.Server;
 using OpcPlc.CompanionSpecs.DI;
 using OpcPlc.DeterministicAlarms;
@@ -12,6 +14,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using static Program;
 
@@ -80,13 +83,13 @@ public partial class PlcServer : StandardServer
             if (string.IsNullOrWhiteSpace(scriptFileName))
             {
                 string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";
-                Logger.Error(errorMessage);
+                Logger.LogError(errorMessage);
                 throw new Exception(errorMessage);
             }
             if (!File.Exists(scriptFileName))
             {
                 string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist.";
-                Logger.Error(errorMessage);
+                Logger.LogError(errorMessage);
                 throw new Exception(errorMessage);
             }
 
@@ -113,8 +116,7 @@ public partial class PlcServer : StandardServer
         string opcUaSdkVersion = Utils.GetAssemblySoftwareVersion();
         string opcUaSdkBuildNumber = opcUaSdkVersion[(opcUaSdkVersion.IndexOf('+') + 1)..];
 
-        var properties = new ServerProperties
-        {
+        var properties = new ServerProperties {
             ManufacturerName = "Microsoft",
             ProductName = "IoT Edge OPC UA PLC",
             ProductUri = "https://github.com/Azure-Samples/iot-edge-opc-plc",
@@ -167,6 +169,22 @@ public partial class PlcServer : StandardServer
 
         // request notifications when the user identity is changed, all valid users are accepted by default.
         server.SessionManager.ImpersonateUser += new ImpersonateEventHandler(SessionManager_ImpersonateUser);
+    }
+
+    /// <inheritdoc/>
+    protected override void ProcessRequest(IEndpointIncomingRequest request, object callData)
+    {
+        if (request is IAsyncResult asyncResult &&
+            asyncResult.AsyncState is object[] asyncStateArray &&
+            asyncStateArray[0] is TcpServerChannel channel)
+        {
+            using var scope = Logger.BeginScope("ChannelId:\"{ChannelId}\"", channel.Id);
+            base.ProcessRequest(request, callData);
+        }
+        else
+        {
+            base.ProcessRequest(request, callData);
+        }
     }
 
     /// <summary>

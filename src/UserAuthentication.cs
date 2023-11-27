@@ -1,5 +1,6 @@
 namespace OpcPlc;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
 using System;
@@ -97,7 +98,7 @@ public partial class PlcServer
         if (args.NewIdentity is UserNameIdentityToken userNameToken)
         {
             args.Identity = VerifyPassword(userNameToken);
-            Logger.Information("UserName Token Accepted: {displayName}", args.Identity.DisplayName);
+            Logger.LogInformation("UserName Token Accepted: {displayName}", args.Identity.DisplayName);
             return;
         }
 
@@ -106,7 +107,7 @@ public partial class PlcServer
         {
             VerifyCertificate(x509Token.Certificate);
             args.Identity = new UserIdentity(x509Token);
-            Logger.Information("X509 Token Accepted: {displayName}", args.Identity.DisplayName);
+            Logger.LogInformation("X509 Token Accepted: {displayName}", args.Identity.DisplayName);
             return;
         }
     }

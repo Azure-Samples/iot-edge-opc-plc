@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -52,7 +53,7 @@ public class SpikePluginNode : IPluginNodes
         {
             _spikeCycleInPhase = PlcSimulation.SimulationCycleCount;
             _spikeAnomalyCycle = _random.Next(PlcSimulation.SimulationCycleCount);
-            Logger.Verbose($"First spike anomaly cycle: {_spikeAnomalyCycle}");
+            Logger.LogTrace($"First spike anomaly cycle: {_spikeAnomalyCycle}");
 
             _node.Start(SpikeGenerator, PlcSimulation.SimulationCycleLength);
         }
@@ -99,20 +100,20 @@ public class SpikePluginNode : IPluginNodes
         {
             // todo calculate
             nextValue = SimulationMaxAmplitude * 10;
-            Logger.Verbose("Generate spike anomaly");
+            Logger.LogTrace("Generate spike anomaly");
         }
         else
         {
             nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / PlcSimulation.SimulationCycleCount) * _spikeCycleInPhase);
         }
-        Logger.Verbose($"Spike cycle: {_spikeCycleInPhase} data: {nextValue}");
+        Logger.LogTrace($"Spike cycle: {_spikeCycleInPhase} data: {nextValue}");
 
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_spikeCycleInPhase == 0)
         {
             _spikeCycleInPhase = PlcSimulation.SimulationCycleCount;
             _spikeAnomalyCycle = _random.Next(PlcSimulation.SimulationCycleCount);
-            Logger.Verbose($"Next spike anomaly cycle: {_spikeAnomalyCycle}");
+            Logger.LogTrace($"Next spike anomaly cycle: {_spikeAnomalyCycle}");
         }
 
         return nextValue;

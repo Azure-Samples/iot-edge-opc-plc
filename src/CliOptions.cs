@@ -1,5 +1,6 @@
-﻿namespace OpcPlc;
+namespace OpcPlc;
 
+using Microsoft.Extensions.Logging;
 using Mono.Options;
 using Opc.Ua;
 using OpcPlc.Helpers;
@@ -31,11 +32,11 @@ public class CliOptions
                     }
                 }
             },
-            { "ll|loglevel=", "the loglevel to use (allowed: fatal, error, warn, info, debug, verbose).\nDefault: info", (string s) => {
-                    var logLevels = new List<string> {"fatal", "error", "warn", "info", "debug", "verbose"};
+            { "ll|loglevel=", "the loglevel to use (allowed: critical, warn, info, debug, trace).\nDefault: info", (string s) => {
+                    var logLevels = new List<string> {"critical", "error", "warn", "info", "debug", "trace"};
                     if (logLevels.Contains(s.ToLowerInvariant()))
                     {
-                        Program.LogLevel = s.ToLowerInvariant();
+                        Program.LogLevelCli = s.ToLowerInvariant();
                     }
                     else
                     {
@@ -232,7 +233,7 @@ public class CliOptions
         using var stringWriter = new StringWriter(sb);
         options.WriteOptionDescriptions(stringWriter);
 
-        Program.Logger.Information(sb.ToString());
+        Program.Logger.LogInformation(sb.ToString());
     }
 
     /// <summary>
@@ -256,7 +257,7 @@ public class CliOptions
         else if (list.Contains(','))
         {
             strings = list.Split(',').ToList();
-            strings.ForEach(st => st.Trim());
+            strings.ForEach(st => st = st.Trim());
             strings = strings.Select(st => st.Trim()).ToList();
         }
         else

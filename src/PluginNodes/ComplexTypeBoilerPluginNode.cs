@@ -1,6 +1,7 @@
 ﻿namespace OpcPlc.PluginNodes;
 
 using BoilerModel1;
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -166,7 +167,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.On;
-        Logger.Debug("OnHeaterOnCall method called");
+        Logger.LogDebug("OnHeaterOnCall method called");
         return ServiceResult.Good;
     }
 
@@ -176,7 +177,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.Off;
-        Logger.Debug("OnHeaterOffCall method called");
+        Logger.LogDebug("OnHeaterOffCall method called");
         return ServiceResult.Good;
     }
 }

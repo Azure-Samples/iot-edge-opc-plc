@@ -1,13 +1,14 @@
 namespace OpcPlc.Tests;
 
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Configuration;
 using OpcPlc;
-using Serilog;
+using OpcPlc.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -79,9 +80,10 @@ public class PlcSimulatorFixture
     public async Task Start()
     {
         Reset();
-        Program.Logger = new LoggerConfiguration()
-            .WriteTo.NUnitOutput()
-            .CreateLogger();
+
+        Program.LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(LogLevel.Information);
+        Program.Logger = new TestLogger<PlcSimulatorFixture>(TestContext.Progress, new SyslogFormatter(new SyslogFormatterOptions()));
+
         _log = TestContext.Progress;
 
         var mock = new Mock<TimeService>();

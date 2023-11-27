@@ -1,5 +1,6 @@
 namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.DI;
 using OpcPlc.Helpers;
@@ -232,7 +233,7 @@ public class Boiler2PluginNodes : IPluginNodes
     private ServiceResult SwitchOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         SetValue(_heaterStateNode, inputArguments.First());
-        Logger.Debug($"SwitchOnCall method called with argument: {inputArguments.First()}");
+        Logger.LogDebug($"SwitchOnCall method called with argument: {inputArguments.First()}");
 
         return ServiceResult.Good;
     }

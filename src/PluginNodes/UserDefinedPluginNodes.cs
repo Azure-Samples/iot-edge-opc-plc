@@ -1,5 +1,6 @@
 ﻿namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Opc.Ua;
 using OpcPlc.Helpers;
@@ -59,22 +60,22 @@ public class UserDefinedPluginNodes : IPluginNodes
                 TypeNameHandling = TypeNameHandling.All,
             });
 
-            Logger.Information($"Processing node information configured in {_nodesFileName}");
+            Logger.LogInformation($"Processing node information configured in {_nodesFileName}");
 
             Nodes = AddNodes(folder, cfgFolder).ToList();
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Error loading user defined node file {file}: {error}", _nodesFileName, e.Message);
+            Logger.LogError(e, "Error loading user defined node file {file}: {error}", _nodesFileName, e.Message);
         }
 
 
-        Logger.Information("Completed processing user defined node file");
+        Logger.LogInformation("Completed processing user defined node file");
     }
 
     private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder)
     {
-        Logger.Debug($"Create folder {cfgFolder.Folder}");
+        Logger.LogDebug($"Create folder {cfgFolder.Folder}");
         FolderState userNodesFolder = _plcNodeManager.CreateFolder(
             folder,
             path: cfgFolder.Folder,
@@ -88,7 +89,7 @@ public class UserDefinedPluginNodes : IPluginNodes
 
             if (!isDecimal && !isString)
             {
-                Logger.Error($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal, string, and guid are supported. Defaulting to string.");
+                Logger.LogError($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal, string, and guid are supported. Defaulting to string.");
                 node.NodeId = node.NodeId.ToString();
             }
 
@@ -115,10 +116,10 @@ public class UserDefinedPluginNodes : IPluginNodes
                 node.Description = node.Name;
             }
 
-            Logger.Debug("Create node with Id {typedNodeId}, BrowseName {name} and type {type} in namespace with index {namespaceIndex}",
+            Logger.LogDebug("Create node with Id {typedNodeId}, BrowseName {name} and type {type} in namespace with index {namespaceIndex}",
                 typedNodeId,
                 node.Name,
-                node.NodeId.GetType(),
+                (string)node.NodeId.GetType().Name,
                 _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]);
 
             CreateBaseVariable(userNodesFolder, node);
@@ -159,7 +160,7 @@ public class UserDefinedPluginNodes : IPluginNodes
     {
         if (!Enum.TryParse(node.DataType, out BuiltInType nodeDataType))
         {
-            Logger.Error($"Value '{node.DataType}' of node '{node.NodeId}' cannot be parsed. Defaulting to 'Int32'");
+            Logger.LogError($"Value '{node.DataType}' of node '{node.NodeId}' cannot be parsed. Defaulting to 'Int32'");
             node.DataType = "Int32";
         }
 
@@ -171,7 +172,7 @@ public class UserDefinedPluginNodes : IPluginNodes
         }
         catch
         {
-            Logger.Error($"AccessLevel '{node.AccessLevel}' of node '{node.Name}' is not supported. Defaulting to 'CurrentReadOrWrite'");
+            Logger.LogError($"AccessLevel '{node.AccessLevel}' of node '{node.Name}' is not supported. Defaulting to 'CurrentReadOrWrite'");
             node.AccessLevel = "CurrentRead";
             accessLevel = AccessLevels.CurrentReadOrWrite;
         }
