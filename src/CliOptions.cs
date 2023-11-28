@@ -32,7 +32,7 @@ public class CliOptions
                     }
                 }
             },
-            { "ll|loglevel=", "the loglevel to use (allowed: critical, warn, info, debug, trace).\nDefault: info", (string s) => {
+            { "ll|loglevel=", "the loglevel to use (allowed: critical, error, warn, info, debug, trace).\nDefault: info", (string s) => {
                     var logLevels = new List<string> {"critical", "error", "warn", "info", "debug", "trace"};
                     if (logLevels.Contains(s.ToLowerInvariant()))
                     {
@@ -40,7 +40,7 @@ public class CliOptions
                     }
                     else
                     {
-                        throw new OptionException("The loglevel must be one of: fatal, error, warn, info, debug, verbose", "loglevel");
+                        throw new OptionException($"The loglevel must be one of: {string.Join(", ", logLevels)}", "loglevel");
                     }
                 }
             },

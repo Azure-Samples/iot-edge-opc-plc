@@ -292,8 +292,8 @@ Options:
                              the timespan in seconds when the logfile should be
                                flushed.
                                Default: 00:00:30 sec
-      --ll, --loglevel=VALUE the loglevel to use (allowed: fatal, error, warn,
-                               info, debug, verbose).
+      --ll, --loglevel=VALUE the loglevel to use (allowed: critical, error,
+                               warn, info, debug, trace).
                                Default: info
       --sc, --simulationcyclecount=VALUE
                              count of cycles in one simulation phase
@@ -337,14 +337,15 @@ Options:
       --to, --trustowncert   the own certificate is put into the trusted
                                certificate store automatically.
                                Default: False
-      --msec, --maxsessioncount
+      --msec, --maxsessioncount=VALUE
                              maximum number of parallel sessions.
                                Default: 100
-      --msuc, --maxsubscriptioncount
+      --msuc, --maxsubscriptioncount=VALUE
                              maximum number of subscriptions.
                                Default: 100
-      --mqrc, --maxqueuedrequestcount
-                             maximum number of requests that will be queued waiting for a thread.
+      --mqrc, --maxqueuedrequestcount=VALUE
+                             maximum number of requests that will be queued
+                               waiting for a thread.
                                Default: 2000
       --at, --appcertstoretype=VALUE
                              the own application cert store type.
