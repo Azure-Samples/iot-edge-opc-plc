@@ -293,7 +293,7 @@ Options:
                                flushed.
                                Default: 00:00:30 sec
       --ll, --loglevel=VALUE the loglevel to use (allowed: fatal, error, warn,
-                               info, debug, verbose).
+                               info, debug, trace).
                                Default: info
       --sc, --simulationcyclecount=VALUE
                              count of cycles in one simulation phase
