@@ -136,7 +136,7 @@ public class PlcSimulatorFixture
                 _serverCancellationTokenSource.Token)
             .GetAwaiter().GetResult());
 
-        string endpointUrl = WaitForServerUp();
+        string endpointUrl = await WaitForServerUpAsync().ConfigureAwait(false);
         await _log.WriteAsync($"Found server at: {endpointUrl}").ConfigureAwait(false);
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -287,7 +287,7 @@ public class PlcSimulatorFixture
         }
     }
 
-    private string WaitForServerUp()
+    private async Task<string> WaitForServerUpAsync()
     {
         while (true)
         {
@@ -303,8 +303,8 @@ public class PlcSimulatorFixture
 
             if (!Program.Ready)
             {
-                _log.WriteLine("Waiting for server to start...");
-                Thread.Sleep(1000);
+                _log.WriteLine("Waiting for server to start ...");
+                await Task.Delay(1000).ConfigureAwait(false);
                 continue;
             }
 
