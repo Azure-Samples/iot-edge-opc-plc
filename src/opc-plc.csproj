@@ -4,11 +4,20 @@
     <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>opcplc</AssemblyName>
     <OutputType>Exe</OutputType>
-    <PackageId>OpcPlc</PackageId>
+    <IsPackable>true</IsPackable>
+    <PackageId>Microsoft.IoTEdge.OpcPlc</PackageId>
     <Authors>Microsoft</Authors>
+    <Version>1.0.0</Version>
     <RootNamespace>OpcPlc</RootNamespace>
     <UserSecretsId>bdf7b209-fef3-44d4-9aba-17035fda5efd</UserSecretsId>
     <LangVersion>Preview</LangVersion>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Microsoft IoT Edge OPC PLC server</Title>
+    <Product>Azure Industrial IoT OPC UA PLC Server</Product>
+    <Description>Implements an OPC-UA server with different nodes generating random data, anomalies and configuration of user defined nodes.</Description>
+    <RepositoryUrl>https://github.com/Azure-Samples/iot-edge-opc-plc</RepositoryUrl>
+    <PackageOutputPath>$(OutputPath)</PackageOutputPath>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
