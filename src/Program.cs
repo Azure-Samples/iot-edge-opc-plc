@@ -8,6 +8,7 @@ using OpcPlc.Extensions;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
 using OpcPlc.PluginNodes.Models;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -344,7 +345,7 @@ public static class Program
             return;
         }
 
-        LogLevel logLevel = LogLevel.Information;
+        LogLevel logLevel;
 
         // set the log level
         switch (LogLevelCli)
