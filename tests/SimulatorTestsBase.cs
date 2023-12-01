@@ -48,7 +48,7 @@ public abstract class SimulatorTestsBase
     [OneTimeTearDown]
     public async Task TearDown()
     {
-        Session.Close();
+        Session?.Close();
         await _simulator.StopAsync().ConfigureAwait(false);
     }
 
