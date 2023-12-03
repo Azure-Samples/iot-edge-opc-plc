@@ -38,7 +38,7 @@ public static class Program
     /// <summary>
     /// Logging object.
     /// </summary>
-    public static ILogger Logger = null;
+    public static Microsoft.Extensions.Logging.ILogger Logger = null;
 
     /// <summary>
     /// Nodes to extend the address space.
