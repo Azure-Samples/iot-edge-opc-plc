@@ -120,6 +120,7 @@ public class PlcSimulatorFixture
             .Returns(() => _now);
 
         // The simulator program command line.
+        // Passed args override the following defaults.
         _serverTask = Task.Run(() => Program.MainAsync(
             _args.Concat(
                 new[]
