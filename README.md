@@ -296,20 +296,20 @@ Options:
                                warn, info, debug, trace).
                                Default: info
       --sc, --simulationcyclecount=VALUE
-                             count of cycles in one simulation phase
+                             count of cycles in one simulation phase.
                                Default:  50 cycles
       --ct, --cycletime=VALUE
-                             length of one cycle time in milliseconds
+                             length of one cycle time in milliseconds.
                                Default:  100 msec
       --ei, --eventinstances=VALUE
-                             number of event instances
+                             number of event instances.
                                Default: 0
       --er, --eventrate=VALUE
-                             rate in milliseconds to send events
+                             rate in milliseconds to send events.
                                Default: 1000
       --pn, --portnum=VALUE  the server port of the OPC server endpoint.
                                Default: 50000
-      --op, --path=VALUE     the enpoint URL path part of the OPC server
+      --op, --path=VALUE     the endpoint URL path part of the OPC server
                                endpoint.
                                Default: ''
       --ph, --plchostname=VALUE
@@ -358,60 +358,60 @@ Options:
                                X509Store: 'CurrentUser\UA_MachineDefault'
                                Directory: 'pki\own'
       --tp, --trustedcertstorepath=VALUE
-                             the path of the trusted cert store
+                             the path of the trusted cert store.
                                Default 'pki\trusted'
       --rp, --rejectedcertstorepath=VALUE
-                             the path of the rejected cert store
+                             the path of the rejected cert store.
                                Default 'pki\rejected'
       --ip, --issuercertstorepath=VALUE
-                             the path of the trusted issuer cert store
+                             the path of the trusted issuer cert store.
                                Default 'pki\issuer'
-      --csr                  show data to create a certificate signing request
+      --csr                  show data to create a certificate signing request.
                                Default 'False'
       --ab, --applicationcertbase64=VALUE
                              update/set this application's certificate with the
-                               certificate passed in as bas64 string
+                               certificate passed in as bas64 string.
       --af, --applicationcertfile=VALUE
                              update/set this application's certificate with the
-                               certificate file specified
+                               certificate file specified.
       --pb, --privatekeybase64=VALUE
                              initial provisioning of the application
-                               certificate (with a PEM or PFX fomat) requires a
-                               private key passed in as base64 string
+                               certificate (with a PEM or PFX format) requires
+                               a private key passed in as base64 string.
       --pk, --privatekeyfile=VALUE
                              initial provisioning of the application
-                               certificate (with a PEM or PFX fomat) requires a
-                               private key passed in as file
+                               certificate (with a PEM or PFX format) requires
+                               a private key passed in as file.
       --cp, --certpassword=VALUE
                              the optional password for the PEM or PFX or the
-                               installed application certificate
+                               installed application certificate.
       --tb, --addtrustedcertbase64=VALUE
                              adds the certificate to the application's trusted
                                cert store passed in as base64 string (comma
-                               separated values)
+                               separated values).
       --tf, --addtrustedcertfile=VALUE
                              adds the certificate file(s) to the application's
                                trusted cert store passed in as base64 string (
-                               multiple comma separated filenames supported)
+                               multiple comma separated filenames supported).
       --ib, --addissuercertbase64=VALUE
                              adds the specified issuer certificate to the
                                application's trusted issuer cert store passed
-                               in as base64 string (comma separated values)
+                               in as base64 string (comma separated values).
       --if, --addissuercertfile=VALUE
                              adds the specified issuer certificate file(s) to
                                the application's trusted issuer cert store (
-                               multiple comma separated filenames supported)
+                               multiple comma separated filenames supported).
       --rb, --updatecrlbase64=VALUE
                              update the CRL passed in as base64 string to the
                                corresponding cert store (trusted or trusted
-                               issuer)
+                               issuer).
       --uc, --updatecrlfile=VALUE
                              update the CRL passed in as file to the
                                corresponding cert store (trusted or trusted
-                               issuer)
+                               issuer).
       --rc, --removecert=VALUE
                              remove cert(s) with the given thumbprint(s) (comma
-                               separated values)
+                               separated values).
       --daa, --disableanonymousauth
                              flag to disable anonymous authentication.
                                Default: False
@@ -458,107 +458,109 @@ Options:
       --cdn, --certdnsnames=VALUE
                              add additional DNS names or IP addresses to this
                                application's certificate (comma separated
-                               values; no spaces allowed)
+                               values; no spaces allowed).
                                Default: DNS hostname
   -h, --help                 show this message and exit
       --b2ts, --boiler2tempspeed=VALUE
                              Boiler #2 temperature change speed in degrees per
-                               second
+                               second.
                                Default: 1
       --b2bt, --boiler2basetemp=VALUE
                              Boiler #2 base temperature to reach when not
-                               heating
+                               heating.
                                Default: 10
       --b2tt, --boiler2targettemp=VALUE
-                             Boiler #2 target temperature to reach when heating
+                             Boiler #2 target temperature to reach when heating.
+
                                Default: 80
       --b2mi, --boiler2maintinterval=VALUE
-                             Boiler #2 required maintenance interval in seconds
+                             Boiler #2 required maintenance interval in seconds.
+
                                Default: 300
       --b2oi, --boiler2overheatinterval=VALUE
-                             Boiler #2 overheat interval in seconds
+                             Boiler #2 overheat interval in seconds.
                                Default: 120
-      --nv, --nodatavalues   do not generate data values
+      --nv, --nodatavalues   do not generate data values.
                                Default: False
       --gn, --guidnodes=VALUE
-                             number of nodes with deterministic GUID IDs
+                             number of nodes with deterministic GUID IDs.
                                Default: 1
-      --nd, --nodips         do not generate dip data
+      --nd, --nodips         do not generate dip data.
                                Default: False
       --fn, --fastnodes=VALUE
-                             number of fast nodes
+                             number of fast nodes.
                                Default: 1
-      --fr, --fastrate=VALUE rate in seconds to change fast nodes
+      --fr, --fastrate=VALUE rate in seconds to change fast nodes.
                                Default: 1
       --ft, --fasttype=VALUE data type of fast nodes (UInt|Double|Bool|
-                               UIntArray)
+                               UIntArray).
                                Default: UInt
       --ftl, --fasttypelowerbound=VALUE
                              lower bound of data type of fast nodes (UInt|
-                               Double|Bool|UIntArray)
+                               Double|Bool|UIntArray).
                                Default: min value of node type.
       --ftu, --fasttypeupperbound=VALUE
                              upper bound of data type of fast nodes (UInt|
-                               Double|Bool|UIntArray)
+                               Double|Bool|UIntArray).
                                Default: max value of node type.
       --ftr, --fasttyperandomization=VALUE
                              randomization of fast nodes value (UInt|Double|
-                               Bool|UIntArray)
+                               Bool|UIntArray).
                                Default: False
       --fts, --fasttypestepsize=VALUE
                              step or increment size of fast nodes value (UInt|
-                               Double|Bool|UIntArray)
+                               Double|Bool|UIntArray).
                                Default: 1
       --fsi, --fastnodesamplinginterval=VALUE
-                             rate in milliseconds to sample fast nodes
+                             rate in milliseconds to sample fast nodes.
                                Default: 0
       --vfr, --veryfastrate=VALUE
-                             rate in milliseconds to change fast nodes
+                             rate in milliseconds to change fast nodes.
                                Default: 1000
-      --nn, --nonegtrend     do not generate negative trend data
+      --nn, --nonegtrend     do not generate negative trend data.
                                Default: False
       --ns2, --nodeset2file=VALUE
                              the *.NodeSet2.xml file that contains the nodes to
                                be created in the OPC UA address space (multiple
-                               comma separated filenames supported)
-      --np, --nopostrend     do not generate positive trend data
+                               comma separated filenames supported).
+      --np, --nopostrend     do not generate positive trend data.
                                Default: False
       --sn, --slownodes=VALUE
-                             number of slow nodes
+                             number of slow nodes.
                                Default: 1
-      --sr, --slowrate=VALUE rate in seconds to change slow nodes
+      --sr, --slowrate=VALUE rate in seconds to change slow nodes.
                                Default: 10
       --st, --slowtype=VALUE data type of slow nodes (UInt|Double|Bool|
-                               UIntArray)
+                               UIntArray).
                                Default: UInt
       --stl, --slowtypelowerbound=VALUE
                              lower bound of data type of slow nodes (UInt|
-                               Double|Bool|UIntArray)
+                               Double|Bool|UIntArray).
                                Default: min value of node type.
       --stu, --slowtypeupperbound=VALUE
                              upper bound of data type of slow nodes (UInt|
-                               Double|Bool|UIntArray)
+                               Double|Bool|UIntArray).
                                Default: max value of node type.
       --str, --slowtyperandomization=VALUE
                              randomization of slow nodes value (UInt|Double|
-                               Bool|UIntArray)
+                               Bool|UIntArray).
                                Default: False
       --sts, --slowtypestepsize=VALUE
                              step or increment size of slow nodes value (UInt|
-                               Double|Bool|UIntArray)
+                               Double|Bool|UIntArray).
                                Default: 1
       --ssi, --slownodesamplinginterval=VALUE
-                             rate in milliseconds to sample slow nodes
+                             rate in milliseconds to sample slow nodes.
                                Default: 0
-      --ns, --nospikes       do not generate spike data
+      --ns, --nospikes       do not generate spike data.
                                Default: False
       --unf, --uanodesfile=VALUE
                              the binary *.PredefinedNodes.uanodes file that
                                contains the nodes to be created in the OPC UA
                                address space (multiple comma separated
                                filenames supported), use ModelCompiler.cmd <
-                               ModelDesign> to compile
+                               ModelDesign> to compile.
       --nf, --nodesfile=VALUE
                              the filename that contains the list of nodes to be
-                               created in the OPC UA address space
+                               created in the OPC UA address space.
 ```
