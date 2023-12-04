@@ -63,7 +63,7 @@ public partial class OpcApplicationConfiguration
         // instead of using a configuration XML file, configure everything programmatically
         var application = new ApplicationInstance
         {
-            ApplicationName = ApplicationName,
+            ApplicationName = ApplicationName, // Name in the certificate, e.g. OpcPlc.
             ApplicationType = ApplicationType.Server,
         };
 
@@ -185,7 +185,7 @@ public partial class OpcApplicationConfiguration
                 certificate.Thumbprint);
         }
 
-        // check the certificate, creates new self signed certificate if required
+        // Check the certificate, create new self-signed certificate if necessary.
         bool isCertValid = await application.CheckApplicationInstanceCertificate(silent: true, CertificateFactory.DefaultKeySize, lifeTimeInMonths: CertificateFactory.DefaultLifeTime).ConfigureAwait(false);
         if (!isCertValid)
         {
