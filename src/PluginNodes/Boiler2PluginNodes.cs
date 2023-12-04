@@ -50,27 +50,27 @@ public class Boiler2PluginNodes : IPluginNodes
     {
         optionSet.Add(
             "b2ts|boiler2tempspeed=",
-            $"Boiler #2 temperature change speed in degrees per second\nDefault: {_tempSpeedDegreesPerSec}",
+            $"Boiler #2 temperature change speed in degrees per second.\nDefault: {_tempSpeedDegreesPerSec}",
             (string s) => _tempSpeedDegreesPerSec = CliHelper.ParseFloat(s, min: 1.0f, max: 10.0f, optionName: "boiler2tempspeed", digits: 1));
 
         optionSet.Add(
             "b2bt|boiler2basetemp=",
-            $"Boiler #2 base temperature to reach when not heating\nDefault: {_baseTempDegrees}",
+            $"Boiler #2 base temperature to reach when not heating.\nDefault: {_baseTempDegrees}",
             (string s) => _baseTempDegrees = CliHelper.ParseFloat(s, min: 1.0f, max: float.MaxValue, optionName: "boiler2basetemp", digits: 1));
 
         optionSet.Add(
             "b2tt|boiler2targettemp=",
-            $"Boiler #2 target temperature to reach when heating\nDefault: {_targetTempDegrees}",
+            $"Boiler #2 target temperature to reach when heating.\nDefault: {_targetTempDegrees}",
             (string s) => _targetTempDegrees = CliHelper.ParseFloat(s, min: _baseTempDegrees + 10.0f, max: float.MaxValue, optionName: "boiler2targettemp", digits: 1));
 
         optionSet.Add(
             "b2mi|boiler2maintinterval=",
-            $"Boiler #2 required maintenance interval in seconds\nDefault: {_maintenanceInterval.TotalSeconds}",
+            $"Boiler #2 required maintenance interval in seconds.\nDefault: {_maintenanceInterval.TotalSeconds}",
             (string s) => _maintenanceInterval = TimeSpan.FromSeconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2maintinterval")));
 
         optionSet.Add(
             "b2oi|boiler2overheatinterval=",
-            $"Boiler #2 overheat interval in seconds\nDefault: {_overheatInterval.TotalSeconds}",
+            $"Boiler #2 overheat interval in seconds.\nDefault: {_overheatInterval.TotalSeconds}",
             (string s) => _overheatInterval = TimeSpan.FromSeconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2overheatinterval")));
     }
 

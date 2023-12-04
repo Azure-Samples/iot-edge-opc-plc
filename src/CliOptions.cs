@@ -119,8 +119,8 @@ public class CliOptions
 
             { "csr", $"show data to create a certificate signing request.\nDefault '{ShowCreateSigningRequestInfo}'", (string s) => ShowCreateSigningRequestInfo = s != null },
 
-            { "ab|applicationcertbase64=", "update/set this application's certificate with the certificate passed in as bas64 string", (string s) => NewCertificateBase64String = s },
-            { "af|applicationcertfile=", "update/set this application's certificate with the certificate file specified", (string s) =>
+            { "ab|applicationcertbase64=", "update/set this application's certificate with the certificate passed in as bas64 string.", (string s) => NewCertificateBase64String = s },
+            { "af|applicationcertfile=", "update/set this application's certificate with the certificate file specified.", (string s) =>
                 {
                     if (File.Exists(s))
                     {
@@ -133,8 +133,8 @@ public class CliOptions
                 }
             },
 
-            { "pb|privatekeybase64=", "initial provisioning of the application certificate (with a PEM or PFX format) requires a private key passed in as base64 string", (string s) => PrivateKeyBase64String = s },
-            { "pk|privatekeyfile=", "initial provisioning of the application certificate (with a PEM or PFX format) requires a private key passed in as file", (string s) =>
+            { "pb|privatekeybase64=", "initial provisioning of the application certificate (with a PEM or PFX format) requires a private key passed in as base64 string.", (string s) => PrivateKeyBase64String = s },
+            { "pk|privatekeyfile=", "initial provisioning of the application certificate (with a PEM or PFX format) requires a private key passed in as file.", (string s) =>
                 {
                     if (File.Exists(s))
                     {
@@ -147,16 +147,16 @@ public class CliOptions
                 }
             },
 
-            { "cp|certpassword=", "the optional password for the PEM or PFX or the installed application certificate", (string s) => CertificatePassword = s },
+            { "cp|certpassword=", "the optional password for the PEM or PFX or the installed application certificate.", (string s) => CertificatePassword = s },
 
-            { "tb|addtrustedcertbase64=", "adds the certificate to the application's trusted cert store passed in as base64 string (comma separated values)", (string s) => TrustedCertificateBase64Strings = ParseListOfStrings(s) },
-            { "tf|addtrustedcertfile=", "adds the certificate file(s) to the application's trusted cert store passed in as base64 string (multiple comma separated filenames supported)", (string s) => TrustedCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addtrustedcertfile") },
+            { "tb|addtrustedcertbase64=", "adds the certificate to the application's trusted cert store passed in as base64 string (comma separated values).", (string s) => TrustedCertificateBase64Strings = ParseListOfStrings(s) },
+            { "tf|addtrustedcertfile=", "adds the certificate file(s) to the application's trusted cert store passed in as base64 string (multiple comma separated filenames supported).", (string s) => TrustedCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addtrustedcertfile") },
 
-            { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (comma separated values)", (string s) => IssuerCertificateBase64Strings = ParseListOfStrings(s) },
-            { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the application's trusted issuer cert store (multiple comma separated filenames supported)", (string s) => IssuerCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addissuercertfile") },
+            { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (comma separated values).", (string s) => IssuerCertificateBase64Strings = ParseListOfStrings(s) },
+            { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the application's trusted issuer cert store (multiple comma separated filenames supported).", (string s) => IssuerCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addissuercertfile") },
 
-            { "rb|updatecrlbase64=", "update the CRL passed in as base64 string to the corresponding cert store (trusted or trusted issuer)", (string s) => CrlBase64String = s },
-            { "uc|updatecrlfile=", "update the CRL passed in as file to the corresponding cert store (trusted or trusted issuer)", (string s) =>
+            { "rb|updatecrlbase64=", "update the CRL passed in as base64 string to the corresponding cert store (trusted or trusted issuer).", (string s) => CrlBase64String = s },
+            { "uc|updatecrlfile=", "update the CRL passed in as file to the corresponding cert store (trusted or trusted issuer).", (string s) =>
                 {
                     if (File.Exists(s))
                     {
@@ -169,7 +169,7 @@ public class CliOptions
                 }
             },
 
-            { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (comma separated values)", (string s) => ThumbprintsToRemove = ParseListOfStrings(s)
+            { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (comma separated values).", (string s) => ThumbprintsToRemove = ParseListOfStrings(s)
             },
 
             {"daa|disableanonymousauth", $"flag to disable anonymous authentication.\nDefault: {Program.DisableAnonymousAuth}", (string s) => Program.DisableAnonymousAuth = s != null },
@@ -192,7 +192,7 @@ public class CliOptions
             { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {Program.ShowPublisherConfigJsonPh}", (string s) => Program.ShowPublisherConfigJsonPh = s != null },
             { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {Program.PnJson}", (string s) => Program.PnJson = s },
             { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {Program.WebServerPort}", (uint i) => Program.WebServerPort = i },
-            { "cdn|certdnsnames=", "add additional DNS names or IP addresses to this application's certificate (comma separated values; no spaces allowed)\nDefault: DNS hostname", (string s) => DnsNames = ParseListOfStrings(s) },
+            { "cdn|certdnsnames=", "add additional DNS names or IP addresses to this application's certificate (comma separated values; no spaces allowed).\nDefault: DNS hostname", (string s) => DnsNames = ParseListOfStrings(s) },
 
             { "h|help", "show this message and exit", (string s) => Program.ShowHelp = s != null },
         };

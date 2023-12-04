@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -28,7 +28,7 @@ public class PosTrendPluginNode : IPluginNodes
     {
         optionSet.Add(
             "np|nopostrend",
-            $"do not generate positive trend data\nDefault: {!_isEnabled}",
+            $"do not generate positive trend data.\nDefault: {!_isEnabled}",
             (string s) => _isEnabled = s == null);
     }
 

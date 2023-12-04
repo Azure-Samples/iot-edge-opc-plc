@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -35,42 +35,42 @@ public class SlowPluginNodes : IPluginNodes
     {
         optionSet.Add(
             "sn|slownodes=",
-            $"number of slow nodes\nDefault: {NodeCount}",
+            $"number of slow nodes.\nDefault: {NodeCount}",
             (uint i) => NodeCount = i);
 
         optionSet.Add(
             "sr|slowrate=",
-            $"rate in seconds to change slow nodes\nDefault: {NodeRate / 1000}",
+            $"rate in seconds to change slow nodes.\nDefault: {NodeRate / 1000}",
             (uint i) => NodeRate = i * 1000);
 
         optionSet.Add(
             "st|slowtype=",
-            $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeType}",
+            $"data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: {NodeType}",
             (string s) => NodeType = SlowFastCommon.ParseNodeType(s));
 
         optionSet.Add(
             "stl|slowtypelowerbound=",
-            $"lower bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.",
+            $"lower bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: min value of node type.",
             (string s) => NodeMinValue = s);
 
         optionSet.Add(
             "stu|slowtypeupperbound=",
-            $"upper bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.",
+            $"upper bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: max value of node type.",
             (string s) => NodeMaxValue = s);
 
         optionSet.Add(
             "str|slowtyperandomization=",
-            $"randomization of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeRandomization}",
+            $"randomization of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: {NodeRandomization}",
             (string s) => NodeRandomization = bool.Parse(s));
 
         optionSet.Add(
             "sts|slowtypestepsize=",
-            $"step or increment size of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeStepSize}",
+            $"step or increment size of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: {NodeStepSize}",
             (string s) => NodeStepSize = SlowFastCommon.ParseStepSize(s));
 
         optionSet.Add(
             "ssi|slownodesamplinginterval=",
-            $"rate in milliseconds to sample slow nodes\nDefault: {NodeSamplingInterval}",
+            $"rate in milliseconds to sample slow nodes.\nDefault: {NodeSamplingInterval}",
             (uint i) => NodeSamplingInterval = i);
     }
 

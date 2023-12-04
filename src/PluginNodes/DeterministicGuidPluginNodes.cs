@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -26,7 +26,7 @@ public class DeterministicGuidPluginNodes : IPluginNodes
     {
         optionSet.Add(
             "gn|guidnodes=",
-            $"number of nodes with deterministic GUID IDs\nDefault: {NodeCount}",
+            $"number of nodes with deterministic GUID IDs.\nDefault: {NodeCount}",
             (uint i) => NodeCount = i);
     }
 
