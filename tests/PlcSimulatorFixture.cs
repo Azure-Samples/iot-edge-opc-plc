@@ -295,7 +295,7 @@ public class PlcSimulatorFixture
 
             if (_serverTask.IsCompleted)
             {
-                throw new Exception("Server failed to start");
+                throw new Exception("Server failed to start.");
             }
 
             if (!Program.Ready)
