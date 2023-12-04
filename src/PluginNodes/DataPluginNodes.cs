@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -29,7 +29,7 @@ public class DataPluginNodes : IPluginNodes
     {
         optionSet.Add(
             "nv|nodatavalues",
-            $"do not generate data values\nDefault: {!_isEnabled}",
+            $"do not generate data values.\nDefault: {!_isEnabled}",
             (string s) => _isEnabled = s == null);
     }
 

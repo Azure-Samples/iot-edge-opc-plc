@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -27,7 +27,7 @@ public class DipPluginNode : IPluginNodes
     {
         optionSet.Add(
             "nd|nodips",
-            $"do not generate dip data\nDefault: {!_isEnabled}",
+            $"do not generate dip data.\nDefault: {!_isEnabled}",
             (string s) => _isEnabled = s == null);
     }
 

@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -27,7 +27,7 @@ public class UaNodesPluginNodes : IPluginNodes
     {
         optionSet.Add(
             "unf|uanodesfile=",
-            "the binary *.PredefinedNodes.uanodes file that contains the nodes to be created in the OPC UA address space (multiple comma separated filenames supported), use ModelCompiler.cmd <ModelDesign> to compile",
+            "the binary *.PredefinedNodes.uanodes file that contains the nodes to be created in the OPC UA address space (multiple comma separated filenames supported), use ModelCompiler.cmd <ModelDesign> to compile.",
             (string s) => _nodesFileNames = CliHelper.ParseListOfFileNames(s, "unf"));
     }
 
