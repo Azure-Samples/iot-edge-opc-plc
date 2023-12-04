@@ -9,7 +9,6 @@ products:
 urlFragment: azure-iot-sample-opc-ua-server
 ---
 
-
 # OPC PLC server
 Implements an OPC-UA server with different nodes generating random data, anomalies and configuration of user defined nodes.
 
@@ -241,6 +240,13 @@ More information about this feature can be found [here](deterministic-alarms.md)
 | StopUpdateFastNodes  | Stops the increase of value of fast nodes      | fast nodes activated                           |
 | StartUpdateSlowNodes | Start the increase of value of slow nodes      | slow nodes activated                           |
 | StartUpdateFastNodes | Start the increase of value of fast nodes      | fast nodes activated                           |
+
+## NuGet
+- The OPC PLC build generates a NuGet package that can be used to add the OPC PLC server to your own project, e.g. for unit tests
+- Sample base class for unit tests: `./samples/OpcPlcBase.cs`
+- Sample unit test file that uses the base class: `./samples/OpcUaUnitTests.cs`
+- Sample NuGet config to consume a local package (needs to be next to the solution file): `./samples/nuget.config`
+- Sample project file that shows how to import the local OPC PLC nuget package: `./samples/OpcUaUnitTests.prj`
 
 ## Build
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR you need to:
