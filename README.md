@@ -370,10 +370,10 @@ Options:
                                Default 'False'
       --ab, --applicationcertbase64=VALUE
                              update/set this application's certificate with the
-                               certificate passed in as bas64 string.
+                               certificate passed in as base64 string.
       --af, --applicationcertfile=VALUE
                              update/set this application's certificate with the
-                               certificate file specified.
+                               specified file.
       --pb, --privatekeybase64=VALUE
                              initial provisioning of the application
                                certificate (with a PEM or PFX format) requires

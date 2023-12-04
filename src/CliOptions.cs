@@ -119,8 +119,8 @@ public class CliOptions
 
             { "csr", $"show data to create a certificate signing request.\nDefault '{ShowCreateSigningRequestInfo}'", (string s) => ShowCreateSigningRequestInfo = s != null },
 
-            { "ab|applicationcertbase64=", "update/set this application's certificate with the certificate passed in as bas64 string.", (string s) => NewCertificateBase64String = s },
-            { "af|applicationcertfile=", "update/set this application's certificate with the certificate file specified.", (string s) =>
+            { "ab|applicationcertbase64=", "update/set this application's certificate with the certificate passed in as base64 string.", (string s) => NewCertificateBase64String = s },
+            { "af|applicationcertfile=", "update/set this application's certificate with the specified file.", (string s) =>
                 {
                     if (File.Exists(s))
                     {
