@@ -8,7 +8,6 @@ using OpcPlc.Extensions;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
 using OpcPlc.PluginNodes.Models;
-using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -38,7 +37,7 @@ public static class Program
     /// <summary>
     /// Logging object.
     /// </summary>
-    public static Microsoft.Extensions.Logging.ILogger Logger = null;
+    public static ILogger Logger = null;
 
     /// <summary>
     /// Nodes to extend the address space.
