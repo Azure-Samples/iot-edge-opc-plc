@@ -88,8 +88,7 @@ public class PlcSimulatorFixture
 
         var mock = new Mock<TimeService>();
         mock.Setup(f => f.NewTimer(It.IsAny<ElapsedEventHandler>(), It.IsAny<uint>()))
-            .Returns((ElapsedEventHandler handler, uint intervalInMilliseconds) =>
-            {
+            .Returns((ElapsedEventHandler handler, uint intervalInMilliseconds) => {
                 var mockTimer = new Mock<OpcPlc.ITimer>();
                 mockTimer.SetupAllProperties();
                 var timer = mockTimer.Object;
@@ -101,8 +100,7 @@ public class PlcSimulatorFixture
             });
 
         mock.Setup(f => f.NewFastTimer(It.IsAny<FastTimerElapsedEventHandler>(), It.IsAny<uint>()))
-            .Returns((FastTimerElapsedEventHandler handler, uint intervalInMilliseconds) =>
-            {
+            .Returns((FastTimerElapsedEventHandler handler, uint intervalInMilliseconds) => {
                 var mockTimer = new Mock<OpcPlc.ITimer>();
                 mockTimer.SetupAllProperties();
                 var timer = mockTimer.Object;
@@ -124,17 +122,16 @@ public class PlcSimulatorFixture
         // The simulator program command line.
         // Passed args override the following defaults.
         _serverTask = Task.Run(() => Program.MainAsync(
-                _args.Concat(
-                        new[]
-                        {
-                            "--autoaccept",
-                            $"--portnum={Port}",
-                            "--fn=25",
-                            "--fr=1",
-                            "--ft=uint"
-                        })
-                    .ToArray(),
-                _serverCancellationTokenSource.Token)
+            _args.Concat(
+                new[]
+                {
+                    "--autoaccept",
+                    $"--portnum={Port}",
+                    "--fn=25",
+                    "--fr=1",
+                    "--ft=uint",
+                }).ToArray(),
+            _serverCancellationTokenSource.Token)
             .GetAwaiter().GetResult());
 
         string endpointUrl = WaitForServerUp();
@@ -226,8 +223,7 @@ public class PlcSimulatorFixture
     {
         await _log.WriteLineAsync("Create Application Configuration").ConfigureAwait(false);
 
-        var application = new ApplicationInstance
-        {
+        var application = new ApplicationInstance {
             ApplicationName = nameof(PlcSimulatorFixture),
             ApplicationType = ApplicationType.Client,
             ConfigSectionName = nameof(PlcSimulatorFixture) // Defines name of *.Config.xml file read
