@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -36,47 +36,47 @@ public class FastPluginNodes : IPluginNodes
     {
         optionSet.Add(
             "fn|fastnodes=",
-            $"number of fast nodes\nDefault: {NodeCount}",
+            $"number of fast nodes.\nDefault: {NodeCount}",
             (uint i) => NodeCount = i);
 
         optionSet.Add(
             "fr|fastrate=",
-            $"rate in seconds to change fast nodes\nDefault: {NodeRate / 1000}",
+            $"rate in seconds to change fast nodes.\nDefault: {NodeRate / 1000}",
             (uint i) => NodeRate = i * 1000);
 
         optionSet.Add(
             "ft|fasttype=",
-            $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeType}",
+            $"data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: {NodeType}",
             (string s) => NodeType = SlowFastCommon.ParseNodeType(s));
 
         optionSet.Add(
             "ftl|fasttypelowerbound=",
-            $"lower bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: min value of node type.",
+            $"lower bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: min value of node type.",
             (string s) => NodeMinValue = s);
 
         optionSet.Add(
             "ftu|fasttypeupperbound=",
-            $"upper bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: max value of node type.",
+            $"upper bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: max value of node type.",
             (string s) => NodeMaxValue = s);
 
         optionSet.Add(
             "ftr|fasttyperandomization=",
-            $"randomization of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeRandomization}",
+            $"randomization of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: {NodeRandomization}",
             (string s) => NodeRandomization = bool.Parse(s));
 
         optionSet.Add(
             "fts|fasttypestepsize=",
-            $"step or increment size of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))})\nDefault: {NodeStepSize}",
+            $"step or increment size of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: {NodeStepSize}",
             (string s) => NodeStepSize = SlowFastCommon.ParseStepSize(s));
 
         optionSet.Add(
             "fsi|fastnodesamplinginterval=",
-            $"rate in milliseconds to sample fast nodes\nDefault: {NodeSamplingInterval}",
+            $"rate in milliseconds to sample fast nodes.\nDefault: {NodeSamplingInterval}",
             (uint i) => NodeSamplingInterval = i);
 
         optionSet.Add(
             "vfr|veryfastrate=",
-            $"rate in milliseconds to change fast nodes\nDefault: {NodeRate}",
+            $"rate in milliseconds to change fast nodes.\nDefault: {NodeRate}",
             (uint i) => NodeRate = i);
     }
 
