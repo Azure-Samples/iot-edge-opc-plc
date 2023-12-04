@@ -11,7 +11,7 @@
     <PackageReference Include="Bogus" Version="34.0.2" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="Moq" Version="4.20.70" />
-    <PackageReference Include="NUnit" Version="4.0.0" />
+    <PackageReference Include="NUnit" Version="4.0.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
   </ItemGroup>
@@ -19,16 +19,16 @@
   <Choose>
     <When Condition="'$(Configuration)'=='Release'">
       <ItemGroup>
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.4.372.76" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.4.372.76" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" Version="1.4.372.76" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.4.372.91-preview" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.4.372.91-preview" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" Version="1.4.372.91-preview" />
       </ItemGroup>
     </When>
     <Otherwise>
       <ItemGroup>
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.4.372.76" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.4.372.76" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes.Debug" Version="1.4.372.76" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.4.372.91-preview" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.4.372.91-preview" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes.Debug" Version="1.4.372.91-preview" />
       </ItemGroup>
     </Otherwise>
   </Choose>
