@@ -344,7 +344,7 @@ public static class Program
             return;
         }
 
-        LogLevel logLevel = LogLevel.Information;
+        LogLevel logLevel;
 
         // set the log level
         switch (LogLevelCli)
