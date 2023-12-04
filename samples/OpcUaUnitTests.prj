@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.IoTEdge.OpcPlc" Version="2.9.15-gdd6f023a37" />
+    <PackageReference Include="Microsoft.IoTEdge.OpcPlc" Version="2.10.0-gdd6f023a37" />
   </ItemGroup>
 
 </Project>
