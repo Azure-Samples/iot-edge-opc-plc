@@ -16,9 +16,6 @@ public class OpcPlcBase
                 {
                     "--autoaccept",
                     $"--portnum={port}",
-                    "--fn=25",
-                    "--fr=1",
-                    "--ft=uint",
                 }).ToArray(),
             CancellationToken.None)
             .GetAwaiter().GetResult());
