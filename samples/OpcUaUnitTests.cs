@@ -5,7 +5,12 @@ using System.Threading.Tasks;
 public class OpcUaUnitTests : OpcPlcBase
 {
     public OpcUaUnitTests()
-        : base(new[] { "--gn=2" }) // Additional arguments.
+        : base(
+            new[] // Additional arguments.
+            {
+                "--gn=2",
+            },
+            port: 51234) // Port must be unique for each test class.
     {
     }
 

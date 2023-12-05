@@ -5,8 +5,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+/// <summary>
+/// Base class for tests that use the OPC PLC server NuGet.
+/// </summary>
 public class OpcPlcBase
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpcPlcBase"/> class.
+    /// </summary>
     public OpcPlcBase(string[] args, int port = 51234)
     {
         // Passed args override the following defaults.
@@ -16,9 +22,6 @@ public class OpcPlcBase
                 {
                     "--autoaccept",
                     $"--portnum={port}",
-                    "--fn=25",
-                    "--fr=1",
-                    "--ft=uint",
                 }).ToArray(),
             CancellationToken.None)
             .GetAwaiter().GetResult());
@@ -26,6 +29,9 @@ public class OpcPlcBase
         OpcPlcEndpointUrl = WaitForServerUpAsync(serverTask).GetAwaiter().GetResult();
     }
 
+    /// <summary>
+    /// Gets the OPC PLC server endpoint URL.
+    /// </summary>
     public string OpcPlcEndpointUrl { get; }
 
     private static async Task<string> WaitForServerUpAsync(Task serverTask)
