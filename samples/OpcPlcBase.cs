@@ -53,7 +53,7 @@ public class OpcPlcBase
 
             if (serverTask.IsCompleted)
             {
-                throw new Exception("Server failed to start.");
+                throw new Exception("The OPC PLC server failed to start.");
             }
 
             if (!OpcPlc.Program.Ready)

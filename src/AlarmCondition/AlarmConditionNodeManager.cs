@@ -460,7 +460,6 @@ namespace AlarmCondition
 
         #region Private Fields
         private readonly UnderlyingSystem m_system;
-//        private AlarmConditionServerConfiguration m_configuration;
         private readonly Dictionary<string, AreaState> m_areas;
         private readonly Dictionary<string, SourceState> m_sources;
         private Timer m_simulationTimer;

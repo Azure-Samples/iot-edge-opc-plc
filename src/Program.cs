@@ -193,6 +193,7 @@ public static class Program
         catch (Exception ex)
         {
             Logger.LogCritical(ex, "OPC UA server failed unexpectedly");
+            throw;
         }
 
         Logger.LogInformation("OPC UA server exiting...");
