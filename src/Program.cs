@@ -190,10 +190,10 @@ public static class Program
         {
             await ConsoleServerAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (AggregateException ex)
+        catch (Exception ex)
         {
             Logger.LogCritical(ex, "OPC UA server failed unexpectedly");
-            throw new Exception(ex.Flatten().Message);
+            throw;
         }
 
         Logger.LogInformation("OPC UA server exiting...");
