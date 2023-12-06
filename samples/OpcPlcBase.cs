@@ -12,9 +12,16 @@ public class OpcPlcBase
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="OpcPlcBase"/> class.
+    /// Set the <paramref name="endpointUriOverride"/> to override spawning a server and use an existing one instead.
     /// </summary>
-    public OpcPlcBase(string[] args, int port = 51234)
+    public OpcPlcBase(string[] args, int port, string? endpointUriOverride = null)
     {
+        if(!string.IsNullOrEmpty(endpointUriOverride))
+        {
+            OpcPlcEndpointUrl = endpointUriOverride;
+            return;
+        }
+
         // Passed args override the following defaults.
         var serverTask = Task.Run(() => OpcPlc.Program.MainAsync(
             args.Concat(
