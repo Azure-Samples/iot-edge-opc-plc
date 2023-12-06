@@ -38,14 +38,14 @@
   <Choose>
     <When Condition="'$(Configuration)'=='Release'">
       <ItemGroup>
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.4.372.91-preview" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.4.372.91-preview" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.4.372.76" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.4.372.76" />
       </ItemGroup>
     </When>
     <Otherwise>
       <ItemGroup>
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.4.372.91-preview" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.4.372.91-preview" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.4.372.76" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.4.372.76" />
       </ItemGroup>
     </Otherwise>
   </Choose>
