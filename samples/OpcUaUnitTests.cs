@@ -10,7 +10,7 @@ public class OpcUaUnitTests : OpcPlcBase
             {
                 "--gn=2",
             },
-            port: 51234) // Port must be unique for each test class.
+            uniqueOpcPlcPort: 51234) // Port must be unique for each test class.
     {
     }
 

@@ -12,9 +12,10 @@ public class OpcPlcBase
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="OpcPlcBase"/> class.
+    /// The <paramref name="uniqueOpcPlcPort"/> must be unique for each test class.
     /// Set the <paramref name="endpointUriOverride"/> to override spawning a server and use an existing one instead.
     /// </summary>
-    public OpcPlcBase(string[] args, int port, string? endpointUriOverride = null)
+    public OpcPlcBase(string[] args, int uniqueOpcPlcPort, string? endpointUriOverride = null)
     {
         if(!string.IsNullOrEmpty(endpointUriOverride))
         {
@@ -28,7 +29,7 @@ public class OpcPlcBase
                 new[]
                 {
                     "--autoaccept",
-                    $"--portnum={port}",
+                    $"--portnum={uniqueOpcPlcPort}",
                 }).ToArray(),
             CancellationToken.None)
             .GetAwaiter().GetResult());
