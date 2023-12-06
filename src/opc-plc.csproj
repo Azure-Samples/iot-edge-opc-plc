@@ -22,19 +22,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Build\**" />
-    <EmbeddedResource Remove="Build\**" />
-    <None Remove="Build\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Mono.Options" Version="6.12.0.148" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Serilog.Extensions.Logging.File" Version="3.0.0" />
+    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    <PackageReference Update="Nerdbank.GitVersioning" Version="3.6.133" />
   </ItemGroup>
-
 
   <Choose>
     <When Condition="'$(Configuration)'=='Release'">
@@ -70,31 +65,23 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="8.0.0" />
-    <PackageReference Update="Nerdbank.GitVersioning" Version="3.6.133" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="AlarmCondition\UnderlyingSystem\" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Microsoft.IoTEdge.OpcPlc.targets" PackagePath="build/Microsoft.IoTEdge.OpcPlc.targets" />
-    <Content Include="Boilers/**/*.*" copyToOutput="true">
+    <Content Include="Boilers/**/*.*">
       <PackagePath>contentFiles\Boilers</PackagePath>
     </Content>
-    <Content Include="CompanionSpecs/**/*.*" copyToOutput="true">
+    <Content Include="CompanionSpecs/**/*.*">
       <PackagePath>contentFiles\CompanionSpecs</PackagePath>
     </Content>
-    <Content Include="SimpleEvent/**/*.*" copyToOutput="true">
+    <Content Include="SimpleEvent/**/*.*">
       <PackagePath>contentFiles\SimpleEvent</PackagePath>
     </Content>
-    <Content Include="nodesfile.json" copyToOutput="true">
+    <Content Include="nodesfile.json">
       <PackagePath>contentFiles</PackagePath>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="..\README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
