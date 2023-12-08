@@ -115,7 +115,7 @@ public static class Program
     /// <summary>
     /// Logging configuration.
     /// </summary>
-    public static string LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
+    public static string LogFileName = $"hostname-port-plc.log";
     public static string LogLevelCli = "info";
     public static TimeSpan LogFileFlushTimeSpanSec = TimeSpan.FromSeconds(30);
 
@@ -378,16 +378,20 @@ public static class Program
         {
             LogFileName = Environment.GetEnvironmentVariable("_GW_LOGP");
         }
+        else
+        {
+            LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-{ServerPort}-plc.log";
+        }
 
         if (!string.IsNullOrEmpty(LogFileName))
         {
             // configure rolling file sink
             const int MAX_LOGFILE_SIZE = 1024 * 1024;
             const int MAX_RETAINED_LOGFILES = 2;
-            LoggerFactory.AddFile(LogFileName, logLevel, null, false, fileSizeLimitBytes: MAX_LOGFILE_SIZE, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
+            LoggerFactory.AddFile(LogFileName, logLevel, levelOverrides: null, isJson: false, fileSizeLimitBytes: MAX_LOGFILE_SIZE, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
         }
 
-        Logger = LoggerFactory.CreateLogger("opcPlc");
+        Logger = LoggerFactory.CreateLogger("OpcPlc");
     }
 
     /// <summary>
