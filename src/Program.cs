@@ -115,7 +115,7 @@ public static class Program
     /// <summary>
     /// Logging configuration.
     /// </summary>
-    public static string LogFileName = $"hostname-port-plc.log";
+    public static string LogFileName = $"hostname-port-plc.log"; // Set in InitLogging().
     public static string LogLevelCli = "info";
     public static TimeSpan LogFileFlushTimeSpanSec = TimeSpan.FromSeconds(30);
 
