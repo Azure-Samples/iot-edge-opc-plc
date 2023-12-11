@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Configuration;
 using Opc.Ua.Security.Certificates;
+using OpcPlc.Certs;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -114,15 +115,24 @@ public partial class OpcApplicationConfiguration
         securityConfiguration.ApplicationCertificate.StorePath = OpcOwnCertStorePath;
 
         // configure trusted issuer certificates store
-        securityConfiguration.TrustedIssuerCertificates.StoreType = OpcOwnCertStoreType;
+        securityConfiguration.TrustedIssuerCertificates.StoreType =
+            OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName
+                ? FlatDirectoryCertificateStore.StoreTypeName
+                : CertificateStoreType.Directory;
         securityConfiguration.TrustedIssuerCertificates.StorePath = OpcIssuerCertStorePath;
 
         // configure trusted peer certificates store
-        securityConfiguration.TrustedPeerCertificates.StoreType = OpcOwnCertStoreType;
+        securityConfiguration.TrustedPeerCertificates.StoreType =
+            OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName
+                ? FlatDirectoryCertificateStore.StoreTypeName
+                : CertificateStoreType.Directory;
         securityConfiguration.TrustedPeerCertificates.StorePath = OpcTrustedCertStorePath;
 
         // configure rejected certificates store
-        securityConfiguration.RejectedCertificateStore.StoreType = OpcOwnCertStoreType;
+        securityConfiguration.RejectedCertificateStore.StoreType = 
+        OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName
+            ? FlatDirectoryCertificateStore.StoreTypeName
+            : CertificateStoreType.Directory;
         securityConfiguration.RejectedCertificateStore.StorePath = OpcRejectedCertStorePath;
 
         ApplicationConfiguration = await options.Create().ConfigureAwait(false);
