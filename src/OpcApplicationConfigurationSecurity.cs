@@ -1,4 +1,4 @@
-﻿namespace OpcPlc;
+namespace OpcPlc;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -110,40 +110,25 @@ public partial class OpcApplicationConfiguration
             .SetAddAppCertToTrustedStore(TrustMyself);
 
         var securityConfiguration = ApplicationConfiguration.SecurityConfiguration;
-        var id = securityConfiguration.ApplicationCertificate;
-        if (!id.StorePath.Equals(OpcOwnCertStorePath, StringComparison.OrdinalIgnoreCase))
-        {
-            id.StoreType = OpcOwnCertStoreType;
-            id.StorePath = OpcOwnCertStorePath;
-        }
+        securityConfiguration.ApplicationCertificate.StoreType = OpcOwnCertStoreType;
+        securityConfiguration.ApplicationCertificate.StorePath = OpcOwnCertStorePath;
 
         // configure trusted issuer certificates store
-        var issuerList = securityConfiguration.TrustedIssuerCertificates;
-        if (issuerList.StorePath != OpcIssuerCertStorePath)
-        {
-            issuerList.StoreType = CertificateStoreType.Directory;
-            issuerList.StorePath = OpcIssuerCertStorePath;
-        }
+        securityConfiguration.TrustedIssuerCertificates.StoreType = OpcOwnCertStoreType;
+        securityConfiguration.TrustedIssuerCertificates.StorePath = OpcIssuerCertStorePath;
 
         // configure trusted peer certificates store
-        var trustList = securityConfiguration.TrustedPeerCertificates;
-        if (trustList.StorePath != OpcTrustedCertStorePath)
-        {
-            trustList.StoreType = CertificateStoreType.Directory;
-            trustList.StorePath = OpcTrustedCertStorePath;
-        }
+        securityConfiguration.TrustedPeerCertificates.StoreType = OpcOwnCertStoreType;
+        securityConfiguration.TrustedPeerCertificates.StorePath = OpcTrustedCertStorePath;
 
         // configure rejected certificates store
-        var rejectedStore = securityConfiguration.RejectedCertificateStore;
-        if (rejectedStore.StorePath != OpcRejectedCertStorePath)
-        {
-            rejectedStore.StoreType = CertificateStoreType.Directory;
-            rejectedStore.StorePath = OpcRejectedCertStorePath;
-        }
+        securityConfiguration.RejectedCertificateStore.StoreType = OpcOwnCertStoreType;
+        securityConfiguration.RejectedCertificateStore.StorePath = OpcRejectedCertStorePath;
+
         ApplicationConfiguration = await options.Create().ConfigureAwait(false);
 
-        Logger.LogInformation("Application Certificate store type is: {storeType}", id.StoreType);
-        Logger.LogInformation("Application Certificate store path is: {storePath}", id.StorePath);
+        Logger.LogInformation("Application Certificate store type is: {storeType}", securityConfiguration.ApplicationCertificate.StoreType);
+        Logger.LogInformation("Application Certificate store path is: {storePath}", securityConfiguration.ApplicationCertificate.StorePath);
 
         Logger.LogInformation("Rejection of SHA1 signed certificates is {status}",
             securityConfiguration.RejectSHA1SignedCertificates ? "enabled" : "disabled");
@@ -151,14 +136,14 @@ public partial class OpcApplicationConfiguration
         Logger.LogInformation("Minimum certificate key size set to {minimumCertificateKeySize}",
             securityConfiguration.MinimumCertificateKeySize);
 
-        Logger.LogInformation("Trusted Issuer store type is: {storeType}", issuerList.StoreType);
-        Logger.LogInformation("Trusted Issuer Certificate store path is: {storePath}", issuerList.StorePath);
+        Logger.LogInformation("Trusted Issuer store type is: {storeType}", securityConfiguration.TrustedIssuerCertificates.StoreType);
+        Logger.LogInformation("Trusted Issuer Certificate store path is: {storePath}", securityConfiguration.TrustedIssuerCertificates.StorePath);
 
-        Logger.LogInformation("Trusted Peer Certificate store type is: {storeType}", trustList.StoreType);
-        Logger.LogInformation("Trusted Peer Certificate store path is: {storePath}", trustList.StorePath);
+        Logger.LogInformation("Trusted Peer Certificate store type is: {storeType}", securityConfiguration.TrustedPeerCertificates.StoreType);
+        Logger.LogInformation("Trusted Peer Certificate store path is: {storePath}", securityConfiguration.TrustedPeerCertificates.StorePath);
 
-        Logger.LogInformation("Rejected certificate store type is: {storeType}", rejectedStore.StoreType);
-        Logger.LogInformation("Rejected Certificate store path is: {storePath}", rejectedStore.StorePath);
+        Logger.LogInformation("Rejected certificate store type is: {storeType}", securityConfiguration.RejectedCertificateStore.StoreType);
+        Logger.LogInformation("Rejected Certificate store path is: {storePath}", securityConfiguration.RejectedCertificateStore.StorePath);
 
         // handle cert validation
         if (AutoAcceptCerts)
