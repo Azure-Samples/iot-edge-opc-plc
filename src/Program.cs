@@ -24,6 +24,8 @@ using static OpcPlc.PlcSimulation;
 
 public static class Program
 {
+    private static CancellationTokenSource _cancellationTokenSource;
+
     /// <summary>
     /// Name of the application.
     /// </summary>
@@ -199,6 +201,11 @@ public static class Program
         Logger.LogInformation("OPC UA server exiting...");
     }
 
+    public static void Shutdown()
+    {
+        _cancellationTokenSource.Cancel();
+    }
+
     /// <summary>
     /// Load plugin nodes using reflection.
     /// </summary>
@@ -323,13 +330,13 @@ public static class Program
         Logger.LogInformation("PLC simulation started, press Ctrl+C to exit ...");
 
         // Wait for Ctrl-C to allow canceling the connection process.
-        var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         Console.CancelKeyPress += (_, eArgs) => {
-            cancellationTokenSource.Cancel();
+            _cancellationTokenSource.Cancel();
             eArgs.Cancel = true;
         };
 
-        await cancellationTokenSource.Token.WhenCanceled().ConfigureAwait(false);
+        await _cancellationTokenSource.Token.WhenCanceled().ConfigureAwait(false);
 
         PlcSimulation.Stop();
         PlcServer.Stop();
