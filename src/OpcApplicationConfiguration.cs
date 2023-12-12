@@ -66,7 +66,7 @@ public partial class OpcApplicationConfiguration
     /// <summary>
     /// The flat directory certificate store shall only be initialized once.
     /// </summary>
-    private static bool _flatDirectoryCertStoreInitialized = false;
+    private bool _flatDirectoryCertStoreInitialized = false;
 
     /// <summary>
     /// Configures all OPC stack settings.
@@ -79,6 +79,7 @@ public partial class OpcApplicationConfiguration
             CertificateStoreType.RegisterCertificateStoreType(
                 FlatDirectoryCertificateStore.StoreTypeName,
                 new FlatDirectoryCertificateStoreType());
+
             _flatDirectoryCertStoreInitialized = true;
         }
 
