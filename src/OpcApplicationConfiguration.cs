@@ -3,6 +3,7 @@ namespace OpcPlc;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Configuration;
+using OpcPlc.Certs;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -58,10 +59,29 @@ public partial class OpcApplicationConfiguration
     public static int OpcMaxStringLength { get; set; } = 4 * 1024 * 1024;
 
     /// <summary>
+    /// Set when a flat directory certificate store should be used.
+    /// </summary>
+    public static bool EnableFlatDirectoryCertStore { get; set; } = false;
+
+    /// <summary>
+    /// The flat directory certificate store shall only be initialized once
+    /// </summary>
+    private static bool _flatDirectoryCertStoreInitialized = false;
+
+    /// <summary>
     /// Configures all OPC stack settings.
     /// </summary>
     public async Task<ApplicationConfiguration> ConfigureAsync()
     {
+        if (!_flatDirectoryCertStoreInitialized)
+        {
+            // Register FlatDirectoryCertificateStoreType as known certificate store type.
+            CertificateStoreType.RegisterCertificateStoreType(
+                FlatDirectoryCertificateStore.StoreTypeName,
+                new FlatDirectoryCertificateStoreType());
+            _flatDirectoryCertStoreInitialized = true;
+        }
+
         // instead of using a configuration XML file, configure everything programmatically
         var application = new ApplicationInstance
         {
