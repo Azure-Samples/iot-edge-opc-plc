@@ -64,7 +64,7 @@ public partial class OpcApplicationConfiguration
     public static bool EnableFlatDirectoryCertStore { get; set; } = false;
 
     /// <summary>
-    /// The flat directory certificate store shall only be initialized once
+    /// The flat directory certificate store shall only be initialized once.
     /// </summary>
     private static bool _flatDirectoryCertStoreInitialized = false;
 
