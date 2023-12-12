@@ -198,7 +198,7 @@ public static class Program
             throw;
         }
 
-        Logger.LogInformation("OPC UA server exiting...");
+        Logger.LogInformation("OPC UA server exiting ...");
     }
 
     public static void Shutdown()
