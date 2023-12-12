@@ -78,7 +78,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
     /// <inheritdoc/>
     public async Task<X509Certificate2Collection> Enumerate()
     {
-        var certificatesCollection = await _innerStore.Enumerate().ConfigureAwait(false);
+        X509Certificate2Collection certificatesCollection = await _innerStore.Enumerate().ConfigureAwait(false);
         if (!_innerStore.Directory.Exists)
         {
             return certificatesCollection;
@@ -88,17 +88,17 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
         {
             try
             {
-                X509Certificate2Collection certificates = new X509Certificate2Collection();
+                var certificates = new X509Certificate2Collection();
                 certificates.ImportFromPemFile(file.FullName);
                 certificatesCollection.AddRange(certificates);
                 foreach (X509Certificate2 certificate in certificates)
                 {
-                    Utils.LogInfo("Enumerate certificates - certificate added {0}", certificate.Thumbprint);
+                    Utils.LogInfo("Enumerate certificates - certificate added {thumbprint}", certificate.Thumbprint);
                 }
             }
             catch (Exception e)
             {
-                Utils.LogError(e, "Could not load certificate from file: {0}", file.FullName);
+                Utils.LogError(e, "Could not load certificate from file: {fileName}", file.FullName);
             }
         }
 
@@ -132,7 +132,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
     /// <inheritdoc/>
     public async Task<X509Certificate2Collection> FindByThumbprint(string thumbprint)
     {
-        var certificatesCollection = await _innerStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
+        X509Certificate2Collection certificatesCollection = await _innerStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
 
         if (!_innerStore.Directory.Exists)
         {
@@ -143,20 +143,20 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
         {
             try
             {
-                X509Certificate2Collection certificates = new X509Certificate2Collection();
+                var certificates = new X509Certificate2Collection();
                 certificates.ImportFromPemFile(file.FullName);
                 foreach (X509Certificate2 certificate in certificates)
                 {
                     if (string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
                     {
-                        Utils.LogInfo("Find by thumbprint: {0} - found", thumbprint);
+                        Utils.LogInfo("Find by thumbprint: {thumbprint} - found", thumbprint);
                         certificatesCollection.Add(certificate);
                     }
                 }
             }
             catch (Exception e)
             {
-                Utils.LogError(e, "Could not load certificate from file: {0}", file.FullName);
+                Utils.LogError(e, "Could not load certificate from file: {fileName}", file.FullName);
             }
         }
 
@@ -181,10 +181,10 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
         {
             try
             {
-                FileInfo keyFile = new FileInfo(file.FullName.Replace(CrtExtension, KeyExtension, StringComparison.OrdinalIgnoreCase));
+                var keyFile = new FileInfo(file.FullName.Replace(CrtExtension, KeyExtension, StringComparison.OrdinalIgnoreCase));
                 if (keyFile.Exists)
                 {
-                    using X509Certificate2 certificate = new X509Certificate2(file.FullName);
+                    using var certificate = new X509Certificate2(file.FullName);
                     if (!MatchCertificate(certificate, thumbprint, subjectName))
                     {
                         continue;
@@ -192,13 +192,13 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
 
                     X509Certificate2 privateKeyCertificate = X509Certificate2.CreateFromPemFile(file.FullName, keyFile.FullName);
 
-                    Utils.LogInfo("Loading private key succeeded for {0} - {1}", thumbprint, subjectName);
+                    Utils.LogInfo("Loading private key succeeded for {thumbprint} - {subjectName}", thumbprint, subjectName);
                     return privateKeyCertificate;
                 }
             }
             catch (Exception e)
             {
-                Utils.LogError(e, "Could not load private key for certificate file: {0}", file.FullName);
+                Utils.LogError(e, "Could not load private key for certificate file: {fileName}", file.FullName);
             }
         }
 

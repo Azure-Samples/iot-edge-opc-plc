@@ -277,7 +277,7 @@ X.509 certificates:
 * Running on Windows natively, you cannot use an application certificate store of type `Directory`, since the access to the private key will fail. Use the option `--at X509Store` in this case.
 * Running as Linux Docker container, you can map the certificate stores to the host file system by using the Docker run option `-v <hostpkidirectory>:/app/pki`. This will make the certificate persistent over starts.
 * Running as Linux Docker container using an X509Store for the application certificate, you need to use the Docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
-* When running in kubernetes context, use option `--at FlatDirectory`. This enables the OPC UA server to consume both public key and private key certificates directly from the /app/pki/own/ path without expecting the `certs` and `private` subdirectories. furthermore, certificates with .crt and .key are accepted.
+* When running in kubernetes context, use option `--at FlatDirectory`. This enables the OPC UA server to consume both public key and private key certificates directly from the /app/pki/own/ path without expecting the `certs` and `private` subdirectories. Furthermore, certificates of type .crt and .key are accepted.
 
 ## Resources
 - [The OPC Foundation OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard)
