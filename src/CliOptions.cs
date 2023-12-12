@@ -3,6 +3,7 @@ namespace OpcPlc;
 using Microsoft.Extensions.Logging;
 using Mono.Options;
 using Opc.Ua;
+using OpcPlc.Certs;
 using OpcPlc.Helpers;
 using System;
 using System.Collections.Generic;
@@ -94,21 +95,31 @@ public class CliOptions
 
             // cert store options
             { "at|appcertstoretype=", $"the own application cert store type. \n(allowed values: Directory, X509Store)\nDefault: '{OpcOwnCertStoreType}'", (string s) => {
-                    if (s.Equals(CertificateStoreType.X509Store, StringComparison.OrdinalIgnoreCase) || s.Equals(CertificateStoreType.Directory, StringComparison.OrdinalIgnoreCase))
+                    switch (s)
                     {
-                        OpcOwnCertStoreType = s.Equals(CertificateStoreType.X509Store, StringComparison.OrdinalIgnoreCase) ? CertificateStoreType.X509Store : CertificateStoreType.Directory;
-                        OpcOwnCertStorePath = s.Equals(CertificateStoreType.X509Store, StringComparison.OrdinalIgnoreCase) ? OpcOwnCertX509StorePathDefault : OpcOwnCertDirectoryStorePathDefault;
-                    }
-                    else
-                    {
-                        throw new OptionException();
+                        case CertificateStoreType.X509Store:
+                            OpcOwnCertStoreType = CertificateStoreType.X509Store;
+                            OpcOwnCertStorePath = OpcOwnCertX509StorePathDefault;
+                            break;
+                        case CertificateStoreType.Directory:
+                            OpcOwnCertStoreType = CertificateStoreType.Directory;
+                            OpcOwnCertStorePath = OpcOwnCertDirectoryStorePathDefault;
+                            break;
+                        case FlatDirectoryCertificateStore.StoreTypeName:
+                            OpcOwnCertStoreType = FlatDirectoryCertificateStore.StoreTypeName;
+                            OpcOwnCertStorePath = OpcOwnCertDirectoryStorePathDefault;
+                            break;
+                        default:
+                            throw new OptionException();
                     }
                 }
             },
 
             { "ap|appcertstorepath=", "the path where the own application cert should be stored\nDefault (depends on store type):\n" +
                     $"X509Store: '{OpcOwnCertX509StorePathDefault}'\n" +
-                    $"Directory: '{OpcOwnCertDirectoryStorePathDefault}'", (string s) => OpcOwnCertStorePath = s
+                    $"Directory: '{OpcOwnCertDirectoryStorePathDefault}'" +
+                    $"FlatDirectory: '{OpcOwnCertDirectoryStorePathDefault}'",
+                    (string s) => OpcOwnCertStorePath = s
             },
 
             { "tp|trustedcertstorepath=", $"the path of the trusted cert store.\nDefault '{OpcTrustedCertDirectoryStorePathDefault}'", (string s) => OpcTrustedCertStorePath = s },
