@@ -80,13 +80,14 @@ public class Program
     public static void Main(string[] args)
     {
         // Start OPC UA server.
-        StartAsync(args).Wait();
+        var prog = new Program();
+        prog.StartAsync(args).Wait();
     }
 
     /// <summary>
     /// Asynchronous part of the main method of the app.
     /// </summary>
-    public static async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
+    public async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
     {
         // Initialize configuration.
         Config = new();
