@@ -19,7 +19,6 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using static OpcPlc.PlcSimulation;
 
 public static class Program
 {
@@ -28,6 +27,8 @@ public static class Program
     public static Configuration Config { get; set; }
 
     public static OpcApplicationConfiguration OpcUaConfig { get; set; }
+
+    public static PlcSimulation SimulationConfig { get; set; }
 
     /// <summary>
     /// The LoggerFactory used to create logging objects.
@@ -81,6 +82,7 @@ public static class Program
         // Initialize configuration.
         Config = new();
         OpcUaConfig = new();
+        SimulationConfig = new();
 
         LoadPluginNodes();
 
@@ -224,15 +226,15 @@ public static class Program
         // start the server.
         Logger.LogInformation("Starting server on endpoint {endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
         Logger.LogInformation("Simulation settings are:");
-        Logger.LogInformation("One simulation phase consists of {SimulationCycleCount} cycles", SimulationCycleCount);
-        Logger.LogInformation("One cycle takes {SimulationCycleLength} ms", SimulationCycleLength);
+        Logger.LogInformation("One simulation phase consists of {SimulationCycleCount} cycles", SimulationConfig.SimulationCycleCount);
+        Logger.LogInformation("One cycle takes {SimulationCycleLength} ms", SimulationConfig.SimulationCycleLength);
         Logger.LogInformation("Reference test simulation: {addReferenceTestSimulation}",
-            AddReferenceTestSimulation ? "Enabled" : "Disabled");
+            SimulationConfig.AddReferenceTestSimulation ? "Enabled" : "Disabled");
         Logger.LogInformation("Simple events: {addSimpleEventsSimulation}",
-            AddSimpleEventsSimulation ? "Enabled" : "Disabled");
-        Logger.LogInformation("Alarms: {addAlarmSimulation}", AddAlarmSimulation ? "Enabled" : "Disabled");
+            SimulationConfig.AddSimpleEventsSimulation ? "Enabled" : "Disabled");
+        Logger.LogInformation("Alarms: {addAlarmSimulation}", SimulationConfig.AddAlarmSimulation ? "Enabled" : "Disabled");
         Logger.LogInformation("Deterministic alarms: {deterministicAlarmSimulation}",
-            DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
+            SimulationConfig.DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
 
         Logger.LogInformation("Anonymous authentication: {anonymousAuth}", Config.DisableAnonymousAuth ? "Disabled" : "Enabled");
         Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", OpcUaConfig.DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");

@@ -12,7 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using static OpcPlc.PlcSimulation;
+using static Program;
 
 public static class CliOptions
 {
@@ -20,11 +20,11 @@ public static class CliOptions
     {
         var options = new Mono.Options.OptionSet {
             // log configuration
-            { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{Program.Config.LogFileName}'", (string s) => Program.Config.LogFileName = s },
-            { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {Program.Config.LogFileFlushTimeSpanSec} sec", (int i) => {
+            { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{Config.LogFileName}'", (string s) => Config.LogFileName = s },
+            { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {Config.LogFileFlushTimeSpanSec} sec", (int i) => {
                     if (i > 0)
                     {
-                        Program.Config.LogFileFlushTimeSpanSec = TimeSpan.FromSeconds(i);
+                        Config.LogFileFlushTimeSpanSec = TimeSpan.FromSeconds(i);
                     }
                     else
                     {
@@ -36,7 +36,7 @@ public static class CliOptions
                     var logLevels = new List<string> {"critical", "error", "warn", "info", "debug", "trace"};
                     if (logLevels.Contains(s.ToLowerInvariant()))
                     {
-                        Program.Config.LogLevelCli = s.ToLowerInvariant();
+                        Config.LogLevelCli = s.ToLowerInvariant();
                     }
                     else
                     {
@@ -46,21 +46,21 @@ public static class CliOptions
             },
 
             // simulation configuration
-            { "sc|simulationcyclecount=", $"count of cycles in one simulation phase.\nDefault:  {SimulationCycleCount} cycles", (int i) => SimulationCycleCount = i },
-            { "ct|cycletime=", $"length of one cycle time in milliseconds.\nDefault:  {SimulationCycleLength} msec", (int i) => SimulationCycleLength = i },
+            { "sc|simulationcyclecount=", $"count of cycles in one simulation phase.\nDefault: {SimulationConfig.SimulationCycleCount} cycles", (int i) => SimulationConfig.SimulationCycleCount = i },
+            { "ct|cycletime=", $"length of one cycle time in milliseconds.\nDefault: {SimulationConfig.SimulationCycleLength} msec", (int i) => SimulationConfig.SimulationCycleLength = i },
 
             // events
-            { "ei|eventinstances=", $"number of event instances.\nDefault: {EventInstanceCount}", (uint i) => EventInstanceCount = i },
-            { "er|eventrate=", $"rate in milliseconds to send events.\nDefault: {EventInstanceRate}", (uint i) => EventInstanceRate = i },
+            { "ei|eventinstances=", $"number of event instances.\nDefault: {SimulationConfig.EventInstanceCount}", (uint i) => SimulationConfig.EventInstanceCount = i },
+            { "er|eventrate=", $"rate in milliseconds to send events.\nDefault: {SimulationConfig.EventInstanceRate}", (uint i) => SimulationConfig.EventInstanceRate = i },
 
             // OPC configuration
-            { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {Program.OpcUaConfig.ServerPort}", (ushort i) => Program.OpcUaConfig.ServerPort = i },
-            { "op|path=", $"the endpoint URL path part of the OPC server endpoint.\nDefault: '{Program.OpcUaConfig.ServerPath}'", (string s) => Program.OpcUaConfig.ServerPath = s },
-            { "ph|plchostname=", $"the fully-qualified hostname of the PLC.\nDefault: {Program.OpcUaConfig.Hostname}", (string s) => Program.OpcUaConfig.Hostname = s },
-            { "ol|opcmaxstringlen=", $"the max length of a string OPC can transmit/receive.\nDefault: {Program.OpcUaConfig.OpcMaxStringLength}", (int i) => {
+            { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {OpcUaConfig.ServerPort}", (ushort i) => OpcUaConfig.ServerPort = i },
+            { "op|path=", $"the endpoint URL path part of the OPC server endpoint.\nDefault: '{OpcUaConfig.ServerPath}'", (string s) => OpcUaConfig.ServerPath = s },
+            { "ph|plchostname=", $"the fully-qualified hostname of the PLC.\nDefault: {OpcUaConfig.Hostname}", (string s) => OpcUaConfig.Hostname = s },
+            { "ol|opcmaxstringlen=", $"the max length of a string OPC can transmit/receive.\nDefault: {OpcUaConfig.OpcMaxStringLength}", (int i) => {
                     if (i > 0)
                     {
-                        Program.OpcUaConfig.OpcMaxStringLength = i;
+                        OpcUaConfig.OpcMaxStringLength = i;
                     }
                     else
                     {
@@ -68,10 +68,10 @@ public static class CliOptions
                     }
                 }
             },
-            { "lr|ldsreginterval=", $"the LDS(-ME) registration interval in ms. If 0, then the registration is disabled.\nDefault: {Program.OpcUaConfig.LdsRegistrationInterval}", (int i) => {
+            { "lr|ldsreginterval=", $"the LDS(-ME) registration interval in ms. If 0, then the registration is disabled.\nDefault: {OpcUaConfig.LdsRegistrationInterval}", (int i) => {
                     if (i >= 0)
                     {
-                        Program.OpcUaConfig.LdsRegistrationInterval = i;
+                        OpcUaConfig.LdsRegistrationInterval = i;
                     }
                     else
                     {
@@ -79,34 +79,34 @@ public static class CliOptions
                     }
                 }
             },
-            { "aa|autoaccept", $"all certs are trusted when a connection is established.\nDefault: {Program.OpcUaConfig.AutoAcceptCerts}", (string s) => Program.OpcUaConfig.AutoAcceptCerts = s != null },
+            { "aa|autoaccept", $"all certs are trusted when a connection is established.\nDefault: {OpcUaConfig.AutoAcceptCerts}", (string s) => OpcUaConfig.AutoAcceptCerts = s != null },
 
-            { "drurs|dontrejectunknownrevocationstatus", $"Don't reject chain validation with CA certs with unknown revocation status, e.g. when the CRL is not available or the OCSP provider is offline.\nDefault: {Program.OpcUaConfig.DontRejectUnknownRevocationStatus}", (string s) => Program.OpcUaConfig.DontRejectUnknownRevocationStatus = s != null },
+            { "drurs|dontrejectunknownrevocationstatus", $"Don't reject chain validation with CA certs with unknown revocation status, e.g. when the CRL is not available or the OCSP provider is offline.\nDefault: {OpcUaConfig.DontRejectUnknownRevocationStatus}", (string s) => OpcUaConfig.DontRejectUnknownRevocationStatus = s != null },
 
-            { "ut|unsecuretransport", $"enables the unsecured transport.\nDefault: {Program.OpcUaConfig.EnableUnsecureTransport}", (string s) => Program.OpcUaConfig.EnableUnsecureTransport = s != null },
+            { "ut|unsecuretransport", $"enables the unsecured transport.\nDefault: {OpcUaConfig.EnableUnsecureTransport}", (string s) => OpcUaConfig.EnableUnsecureTransport = s != null },
 
-            { "to|trustowncert", $"the own certificate is put into the trusted certificate store automatically.\nDefault: {Program.OpcUaConfig.TrustMyself}", (string s) => Program.OpcUaConfig.TrustMyself = s != null },
+            { "to|trustowncert", $"the own certificate is put into the trusted certificate store automatically.\nDefault: {OpcUaConfig.TrustMyself}", (string s) => OpcUaConfig.TrustMyself = s != null },
 
-            { "msec|maxsessioncount=", $"maximum number of parallel sessions.\nDefault: {Program.OpcUaConfig.MaxSessionCount}", (int i) => Program.OpcUaConfig.MaxSessionCount = i },
+            { "msec|maxsessioncount=", $"maximum number of parallel sessions.\nDefault: {OpcUaConfig.MaxSessionCount}", (int i) => OpcUaConfig.MaxSessionCount = i },
 
-            { "msuc|maxsubscriptioncount=", $"maximum number of subscriptions.\nDefault: {Program.OpcUaConfig.MaxSubscriptionCount}", (int i) => Program.OpcUaConfig.MaxSubscriptionCount = i },
-            { "mqrc|maxqueuedrequestcount=", $"maximum number of requests that will be queued waiting for a thread.\nDefault: {Program.OpcUaConfig.MaxQueuedRequestCount}", (int i) => Program.OpcUaConfig.MaxQueuedRequestCount = i },
+            { "msuc|maxsubscriptioncount=", $"maximum number of subscriptions.\nDefault: {OpcUaConfig.MaxSubscriptionCount}", (int i) => OpcUaConfig.MaxSubscriptionCount = i },
+            { "mqrc|maxqueuedrequestcount=", $"maximum number of requests that will be queued waiting for a thread.\nDefault: {OpcUaConfig.MaxQueuedRequestCount}", (int i) => OpcUaConfig.MaxQueuedRequestCount = i },
 
             // cert store options
-            { "at|appcertstoretype=", $"the own application cert store type. \n(allowed values: Directory, X509Store)\nDefault: '{Program.OpcUaConfig.OpcOwnCertStoreType}'", (string s) => {
+            { "at|appcertstoretype=", $"the own application cert store type. \n(allowed values: Directory, X509Store)\nDefault: '{OpcUaConfig.OpcOwnCertStoreType}'", (string s) => {
                     switch (s)
                     {
                         case CertificateStoreType.X509Store:
-                            Program.OpcUaConfig.OpcOwnCertStoreType = CertificateStoreType.X509Store;
-                            Program.OpcUaConfig.OpcOwnCertStorePath = Program.OpcUaConfig.OpcOwnCertX509StorePathDefault;
+                            OpcUaConfig.OpcOwnCertStoreType = CertificateStoreType.X509Store;
+                            OpcUaConfig.OpcOwnCertStorePath = OpcUaConfig.OpcOwnCertX509StorePathDefault;
                             break;
                         case CertificateStoreType.Directory:
-                            Program.OpcUaConfig.OpcOwnCertStoreType = CertificateStoreType.Directory;
-                            Program.OpcUaConfig.OpcOwnCertStorePath = Program.OpcUaConfig.OpcOwnCertDirectoryStorePathDefault;
+                            OpcUaConfig.OpcOwnCertStoreType = CertificateStoreType.Directory;
+                            OpcUaConfig.OpcOwnCertStorePath = OpcUaConfig.OpcOwnCertDirectoryStorePathDefault;
                             break;
                         case FlatDirectoryCertificateStore.StoreTypeName:
-                            Program.OpcUaConfig.OpcOwnCertStoreType = FlatDirectoryCertificateStore.StoreTypeName;
-                            Program.OpcUaConfig.OpcOwnCertStorePath = Program.OpcUaConfig.OpcOwnCertDirectoryStorePathDefault;
+                            OpcUaConfig.OpcOwnCertStoreType = FlatDirectoryCertificateStore.StoreTypeName;
+                            OpcUaConfig.OpcOwnCertStorePath = OpcUaConfig.OpcOwnCertDirectoryStorePathDefault;
                             break;
                         default:
                             throw new OptionException();
@@ -115,26 +115,26 @@ public static class CliOptions
             },
 
             { "ap|appcertstorepath=", "the path where the own application cert should be stored\nDefault (depends on store type):\n" +
-                    $"X509Store: '{Program.OpcUaConfig.OpcOwnCertX509StorePathDefault}'\n" +
-                    $"Directory: '{Program.OpcUaConfig.OpcOwnCertDirectoryStorePathDefault}'" +
-                    $"FlatDirectory: '{Program.OpcUaConfig.OpcOwnCertDirectoryStorePathDefault}'",
-                    (string s) => Program.OpcUaConfig.OpcOwnCertStorePath = s
+                    $"X509Store: '{OpcUaConfig.OpcOwnCertX509StorePathDefault}'\n" +
+                    $"Directory: '{OpcUaConfig.OpcOwnCertDirectoryStorePathDefault}'" +
+                    $"FlatDirectory: '{OpcUaConfig.OpcOwnCertDirectoryStorePathDefault}'",
+                    (string s) => OpcUaConfig.OpcOwnCertStorePath = s
             },
 
-            { "tp|trustedcertstorepath=", $"the path of the trusted cert store.\nDefault '{Program.OpcUaConfig.OpcTrustedCertDirectoryStorePathDefault}'", (string s) => Program.OpcUaConfig.OpcTrustedCertStorePath = s },
+            { "tp|trustedcertstorepath=", $"the path of the trusted cert store.\nDefault '{OpcUaConfig.OpcTrustedCertDirectoryStorePathDefault}'", (string s) => OpcUaConfig.OpcTrustedCertStorePath = s },
 
-            { "rp|rejectedcertstorepath=", $"the path of the rejected cert store.\nDefault '{Program.OpcUaConfig.OpcRejectedCertDirectoryStorePathDefault}'", (string s) => Program.OpcUaConfig.OpcRejectedCertStorePath = s },
+            { "rp|rejectedcertstorepath=", $"the path of the rejected cert store.\nDefault '{OpcUaConfig.OpcRejectedCertDirectoryStorePathDefault}'", (string s) => OpcUaConfig.OpcRejectedCertStorePath = s },
 
-            { "ip|issuercertstorepath=", $"the path of the trusted issuer cert store.\nDefault '{Program.OpcUaConfig.OpcIssuerCertDirectoryStorePathDefault}'", (string s) => Program.OpcUaConfig.OpcIssuerCertStorePath = s },
+            { "ip|issuercertstorepath=", $"the path of the trusted issuer cert store.\nDefault '{OpcUaConfig.OpcIssuerCertDirectoryStorePathDefault}'", (string s) => OpcUaConfig.OpcIssuerCertStorePath = s },
 
-            { "csr", $"show data to create a certificate signing request.\nDefault '{Program.OpcUaConfig.ShowCreateSigningRequestInfo}'", (string s) => Program.OpcUaConfig.ShowCreateSigningRequestInfo = s != null },
+            { "csr", $"show data to create a certificate signing request.\nDefault '{OpcUaConfig.ShowCreateSigningRequestInfo}'", (string s) => OpcUaConfig.ShowCreateSigningRequestInfo = s != null },
 
-            { "ab|applicationcertbase64=", "update/set this application's certificate with the certificate passed in as base64 string.", (string s) => Program.OpcUaConfig.NewCertificateBase64String = s },
+            { "ab|applicationcertbase64=", "update/set this application's certificate with the certificate passed in as base64 string.", (string s) => OpcUaConfig.NewCertificateBase64String = s },
             { "af|applicationcertfile=", "update/set this application's certificate with the specified file.", (string s) =>
                 {
                     if (File.Exists(s))
                     {
-                        Program.OpcUaConfig.NewCertificateFileName = s;
+                        OpcUaConfig.NewCertificateFileName = s;
                     }
                     else
                     {
@@ -143,12 +143,12 @@ public static class CliOptions
                 }
             },
 
-            { "pb|privatekeybase64=", "initial provisioning of the application certificate (with a PEM or PFX format) requires a private key passed in as base64 string.", (string s) => Program.OpcUaConfig.PrivateKeyBase64String = s },
+            { "pb|privatekeybase64=", "initial provisioning of the application certificate (with a PEM or PFX format) requires a private key passed in as base64 string.", (string s) => OpcUaConfig.PrivateKeyBase64String = s },
             { "pk|privatekeyfile=", "initial provisioning of the application certificate (with a PEM or PFX format) requires a private key passed in as file.", (string s) =>
                 {
                     if (File.Exists(s))
                     {
-                        Program.OpcUaConfig.PrivateKeyFileName = s;
+                        OpcUaConfig.PrivateKeyFileName = s;
                     }
                     else
                     {
@@ -157,20 +157,20 @@ public static class CliOptions
                 }
             },
 
-            { "cp|certpassword=", "the optional password for the PEM or PFX or the installed application certificate.", (string s) => Program.OpcUaConfig.CertificatePassword = s },
+            { "cp|certpassword=", "the optional password for the PEM or PFX or the installed application certificate.", (string s) => OpcUaConfig.CertificatePassword = s },
 
-            { "tb|addtrustedcertbase64=", "adds the certificate to the application's trusted cert store passed in as base64 string (comma separated values).", (string s) => Program.OpcUaConfig.TrustedCertificateBase64Strings = ParseListOfStrings(s) },
-            { "tf|addtrustedcertfile=", "adds the certificate file(s) to the application's trusted cert store passed in as base64 string (multiple comma separated filenames supported).", (string s) => Program.OpcUaConfig.TrustedCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addtrustedcertfile") },
+            { "tb|addtrustedcertbase64=", "adds the certificate to the application's trusted cert store passed in as base64 string (comma separated values).", (string s) => OpcUaConfig.TrustedCertificateBase64Strings = ParseListOfStrings(s) },
+            { "tf|addtrustedcertfile=", "adds the certificate file(s) to the application's trusted cert store passed in as base64 string (multiple comma separated filenames supported).", (string s) => OpcUaConfig.TrustedCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addtrustedcertfile") },
 
-            { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (comma separated values).", (string s) => Program.OpcUaConfig.IssuerCertificateBase64Strings = ParseListOfStrings(s) },
-            { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the application's trusted issuer cert store (multiple comma separated filenames supported).", (string s) => Program.OpcUaConfig.IssuerCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addissuercertfile") },
+            { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (comma separated values).", (string s) => OpcUaConfig.IssuerCertificateBase64Strings = ParseListOfStrings(s) },
+            { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the application's trusted issuer cert store (multiple comma separated filenames supported).", (string s) => OpcUaConfig.IssuerCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addissuercertfile") },
 
-            { "rb|updatecrlbase64=", "update the CRL passed in as base64 string to the corresponding cert store (trusted or trusted issuer).", (string s) => Program.OpcUaConfig.CrlBase64String = s },
+            { "rb|updatecrlbase64=", "update the CRL passed in as base64 string to the corresponding cert store (trusted or trusted issuer).", (string s) => OpcUaConfig.CrlBase64String = s },
             { "uc|updatecrlfile=", "update the CRL passed in as file to the corresponding cert store (trusted or trusted issuer).", (string s) =>
                 {
                     if (File.Exists(s))
                     {
-                        Program.OpcUaConfig.CrlFileName = s;
+                        OpcUaConfig.CrlFileName = s;
                     }
                     else
                     {
@@ -179,32 +179,32 @@ public static class CliOptions
                 }
             },
 
-            { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (comma separated values).", (string s) => Program.OpcUaConfig.ThumbprintsToRemove = ParseListOfStrings(s)
+            { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (comma separated values).", (string s) => OpcUaConfig.ThumbprintsToRemove = ParseListOfStrings(s)
             },
 
-            {"daa|disableanonymousauth", $"flag to disable anonymous authentication.\nDefault: {Program.Config.DisableAnonymousAuth}", (string s) => Program.Config.DisableAnonymousAuth = s != null },
-            {"dua|disableusernamepasswordauth", $"flag to disable username/password authentication.\nDefault: {Program.Config.DisableUsernamePasswordAuth}", (string s) => Program.Config.DisableUsernamePasswordAuth = s != null },
-            {"dca|disablecertauth", $"flag to disable certificate authentication.\nDefault: {Program.Config.DisableCertAuth}", (string s) => Program.Config.DisableCertAuth = s != null },
+            {"daa|disableanonymousauth", $"flag to disable anonymous authentication.\nDefault: {Config.DisableAnonymousAuth}", (string s) => Config.DisableAnonymousAuth = s != null },
+            {"dua|disableusernamepasswordauth", $"flag to disable username/password authentication.\nDefault: {Config.DisableUsernamePasswordAuth}", (string s) => Config.DisableUsernamePasswordAuth = s != null },
+            {"dca|disablecertauth", $"flag to disable certificate authentication.\nDefault: {Config.DisableCertAuth}", (string s) => Config.DisableCertAuth = s != null },
 
             // user management
-            { "au|adminuser=", $"the username of the admin user.\nDefault: {Program.Config.AdminUser}", (string s) => Program.Config.AdminUser = s ?? Program.Config.AdminUser},
-            { "ac|adminpassword=", $"the password of the administrator.\nDefault: {Program.Config.AdminPassword}", (string s) => Program.Config.AdminPassword = s ?? Program.Config.AdminPassword},
-            { "du|defaultuser=", $"the username of the default user.\nDefault: {Program.Config.DefaultUser}", (string s) => Program.Config.DefaultUser = s ?? Program.Config.DefaultUser},
-            { "dc|defaultpassword=", $"the password of the default user.\nDefault: {Program.Config.DefaultPassword}", (string s) => Program.Config.DefaultPassword = s ?? Program.Config.DefaultPassword},
+            { "au|adminuser=", $"the username of the admin user.\nDefault: {Config.AdminUser}", (string s) => Config.AdminUser = s ?? Config.AdminUser},
+            { "ac|adminpassword=", $"the password of the administrator.\nDefault: {Config.AdminPassword}", (string s) => Config.AdminPassword = s ?? Config.AdminPassword},
+            { "du|defaultuser=", $"the username of the default user.\nDefault: {Config.DefaultUser}", (string s) => Config.DefaultUser = s ?? Config.DefaultUser},
+            { "dc|defaultpassword=", $"the password of the default user.\nDefault: {Config.DefaultPassword}", (string s) => Config.DefaultPassword = s ?? Config.DefaultPassword},
 
             // Special nodes
-            { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", (string s) => AddAlarmSimulation = s != null },
-            { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {AddSimpleEventsSimulation}", (string s) => AddSimpleEventsSimulation = s != null },
-            { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (string s) => DeterministicAlarmSimulationFile = s },
+            { "alm|alarms", $"add alarm simulation to address space.\nDefault: {SimulationConfig.AddAlarmSimulation}", (string s) => SimulationConfig.AddAlarmSimulation = s != null },
+            { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {SimulationConfig.AddSimpleEventsSimulation}", (string s) => SimulationConfig.AddSimpleEventsSimulation = s != null },
+            { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (string s) => SimulationConfig.DeterministicAlarmSimulationFile = s },
 
             // misc
-            { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {Program.Config.ShowPublisherConfigJsonIp}", (string s) => Program.Config.ShowPublisherConfigJsonIp = s != null },
-            { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {Program.Config.ShowPublisherConfigJsonPh}", (string s) => Program.Config.ShowPublisherConfigJsonPh = s != null },
-            { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {Program.Config.PnJson}", (string s) => Program.Config.PnJson = s },
-            { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {Program.Config.WebServerPort}", (uint i) => Program.Config.WebServerPort = i },
-            { "cdn|certdnsnames=", "add additional DNS names or IP addresses to this application's certificate (comma separated values; no spaces allowed).\nDefault: DNS hostname", (string s) => Program.OpcUaConfig.DnsNames = ParseListOfStrings(s) },
+            { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {Config.ShowPublisherConfigJsonIp}", (string s) => Config.ShowPublisherConfigJsonIp = s != null },
+            { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {Config.ShowPublisherConfigJsonPh}", (string s) => Config.ShowPublisherConfigJsonPh = s != null },
+            { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {Config.PnJson}", (string s) => Config.PnJson = s },
+            { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {Config.WebServerPort}", (uint i) => Config.WebServerPort = i },
+            { "cdn|certdnsnames=", "add additional DNS names or IP addresses to this application's certificate (comma separated values; no spaces allowed).\nDefault: DNS hostname", (string s) => OpcUaConfig.DnsNames = ParseListOfStrings(s) },
 
-            { "h|help", "show this message and exit", (string s) => Program.Config.ShowHelp = s != null },
+            { "h|help", "show this message and exit", (string s) => Config.ShowHelp = s != null },
         };
 
         // Add options from plugin nodes list.
@@ -224,7 +224,7 @@ public static class CliOptions
         var sb = new StringBuilder();
 
         sb.AppendLine();
-        sb.AppendLine($"{Program.Config.ProgramName} v{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}");
+        sb.AppendLine($"{Config.ProgramName} v{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}");
         sb.AppendLine($"Informational version: v{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
         sb.AppendLine();
         sb.AppendLine($"Usage: dotnet {Assembly.GetEntryAssembly().GetName().Name}.dll [<options>]");
@@ -243,7 +243,7 @@ public static class CliOptions
         using var stringWriter = new StringWriter(sb);
         options.WriteOptionDescriptions(stringWriter);
 
-        Program.Logger.LogInformation(sb.ToString());
+        Logger.LogInformation(sb.ToString());
     }
 
     /// <summary>
