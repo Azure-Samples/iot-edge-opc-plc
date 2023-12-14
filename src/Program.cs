@@ -31,6 +31,11 @@ public static class Program
     public static PlcSimulation SimulationConfig { get; set; }
 
     /// <summary>
+    /// The flat directory certificate store can only be initialized once.
+    /// </summary>
+    public static bool IsFlatDirectoryCertStoreInitialized { get; set; }
+
+    /// <summary>
     /// The LoggerFactory used to create logging objects.
     /// </summary>
     public static ILoggerFactory LoggerFactory { get; set; }

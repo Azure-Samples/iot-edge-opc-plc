@@ -73,23 +73,18 @@ public partial class OpcApplicationConfiguration
     public bool EnableFlatDirectoryCertStore { get; set; } = false;
 
     /// <summary>
-    /// The flat directory certificate store shall only be initialized once.
-    /// </summary>
-    private bool _flatDirectoryCertStoreInitialized = false;
-
-    /// <summary>
     /// Configures all OPC stack settings.
     /// </summary>
     public async Task<ApplicationConfiguration> ConfigureAsync()
     {
-        if (!_flatDirectoryCertStoreInitialized)
+        if (!IsFlatDirectoryCertStoreInitialized)
         {
             // Register FlatDirectoryCertificateStoreType as known certificate store type.
             CertificateStoreType.RegisterCertificateStoreType(
                 FlatDirectoryCertificateStore.StoreTypeName,
                 new FlatDirectoryCertificateStoreType());
 
-            _flatDirectoryCertStoreInitialized = true;
+            IsFlatDirectoryCertStoreInitialized = true;
         }
 
         // instead of using a configuration XML file, configure everything programmatically
