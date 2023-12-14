@@ -20,8 +20,12 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-public static class Program
+public class Program
 {
+    protected Program()
+    {
+    }
+
     private static CancellationTokenSource _cancellationTokenSource;
 
     public static Configuration Config { get; set; }
