@@ -33,18 +33,12 @@ public class PlcSimulation
     public int SimulationCycleLength { get; set; } = SIMULATION_CYCLELENGTH_DEFAULT;
 
     /// <summary>
-    /// Ctor for simulation server.
-    /// </summary>
-    public PlcSimulation(PlcServer plcServer)
-    {
-        _plcServer = plcServer;
-    }
-
-    /// <summary>
     /// Start the simulation.
     /// </summary>
-    public void Start()
+    public void Start(PlcServer plcServer)
     {
+        _plcServer = plcServer;
+
         if (EventInstanceCount > 0)
         {
             _eventInstanceGenerator = EventInstanceRate >= 50 || !Stopwatch.IsHighResolution
@@ -122,7 +116,7 @@ public class PlcSimulation
     private const int SIMULATION_CYCLECOUNT_DEFAULT = 50;          // in cycles
     private const int SIMULATION_CYCLELENGTH_DEFAULT = 100;        // in msec
 
-    private readonly PlcServer _plcServer;
+    private PlcServer _plcServer;
 
     private ITimer _eventInstanceGenerator;
     private uint _eventInstanceCycle = 0;

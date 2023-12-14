@@ -82,8 +82,7 @@ public static class Program
         // Initialize configuration.
         Config = new();
         OpcUaConfig = new();
-        PlcServer = new PlcServer(TimeService);
-        SimulationConfig = new(PlcServer);
+        SimulationConfig = new();
 
         LoadPluginNodes();
 
@@ -243,12 +242,13 @@ public static class Program
         Logger.LogInformation("Certificate authentication: {certAuth}", Config.DisableCertAuth ? "Disabled" : "Enabled");
 
         // Add simple events, alarms, reference test simulation and deterministic alarms.
+        PlcServer = new PlcServer(TimeService);
         PlcServer.Start(plcApplicationConfiguration);
         Logger.LogInformation("OPC UA Server started");
 
         // Add remaining base simulations.
-        PlcSimulation = new PlcSimulation(PlcServer);
-        PlcSimulation.Start();
+        PlcSimulation = new PlcSimulation();
+        PlcSimulation.Start(PlcServer);
 
         if (Config.ShowPublisherConfigJsonIp)
         {
