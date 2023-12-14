@@ -22,11 +22,11 @@ using System.Threading.Tasks;
 
 public class Program
 {
-    protected Program()
+    private static CancellationTokenSource _cancellationTokenSource;
+
+    public Program()
     {
     }
-
-    private static CancellationTokenSource _cancellationTokenSource;
 
     public static Configuration Config { get; set; }
 
