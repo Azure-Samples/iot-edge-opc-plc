@@ -15,7 +15,7 @@ using System.Text;
 using static OpcPlc.OpcApplicationConfiguration;
 using static OpcPlc.PlcSimulation;
 
-public class CliOptions
+public static class CliOptions
 {
     public static Mono.Options.OptionSet InitCommandLineOptions()
     {
