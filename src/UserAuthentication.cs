@@ -18,22 +18,20 @@ public partial class PlcServer
         {
             UserTokenPolicy policy = configuration.ServerConfiguration.UserTokenPolicies[ii];
 
-            // create a validator for a certificate token policy
-            if (policy.TokenType == UserTokenType.Certificate)
-            {
-                // check if user certificate trust lists are specified in configuration
-                if (configuration.SecurityConfiguration.TrustedUserCertificates != null &&
+            // Create a validator for a certificate token policy.
+            // Check if user certificate trust lists are specified in configuration.
+            if (policy.TokenType == UserTokenType.Certificate &&
+                configuration.SecurityConfiguration.TrustedUserCertificates != null &&
                     configuration.SecurityConfiguration.UserIssuerCertificates != null)
-                {
-                    var certificateValidator = new CertificateValidator();
-                    certificateValidator.Update(configuration.SecurityConfiguration).Wait();
-                    certificateValidator.Update(configuration.SecurityConfiguration.UserIssuerCertificates,
-                        configuration.SecurityConfiguration.TrustedUserCertificates,
-                        configuration.SecurityConfiguration.RejectedCertificateStore);
+            {
+                var certificateValidator = new CertificateValidator();
+                certificateValidator.Update(configuration.SecurityConfiguration).Wait();
+                certificateValidator.Update(configuration.SecurityConfiguration.UserIssuerCertificates,
+                    configuration.SecurityConfiguration.TrustedUserCertificates,
+                    configuration.SecurityConfiguration.RejectedCertificateStore);
 
-                    // set custom validator for user certificates.
-                    m_certificateValidator = certificateValidator.GetChannelValidator();
-                }
+                // set custom validator for user certificates.
+                m_certificateValidator = certificateValidator.GetChannelValidator();
             }
         }
     }
@@ -60,13 +58,13 @@ public partial class PlcServer
         }
 
         // user with permission to configure server
-        if (userName == AdminUser && password == AdminPassword)
+        if (userName == Config.AdminUser && password == Config.AdminPassword)
         {
             return new SystemConfigurationIdentity(new UserIdentity(userNameToken));
         }
 
         // standard users for CTT verification
-        if (!((userName == DefaultUser && password == DefaultPassword)))
+        if (!(userName == Config.DefaultUser && password == Config.DefaultPassword))
         {
             // construct translation object with default text.
             var info = new TranslationInfo(
@@ -108,7 +106,6 @@ public partial class PlcServer
             VerifyCertificate(x509Token.Certificate);
             args.Identity = new UserIdentity(x509Token);
             Logger.LogInformation("X509 Token Accepted: {displayName}", args.Identity.DisplayName);
-            return;
         }
     }
 
