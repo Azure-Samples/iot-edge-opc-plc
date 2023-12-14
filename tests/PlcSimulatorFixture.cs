@@ -165,7 +165,7 @@ public class PlcSimulatorFixture
     /// <returns>The created session.</returns>
     public Task<Session> CreateSessionAsync(string sessionName)
     {
-        _log.WriteLine("Create a session with OPC UA server");
+        _log.WriteLine("Create a session with OPC UA server ...");
         var userIdentity = new UserIdentity(new AnonymousIdentityToken());
 
         // When unit test certificate expires,
@@ -213,8 +213,12 @@ public class PlcSimulatorFixture
     private static void Reset()
     {
         Program.Ready = false;
-        PlcSimulation.AddAlarmSimulation = false;
-        PlcSimulation.DeterministicAlarmSimulationFile = null;
+
+        if (Program.SimulationConfig is not null)
+        {
+            Program.SimulationConfig.AddAlarmSimulation = false;
+            Program.SimulationConfig.DeterministicAlarmSimulationFile = null;
+        }
     }
 
     private static bool CloseTo(double a, double b) => Math.Abs(a - b) <= Math.Abs(a * .00001);
