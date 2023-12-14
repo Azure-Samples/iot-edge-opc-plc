@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.Helpers;
+namespace OpcPlc.Helpers;
 
 using Microsoft.Extensions.Logging;
 using OpcPlc.PluginNodes.Models;
@@ -22,7 +22,7 @@ public static class PnJsonHelper
         sb.AppendLine(Environment.NewLine + "[");
         sb.AppendLine("  {");
         sb.AppendLine($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",");
-        sb.AppendLine($"    \"UseSecurity\": {(!OpcApplicationConfiguration.EnableUnsecureTransport).ToString().ToLowerInvariant()},");
+        sb.AppendLine($"    \"UseSecurity\": {(!Program.OpcUaConfig.EnableUnsecureTransport).ToString().ToLowerInvariant()},");
         sb.AppendLine("    \"OpcNodes\": [");
 
         // Print config from plugin nodes list.
@@ -31,8 +31,7 @@ public static class PnJsonHelper
             foreach (var node in plugin.Nodes)
             {
                 // Show only if > 0 and != 1000 ms.
-                string publishingInterval = node.PublishingInterval > 0 &&
-                                            node.PublishingInterval != 1000
+                string publishingInterval = node.PublishingInterval is > 0 and not 1000
                     ? $", \"OpcPublishingInterval\": {node.PublishingInterval}"
                     : string.Empty;
                 // Show only if > 0 ms.

@@ -1,12 +1,9 @@
 namespace OpcPlc;
 
-public static partial class Program
+public enum NodeType
 {
-    public enum NodeType
-    {
-        UInt,
-        Double,
-        Bool,
-        UIntArray,
-    }
+    UInt,
+    Double,
+    Bool,
+    UIntArray,
 }

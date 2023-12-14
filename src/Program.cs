@@ -19,7 +19,6 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using static OpcPlc.OpcApplicationConfiguration;
 using static OpcPlc.PlcSimulation;
 
 public static class Program
@@ -27,6 +26,8 @@ public static class Program
     private static CancellationTokenSource _cancellationTokenSource;
 
     public static Configuration Config { get; set; }
+
+    public static OpcApplicationConfiguration OpcUaConfig { get; set; }
 
     /// <summary>
     /// The LoggerFactory used to create logging objects.
@@ -77,6 +78,10 @@ public static class Program
     /// </summary>
     public static async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
     {
+        // Initialize configuration.
+        Config = new();
+        OpcUaConfig = new();
+
         LoadPluginNodes();
 
         Mono.Options.OptionSet options = CliOptions.InitCommandLineOptions();
@@ -171,7 +176,7 @@ public static class Program
             }
             else if (Config.ShowPublisherConfigJsonPh)
             {
-                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{Hostname}:{Config.WebServerPort}/{Config.PnJson}");
+                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{OpcUaConfig.Hostname}:{Config.WebServerPort}/{Config.PnJson}");
             }
             else
             {
@@ -230,7 +235,7 @@ public static class Program
             DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
 
         Logger.LogInformation("Anonymous authentication: {anonymousAuth}", Config.DisableAnonymousAuth ? "Disabled" : "Enabled");
-        Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
+        Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", OpcUaConfig.DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
         Logger.LogInformation("Username/Password authentication: {usernamePasswordAuth}", Config.DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
         Logger.LogInformation("Certificate authentication: {certAuth}", Config.DisableCertAuth ? "Disabled" : "Enabled");
 
@@ -247,7 +252,7 @@ public static class Program
         {
             await PnJsonHelper.PrintPublisherConfigJsonAsync(
                 Config.PnJson,
-                $"{GetIpAddress()}:{ServerPort}{ServerPath}",
+                $"{GetIpAddress()}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
                 PluginNodes,
                 Logger).ConfigureAwait(false);
         }
@@ -255,7 +260,7 @@ public static class Program
         {
             await PnJsonHelper.PrintPublisherConfigJsonAsync(
                 Config.PnJson,
-                $"{Hostname}:{ServerPort}{ServerPath}",
+                $"{OpcUaConfig.Hostname}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
                 PluginNodes,
                 Logger).ConfigureAwait(false);
         }
@@ -321,7 +326,7 @@ public static class Program
         }
         else
         {
-            Config.LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-{ServerPort}-plc.log";
+            Config.LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-{OpcUaConfig.ServerPort}-plc.log";
         }
 
         if (!string.IsNullOrEmpty(Config.LogFileName))
