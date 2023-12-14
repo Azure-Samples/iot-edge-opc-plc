@@ -27,8 +27,8 @@ public partial class OpcApplicationConfiguration
     public static string HostnameLabel => _hostname.Contains('.')
                                             ? _hostname[.._hostname.IndexOf('.')]
                                             : _hostname;
-    public static string ApplicationName => ProgramName;
-    public static string ApplicationUri => $"urn:{ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath)
+    public static string ApplicationName => Config.ProgramName;
+    public static string ApplicationUri => $"urn:{Config.ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath)
         ? string.Empty
         : (ServerPath.StartsWith('/') ? string.Empty : ":"))}{ServerPath.Replace('/', ':')}";
     public static string ProductUri => "https://github.com/azure-samples/iot-edge-opc-plc";
@@ -244,17 +244,17 @@ public partial class OpcApplicationConfiguration
 
     private static void ConfigureUserTokenPolicies(IApplicationConfigurationBuilderServerSelected serverBuilder)
     {
-        if (!DisableAnonymousAuth)
+        if (!Config.DisableAnonymousAuth)
         {
             serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.Anonymous));
         }
 
-        if (!DisableUsernamePasswordAuth)
+        if (!Config.DisableUsernamePasswordAuth)
         {
             serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.UserName));
         }
 
-        if (!DisableCertAuth)
+        if (!Config.DisableCertAuth)
         {
             serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.Certificate));
         }

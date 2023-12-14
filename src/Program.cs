@@ -26,108 +26,42 @@ public static class Program
 {
     private static CancellationTokenSource _cancellationTokenSource;
 
-    /// <summary>
-    /// Name of the application.
-    /// </summary>
-    public const string ProgramName = "OpcPlc";
+    public static Configuration Config { get; set; }
 
     /// <summary>
     /// The LoggerFactory used to create logging objects.
     /// </summary>
-    public static ILoggerFactory LoggerFactory = null;
+    public static ILoggerFactory LoggerFactory { get; set; }
 
     /// <summary>
     /// Logging object.
     /// </summary>
-    public static ILogger Logger = null;
+    public static ILogger Logger { get; set; }
 
     /// <summary>
     /// Nodes to extend the address space.
     /// </summary>
-    public static ImmutableList<IPluginNodes> PluginNodes;
+    public static ImmutableList<IPluginNodes> PluginNodes { get; set; }
 
     /// <summary>
     /// OPC UA server object.
     /// </summary>
-    public static PlcServer PlcServer = null;
+    public static PlcServer PlcServer { get; set; }
 
     /// <summary>
     /// Simulation object.
     /// </summary>
-    public static PlcSimulation PlcSimulation = null;
+    public static PlcSimulation PlcSimulation { get; set; }
 
     /// <summary>
     /// Service returning <see cref="DateTime"/> values and <see cref="Timer"/> instances. Mocked in tests.
     /// </summary>
-    public static TimeService TimeService = new();
+    public static TimeService TimeService { get; set; } = new();
 
     /// <summary>
     /// A flag indicating when the server is up and ready to accept connections.
     /// </summary>
-    public static volatile bool Ready = false;
-
-    public static bool DisableAnonymousAuth { get; set; } = false;
-
-    public static bool DisableUsernamePasswordAuth { get; set; } = false;
-
-    public static bool DisableCertAuth { get; set; } = false;
-
-    /// <summary>
-    /// Admin user.
-    /// </summary>
-    public static string AdminUser { get; set; } = "sysadmin";
-
-    /// <summary>
-    /// Admin user password.
-    /// </summary>
-    public static string AdminPassword { get; set; } = "demo";
-
-    /// <summary>
-    /// Default user.
-    /// </summary>
-    public static string DefaultUser { get; set; } = "user1";
-
-    /// <summary>
-    /// Default user password.
-    /// </summary>
-    public static string DefaultPassword { get; set; } = "password";
-
-    /// <summary>
-    /// Show OPC Publisher configuration file using IP address as EndpointUrl.
-    /// </summary>
-    public static bool ShowPublisherConfigJsonIp { get; set; }
-
-    /// <summary>
-    /// Show OPC Publisher configuration file using plchostname as EndpointUrl.
-    /// </summary>
-    public static bool ShowPublisherConfigJsonPh { get; set; }
-
-    /// <summary>
-    /// Web server port for hosting OPC Publisher file.
-    /// </summary>
-    public static uint WebServerPort { get; set; } = 8080;
-
-    /// <summary>
-    /// Show usage help.
-    /// </summary>
-    public static bool ShowHelp { get; set; }
-
-    public static string PnJson = "pn.json";
-
-    /// <summary>
-    /// Logging configuration.
-    /// </summary>
-    public static string LogFileName = $"hostname-port-plc.log"; // Set in InitLogging().
-    public static string LogLevelCli = "info";
-    public static TimeSpan LogFileFlushTimeSpanSec = TimeSpan.FromSeconds(30);
-
-    public enum NodeType
-    {
-        UInt,
-        Double,
-        Bool,
-        UIntArray,
-    }
+    public static bool Ready { get; set; }
 
     /// <summary>
     /// Synchronous main method of the app.
@@ -153,7 +87,7 @@ public static class Program
         InitLogging();
 
         // Show usage if requested
-        if (ShowHelp)
+        if (Config.ShowHelp)
         {
             CliOptions.PrintUsage(options);
             return;
@@ -169,13 +103,13 @@ public static class Program
         LogLogo();
 
         Logger.LogInformation("Current directory: {currentDirectory}", Directory.GetCurrentDirectory());
-        Logger.LogInformation("Log file: {logFileName}", Path.GetFullPath(LogFileName));
-        Logger.LogInformation("Log level: {logLevel}", LogLevelCli);
+        Logger.LogInformation("Log file: {logFileName}", Path.GetFullPath(Config.LogFileName));
+        Logger.LogInformation("Log level: {logLevel}", Config.LogLevelCli);
 
         // Show version.
         var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
         Logger.LogInformation("{ProgramName} {version} starting up ...",
-            ProgramName,
+            Config.ProgramName,
             $"v{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} (SDK {Utils.GetAssemblyBuildNumber()})");
         Logger.LogDebug("Informational version: {version}",
             $"v{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion} (SDK {Utils.GetAssemblySoftwareVersion()} from {Utils.GetAssemblyTimestamp()})");
@@ -183,7 +117,7 @@ public static class Program
             $"{File.GetCreationTime(Assembly.GetExecutingAssembly().Location)}");
 
         using var host = CreateHostBuilder(args);
-        if (ShowPublisherConfigJsonIp || ShowPublisherConfigJsonPh)
+        if (Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh)
         {
             StartWebServer(host);
         }
@@ -231,23 +165,23 @@ public static class Program
         {
             host.Start();
 
-            if (ShowPublisherConfigJsonIp)
+            if (Config.ShowPublisherConfigJsonIp)
             {
-                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{GetIpAddress()}:{WebServerPort}/{PnJson}");
+                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{GetIpAddress()}:{Config.WebServerPort}/{Config.PnJson}");
             }
-            else if (ShowPublisherConfigJsonPh)
+            else if (Config.ShowPublisherConfigJsonPh)
             {
-                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{Hostname}:{WebServerPort}/{PnJson}");
+                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{Hostname}:{Config.WebServerPort}/{Config.PnJson}");
             }
             else
             {
-                Logger.LogInformation("Web server started on port {webServerPort}", WebServerPort);
+                Logger.LogInformation("Web server started on port {webServerPort}", Config.WebServerPort);
             }
         }
         catch (Exception e)
         {
             Logger.LogError("Could not start web server on port {webServerPort}: {message}",
-                WebServerPort,
+                Config.WebServerPort,
                 e.Message);
         }
     }
@@ -295,10 +229,10 @@ public static class Program
         Logger.LogInformation("Deterministic alarms: {deterministicAlarmSimulation}",
             DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
 
-        Logger.LogInformation("Anonymous authentication: {anonymousAuth}", DisableAnonymousAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Anonymous authentication: {anonymousAuth}", Config.DisableAnonymousAuth ? "Disabled" : "Enabled");
         Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
-        Logger.LogInformation("Username/Password authentication: {usernamePasswordAuth}", DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
-        Logger.LogInformation("Certificate authentication: {certAuth}", DisableCertAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Username/Password authentication: {usernamePasswordAuth}", Config.DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Certificate authentication: {certAuth}", Config.DisableCertAuth ? "Disabled" : "Enabled");
 
         // Add simple events, alarms, reference test simulation and deterministic alarms.
         PlcServer = new PlcServer(TimeService);
@@ -309,18 +243,18 @@ public static class Program
         PlcSimulation = new PlcSimulation(PlcServer);
         PlcSimulation.Start();
 
-        if (ShowPublisherConfigJsonIp)
+        if (Config.ShowPublisherConfigJsonIp)
         {
             await PnJsonHelper.PrintPublisherConfigJsonAsync(
-                PnJson,
+                Config.PnJson,
                 $"{GetIpAddress()}:{ServerPort}{ServerPath}",
                 PluginNodes,
                 Logger).ConfigureAwait(false);
         }
-        else if (ShowPublisherConfigJsonPh)
+        else if (Config.ShowPublisherConfigJsonPh)
         {
             await PnJsonHelper.PrintPublisherConfigJsonAsync(
-                PnJson,
+                Config.PnJson,
                 $"{Hostname}:{ServerPort}{ServerPath}",
                 PluginNodes,
                 Logger).ConfigureAwait(false);
@@ -355,7 +289,7 @@ public static class Program
         LogLevel logLevel;
 
         // set the log level
-        switch (LogLevelCli)
+        switch (Config.LogLevelCli)
         {
             case "critical":
                 logLevel = LogLevel.Critical;
@@ -376,26 +310,26 @@ public static class Program
                 logLevel = LogLevel.Trace;
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(LogLevelCli), $"Unknown log level: {LogLevelCli}");
+                throw new ArgumentOutOfRangeException(nameof(Config.LogLevelCli), $"Unknown log level: {Config.LogLevelCli}");
         }
 
         LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(logLevel);
 
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("_GW_LOGP")))
         {
-            LogFileName = Environment.GetEnvironmentVariable("_GW_LOGP");
+            Config.LogFileName = Environment.GetEnvironmentVariable("_GW_LOGP");
         }
         else
         {
-            LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-{ServerPort}-plc.log";
+            Config.LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-{ServerPort}-plc.log";
         }
 
-        if (!string.IsNullOrEmpty(LogFileName))
+        if (!string.IsNullOrEmpty(Config.LogFileName))
         {
             // configure rolling file sink
             const int MAX_LOGFILE_SIZE = 1024 * 1024;
             const int MAX_RETAINED_LOGFILES = 2;
-            LoggerFactory.AddFile(LogFileName, logLevel, levelOverrides: null, isJson: false, fileSizeLimitBytes: MAX_LOGFILE_SIZE, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
+            LoggerFactory.AddFile(Config.LogFileName, logLevel, levelOverrides: null, isJson: false, fileSizeLimitBytes: MAX_LOGFILE_SIZE, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
         }
 
         Logger = LoggerFactory.CreateLogger("OpcPlc");
@@ -409,7 +343,7 @@ public static class Program
         var host = Host.CreateDefaultBuilder(args)
             .ConfigureWebHostDefaults(webBuilder => {
                 webBuilder.UseContentRoot(Directory.GetCurrentDirectory()); // Avoid System.InvalidOperationException.
-                webBuilder.UseUrls($"http://*:{WebServerPort}");
+                webBuilder.UseUrls($"http://*:{Config.WebServerPort}");
                 webBuilder.UseStartup<Startup>();
             }).Build();
 
