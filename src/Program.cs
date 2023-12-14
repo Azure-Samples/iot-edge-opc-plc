@@ -24,7 +24,9 @@ public class Program
 {
     private static CancellationTokenSource _cancellationTokenSource;
 
+#pragma warning disable S1118 // Utility classes should not have public constructors
     public Program()
+#pragma warning restore S1118 // Utility classes should not have public constructors
     {
     }
 
