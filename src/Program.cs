@@ -19,113 +19,54 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using static OpcPlc.OpcApplicationConfiguration;
-using static OpcPlc.PlcSimulation;
 
 public static class Program
 {
+    private static CancellationTokenSource _cancellationTokenSource;
+
+    public static Configuration Config { get; set; }
+
+    public static OpcApplicationConfiguration OpcUaConfig { get; set; }
+
     /// <summary>
-    /// Name of the application.
+    /// The flat directory certificate store can only be initialized once.
     /// </summary>
-    public const string ProgramName = "OpcPlc";
+    public static bool IsFlatDirectoryCertStoreInitialized { get; set; }
 
     /// <summary>
     /// The LoggerFactory used to create logging objects.
     /// </summary>
-    public static ILoggerFactory LoggerFactory = null;
+    public static ILoggerFactory LoggerFactory { get; set; }
 
     /// <summary>
     /// Logging object.
     /// </summary>
-    public static ILogger Logger = null;
+    public static ILogger Logger { get; set; }
 
     /// <summary>
     /// Nodes to extend the address space.
     /// </summary>
-    public static ImmutableList<IPluginNodes> PluginNodes;
+    public static ImmutableList<IPluginNodes> PluginNodes { get; set; }
 
     /// <summary>
     /// OPC UA server object.
     /// </summary>
-    public static PlcServer PlcServer = null;
+    public static PlcServer PlcServer { get; set; }
 
     /// <summary>
     /// Simulation object.
     /// </summary>
-    public static PlcSimulation PlcSimulation = null;
+    public static PlcSimulation PlcSimulationInstance { get; set; }
 
     /// <summary>
     /// Service returning <see cref="DateTime"/> values and <see cref="Timer"/> instances. Mocked in tests.
     /// </summary>
-    public static TimeService TimeService = new();
+    public static TimeService TimeService { get; set; } = new();
 
     /// <summary>
     /// A flag indicating when the server is up and ready to accept connections.
     /// </summary>
-    public static volatile bool Ready = false;
-
-    public static bool DisableAnonymousAuth { get; set; } = false;
-
-    public static bool DisableUsernamePasswordAuth { get; set; } = false;
-
-    public static bool DisableCertAuth { get; set; } = false;
-
-    /// <summary>
-    /// Admin user.
-    /// </summary>
-    public static string AdminUser { get; set; } = "sysadmin";
-
-    /// <summary>
-    /// Admin user password.
-    /// </summary>
-    public static string AdminPassword { get; set; } = "demo";
-
-    /// <summary>
-    /// Default user.
-    /// </summary>
-    public static string DefaultUser { get; set; } = "user1";
-
-    /// <summary>
-    /// Default user password.
-    /// </summary>
-    public static string DefaultPassword { get; set; } = "password";
-
-    /// <summary>
-    /// Show OPC Publisher configuration file using IP address as EndpointUrl.
-    /// </summary>
-    public static bool ShowPublisherConfigJsonIp { get; set; }
-
-    /// <summary>
-    /// Show OPC Publisher configuration file using plchostname as EndpointUrl.
-    /// </summary>
-    public static bool ShowPublisherConfigJsonPh { get; set; }
-
-    /// <summary>
-    /// Web server port for hosting OPC Publisher file.
-    /// </summary>
-    public static uint WebServerPort { get; set; } = 8080;
-
-    /// <summary>
-    /// Show usage help.
-    /// </summary>
-    public static bool ShowHelp { get; set; }
-
-    public static string PnJson = "pn.json";
-
-    /// <summary>
-    /// Logging configuration.
-    /// </summary>
-    public static string LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-plc.log";
-    public static string LogLevelCli = "info";
-    public static TimeSpan LogFileFlushTimeSpanSec = TimeSpan.FromSeconds(30);
-
-    public enum NodeType
-    {
-        UInt,
-        Double,
-        Bool,
-        UIntArray,
-    }
+    public static bool Ready { get; set; }
 
     /// <summary>
     /// Synchronous main method of the app.
@@ -133,14 +74,19 @@ public static class Program
     public static void Main(string[] args)
     {
         // Start OPC UA server.
-        MainAsync(args).Wait();
+        StartAsync(args).Wait();
     }
 
     /// <summary>
     /// Asynchronous part of the main method of the app.
     /// </summary>
-    public static async Task MainAsync(string[] args, CancellationToken cancellationToken = default)
+    public static async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
     {
+        // Initialize configuration.
+        Config = new();
+        OpcUaConfig = new();
+        PlcSimulationInstance = new();
+
         LoadPluginNodes();
 
         Mono.Options.OptionSet options = CliOptions.InitCommandLineOptions();
@@ -151,7 +97,7 @@ public static class Program
         InitLogging();
 
         // Show usage if requested
-        if (ShowHelp)
+        if (Config.ShowHelp)
         {
             CliOptions.PrintUsage(options);
             return;
@@ -167,13 +113,13 @@ public static class Program
         LogLogo();
 
         Logger.LogInformation("Current directory: {currentDirectory}", Directory.GetCurrentDirectory());
-        Logger.LogInformation("Log file: {logFileName}", Path.GetFullPath(LogFileName));
-        Logger.LogInformation("Log level: {logLevel}", LogLevelCli);
+        Logger.LogInformation("Log file: {logFileName}", Path.GetFullPath(Config.LogFileName));
+        Logger.LogInformation("Log level: {logLevel}", Config.LogLevelCli);
 
         // Show version.
         var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
         Logger.LogInformation("{ProgramName} {version} starting up ...",
-            ProgramName,
+            Config.ProgramName,
             $"v{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} (SDK {Utils.GetAssemblyBuildNumber()})");
         Logger.LogDebug("Informational version: {version}",
             $"v{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion} (SDK {Utils.GetAssemblySoftwareVersion()} from {Utils.GetAssemblyTimestamp()})");
@@ -181,7 +127,7 @@ public static class Program
             $"{File.GetCreationTime(Assembly.GetExecutingAssembly().Location)}");
 
         using var host = CreateHostBuilder(args);
-        if (ShowPublisherConfigJsonIp || ShowPublisherConfigJsonPh)
+        if (Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh)
         {
             StartWebServer(host);
         }
@@ -196,7 +142,12 @@ public static class Program
             throw;
         }
 
-        Logger.LogInformation("OPC UA server exiting...");
+        Logger.LogInformation("OPC UA server exiting ...");
+    }
+
+    public static void Stop()
+    {
+        _cancellationTokenSource.Cancel();
     }
 
     /// <summary>
@@ -224,23 +175,23 @@ public static class Program
         {
             host.Start();
 
-            if (ShowPublisherConfigJsonIp)
+            if (Config.ShowPublisherConfigJsonIp)
             {
-                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{GetIpAddress()}:{WebServerPort}/{PnJson}");
+                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{GetIpAddress()}:{Config.WebServerPort}/{Config.PnJson}");
             }
-            else if (ShowPublisherConfigJsonPh)
+            else if (Config.ShowPublisherConfigJsonPh)
             {
-                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{Hostname}:{WebServerPort}/{PnJson}");
+                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{OpcUaConfig.Hostname}:{Config.WebServerPort}/{Config.PnJson}");
             }
             else
             {
-                Logger.LogInformation("Web server started on port {webServerPort}", WebServerPort);
+                Logger.LogInformation("Web server started on port {webServerPort}", Config.WebServerPort);
             }
         }
         catch (Exception e)
         {
             Logger.LogError("Could not start web server on port {webServerPort}: {message}",
-                WebServerPort,
+                Config.WebServerPort,
                 e.Message);
         }
     }
@@ -272,26 +223,25 @@ public static class Program
     private static async Task ConsoleServerAsync(CancellationToken cancellationToken)
     {
         // init OPC configuration and tracing
-        var plcOpcApplicationConfiguration = new OpcApplicationConfiguration();
-        ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync().ConfigureAwait(false);
+        ApplicationConfiguration plcApplicationConfiguration = await OpcUaConfig.ConfigureAsync().ConfigureAwait(false);
 
         // start the server.
         Logger.LogInformation("Starting server on endpoint {endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
         Logger.LogInformation("Simulation settings are:");
-        Logger.LogInformation("One simulation phase consists of {SimulationCycleCount} cycles", SimulationCycleCount);
-        Logger.LogInformation("One cycle takes {SimulationCycleLength} ms", SimulationCycleLength);
+        Logger.LogInformation("One simulation phase consists of {SimulationCycleCount} cycles", PlcSimulationInstance.SimulationCycleCount);
+        Logger.LogInformation("One cycle takes {SimulationCycleLength} ms", PlcSimulationInstance.SimulationCycleLength);
         Logger.LogInformation("Reference test simulation: {addReferenceTestSimulation}",
-            AddReferenceTestSimulation ? "Enabled" : "Disabled");
+            PlcSimulationInstance.AddReferenceTestSimulation ? "Enabled" : "Disabled");
         Logger.LogInformation("Simple events: {addSimpleEventsSimulation}",
-            AddSimpleEventsSimulation ? "Enabled" : "Disabled");
-        Logger.LogInformation("Alarms: {addAlarmSimulation}", AddAlarmSimulation ? "Enabled" : "Disabled");
+            PlcSimulationInstance.AddSimpleEventsSimulation ? "Enabled" : "Disabled");
+        Logger.LogInformation("Alarms: {addAlarmSimulation}", PlcSimulationInstance.AddAlarmSimulation ? "Enabled" : "Disabled");
         Logger.LogInformation("Deterministic alarms: {deterministicAlarmSimulation}",
-            DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
+            PlcSimulationInstance.DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
 
-        Logger.LogInformation("Anonymous authentication: {anonymousAuth}", DisableAnonymousAuth ? "Disabled" : "Enabled");
-        Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
-        Logger.LogInformation("Username/Password authentication: {usernamePasswordAuth}", DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
-        Logger.LogInformation("Certificate authentication: {certAuth}", DisableCertAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Anonymous authentication: {anonymousAuth}", Config.DisableAnonymousAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", OpcUaConfig.DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
+        Logger.LogInformation("Username/Password authentication: {usernamePasswordAuth}", Config.DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Certificate authentication: {certAuth}", Config.DisableCertAuth ? "Disabled" : "Enabled");
 
         // Add simple events, alarms, reference test simulation and deterministic alarms.
         PlcServer = new PlcServer(TimeService);
@@ -299,22 +249,21 @@ public static class Program
         Logger.LogInformation("OPC UA Server started");
 
         // Add remaining base simulations.
-        PlcSimulation = new PlcSimulation(PlcServer);
-        PlcSimulation.Start();
+        PlcSimulationInstance.Start(PlcServer);
 
-        if (ShowPublisherConfigJsonIp)
+        if (Config.ShowPublisherConfigJsonIp)
         {
             await PnJsonHelper.PrintPublisherConfigJsonAsync(
-                PnJson,
-                $"{GetIpAddress()}:{ServerPort}{ServerPath}",
+                Config.PnJson,
+                $"{GetIpAddress()}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
                 PluginNodes,
                 Logger).ConfigureAwait(false);
         }
-        else if (ShowPublisherConfigJsonPh)
+        else if (Config.ShowPublisherConfigJsonPh)
         {
             await PnJsonHelper.PrintPublisherConfigJsonAsync(
-                PnJson,
-                $"{Hostname}:{ServerPort}{ServerPath}",
+                Config.PnJson,
+                $"{OpcUaConfig.Hostname}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
                 PluginNodes,
                 Logger).ConfigureAwait(false);
         }
@@ -323,15 +272,15 @@ public static class Program
         Logger.LogInformation("PLC simulation started, press Ctrl+C to exit ...");
 
         // Wait for Ctrl-C to allow canceling the connection process.
-        var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         Console.CancelKeyPress += (_, eArgs) => {
-            cancellationTokenSource.Cancel();
+            _cancellationTokenSource.Cancel();
             eArgs.Cancel = true;
         };
 
-        await cancellationTokenSource.Token.WhenCanceled().ConfigureAwait(false);
+        await _cancellationTokenSource.Token.WhenCanceled().ConfigureAwait(false);
 
-        PlcSimulation.Stop();
+        PlcSimulationInstance.Stop();
         PlcServer.Stop();
     }
 
@@ -348,7 +297,7 @@ public static class Program
         LogLevel logLevel;
 
         // set the log level
-        switch (LogLevelCli)
+        switch (Config.LogLevelCli)
         {
             case "critical":
                 logLevel = LogLevel.Critical;
@@ -369,25 +318,29 @@ public static class Program
                 logLevel = LogLevel.Trace;
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(LogLevelCli), $"Unknown log level: {LogLevelCli}");
+                throw new ArgumentOutOfRangeException(nameof(Config.LogLevelCli), $"Unknown log level: {Config.LogLevelCli}");
         }
 
         LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(logLevel);
 
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("_GW_LOGP")))
         {
-            LogFileName = Environment.GetEnvironmentVariable("_GW_LOGP");
+            Config.LogFileName = Environment.GetEnvironmentVariable("_GW_LOGP");
+        }
+        else
+        {
+            Config.LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-{OpcUaConfig.ServerPort}-plc.log";
         }
 
-        if (!string.IsNullOrEmpty(LogFileName))
+        if (!string.IsNullOrEmpty(Config.LogFileName))
         {
             // configure rolling file sink
             const int MAX_LOGFILE_SIZE = 1024 * 1024;
             const int MAX_RETAINED_LOGFILES = 2;
-            LoggerFactory.AddFile(LogFileName, logLevel, null, false, fileSizeLimitBytes: MAX_LOGFILE_SIZE, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
+            LoggerFactory.AddFile(Config.LogFileName, logLevel, levelOverrides: null, isJson: false, fileSizeLimitBytes: MAX_LOGFILE_SIZE, retainedFileCountLimit: MAX_RETAINED_LOGFILES);
         }
 
-        Logger = LoggerFactory.CreateLogger("opcPlc");
+        Logger = LoggerFactory.CreateLogger("OpcPlc");
     }
 
     /// <summary>
@@ -398,7 +351,7 @@ public static class Program
         var host = Host.CreateDefaultBuilder(args)
             .ConfigureWebHostDefaults(webBuilder => {
                 webBuilder.UseContentRoot(Directory.GetCurrentDirectory()); // Avoid System.InvalidOperationException.
-                webBuilder.UseUrls($"http://*:{WebServerPort}");
+                webBuilder.UseUrls($"http://*:{Config.WebServerPort}");
                 webBuilder.UseStartup<Startup>();
             }).Build();
 

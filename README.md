@@ -306,10 +306,10 @@ Options:
                                Default: info
       --sc, --simulationcyclecount=VALUE
                              count of cycles in one simulation phase.
-                               Default:  50 cycles
+                               Default: 50 cycles
       --ct, --cycletime=VALUE
                              length of one cycle time in milliseconds.
-                               Default:  100 msec
+                               Default: 100 msec
       --ei, --eventinstances=VALUE
                              number of event instances.
                                Default: 0

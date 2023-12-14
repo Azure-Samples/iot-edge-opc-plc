@@ -49,7 +49,7 @@ public class PlcNodeManager : CustomNodeManager2
 
             _externalReferences = externalReferences;
 
-            FolderState root = CreateFolder(null, ProgramName, ProgramName, NamespaceType.OpcPlcApplications);
+            FolderState root = CreateFolder(parent: null, Config.ProgramName, Config.ProgramName, NamespaceType.OpcPlcApplications);
             root.AddReference(ReferenceTypes.Organizes, isInverse: true, ObjectIds.ObjectsFolder);
             references.Add(new NodeStateReference(ReferenceTypes.Organizes, isInverse: false, root.NodeId));
             root.EventNotifier = EventNotifiers.SubscribeToEvents;

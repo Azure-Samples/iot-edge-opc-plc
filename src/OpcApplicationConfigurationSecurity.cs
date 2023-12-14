@@ -17,86 +17,93 @@ using static Program;
 /// </summary>
 public partial class OpcApplicationConfiguration
 {
+    public OpcApplicationConfiguration()
+    {
+        OpcOwnCertStorePath = OpcOwnCertDirectoryStorePathDefault;
+        OpcTrustedCertStorePath = OpcTrustedCertDirectoryStorePathDefault;
+        OpcRejectedCertStorePath = OpcRejectedCertDirectoryStorePathDefault;
+        OpcIssuerCertStorePath = OpcIssuerCertDirectoryStorePathDefault;
+    }
+
     /// <summary>
     /// Add own certificate to trusted peer store.
     /// </summary>
-    public static bool TrustMyself { get; set; }
+    public bool TrustMyself { get; set; }
 
     /// <summary>
     /// Certificate store configuration for own, trusted peer, issuer and rejected stores.
     /// </summary>
-    public static string OpcOwnPKIRootDefault => "pki";
-    public static string OpcOwnCertStoreType { get; set; } = CertificateStoreType.Directory;
-    public static string OpcOwnCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "own");
-    public static string OpcOwnCertX509StorePathDefault => "CurrentUser\\UA_MachineDefault";
-    public static string OpcOwnCertStorePath { get; set; } = OpcOwnCertDirectoryStorePathDefault;
+    public string OpcOwnPKIRootDefault { get; } = "pki";
+    public string OpcOwnCertStoreType { get; set; } = CertificateStoreType.Directory;
+    public string OpcOwnCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "own");
+    public string OpcOwnCertX509StorePathDefault => "CurrentUser\\UA_MachineDefault";
+    public string OpcOwnCertStorePath { get; set; }
+    public string OpcTrustedCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "trusted");
+    public string OpcTrustedCertStorePath { get; set; }
 
-    public static string OpcTrustedCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "trusted");
-    public static string OpcTrustedCertStorePath { get; set; } = OpcTrustedCertDirectoryStorePathDefault;
+    public string OpcRejectedCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "rejected");
+    public string OpcRejectedCertStorePath { get; set; }
 
-    public static string OpcRejectedCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "rejected");
-    public static string OpcRejectedCertStorePath { get; set; } = OpcRejectedCertDirectoryStorePathDefault;
-
-    public static string OpcIssuerCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "issuer");
-    public static string OpcIssuerCertStorePath { get; set; } = OpcIssuerCertDirectoryStorePathDefault;
+    public string OpcIssuerCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "issuer");
+    public string OpcIssuerCertStorePath { get; set; }
 
     /// <summary>
     /// Accept certs of the clients automatically.
     /// </summary>
-    public static bool AutoAcceptCerts { get; set; }
+    public bool AutoAcceptCerts { get; set; }
 
     /// <summary>
     /// Don't reject chain validation with CA certs with unknown revocation status,
     /// e.g. when the CRL is not available or the OCSP provider is offline.
     /// The default value is <see langword="false"/>, so rejection is enabled.
     /// </summary>
-    public static bool DontRejectUnknownRevocationStatus { get; set; }
+    public bool DontRejectUnknownRevocationStatus { get; set; }
 
     /// <summary>
     /// Show CSR information during startup.
     /// </summary>
-    public static bool ShowCreateSigningRequestInfo { get; set; }
+    public bool ShowCreateSigningRequestInfo { get; set; }
 
     /// <summary>
     /// Update application certificate.
     /// </summary>
-    public static string NewCertificateBase64String { get; set; }
-    public static string NewCertificateFileName { get; set; }
-    public static string CertificatePassword { get; set; } = string.Empty;
+    public string NewCertificateBase64String { get; set; }
+    public string NewCertificateFileName { get; set; }
+    public string CertificatePassword { get; set; } = string.Empty;
 
     /// <summary>
     /// If there is no application cert installed we need to install the private key as well.
     /// </summary>
-    public static string PrivateKeyBase64String { get; set; }
-    public static string PrivateKeyFileName { get; set; }
+    public string PrivateKeyBase64String { get; set; }
+    public string PrivateKeyFileName { get; set; }
 
     /// <summary>
     /// Issuer certificates to add.
     /// </summary>
-    public static List<string> IssuerCertificateBase64Strings;
-    public static List<string> IssuerCertificateFileNames;
+    public List<string> IssuerCertificateBase64Strings { get; set; }
+    public List<string> IssuerCertificateFileNames { get; set; }
 
     /// <summary>
     /// Trusted certificates to add.
     /// </summary>
-    public static List<string> TrustedCertificateBase64Strings;
-    public static List<string> TrustedCertificateFileNames;
+    public List<string> TrustedCertificateBase64Strings { get; set; }
+    public List<string> TrustedCertificateFileNames { get; set; }
 
     /// <summary>
     /// CRL to update/install.
     /// </summary>
-    public static string CrlFileName { get; set; }
-    public static string CrlBase64String { get; set; }
+    public string CrlFileName { get; set; }
+    public string CrlBase64String { get; set; }
 
     /// <summary>
     /// Thumbprint of certificates to delete.
     /// </summary>
-    public static List<string> ThumbprintsToRemove;
+    public List<string> ThumbprintsToRemove { get; set; }
 
     /// <summary>
     /// Additional certificate DNS names.
     /// </summary>
-    public static List<string> DnsNames = new();
+    public List<string> DnsNames { get; set; } = new();
 
     /// <summary>
     /// Configures OPC stack security.
@@ -129,7 +136,7 @@ public partial class OpcApplicationConfiguration
         securityConfiguration.TrustedPeerCertificates.StorePath = OpcTrustedCertStorePath;
 
         // configure rejected certificates store
-        securityConfiguration.RejectedCertificateStore.StoreType = 
+        securityConfiguration.RejectedCertificateStore.StoreType =
         OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName
             ? FlatDirectoryCertificateStore.StoreTypeName
             : CertificateStoreType.Directory;
@@ -203,7 +210,7 @@ public partial class OpcApplicationConfiguration
     /// <summary>
     /// Show information needed for the Create Signing Request process.
     /// </summary>
-    public static async Task ShowCreateSigningRequestInformationAsync(X509Certificate2 certificate)
+    public async Task ShowCreateSigningRequestInformationAsync(X509Certificate2 certificate)
     {
         try
         {
@@ -272,7 +279,7 @@ public partial class OpcApplicationConfiguration
     /// <summary>
     /// Show all certificates in the certificate stores.
     /// </summary>
-    public static async Task ShowCertificateStoreInformationAsync()
+    public async Task ShowCertificateStoreInformationAsync()
     {
         // show application certs
         try
@@ -386,7 +393,7 @@ public partial class OpcApplicationConfiguration
     /// <summary>
     /// Event handler to validate certificates.
     /// </summary>
-    private static void CertificateValidator_CertificateValidation(CertificateValidator validator, CertificateValidationEventArgs e)
+    private void CertificateValidator_CertificateValidation(CertificateValidator validator, CertificateValidationEventArgs e)
     {
         if (e.Error.StatusCode == StatusCodes.BadCertificateUntrusted)
         {
@@ -599,7 +606,7 @@ public partial class OpcApplicationConfiguration
         X509CRL newCrl;
         try
         {
-            if (string.IsNullOrEmpty(newCrlFileName))
+            if (!string.IsNullOrEmpty(newCrlBase64String) && string.IsNullOrEmpty(newCrlFileName))
             {
                 byte[] buffer = new byte[newCrlBase64String.Length * 3 / 4];
                 if (Convert.TryFromBase64String(newCrlBase64String, buffer, out int written))
@@ -658,7 +665,7 @@ public partial class OpcApplicationConfiguration
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError(e, "Error while removing the cureent CRL from the trusted peer store");
+                    Logger.LogError(e, "Error while removing the current CRL from the trusted peer store");
                     result = false;
                 }
             }
@@ -827,7 +834,7 @@ public partial class OpcApplicationConfiguration
             return false;
         }
 
-        // if the new cert is not selfsigned verify with the trusted peer and trusted issuer certificates
+        // if the new cert is not self-signed verify with the trusted peer and trusted issuer certificates
         try
         {
             if (!X509Utils.CompareDistinguishedName(newCertificate.Subject, newCertificate.Issuer))

@@ -35,11 +35,11 @@ public class Startup
         // Serve pn.json
         app.Run(async context =>
         {
-            if (context.Request.Method == "GET" && context.Request.Path == (Program.PnJson[0] != '/' ? "/" : string.Empty) + Program.PnJson &&
-                File.Exists(Program.PnJson))
+            if (context.Request.Method == "GET" && context.Request.Path == (Program.Config.PnJson[0] != '/' ? "/" : string.Empty) + Program.Config.PnJson &&
+                File.Exists(Program.Config.PnJson))
             {
                 context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync(await File.ReadAllTextAsync(Program.PnJson).ConfigureAwait(false)).ConfigureAwait(false);
+                await context.Response.WriteAsync(await File.ReadAllTextAsync(Program.Config.PnJson).ConfigureAwait(false)).ConfigureAwait(false);
             }
             else
             {

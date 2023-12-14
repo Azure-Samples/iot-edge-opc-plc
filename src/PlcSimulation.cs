@@ -12,39 +12,33 @@ public class PlcSimulation
 
     // alm|alarms
     // add alarm simulation to address space.
-    public static bool AddAlarmSimulation { get; set; }
+    public bool AddAlarmSimulation { get; set; }
 
     // ses|simpleevents
     // Add simple events simulation to address space.
-    public static bool AddSimpleEventsSimulation { get; set; }
+    public bool AddSimpleEventsSimulation { get; set; }
 
     // ref|referencetest
     // Add reference test simulation node manager to address space.
-    public static bool AddReferenceTestSimulation { get; set; } = true;
-    public static string DeterministicAlarmSimulationFile { get; set; }
+    public bool AddReferenceTestSimulation { get; set; } = true;
+    public string DeterministicAlarmSimulationFile { get; set; }
 
-    public static uint EventInstanceCount { get; set; } = 0;
-    public static uint EventInstanceRate { get; set; } = 1000; // ms.
+    public uint EventInstanceCount { get; set; } = 0;
+    public uint EventInstanceRate { get; set; } = 1000; // ms.
 
     /// <summary>
     /// Simulation data.
     /// </summary>
-    public static int SimulationCycleCount { get; set; } = SIMULATION_CYCLECOUNT_DEFAULT;
-    public static int SimulationCycleLength { get; set; } = SIMULATION_CYCLELENGTH_DEFAULT;
-
-    /// <summary>
-    /// Ctor for simulation server.
-    /// </summary>
-    public PlcSimulation(PlcServer plcServer)
-    {
-        _plcServer = plcServer;
-    }
+    public int SimulationCycleCount { get; set; } = SIMULATION_CYCLECOUNT_DEFAULT;
+    public int SimulationCycleLength { get; set; } = SIMULATION_CYCLELENGTH_DEFAULT;
 
     /// <summary>
     /// Start the simulation.
     /// </summary>
-    public void Start()
+    public void Start(PlcServer plcServer)
     {
+        _plcServer = plcServer;
+
         if (EventInstanceCount > 0)
         {
             _eventInstanceGenerator = EventInstanceRate >= 50 || !Stopwatch.IsHighResolution
@@ -122,7 +116,7 @@ public class PlcSimulation
     private const int SIMULATION_CYCLECOUNT_DEFAULT = 50;          // in cycles
     private const int SIMULATION_CYCLELENGTH_DEFAULT = 100;        // in msec
 
-    private readonly PlcServer _plcServer;
+    private PlcServer _plcServer;
 
     private ITimer _eventInstanceGenerator;
     private uint _eventInstanceCycle = 0;
