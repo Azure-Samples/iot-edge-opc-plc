@@ -268,7 +268,7 @@ public static class CliOptions
         else if (list.Contains(','))
         {
             strings = list.Split(',').ToList();
-            strings.ForEach(st => st = st.Trim());
+            strings = strings.ConvertAll(st => st.Trim());
             strings = strings.Select(st => st.Trim()).ToList();
         }
         else
