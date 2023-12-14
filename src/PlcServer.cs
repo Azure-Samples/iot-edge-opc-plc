@@ -19,11 +19,16 @@ using static Program;
 
 public partial class PlcServer : StandardServer
 {
-    public PlcNodeManager PlcNodeManager;
-    public AlarmConditionServerNodeManager AlarmNodeManager;
-    public SimpleEventsNodeManager SimpleEventsNodeManager;
-    public ReferenceNodeManager SimulationNodeManager;
-    public DeterministicAlarmsNodeManager DeterministicAlarmsNodeManager;
+    public PlcNodeManager PlcNodeManager { get; set; }
+
+    public AlarmConditionServerNodeManager AlarmNodeManager { get; set; }
+
+    public SimpleEventsNodeManager SimpleEventsNodeManager { get; set; }
+
+    public ReferenceNodeManager SimulationNodeManager { get; set; }
+
+    public DeterministicAlarmsNodeManager DeterministicAlarmsNodeManager { get; set; }
+
     public readonly TimeService TimeService;
 
     public PlcServer(TimeService timeService)
@@ -58,27 +63,27 @@ public partial class PlcServer : StandardServer
 
         nodeManagers.Add(PlcNodeManager);
 
-        if (PlcSimulation.AddSimpleEventsSimulation)
+        if (SimulationConfig.AddSimpleEventsSimulation)
         {
             SimpleEventsNodeManager = new SimpleEventsNodeManager(server, configuration);
             nodeManagers.Add(SimpleEventsNodeManager);
         }
 
-        if (PlcSimulation.AddAlarmSimulation)
+        if (SimulationConfig.AddAlarmSimulation)
         {
             AlarmNodeManager = new AlarmConditionServerNodeManager(server, configuration);
             nodeManagers.Add(AlarmNodeManager);
         }
 
-        if (PlcSimulation.AddReferenceTestSimulation)
+        if (SimulationConfig.AddReferenceTestSimulation)
         {
             SimulationNodeManager = new ReferenceNodeManager(server, configuration);
             nodeManagers.Add(SimulationNodeManager);
         }
 
-        if (PlcSimulation.DeterministicAlarmSimulationFile != null)
+        if (SimulationConfig.DeterministicAlarmSimulationFile != null)
         {
-            var scriptFileName = PlcSimulation.DeterministicAlarmSimulationFile;
+            var scriptFileName = SimulationConfig.DeterministicAlarmSimulationFile;
             if (string.IsNullOrWhiteSpace(scriptFileName))
             {
                 string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";
@@ -171,18 +176,18 @@ public partial class PlcServer : StandardServer
     }
 
     /// <inheritdoc/>
-    protected override void ProcessRequest(IEndpointIncomingRequest request, object callData)
+    protected override void ProcessRequest(IEndpointIncomingRequest request, object calldata)
     {
         if (request is IAsyncResult asyncResult &&
             asyncResult.AsyncState is object[] asyncStateArray &&
             asyncStateArray[0] is TcpServerChannel channel)
         {
             using var scope = Logger.BeginScope("ChannelId:\"{ChannelId}\"", channel.Id);
-            base.ProcessRequest(request, callData);
+            base.ProcessRequest(request, calldata);
         }
         else
         {
-            base.ProcessRequest(request, callData);
+            base.ProcessRequest(request, calldata);
         }
     }
 
