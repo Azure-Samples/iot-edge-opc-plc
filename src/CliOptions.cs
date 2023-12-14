@@ -21,11 +21,11 @@ public static class CliOptions
     {
         var options = new Mono.Options.OptionSet {
             // log configuration
-            { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{Program.LogFileName}'", (string s) => Program.LogFileName = s },
-            { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {Program.LogFileFlushTimeSpanSec} sec", (int i) => {
+            { "lf|logfile=", $"the filename of the logfile to use.\nDefault: './{Program.Config.LogFileName}'", (string s) => Program.Config.LogFileName = s },
+            { "lt|logflushtimespan=", $"the timespan in seconds when the logfile should be flushed.\nDefault: {Program.Config.LogFileFlushTimeSpanSec} sec", (int i) => {
                     if (i > 0)
                     {
-                        Program.LogFileFlushTimeSpanSec = TimeSpan.FromSeconds(i);
+                        Program.Config.LogFileFlushTimeSpanSec = TimeSpan.FromSeconds(i);
                     }
                     else
                     {
@@ -37,7 +37,7 @@ public static class CliOptions
                     var logLevels = new List<string> {"critical", "error", "warn", "info", "debug", "trace"};
                     if (logLevels.Contains(s.ToLowerInvariant()))
                     {
-                        Program.LogLevelCli = s.ToLowerInvariant();
+                        Program.Config.LogLevelCli = s.ToLowerInvariant();
                     }
                     else
                     {
@@ -183,15 +183,15 @@ public static class CliOptions
             { "rc|removecert=", "remove cert(s) with the given thumbprint(s) (comma separated values).", (string s) => ThumbprintsToRemove = ParseListOfStrings(s)
             },
 
-            {"daa|disableanonymousauth", $"flag to disable anonymous authentication.\nDefault: {Program.DisableAnonymousAuth}", (string s) => Program.DisableAnonymousAuth = s != null },
-            {"dua|disableusernamepasswordauth", $"flag to disable username/password authentication.\nDefault: {Program.DisableUsernamePasswordAuth}", (string s) => Program.DisableUsernamePasswordAuth = s != null },
-            {"dca|disablecertauth", $"flag to disable certificate authentication.\nDefault: {Program.DisableCertAuth}", (string s) => Program.DisableCertAuth = s != null },
+            {"daa|disableanonymousauth", $"flag to disable anonymous authentication.\nDefault: {Program.Config.DisableAnonymousAuth}", (string s) => Program.Config.DisableAnonymousAuth = s != null },
+            {"dua|disableusernamepasswordauth", $"flag to disable username/password authentication.\nDefault: {Program.Config.DisableUsernamePasswordAuth}", (string s) => Program.Config.DisableUsernamePasswordAuth = s != null },
+            {"dca|disablecertauth", $"flag to disable certificate authentication.\nDefault: {Program.Config.DisableCertAuth}", (string s) => Program.Config.DisableCertAuth = s != null },
 
             // user management
-            { "au|adminuser=", $"the username of the admin user.\nDefault: {Program.AdminUser}", (string s) => Program.AdminUser = s ?? Program.AdminUser},
-            { "ac|adminpassword=", $"the password of the administrator.\nDefault: {Program.AdminPassword}", (string s) => Program.AdminPassword = s ?? Program.AdminPassword},
-            { "du|defaultuser=", $"the username of the default user.\nDefault: {Program.DefaultUser}", (string s) => Program.DefaultUser = s ?? Program.DefaultUser},
-            { "dc|defaultpassword=", $"the password of the default user.\nDefault: {Program.DefaultPassword}", (string s) => Program.DefaultPassword = s ?? Program.DefaultPassword},
+            { "au|adminuser=", $"the username of the admin user.\nDefault: {Program.Config.AdminUser}", (string s) => Program.Config.AdminUser = s ?? Program.Config.AdminUser},
+            { "ac|adminpassword=", $"the password of the administrator.\nDefault: {Program.Config.AdminPassword}", (string s) => Program.Config.AdminPassword = s ?? Program.Config.AdminPassword},
+            { "du|defaultuser=", $"the username of the default user.\nDefault: {Program.Config.DefaultUser}", (string s) => Program.Config.DefaultUser = s ?? Program.Config.DefaultUser},
+            { "dc|defaultpassword=", $"the password of the default user.\nDefault: {Program.Config.DefaultPassword}", (string s) => Program.Config.DefaultPassword = s ?? Program.Config.DefaultPassword},
 
             // Special nodes
             { "alm|alarms", $"add alarm simulation to address space.\nDefault: {AddAlarmSimulation}", (string s) => AddAlarmSimulation = s != null },
@@ -199,13 +199,13 @@ public static class CliOptions
             { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (string s) => DeterministicAlarmSimulationFile = s },
 
             // misc
-            { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {Program.ShowPublisherConfigJsonIp}", (string s) => Program.ShowPublisherConfigJsonIp = s != null },
-            { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {Program.ShowPublisherConfigJsonPh}", (string s) => Program.ShowPublisherConfigJsonPh = s != null },
-            { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {Program.PnJson}", (string s) => Program.PnJson = s },
-            { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {Program.WebServerPort}", (uint i) => Program.WebServerPort = i },
+            { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {Program.Config.ShowPublisherConfigJsonIp}", (string s) => Program.Config.ShowPublisherConfigJsonIp = s != null },
+            { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {Program.Config.ShowPublisherConfigJsonPh}", (string s) => Program.Config.ShowPublisherConfigJsonPh = s != null },
+            { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {Program.Config.PnJson}", (string s) => Program.Config.PnJson = s },
+            { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {Program.Config.WebServerPort}", (uint i) => Program.Config.WebServerPort = i },
             { "cdn|certdnsnames=", "add additional DNS names or IP addresses to this application's certificate (comma separated values; no spaces allowed).\nDefault: DNS hostname", (string s) => DnsNames = ParseListOfStrings(s) },
 
-            { "h|help", "show this message and exit", (string s) => Program.ShowHelp = s != null },
+            { "h|help", "show this message and exit", (string s) => Program.Config.ShowHelp = s != null },
         };
 
         // Add options from plugin nodes list.
@@ -225,7 +225,7 @@ public static class CliOptions
         var sb = new StringBuilder();
 
         sb.AppendLine();
-        sb.AppendLine($"{Program.ProgramName} v{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}");
+        sb.AppendLine($"{Program.Config.ProgramName} v{FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion}");
         sb.AppendLine($"Informational version: v{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion}");
         sb.AppendLine();
         sb.AppendLine($"Usage: dotnet {Assembly.GetEntryAssembly().GetName().Name}.dll [<options>]");
