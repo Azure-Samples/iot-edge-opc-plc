@@ -665,7 +665,7 @@ public partial class OpcApplicationConfiguration
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError(e, "Error while removing the cureent CRL from the trusted peer store");
+                    Logger.LogError(e, "Error while removing the current CRL from the trusted peer store");
                     result = false;
                 }
             }
@@ -834,7 +834,7 @@ public partial class OpcApplicationConfiguration
             return false;
         }
 
-        // if the new cert is not selfsigned verify with the trusted peer and trusted issuer certificates
+        // if the new cert is not self-signed verify with the trusted peer and trusted issuer certificates
         try
         {
             if (!X509Utils.CompareDistinguishedName(newCertificate.Subject, newCertificate.Issuer))
