@@ -46,12 +46,12 @@ public static class CliOptions
             },
 
             // simulation configuration
-            { "sc|simulationcyclecount=", $"count of cycles in one simulation phase.\nDefault: {SimulationConfig.SimulationCycleCount} cycles", (int i) => SimulationConfig.SimulationCycleCount = i },
-            { "ct|cycletime=", $"length of one cycle time in milliseconds.\nDefault: {SimulationConfig.SimulationCycleLength} msec", (int i) => SimulationConfig.SimulationCycleLength = i },
+            { "sc|simulationcyclecount=", $"count of cycles in one simulation phase.\nDefault: {PlcSimulationInstance.SimulationCycleCount} cycles", (int i) => PlcSimulationInstance.SimulationCycleCount = i },
+            { "ct|cycletime=", $"length of one cycle time in milliseconds.\nDefault: {PlcSimulationInstance.SimulationCycleLength} msec", (int i) => PlcSimulationInstance.SimulationCycleLength = i },
 
             // events
-            { "ei|eventinstances=", $"number of event instances.\nDefault: {SimulationConfig.EventInstanceCount}", (uint i) => SimulationConfig.EventInstanceCount = i },
-            { "er|eventrate=", $"rate in milliseconds to send events.\nDefault: {SimulationConfig.EventInstanceRate}", (uint i) => SimulationConfig.EventInstanceRate = i },
+            { "ei|eventinstances=", $"number of event instances.\nDefault: {PlcSimulationInstance.EventInstanceCount}", (uint i) => PlcSimulationInstance.EventInstanceCount = i },
+            { "er|eventrate=", $"rate in milliseconds to send events.\nDefault: {PlcSimulationInstance.EventInstanceRate}", (uint i) => PlcSimulationInstance.EventInstanceRate = i },
 
             // OPC configuration
             { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {OpcUaConfig.ServerPort}", (ushort i) => OpcUaConfig.ServerPort = i },
@@ -193,9 +193,9 @@ public static class CliOptions
             { "dc|defaultpassword=", $"the password of the default user.\nDefault: {Config.DefaultPassword}", (string s) => Config.DefaultPassword = s ?? Config.DefaultPassword},
 
             // Special nodes
-            { "alm|alarms", $"add alarm simulation to address space.\nDefault: {SimulationConfig.AddAlarmSimulation}", (string s) => SimulationConfig.AddAlarmSimulation = s != null },
-            { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {SimulationConfig.AddSimpleEventsSimulation}", (string s) => SimulationConfig.AddSimpleEventsSimulation = s != null },
-            { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (string s) => SimulationConfig.DeterministicAlarmSimulationFile = s },
+            { "alm|alarms", $"add alarm simulation to address space.\nDefault: {PlcSimulationInstance.AddAlarmSimulation}", (string s) => PlcSimulationInstance.AddAlarmSimulation = s != null },
+            { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {PlcSimulationInstance.AddSimpleEventsSimulation}", (string s) => PlcSimulationInstance.AddSimpleEventsSimulation = s != null },
+            { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (string s) => PlcSimulationInstance.DeterministicAlarmSimulationFile = s },
 
             // misc
             { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {Config.ShowPublisherConfigJsonIp}", (string s) => Config.ShowPublisherConfigJsonIp = s != null },

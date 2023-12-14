@@ -63,27 +63,27 @@ public partial class PlcServer : StandardServer
 
         nodeManagers.Add(PlcNodeManager);
 
-        if (SimulationConfig.AddSimpleEventsSimulation)
+        if (PlcSimulationInstance.AddSimpleEventsSimulation)
         {
             SimpleEventsNodeManager = new SimpleEventsNodeManager(server, configuration);
             nodeManagers.Add(SimpleEventsNodeManager);
         }
 
-        if (SimulationConfig.AddAlarmSimulation)
+        if (PlcSimulationInstance.AddAlarmSimulation)
         {
             AlarmNodeManager = new AlarmConditionServerNodeManager(server, configuration);
             nodeManagers.Add(AlarmNodeManager);
         }
 
-        if (SimulationConfig.AddReferenceTestSimulation)
+        if (PlcSimulationInstance.AddReferenceTestSimulation)
         {
             SimulationNodeManager = new ReferenceNodeManager(server, configuration);
             nodeManagers.Add(SimulationNodeManager);
         }
 
-        if (SimulationConfig.DeterministicAlarmSimulationFile != null)
+        if (PlcSimulationInstance.DeterministicAlarmSimulationFile != null)
         {
-            var scriptFileName = SimulationConfig.DeterministicAlarmSimulationFile;
+            var scriptFileName = PlcSimulationInstance.DeterministicAlarmSimulationFile;
             if (string.IsNullOrWhiteSpace(scriptFileName))
             {
                 string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";

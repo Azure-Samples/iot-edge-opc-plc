@@ -54,10 +54,10 @@ public class NegTrendPluginNode : IPluginNodes
         if (_isEnabled)
         {
             _negTrendAnomalyPhase = _random.Next(10);
-            _negTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
+            _negTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
             Logger.LogTrace($"First neg trend anomaly phase: {_negTrendAnomalyPhase}");
 
-            _node.Start(NegTrendGenerator, PlcSimulation.SimulationCycleLength);
+            _node.Start(NegTrendGenerator, PlcSimulationInstance.SimulationCycleLength);
         }
     }
 
@@ -119,7 +119,7 @@ public class NegTrendPluginNode : IPluginNodes
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_negTrendCycleInPhase == 0)
         {
-            _negTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
+            _negTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
             _negTrendPhase++;
             Logger.LogTrace($"Neg trend phase: {_negTrendPhase}, data: {nextValue}");
         }
@@ -148,7 +148,7 @@ public class NegTrendPluginNode : IPluginNodes
     public void ResetTrendData()
     {
         _negTrendAnomalyPhase = _random.Next(10);
-        _negTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
+        _negTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
         _negTrendPhase = 0;
     }
 }

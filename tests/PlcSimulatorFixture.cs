@@ -214,10 +214,10 @@ public class PlcSimulatorFixture
     {
         Program.Ready = false;
 
-        if (Program.SimulationConfig is not null)
+        if (Program.PlcSimulationInstance is not null)
         {
-            Program.SimulationConfig.AddAlarmSimulation = false;
-            Program.SimulationConfig.DeterministicAlarmSimulationFile = null;
+            Program.PlcSimulationInstance.AddAlarmSimulation = false;
+            Program.PlcSimulationInstance.DeterministicAlarmSimulationFile = null;
         }
     }
 

@@ -54,10 +54,10 @@ public class PosTrendPluginNode : IPluginNodes
         if (_isEnabled)
         {
             _posTrendAnomalyPhase = _random.Next(10);
-            _posTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
+            _posTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
             Logger.LogTrace($"First pos trend anomaly phase: {_posTrendAnomalyPhase}");
 
-            _node.Start(PosTrendGenerator, PlcSimulation.SimulationCycleLength);
+            _node.Start(PosTrendGenerator, PlcSimulationInstance.SimulationCycleLength);
         }
     }
 
@@ -119,7 +119,7 @@ public class PosTrendPluginNode : IPluginNodes
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_posTrendCycleInPhase == 0)
         {
-            _posTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
+            _posTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
             _posTrendPhase++;
             Logger.LogTrace($"Pos trend phase: {_posTrendPhase}, data: {nextValue}");
         }
@@ -148,7 +148,7 @@ public class PosTrendPluginNode : IPluginNodes
     public void ResetTrendData()
     {
         _posTrendAnomalyPhase = _random.Next(10);
-        _posTrendCycleInPhase = PlcSimulation.SimulationCycleCount;
+        _posTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
         _posTrendPhase = 0;
     }
 }

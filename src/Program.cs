@@ -28,8 +28,6 @@ public static class Program
 
     public static OpcApplicationConfiguration OpcUaConfig { get; set; }
 
-    public static PlcSimulation SimulationConfig { get; set; }
-
     /// <summary>
     /// The flat directory certificate store can only be initialized once.
     /// </summary>
@@ -58,7 +56,7 @@ public static class Program
     /// <summary>
     /// Simulation object.
     /// </summary>
-    public static PlcSimulation PlcSimulation { get; set; }
+    public static PlcSimulation PlcSimulationInstance { get; set; }
 
     /// <summary>
     /// Service returning <see cref="DateTime"/> values and <see cref="Timer"/> instances. Mocked in tests.
@@ -87,7 +85,7 @@ public static class Program
         // Initialize configuration.
         Config = new();
         OpcUaConfig = new();
-        SimulationConfig = new();
+        PlcSimulationInstance = new();
 
         LoadPluginNodes();
 
@@ -230,15 +228,15 @@ public static class Program
         // start the server.
         Logger.LogInformation("Starting server on endpoint {endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
         Logger.LogInformation("Simulation settings are:");
-        Logger.LogInformation("One simulation phase consists of {SimulationCycleCount} cycles", SimulationConfig.SimulationCycleCount);
-        Logger.LogInformation("One cycle takes {SimulationCycleLength} ms", SimulationConfig.SimulationCycleLength);
+        Logger.LogInformation("One simulation phase consists of {SimulationCycleCount} cycles", PlcSimulationInstance.SimulationCycleCount);
+        Logger.LogInformation("One cycle takes {SimulationCycleLength} ms", PlcSimulationInstance.SimulationCycleLength);
         Logger.LogInformation("Reference test simulation: {addReferenceTestSimulation}",
-            SimulationConfig.AddReferenceTestSimulation ? "Enabled" : "Disabled");
+            PlcSimulationInstance.AddReferenceTestSimulation ? "Enabled" : "Disabled");
         Logger.LogInformation("Simple events: {addSimpleEventsSimulation}",
-            SimulationConfig.AddSimpleEventsSimulation ? "Enabled" : "Disabled");
-        Logger.LogInformation("Alarms: {addAlarmSimulation}", SimulationConfig.AddAlarmSimulation ? "Enabled" : "Disabled");
+            PlcSimulationInstance.AddSimpleEventsSimulation ? "Enabled" : "Disabled");
+        Logger.LogInformation("Alarms: {addAlarmSimulation}", PlcSimulationInstance.AddAlarmSimulation ? "Enabled" : "Disabled");
         Logger.LogInformation("Deterministic alarms: {deterministicAlarmSimulation}",
-            SimulationConfig.DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
+            PlcSimulationInstance.DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
 
         Logger.LogInformation("Anonymous authentication: {anonymousAuth}", Config.DisableAnonymousAuth ? "Disabled" : "Enabled");
         Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", OpcUaConfig.DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
@@ -251,8 +249,7 @@ public static class Program
         Logger.LogInformation("OPC UA Server started");
 
         // Add remaining base simulations.
-        PlcSimulation = new PlcSimulation();
-        PlcSimulation.Start(PlcServer);
+        PlcSimulationInstance.Start(PlcServer);
 
         if (Config.ShowPublisherConfigJsonIp)
         {
@@ -283,7 +280,7 @@ public static class Program
 
         await _cancellationTokenSource.Token.WhenCanceled().ConfigureAwait(false);
 
-        PlcSimulation.Stop();
+        PlcSimulationInstance.Stop();
         PlcServer.Stop();
     }
 
