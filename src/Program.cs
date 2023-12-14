@@ -20,15 +20,9 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class Program
+public static class Program
 {
     private static CancellationTokenSource _cancellationTokenSource;
-
-#pragma warning disable S1118 // Utility classes should not have public constructors
-    public Program()
-#pragma warning restore S1118 // Utility classes should not have public constructors
-    {
-    }
 
     public static Configuration Config { get; set; }
 
@@ -80,14 +74,13 @@ public class Program
     public static void Main(string[] args)
     {
         // Start OPC UA server.
-        var prog = new Program();
-        prog.StartAsync(args).Wait();
+        StartAsync(args).Wait();
     }
 
     /// <summary>
     /// Asynchronous part of the main method of the app.
     /// </summary>
-    public async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
+    public static async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
     {
         // Initialize configuration.
         Config = new();
