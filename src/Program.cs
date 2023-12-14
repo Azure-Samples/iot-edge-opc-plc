@@ -135,13 +135,13 @@ public static class Program
     public static void Main(string[] args)
     {
         // Start OPC UA server.
-        MainAsync(args).Wait();
+        StartAsync(args).Wait();
     }
 
     /// <summary>
     /// Asynchronous part of the main method of the app.
     /// </summary>
-    public static async Task MainAsync(string[] args, CancellationToken cancellationToken = default)
+    public static async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
     {
         LoadPluginNodes();
 
@@ -201,7 +201,7 @@ public static class Program
         Logger.LogInformation("OPC UA server exiting ...");
     }
 
-    public static void Shutdown()
+    public static void Stop()
     {
         _cancellationTokenSource.Cancel();
     }
