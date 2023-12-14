@@ -220,8 +220,7 @@ public static class Program
     private static async Task ConsoleServerAsync(CancellationToken cancellationToken)
     {
         // init OPC configuration and tracing
-        var plcOpcApplicationConfiguration = new OpcApplicationConfiguration();
-        ApplicationConfiguration plcApplicationConfiguration = await plcOpcApplicationConfiguration.ConfigureAsync().ConfigureAwait(false);
+        ApplicationConfiguration plcApplicationConfiguration = await OpcUaConfig.ConfigureAsync().ConfigureAwait(false);
 
         // start the server.
         Logger.LogInformation("Starting server on endpoint {endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
