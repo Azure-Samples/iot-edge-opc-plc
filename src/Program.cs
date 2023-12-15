@@ -153,6 +153,8 @@ public static class Program
         PlcServer.Stop();
         PlcSimulationInstance.Stop();
 
+        LogLogo();
+
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
     }
 
