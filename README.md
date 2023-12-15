@@ -362,7 +362,7 @@ Options:
                                Default: 'Directory'
       --ap, --appcertstorepath=VALUE
                              the path where the own application cert should be
-                               stored
+                               stored.
                                Default (depends on store type):
                                X509Store: 'CurrentUser\UA_MachineDefault'
                                Directory: 'pki\own'
