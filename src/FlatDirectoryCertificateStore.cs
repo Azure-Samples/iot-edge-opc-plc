@@ -25,6 +25,11 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
     public const string StoreTypeName = "FlatDirectory";
 
     /// <summary>
+    /// Prefix for flat directory certificate store.
+    /// </summary>
+    public const string StoreTypePrefix = $"{StoreTypeName}:";
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="FlatDirectoryCertificateStore"/> class.
     /// </summary>
     public FlatDirectoryCertificateStore()
@@ -53,8 +58,15 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
     /// <inheritdoc/>
     public void Open(string location, bool noPrivateKeys = true)
     {
-        ArgumentNullException.ThrowIfNull(location);
-        _innerStore.Open(location, noPrivateKeys);
+        ArgumentNullException.ThrowIfNullOrEmpty(location);
+        if (!location.StartsWith(StoreTypePrefix, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                message: $"Expected argument {nameof(location)} starting with {StoreTypePrefix}",
+                paramName: nameof(location));
+        }
+
+        _innerStore.Open(location.Substring(StoreTypePrefix.Length), noPrivateKeys);
     }
 
     /// <inheritdoc/>
