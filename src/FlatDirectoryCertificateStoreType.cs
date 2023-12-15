@@ -16,6 +16,6 @@ public sealed class FlatDirectoryCertificateStoreType : ICertificateStoreType
     /// <inheritdoc/>
     public bool SupportsStorePath(string storePath)
     {
-        return !string.IsNullOrEmpty(storePath);
+        return !string.IsNullOrEmpty(storePath) && storePath.StartsWith(FlatDirectoryCertificateStore.StoreTypePrefix);
     }
 }
