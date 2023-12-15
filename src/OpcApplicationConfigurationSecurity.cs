@@ -110,6 +110,17 @@ public partial class OpcApplicationConfiguration
     /// </summary>
     public async Task<ApplicationConfiguration> InitApplicationSecurityAsync(IApplicationConfigurationBuilderServerOptions securityBuilder)
     {
+
+        if (OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName && !IsFlatDirectoryCertStoreInitialized)
+        {
+            // Register FlatDirectoryCertificateStoreType as known certificate store type.
+            CertificateStoreType.RegisterCertificateStoreType(
+                FlatDirectoryCertificateStore.StoreTypeName,
+                new FlatDirectoryCertificateStoreType());
+
+            IsFlatDirectoryCertStoreInitialized = true;
+        }
+
         var options = securityBuilder.AddSecurityConfiguration(ApplicationName, OpcOwnPKIRootDefault)
             .SetAutoAcceptUntrustedCertificates(AutoAcceptCerts)
             .SetRejectUnknownRevocationStatus(!DontRejectUnknownRevocationStatus)
@@ -118,29 +129,42 @@ public partial class OpcApplicationConfiguration
             .SetAddAppCertToTrustedStore(TrustMyself);
 
         var securityConfiguration = ApplicationConfiguration.SecurityConfiguration;
-        securityConfiguration.ApplicationCertificate.StoreType = OpcOwnCertStoreType;
-        securityConfiguration.ApplicationCertificate.StorePath = OpcOwnCertStorePath;
 
-        // configure trusted issuer certificates store
-        securityConfiguration.TrustedIssuerCertificates.StoreType =
-            OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName
-                ? FlatDirectoryCertificateStore.StoreTypeName
-                : CertificateStoreType.Directory;
-        securityConfiguration.TrustedIssuerCertificates.StorePath = OpcIssuerCertStorePath;
+        if (OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName)
+        {
+            securityConfiguration.ApplicationCertificate.StoreType = OpcOwnCertStoreType;
+            securityConfiguration.ApplicationCertificate.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + OpcOwnCertStorePath;
 
-        // configure trusted peer certificates store
-        securityConfiguration.TrustedPeerCertificates.StoreType =
-            OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName
-                ? FlatDirectoryCertificateStore.StoreTypeName
-                : CertificateStoreType.Directory;
-        securityConfiguration.TrustedPeerCertificates.StorePath = OpcTrustedCertStorePath;
+            // configure trusted issuer certificates store
+            securityConfiguration.TrustedIssuerCertificates.StoreType = FlatDirectoryCertificateStore.StoreTypeName;
+            securityConfiguration.TrustedIssuerCertificates.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + OpcIssuerCertStorePath;
 
-        // configure rejected certificates store
-        securityConfiguration.RejectedCertificateStore.StoreType =
-        OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName
-            ? FlatDirectoryCertificateStore.StoreTypeName
-            : CertificateStoreType.Directory;
-        securityConfiguration.RejectedCertificateStore.StorePath = OpcRejectedCertStorePath;
+            // configure trusted peer certificates store
+            securityConfiguration.TrustedPeerCertificates.StoreType = FlatDirectoryCertificateStore.StoreTypeName;
+            securityConfiguration.TrustedPeerCertificates.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + OpcTrustedCertStorePath;
+
+            // configure rejected certificates store
+            securityConfiguration.RejectedCertificateStore.StoreType = FlatDirectoryCertificateStore.StoreTypeName;
+            securityConfiguration.RejectedCertificateStore.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + OpcRejectedCertStorePath;
+        }
+        else
+        {
+            securityConfiguration.ApplicationCertificate.StoreType = OpcOwnCertStoreType;
+            securityConfiguration.ApplicationCertificate.StorePath = OpcOwnCertStorePath;
+
+            // configure trusted issuer certificates store
+            securityConfiguration.TrustedIssuerCertificates.StoreType = CertificateStoreType.Directory;
+            securityConfiguration.TrustedIssuerCertificates.StorePath = OpcIssuerCertStorePath;
+
+            // configure trusted peer certificates store
+            securityConfiguration.TrustedPeerCertificates.StoreType = CertificateStoreType.Directory;
+            securityConfiguration.TrustedPeerCertificates.StorePath = OpcTrustedCertStorePath;
+
+            // configure rejected certificates store
+            securityConfiguration.RejectedCertificateStore.StoreType = CertificateStoreType.Directory;
+            securityConfiguration.RejectedCertificateStore.StorePath = OpcRejectedCertStorePath;
+
+        }
 
         ApplicationConfiguration = await options.Create().ConfigureAwait(false);
 
