@@ -1,9 +1,6 @@
 namespace OpcPlc;
 
-using Microsoft.Extensions.Logging;
-using OpcPlc.PluginNodes.Models;
 using System;
-using System.Collections.Immutable;
 
 public class Configuration
 {
