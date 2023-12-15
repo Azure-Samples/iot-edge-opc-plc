@@ -78,7 +78,7 @@ public static class Program
     }
 
     /// <summary>
-    /// Asynchronous part of the main method of the app.
+    /// Start the PLC server and simulation.
     /// </summary>
     public static async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
     {
@@ -145,6 +145,9 @@ public static class Program
         Logger.LogInformation("OPC UA server exiting ...");
     }
 
+    /// <summary>
+    /// Restart the PLC server and simulation.
+    /// </summary>
     public static async Task RestartAsync()
     {
         PlcServer.Stop();
@@ -153,6 +156,9 @@ public static class Program
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Stop the application.
+    /// </summary>
     public static void Stop()
     {
         _cancellationTokenSource.Cancel();
