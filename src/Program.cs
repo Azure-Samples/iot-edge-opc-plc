@@ -9,7 +9,6 @@ using OpcPlc.Helpers;
 using OpcPlc.Logging;
 using OpcPlc.PluginNodes.Models;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
@@ -22,6 +21,7 @@ using System.Threading.Tasks;
 
 public static class Program
 {
+    private static string[] _args;
     private static CancellationTokenSource _cancellationTokenSource;
 
     public static Configuration Config { get; set; }
@@ -83,23 +83,16 @@ public static class Program
     public static async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
     {
         // Initialize configuration.
-        Config = new();
-        OpcUaConfig = new();
-        PlcSimulationInstance = new();
-
+        _args = args;
         LoadPluginNodes();
-
-        Mono.Options.OptionSet options = CliOptions.InitCommandLineOptions(PluginNodes);
-
-        // Parse the command line
-        List<string> extraArgs = options.Parse(args);
+        (Config, OpcUaConfig, PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, PluginNodes);
 
         InitLogging();
 
         // Show usage if requested
         if (Config.ShowHelp)
         {
-            Logger.LogInformation(CliOptions.ShowUsage(options));
+            Logger.LogInformation(CliOptions.GetUsageHelp(Config.ProgramName));
             return;
         }
 
@@ -107,7 +100,7 @@ public static class Program
         if (extraArgs.Count > 0)
         {
             Logger.LogWarning($"Found one or more invalid command line arguments: {string.Join(" ", extraArgs)}");
-            Logger.LogInformation(CliOptions.ShowUsage(options));
+            Logger.LogInformation(CliOptions.GetUsageHelp(Config.ProgramName));
         }
 
         LogLogo();
@@ -148,13 +141,16 @@ public static class Program
     /// <summary>
     /// Restart the PLC server and simulation.
     /// </summary>
-    public static async Task RestartAsync()
+    public static async Task RestartAsync(string[] args)
     {
+        Logger.LogInformation("Stopping PLC server and simulation ...");
         PlcServer.Stop();
         PlcSimulationInstance.Stop();
 
+        Logger.LogInformation("Restarting PLC server and simulation ...");
         LogLogo();
 
+        (Config, OpcUaConfig, PlcSimulationInstance, _) = CliOptions.InitConfiguration(args ?? _args, PluginNodes);
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
     }
 
