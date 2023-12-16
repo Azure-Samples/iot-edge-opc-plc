@@ -141,7 +141,7 @@ public static class Program
     /// <summary>
     /// Restart the PLC server and simulation.
     /// </summary>
-    public static async Task RestartAsync(string[] args)
+    public static async Task RestartAsync()
     {
         Logger.LogInformation("Stopping PLC server and simulation ...");
         PlcServer.Stop();
@@ -150,7 +150,7 @@ public static class Program
         Logger.LogInformation("Restarting PLC server and simulation ...");
         LogLogo();
 
-        (Config, OpcUaConfig, PlcSimulationInstance, _) = CliOptions.InitConfiguration(args ?? _args, PluginNodes);
+        (Config, OpcUaConfig, PlcSimulationInstance, _) = CliOptions.InitConfiguration(_args, PluginNodes);
         InitLogging();
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
     }
