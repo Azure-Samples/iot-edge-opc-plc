@@ -151,6 +151,7 @@ public static class Program
         LogLogo();
 
         (Config, OpcUaConfig, PlcSimulationInstance, _) = CliOptions.InitConfiguration(args ?? _args, PluginNodes);
+        InitLogging();
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
     }
 
@@ -306,11 +307,6 @@ public static class Program
     /// </summary>
     private static void InitLogging()
     {
-        if (LoggerFactory != null && Logger != null)
-        {
-            return;
-        }
-
         LogLevel logLevel;
 
         // set the log level
