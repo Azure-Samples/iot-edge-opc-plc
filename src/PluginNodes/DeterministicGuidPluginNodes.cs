@@ -13,14 +13,15 @@ using static OpcPlc.Program;
 /// </summary>
 public class DeterministicGuidPluginNodes : IPluginNodes
 {
+    private readonly DeterministicGuid _deterministicGuid = new ();
+    private PlcNodeManager _plcNodeManager;
+    private SimulatedVariableNode<uint>[] _nodes;
+
     public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
     private static uint NodeCount { get; set; } = 1;
     private uint NodeRate { get; set; } = 1000; // ms.
     private NodeType NodeType { get; set; } = NodeType.UInt;
-
-    private PlcNodeManager _plcNodeManager;
-    private SimulatedVariableNode<uint>[] _nodes;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -72,7 +73,7 @@ public class DeterministicGuidPluginNodes : IPluginNodes
 
         for (int i = 0; i < NodeCount; i++)
         {
-            Guid id = DeterministicGuid.NewGuid();
+            Guid id = _deterministicGuid.NewGuid();
 
             BaseDataVariableState variable = _plcNodeManager.CreateBaseVariable(
                 folder,
