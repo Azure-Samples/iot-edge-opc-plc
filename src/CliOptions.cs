@@ -5,8 +5,10 @@ using Mono.Options;
 using Opc.Ua;
 using OpcPlc.Certs;
 using OpcPlc.Helpers;
+using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -16,7 +18,7 @@ using static Program;
 
 public static class CliOptions
 {
-    public static Mono.Options.OptionSet InitCommandLineOptions()
+    public static Mono.Options.OptionSet InitCommandLineOptions(ImmutableList<IPluginNodes> pluginNodes)
     {
         var options = new Mono.Options.OptionSet {
             // log configuration
@@ -208,7 +210,7 @@ public static class CliOptions
         };
 
         // Add options from plugin nodes list.
-        foreach (var plugin in Program.PluginNodes)
+        foreach (var plugin in pluginNodes)
         {
             plugin.AddOptions(options);
         }
@@ -219,7 +221,7 @@ public static class CliOptions
     /// <summary>
     /// Usage message.
     /// </summary>
-    public static void PrintUsage(Mono.Options.OptionSet options)
+    public static string ShowUsage(Mono.Options.OptionSet options)
     {
         var sb = new StringBuilder();
 
@@ -243,7 +245,7 @@ public static class CliOptions
         using var stringWriter = new StringWriter(sb);
         options.WriteOptionDescriptions(stringWriter);
 
-        Logger.LogInformation(sb.ToString());
+        return sb.ToString();
     }
 
     /// <summary>

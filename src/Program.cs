@@ -89,7 +89,7 @@ public static class Program
 
         LoadPluginNodes();
 
-        Mono.Options.OptionSet options = CliOptions.InitCommandLineOptions();
+        Mono.Options.OptionSet options = CliOptions.InitCommandLineOptions(PluginNodes);
 
         // Parse the command line
         List<string> extraArgs = options.Parse(args);
@@ -99,7 +99,7 @@ public static class Program
         // Show usage if requested
         if (Config.ShowHelp)
         {
-            CliOptions.PrintUsage(options);
+            Logger.LogInformation(CliOptions.ShowUsage(options));
             return;
         }
 
@@ -107,7 +107,7 @@ public static class Program
         if (extraArgs.Count > 0)
         {
             Logger.LogWarning($"Found one or more invalid command line arguments: {string.Join(" ", extraArgs)}");
-            CliOptions.PrintUsage(options);
+            Logger.LogInformation(CliOptions.ShowUsage(options));
         }
 
         LogLogo();
