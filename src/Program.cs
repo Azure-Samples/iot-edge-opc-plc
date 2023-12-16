@@ -9,7 +9,6 @@ using OpcPlc.Helpers;
 using OpcPlc.Logging;
 using OpcPlc.PluginNodes.Models;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
@@ -22,16 +21,12 @@ using System.Threading.Tasks;
 
 public static class Program
 {
+    private static string[] _args;
     private static CancellationTokenSource _cancellationTokenSource;
 
     public static Configuration Config { get; set; }
 
     public static OpcApplicationConfiguration OpcUaConfig { get; set; }
-
-    /// <summary>
-    /// The flat directory certificate store can only be initialized once.
-    /// </summary>
-    public static bool IsFlatDirectoryCertStoreInitialized { get; set; }
 
     /// <summary>
     /// The LoggerFactory used to create logging objects.
@@ -69,6 +64,11 @@ public static class Program
     public static bool Ready { get; set; }
 
     /// <summary>
+    /// The flat directory certificate store can only be initialized once.
+    /// </summary>
+    public static bool IsFlatDirectoryCertStoreInitialized { get; set; }
+
+    /// <summary>
     /// Synchronous main method of the app.
     /// </summary>
     public static void Main(string[] args)
@@ -78,28 +78,21 @@ public static class Program
     }
 
     /// <summary>
-    /// Asynchronous part of the main method of the app.
+    /// Start the PLC server and simulation.
     /// </summary>
     public static async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
     {
         // Initialize configuration.
-        Config = new();
-        OpcUaConfig = new();
-        PlcSimulationInstance = new();
-
+        _args = args;
         LoadPluginNodes();
-
-        Mono.Options.OptionSet options = CliOptions.InitCommandLineOptions();
-
-        // Parse the command line
-        List<string> extraArgs = options.Parse(args);
+        (Config, OpcUaConfig, PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, PluginNodes);
 
         InitLogging();
 
         // Show usage if requested
         if (Config.ShowHelp)
         {
-            CliOptions.PrintUsage(options);
+            Logger.LogInformation(CliOptions.GetUsageHelp(Config.ProgramName));
             return;
         }
 
@@ -107,7 +100,7 @@ public static class Program
         if (extraArgs.Count > 0)
         {
             Logger.LogWarning($"Found one or more invalid command line arguments: {string.Join(" ", extraArgs)}");
-            CliOptions.PrintUsage(options);
+            Logger.LogInformation(CliOptions.GetUsageHelp(Config.ProgramName));
         }
 
         LogLogo();
@@ -134,7 +127,7 @@ public static class Program
 
         try
         {
-            await ConsoleServerAsync(cancellationToken).ConfigureAwait(false);
+            await StartPlcServerAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -145,6 +138,26 @@ public static class Program
         Logger.LogInformation("OPC UA server exiting ...");
     }
 
+    /// <summary>
+    /// Restart the PLC server and simulation.
+    /// </summary>
+    public static async Task RestartAsync()
+    {
+        Logger.LogInformation("Stopping PLC server and simulation ...");
+        PlcServer.Stop();
+        PlcSimulationInstance.Stop();
+
+        Logger.LogInformation("Restarting PLC server and simulation ...");
+        LogLogo();
+
+        (Config, OpcUaConfig, PlcSimulationInstance, _) = CliOptions.InitConfiguration(_args, PluginNodes);
+        InitLogging();
+        await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Stop the application.
+    /// </summary>
     public static void Stop()
     {
         _cancellationTokenSource.Cancel();
@@ -218,9 +231,46 @@ public static class Program
     }
 
     /// <summary>
-    /// Run the server.
+    /// Start the server.
     /// </summary>
-    private static async Task ConsoleServerAsync(CancellationToken cancellationToken)
+    private static async Task StartPlcServerAsync(CancellationToken cancellationToken)
+    {
+        await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
+
+        if (Config.ShowPublisherConfigJsonIp)
+        {
+            await PnJsonHelper.PrintPublisherConfigJsonAsync(
+                Config.PnJson,
+                $"{GetIpAddress()}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
+                PluginNodes,
+                Logger).ConfigureAwait(false);
+        }
+        else if (Config.ShowPublisherConfigJsonPh)
+        {
+            await PnJsonHelper.PrintPublisherConfigJsonAsync(
+                Config.PnJson,
+                $"{OpcUaConfig.Hostname}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
+                PluginNodes,
+                Logger).ConfigureAwait(false);
+        }
+
+        Ready = true;
+        Logger.LogInformation("PLC simulation started, press Ctrl+C to exit ...");
+
+        // Wait for cancellation.
+        _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Console.CancelKeyPress += (_, eArgs) => {
+            _cancellationTokenSource.Cancel();
+            eArgs.Cancel = true;
+        };
+
+        await _cancellationTokenSource.Token.WhenCanceled().ConfigureAwait(false);
+
+        PlcSimulationInstance.Stop();
+        PlcServer.Stop();
+    }
+
+    private static async Task StartPlcServerAndSimulationAsync()
     {
         // init OPC configuration and tracing
         ApplicationConfiguration plcApplicationConfiguration = await OpcUaConfig.ConfigureAsync().ConfigureAwait(false);
@@ -250,38 +300,6 @@ public static class Program
 
         // Add remaining base simulations.
         PlcSimulationInstance.Start(PlcServer);
-
-        if (Config.ShowPublisherConfigJsonIp)
-        {
-            await PnJsonHelper.PrintPublisherConfigJsonAsync(
-                Config.PnJson,
-                $"{GetIpAddress()}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
-                PluginNodes,
-                Logger).ConfigureAwait(false);
-        }
-        else if (Config.ShowPublisherConfigJsonPh)
-        {
-            await PnJsonHelper.PrintPublisherConfigJsonAsync(
-                Config.PnJson,
-                $"{OpcUaConfig.Hostname}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
-                PluginNodes,
-                Logger).ConfigureAwait(false);
-        }
-
-        Ready = true;
-        Logger.LogInformation("PLC simulation started, press Ctrl+C to exit ...");
-
-        // Wait for Ctrl-C to allow canceling the connection process.
-        _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        Console.CancelKeyPress += (_, eArgs) => {
-            _cancellationTokenSource.Cancel();
-            eArgs.Cancel = true;
-        };
-
-        await _cancellationTokenSource.Token.WhenCanceled().ConfigureAwait(false);
-
-        PlcSimulationInstance.Stop();
-        PlcServer.Stop();
     }
 
     /// <summary>
@@ -289,11 +307,6 @@ public static class Program
     /// </summary>
     private static void InitLogging()
     {
-        if (LoggerFactory != null && Logger != null)
-        {
-            return;
-        }
-
         LogLevel logLevel;
 
         // set the log level
