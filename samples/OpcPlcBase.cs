@@ -10,42 +10,65 @@ using System.Threading.Tasks;
 /// </summary>
 public class OpcPlcBase
 {
+    private static bool _isOpcPlcServerRunning;
+    private static string[]? _args;
+    private readonly int _port;
+    private readonly bool _endpointUrlOverridden;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="OpcPlcBase"/> class.
-    /// The <paramref name="uniqueOpcPlcPort"/> must be unique for each test class.
     /// Set the <paramref name="endpointUriOverride"/> to override spawning a server and use an existing one instead.
     /// </summary>
-    public OpcPlcBase(string[] args, int uniqueOpcPlcPort, string? endpointUriOverride = null)
+    public OpcPlcBase(string[] args, int port = 51234, string? endpointUriOverride = null)
     {
-        if(!string.IsNullOrEmpty(endpointUriOverride))
+        if (_isOpcPlcServerRunning)
+        {
+            if (OpcPlcEndpointUrl.Contains(port.ToString()))
+            {
+                // Already running at the same port.
+                return;
+            }
+
+            OpcPlc.Program.Stop();
+        }
+
+        _args = args;
+        _port = port;
+
+        if (!string.IsNullOrEmpty(endpointUriOverride))
         {
             OpcPlcEndpointUrl = endpointUriOverride;
+            _endpointUrlOverridden = true;
             return;
         }
 
-        // Passed args override the following defaults.
-        var serverTask = Task.Run(() => OpcPlc.Program.MainAsync(
-            args.Concat(
-                new[]
-                {
-                    "--autoaccept",
-                    $"--portnum={uniqueOpcPlcPort}",
-                }).ToArray(),
-            CancellationToken.None)
-            .GetAwaiter().GetResult());
-
-        OpcPlcEndpointUrl = WaitForServerUpAsync(serverTask).GetAwaiter().GetResult();
+        OpcPlcEndpointUrl = StartOpcPlcServerAsync(CancellationToken.None).GetAwaiter().GetResult();
     }
 
     /// <summary>
     /// Gets the OPC PLC server endpoint URL.
     /// </summary>
-    public string OpcPlcEndpointUrl { get; }
+    public static string OpcPlcEndpointUrl { get; private set; } = string.Empty;
 
-    private static async Task<string> WaitForServerUpAsync(Task serverTask)
+    /// <summary>
+    /// Restarts the OPC PLC server with the same configuration.
+    /// </summary>
+    public Task RestartOpcPlcServerAsync()
+    {
+        if (_endpointUrlOverridden)
+        {
+            throw new InvalidOperationException("Cannot restart OPC PLC server when the endpoint URL is overridden.");
+        }
+
+        return OpcPlc.Program.RestartAsync();
+    }
+
+    private static async Task<string> WaitForServerUpAsync(Task serverTask, CancellationToken cancellationToken)
     {
         while (true)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (serverTask.IsFaulted)
             {
                 throw serverTask.Exception!;
@@ -58,11 +81,31 @@ public class OpcPlcBase
 
             if (!OpcPlc.Program.Ready)
             {
-                await Task.Delay(1000).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
                 continue;
             }
 
+            _isOpcPlcServerRunning = true;
+
             return OpcPlc.Program.PlcServer.GetEndpoints()[0].EndpointUrl;
         }
+    }
+
+    private Task<string> StartOpcPlcServerAsync(CancellationToken cancellationToken)
+    {
+        // Passed args override the following defaults.
+        var serverTask = Task.Run(
+            async () => await OpcPlc.Program.StartAsync(
+                _args?.Concat(
+                    new[]
+                    {
+                        "--autoaccept",
+                        $"--portnum={_port}",
+                    }).ToArray(),
+                cancellationToken)
+            .ConfigureAwait(false),
+            cancellationToken);
+
+        return WaitForServerUpAsync(serverTask, cancellationToken);
     }
 }

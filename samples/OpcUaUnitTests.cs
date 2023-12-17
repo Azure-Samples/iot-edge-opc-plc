@@ -9,15 +9,14 @@ public class OpcUaUnitTests : OpcPlcBase
             new[] // Additional arguments.
             {
                 "--gn=2",
-            },
-            uniqueOpcPlcPort: 51234) // Port must be unique for each test class.
+            })
     {
     }
 
     [Test]
     public async Task TestConnectedClientSession()
     {
-        var opcUaClient = await OpcUaClientFactory
+        using var opcUaClient = await OpcUaClientFactory
             .GetConnectedClient(OpcPlcEndpointUrl)
             .ConfigureAwait(false);
 
