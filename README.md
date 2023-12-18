@@ -296,7 +296,7 @@ or if one string contains commas:
 
 Options:
       --lf, --logfile=VALUE  the filename of the logfile to use.
-                               Default: './hostname-plc.log'
+                               Default: './hostname-port-plc.log'
       --lt, --logflushtimespan=VALUE
                              the timespan in seconds when the logfile should be
                                flushed.
@@ -573,4 +573,10 @@ Options:
       --nf, --nodesfile=VALUE
                              the filename that contains the list of nodes to be
                                created in the OPC UA address space.
+      --vf1k, --veryfast1knodes=VALUE
+                             number of very fast 1 kB nodes.
+                               Default: 1
+      --vf1kr, --veryfast1krate=VALUE
+                             rate in ms to change very fast 1 kB nodes.
+                               Default: 1000
 ```

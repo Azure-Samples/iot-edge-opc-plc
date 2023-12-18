@@ -99,7 +99,7 @@ public static class CliOptions
             { "mqrc|maxqueuedrequestcount=", $"maximum number of requests that will be queued waiting for a thread.\nDefault: {opcUaConfig.MaxQueuedRequestCount}", (int i) => opcUaConfig.MaxQueuedRequestCount = i },
 
             // cert store options
-            { "at|appcertstoretype=", $"the own application cert store type.\n(allowed values: Directory, X509Store)\nDefault: '{opcUaConfig.OpcOwnCertStoreType}'", (string s) => {
+            { "at|appcertstoretype=", $"the own application cert store type.\n(allowed values: Directory, X509Store, FlatDirectory)\nDefault: '{opcUaConfig.OpcOwnCertStoreType}'", (string s) => {
                     switch (s)
                     {
                         case CertificateStoreType.X509Store:
@@ -122,7 +122,7 @@ public static class CliOptions
 
             { "ap|appcertstorepath=", "the path where the own application cert should be stored.\nDefault (depends on store type):\n" +
                     $"X509Store: '{opcUaConfig.OpcOwnCertX509StorePathDefault}'\n" +
-                    $"Directory: '{opcUaConfig.OpcOwnCertDirectoryStorePathDefault}'" +
+                    $"Directory: '{opcUaConfig.OpcOwnCertDirectoryStorePathDefault}'\n" +
                     $"FlatDirectory: '{opcUaConfig.OpcOwnCertDirectoryStorePathDefault}'",
                     (string s) => opcUaConfig.OpcOwnCertStorePath = s
             },
