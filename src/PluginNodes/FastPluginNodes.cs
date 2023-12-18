@@ -127,9 +127,9 @@ public class FastPluginNodes : IPluginNodes
     {
         // Only use the fast timers when we need to go really fast,
         // since they consume more resources and create an own thread.
-        _nodeGenerator = NodeRate >= 50 || !Stopwatch.IsHighResolution ?
-            TimeService.NewTimer(UpdateNodes, NodeRate) :
-            TimeService.NewFastTimer(UpdateVeryFastNodes, intervalInMilliseconds: NodeRate);
+        _nodeGenerator = NodeRate >= 50 || !Stopwatch.IsHighResolution
+            ? TimeService.NewTimer(UpdateNodes, NodeRate)
+            : TimeService.NewFastTimer(UpdateVeryFastNodes, intervalInMilliseconds: NodeRate);
     }
 
     public void StopSimulation()
@@ -156,8 +156,7 @@ public class FastPluginNodes : IPluginNodes
 
         foreach (var node in _nodes)
         {
-            nodes.Add(new NodeWithIntervals
-            {
+            nodes.Add(new NodeWithIntervals {
                 NodeId = node.NodeId.Identifier.ToString(),
                 Namespace = OpcPlc.Namespaces.OpcPlcApplications,
                 PublishingInterval = NodeRate,
@@ -167,8 +166,7 @@ public class FastPluginNodes : IPluginNodes
 
         foreach (var node in _badNodes)
         {
-            nodes.Add(new NodeWithIntervals
-            {
+            nodes.Add(new NodeWithIntervals {
                 NodeId = node.NodeId.Identifier.ToString(),
                 Namespace = OpcPlc.Namespaces.OpcPlcApplications,
                 PublishingInterval = NodeRate,

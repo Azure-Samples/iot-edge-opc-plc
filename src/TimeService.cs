@@ -189,7 +189,7 @@ public class FastTimer : ITimer
     {
         double nextTrigger = 0f;
 
-        Stopwatch sw = new Stopwatch();
+        var sw = new Stopwatch();
         sw.Start();
 
         while (_isRunning == 1)
