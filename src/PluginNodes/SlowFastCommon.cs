@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -8,7 +8,7 @@ using static OpcPlc.Program;
 public class SlowFastCommon
 {
     private readonly PlcNodeManager _plcNodeManager;
-    private readonly Random _random = new Random();
+    private readonly Random _random = new();
     private BaseDataVariableState _numberOfUpdates;
     private uint _badNodesCycle = 0;
     private const string NumberOfUpdates = "NumberOfUpdates";
@@ -25,6 +25,7 @@ public class SlowFastCommon
         uint badNodesCount = count == 0u
             ? 0u
             : 1u;
+
         var badNodes = CreateBaseLoadNodes(folder, $"Bad{name}", badNodesCount, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
 
         _numberOfUpdates = CreateNumberOfUpdatesVariable(name, simulatorFolder);
@@ -168,7 +169,7 @@ public class SlowFastCommon
                                         var value1 = _random.NextDouble() * maxDoubleValue;
                                         var value2 = _random.NextDouble() * minDoubleValue;
 
-                                        // Return random value from postive or negative range, randomly.
+                                        // Return random value from positive or negative range, randomly.
                                         value = _random.Next(10) % 2 == 0 ? value1 : value2;
                                     }
                                 }
@@ -192,22 +193,22 @@ public class SlowFastCommon
                             if (minDoubleValue >= 0 && maxDoubleValue > 0)
                             {
                                 value = (extendedDoubleNodeValue % maxDoubleValue) < minDoubleValue
-                                     ? minDoubleValue
-                                         : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize) > maxDoubleValue
-                                             ? minDoubleValue
-                                                 : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
+                                    ? minDoubleValue
+                                    : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize) > maxDoubleValue
+                                        ? minDoubleValue
+                                        : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
                             }
-                            else if (maxDoubleValue <= 0 && minDoubleValue < 0) // Negative only range cases (e.g. 0 to -9.5).
+                            else if (maxDoubleValue <= 0 && minDoubleValue < 0) // Negative-only range cases (e.g. 0 to -9.5).
                             {
                                 value = (extendedDoubleNodeValue % minDoubleValue) > maxDoubleValue
-                                ? maxDoubleValue
-                                 : ((extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize) < minDoubleValue
-                                             ? maxDoubleValue
-                                             : (extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize;
+                                    ? maxDoubleValue
+                                    : ((extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize) < minDoubleValue
+                                        ? maxDoubleValue
+                                        : (extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize;
                             }
                             else
                             {
-                                // This is to prevent infinte loop while attempting to create a different random number than previous one if no range is provided.
+                                // This is to prevent infinite loop while attempting to create a different random number than previous one if no range is provided.
                                 throw new ArgumentException($"Negative to positive range {minDoubleValue} to {maxDoubleValue} for sequential node values is not supported currently.");
                             }
                         }
@@ -246,23 +247,23 @@ public class SlowFastCommon
                                 // If new random value is same as previous one, generate a new one until it is not.
                                 while (value == null || extendedUIntNodeValue == (uint)value)
                                 {
-                                    // uint.MaxValue + 1 cycles back to 0 which causes infinte loop here hence a check maxUIntValue == uint.MaxValue to prevent it.
+                                    // uint.MaxValue + 1 cycles back to 0 which causes infinite loop here hence a check maxUIntValue == uint.MaxValue to prevent it.
                                     value = (uint)(minUIntValue + (_random.NextDouble() * ((maxUIntValue == uint.MaxValue ? maxUIntValue : maxUIntValue + 1) - minUIntValue)));
                                 }
                             }
                             else
                             {
-                                // This is to prevent infinte loop while attempting to create a different random number than previous one if no range is provided.
+                                // This is to prevent infinite loop while attempting to create a different random number than previous one if no range is provided.
                                 throw new ArgumentException($"Range {minUIntValue} to {maxUIntValue} does not have provision for randomness.");
                             }
                         }
                         else
                         {
                             value = (extendedUIntNodeValue % maxUIntValue) < minUIntValue
-                                        ? minUIntValue
-                                            : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize) > maxUIntValue
-                                                ? minUIntValue
-                                                    : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize);
+                                ? minUIntValue
+                                : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize) > maxUIntValue
+                                    ? minUIntValue
+                                    : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize);
                         }
 
                         break;
