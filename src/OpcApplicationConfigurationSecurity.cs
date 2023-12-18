@@ -111,14 +111,17 @@ public partial class OpcApplicationConfiguration
     public async Task<ApplicationConfiguration> InitApplicationSecurityAsync(IApplicationConfigurationBuilderServerOptions securityBuilder)
     {
 
-        if (OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName && !IsFlatDirectoryCertStoreInitialized)
+        if (OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName)
         {
             // Register FlatDirectoryCertificateStoreType as known certificate store type.
-            CertificateStoreType.RegisterCertificateStoreType(
-                FlatDirectoryCertificateStore.StoreTypeName,
-                new FlatDirectoryCertificateStoreType());
+            var certStoreTypeName = CertificateStoreType.GetCertificateStoreTypeByName(FlatDirectoryCertificateStore.StoreTypeName);
 
-            IsFlatDirectoryCertStoreInitialized = true;
+            if (certStoreTypeName is null)
+            {
+                CertificateStoreType.RegisterCertificateStoreType(
+                    FlatDirectoryCertificateStore.StoreTypeName,
+                    new FlatDirectoryCertificateStoreType());
+            }
         }
 
         var options = securityBuilder.AddSecurityConfiguration(ApplicationName, OpcOwnPKIRootDefault)
