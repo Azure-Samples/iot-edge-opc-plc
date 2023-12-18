@@ -9,8 +9,9 @@ using System.Text;
 using static OpcPlc.Program;
 
 /// <summary>
-/// Nodes with 1 kB values that change in ms cycles.
-/// The values are scrambled to ensure that they are efficiently compressed.
+/// Nodes with 1 kB (ByteString) values.
+/// The first byte cycles from 0 to 255 in a configurable rate in ms.
+/// The values are deterministic but scrambled to ensure that they are not efficiently compressed.
 /// </summary>
 public class VeryFast1KBPluginNodes : IPluginNodes
 {
