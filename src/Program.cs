@@ -64,11 +64,6 @@ public static class Program
     public static bool Ready { get; set; }
 
     /// <summary>
-    /// The flat directory certificate store can only be initialized once.
-    /// </summary>
-    public static bool IsFlatDirectoryCertStoreInitialized { get; set; }
-
-    /// <summary>
     /// Synchronous main method of the app.
     /// </summary>
     public static void Main(string[] args)
