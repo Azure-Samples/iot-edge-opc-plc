@@ -226,6 +226,7 @@ More information about this feature can be found [here](deterministic-alarms.md)
   - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
 - Nodes with deterministic random GUIDs as node IDs: `--gn=<number_of_nodes>`
 - Node with opaque identifier (free-format byte string)
+- Nodes with 1 kB (ByteString) values. The first byte cycles from 0 to 255 in a configurable rate in ms. The values are deterministic but scrambled to ensure that they are not efficiently compressed.
 - Load binary *.PredefinedNodes.uanodes file(s) compiled from an XML NodeSet: `--unf=<PredefinedNodes_uanodes>`
 - Load *.NodeSet2.xml file(s): `--ns2=<NodeSet2_xml>`
 
@@ -296,7 +297,7 @@ or if one string contains commas:
 
 Options:
       --lf, --logfile=VALUE  the filename of the logfile to use.
-                               Default: './hostname-plc.log'
+                               Default: './hostname-port-plc.log'
       --lt, --logflushtimespan=VALUE
                              the timespan in seconds when the logfile should be
                                flushed.
@@ -573,4 +574,10 @@ Options:
       --nf, --nodesfile=VALUE
                              the filename that contains the list of nodes to be
                                created in the OPC UA address space.
+      --vf1k, --veryfast1knodes=VALUE
+                             number of very fast 1 kB nodes.
+                               Default: 1
+      --vf1kr, --veryfast1krate=VALUE
+                             rate in ms to change very fast 1 kB nodes.
+                               Default: 1000
 ```
