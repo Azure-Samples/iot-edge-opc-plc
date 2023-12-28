@@ -34,6 +34,8 @@ public class PlcSimulatorFixture
 
     private readonly string[] _args;
 
+    private readonly OpcPlcServer _opcPlcServer;
+
     /// <summary>
     /// The writer in which output is immediately displayed in the NUnit console.
     /// </summary>
@@ -71,6 +73,7 @@ public class PlcSimulatorFixture
     public PlcSimulatorFixture(string[] args)
     {
         _args = args ?? Array.Empty<string>();
+        _opcPlcServer = new OpcPlcServer();
     }
 
     /// <summary>
@@ -81,8 +84,8 @@ public class PlcSimulatorFixture
     {
         Reset();
 
-        Program.LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(LogLevel.Information);
-        Program.Logger = new TestLogger<PlcSimulatorFixture>(TestContext.Progress, new SyslogFormatter(new SyslogFormatterOptions()));
+        _opcPlcServer.LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(LogLevel.Information);
+        _opcPlcServer.Logger = new TestLogger<PlcSimulatorFixture>(TestContext.Progress, new SyslogFormatter(new SyslogFormatterOptions()));
 
         _log = TestContext.Progress;
 
@@ -111,7 +114,7 @@ public class PlcSimulatorFixture
                 return timer;
             });
 
-        Program.TimeService = mock.Object;
+        _opcPlcServer.TimeService = mock.Object;
 
         mock.Setup(f => f.Now())
             .Returns(() => _now);
@@ -121,7 +124,7 @@ public class PlcSimulatorFixture
 
         // The simulator program command line.
         // Passed args override the following defaults.
-        _serverTask = Task.Run(() => Program.StartAsync(
+        _serverTask = Task.Run(async () => await _opcPlcServer.StartAsync(
             _args.Concat(
                 new[]
                 {
@@ -132,7 +135,7 @@ public class PlcSimulatorFixture
                     "--ft=uint",
                 }).ToArray(),
             _serverCancellationTokenSource.Token)
-            .GetAwaiter().GetResult());
+            .ConfigureAwait(false));
 
         string endpointUrl = await WaitForServerUpAsync().ConfigureAwait(false);
         await _log.WriteAsync($"Found server at: {endpointUrl}").ConfigureAwait(false);
@@ -210,14 +213,14 @@ public class PlcSimulatorFixture
         return matchedHandlers;
     }
 
-    private static void Reset()
+    private void Reset()
     {
-        Program.Ready = false;
+        _opcPlcServer.Ready = false;
 
-        if (Program.PlcSimulationInstance is not null)
+        if (_opcPlcServer.PlcSimulationInstance is not null)
         {
-            Program.PlcSimulationInstance.AddAlarmSimulation = false;
-            Program.PlcSimulationInstance.DeterministicAlarmSimulationFile = null;
+            _opcPlcServer.PlcSimulationInstance.AddAlarmSimulation = false;
+            _opcPlcServer.PlcSimulationInstance.DeterministicAlarmSimulationFile = null;
         }
     }
 
@@ -302,14 +305,14 @@ public class PlcSimulatorFixture
                 throw new Exception("The OPC PLC server failed to start.");
             }
 
-            if (!Program.Ready)
+            if (!_opcPlcServer.Ready)
             {
                 _log.WriteLine("Waiting for server to start ...");
                 await Task.Delay(1000).ConfigureAwait(false);
                 continue;
             }
 
-            return Program.PlcServer.GetEndpoints()[0].EndpointUrl;
+            return _opcPlcServer.PlcServer.GetEndpoints()[0].EndpointUrl;
         }
     }
 }
