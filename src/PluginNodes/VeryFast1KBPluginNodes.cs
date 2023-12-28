@@ -13,7 +13,7 @@ using System.Text;
 /// The first byte cycles from 0 to 255 in a configurable rate in ms.
 /// The values are deterministic but scrambled to ensure that they are not efficiently compressed.
 /// </summary>
-public class VeryFast1KBPluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class VeryFast1KBPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private uint NodeCount { get; set; } = 1;
     private uint NodeRate { get; set; } = 1000; // ms.

@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Node with a sine wave value with a dip anomaly.
 /// </summary>
-public class DipPluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class DipPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
@@ -48,11 +48,11 @@ public class DipPluginNode(PlcSimulation plcSimulation, TimeService timeService,
     {
         if (_isEnabled)
         {
-            _dipCycleInPhase = _plcSimulation.SimulationCycleCount;
-            _dipAnomalyCycle = _random.Next(_plcSimulation.SimulationCycleCount);
+            _dipCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
+            _dipAnomalyCycle = _random.Next(_plcNodeManager.PlcSimulationInstance.SimulationCycleCount);
             _logger.LogTrace($"First dip anomaly cycle: {_dipAnomalyCycle}");
 
-            _node.Start(DipGenerator, _plcSimulation.SimulationCycleLength);
+            _node.Start(DipGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
     }
 
@@ -100,15 +100,15 @@ public class DipPluginNode(PlcSimulation plcSimulation, TimeService timeService,
         }
         else
         {
-            nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / _plcSimulation.SimulationCycleCount) * _dipCycleInPhase);
+            nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / _plcNodeManager.PlcSimulationInstance.SimulationCycleCount) * _dipCycleInPhase);
         }
         _logger.LogTrace($"Spike cycle: {_dipCycleInPhase} data: {nextValue}");
 
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_dipCycleInPhase == 0)
         {
-            _dipCycleInPhase = _plcSimulation.SimulationCycleCount;
-            _dipAnomalyCycle = _random.Next(_plcSimulation.SimulationCycleCount);
+            _dipCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
+            _dipAnomalyCycle = _random.Next(_plcNodeManager.PlcSimulationInstance.SimulationCycleCount);
             _logger.LogTrace($"Next dip anomaly cycle: {_dipAnomalyCycle}");
         }
 

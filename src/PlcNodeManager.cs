@@ -15,15 +15,18 @@ public class PlcNodeManager : CustomNodeManager2
     private readonly ImmutableList<IPluginNodes> _pluginNodes;
     private readonly ILogger _logger;
 
-    public PlcNodeManager(IServerInternal server, OpcPlcConfiguration config, ApplicationConfiguration appConfig, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
+    public PlcNodeManager(IServerInternal server, OpcPlcConfiguration config, ApplicationConfiguration appConfig, TimeService timeService, PlcSimulation plcSimulation, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
         : base(server, appConfig, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
     {
         _config = config;
         _timeService = timeService;
+        PlcSimulationInstance = plcSimulation;
         _pluginNodes = pluginNodes;
         _logger = logger;
         SystemContext.NodeIdFactory = this;
     }
+
+    public PlcSimulation PlcSimulationInstance { get; }
 
     /// <summary>
     /// Creates the NodeId for the specified node.
@@ -248,7 +251,6 @@ public class PlcNodeManager : CustomNodeManager2
     }
 
     private readonly TimeService _timeService;
-
     private IDictionary<NodeId, IList<IReference>> _externalReferences;
     private Func<ISystemContext, NodeStateCollection> _loadPredefinedNodesHandler;
 }

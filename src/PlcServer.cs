@@ -71,6 +71,7 @@ public partial class PlcServer : StandardServer
             _config,
             appConfig: configuration,
             _timeService,
+            _plcSimulation,
             _pluginNodes,
             _logger);
 

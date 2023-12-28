@@ -12,7 +12,7 @@ using System.Linq;
 /// <summary>
 /// Nodes that are configured via *.NodeSet2.xml file(s).
 /// </summary>
-public class NodeSet2PluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class NodeSet2PluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private List<string> _nodesFileNames;
     private PlcNodeManager _plcNodeManager;

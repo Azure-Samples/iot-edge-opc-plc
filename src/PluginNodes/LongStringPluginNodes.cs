@@ -10,7 +10,7 @@ using System.Text;
 /// <summary>
 /// Nodes that change value every second to string containing single repeated uppercase letter.
 /// </summary>
-public class LongStringPluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class LongStringPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<string> _longStringIdNode10;

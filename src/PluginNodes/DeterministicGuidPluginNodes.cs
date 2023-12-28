@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Nodes with deterministic GUIDs as ID.
 /// </summary>
-public class DeterministicGuidPluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class DeterministicGuidPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private readonly DeterministicGuid _deterministicGuid = new ();
     private PlcNodeManager _plcNodeManager;

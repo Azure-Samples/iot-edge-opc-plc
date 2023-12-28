@@ -15,7 +15,7 @@ using System.Timers;
 /// <summary>
 /// Boiler that inherits from DI companion spec.
 /// </summary>
-public class Boiler2PluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState _tempSpeedDegreesPerSecNode;

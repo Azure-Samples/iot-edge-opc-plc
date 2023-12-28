@@ -9,7 +9,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Nodes with values: Cycling step-up, alternating boolean, random signed 32-bit integer and random unsigend 32-bit integer.
 /// </summary>
-public class DataPluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
@@ -51,14 +51,14 @@ public class DataPluginNodes(PlcSimulation plcSimulation, TimeService timeServic
     {
         if (_isEnabled)
         {
-            _stepUpCycleInPhase = _plcSimulation.SimulationCycleCount;
+            _stepUpCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _stepUpStarted = true;
-            _alternatingBooleanCycleInPhase = _plcSimulation.SimulationCycleCount;
+            _alternatingBooleanCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
 
-            _stepUpNode.Start(StepUpGenerator, _plcSimulation.SimulationCycleLength);
-            _alternatingBooleanNode.Start(AlternatingBooleanGenerator, _plcSimulation.SimulationCycleLength);
-            _randomSignedInt32.Start(value => _random.Next(int.MinValue, int.MaxValue), _plcSimulation.SimulationCycleLength);
-            _randomUnsignedInt32.Start(value => (uint)_random.Next(), _plcSimulation.SimulationCycleLength);
+            _stepUpNode.Start(StepUpGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
+            _alternatingBooleanNode.Start(AlternatingBooleanGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
+            _randomSignedInt32.Start(value => _random.Next(int.MinValue, int.MaxValue), _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
+            _randomUnsignedInt32.Start(value => (uint)_random.Next(), _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
     }
 
@@ -208,7 +208,7 @@ public class DataPluginNodes(PlcSimulation plcSimulation, TimeService timeServic
     private uint StepUpGenerator(uint value)
     {
         // increase step-up value
-        if (_stepUpStarted && (_stepUpCycleInPhase % (_plcSimulation.SimulationCycleCount / 50) == 0))
+        if (_stepUpStarted && (_stepUpCycleInPhase % (_plcNodeManager.PlcSimulationInstance.SimulationCycleCount / 50) == 0))
         {
             value++;
         }
@@ -216,7 +216,7 @@ public class DataPluginNodes(PlcSimulation plcSimulation, TimeService timeServic
         // end of cycle: reset cycle count
         if (--_stepUpCycleInPhase == 0)
         {
-            _stepUpCycleInPhase = _plcSimulation.SimulationCycleCount;
+            _stepUpCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
         }
 
         return value;
@@ -229,7 +229,7 @@ public class DataPluginNodes(PlcSimulation plcSimulation, TimeService timeServic
     private bool AlternatingBooleanGenerator(bool value)
     {
         // calculate next boolean value
-        bool nextAlternatingBoolean = _alternatingBooleanCycleInPhase % _plcSimulation.SimulationCycleCount == 0 ? !value : value;
+        bool nextAlternatingBoolean = _alternatingBooleanCycleInPhase % _plcNodeManager.PlcSimulationInstance.SimulationCycleCount == 0 ? !value : value;
         if (value != nextAlternatingBoolean)
         {
             _logger.LogTrace($"Data change to: {nextAlternatingBoolean}");
@@ -238,7 +238,7 @@ public class DataPluginNodes(PlcSimulation plcSimulation, TimeService timeServic
         // end of cycle: reset cycle count
         if (--_alternatingBooleanCycleInPhase == 0)
         {
-            _alternatingBooleanCycleInPhase = _plcSimulation.SimulationCycleCount;
+            _alternatingBooleanCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
         }
 
         return nextAlternatingBoolean;

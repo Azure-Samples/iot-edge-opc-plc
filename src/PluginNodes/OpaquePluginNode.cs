@@ -9,7 +9,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Node with an opaque identifier (free-format byte string that might or might not be human interpretable).
 /// </summary>
-public class OpaquePluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class OpaquePluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;

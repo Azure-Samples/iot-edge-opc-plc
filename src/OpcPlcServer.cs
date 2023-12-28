@@ -162,7 +162,7 @@ public class OpcPlcServer
             .Where(t => pluginNodesType.IsAssignableFrom(t) &&
                         !t.IsInterface &&
                         !t.IsAbstract)
-            .Select(t => Activator.CreateInstance(t, PlcSimulationInstance, TimeService, Logger))
+            .Select(t => Activator.CreateInstance(t, TimeService, Logger))
             .Cast<IPluginNodes>()
             .ToImmutableList();
     }

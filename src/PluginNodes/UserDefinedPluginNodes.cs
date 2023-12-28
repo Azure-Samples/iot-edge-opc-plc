@@ -13,7 +13,7 @@ using System.Linq;
 /// <summary>
 /// Nodes that are configured via JSON file.
 /// </summary>
-public class UserDefinedPluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private string _nodesFileName;
     private PlcNodeManager _plcNodeManager;

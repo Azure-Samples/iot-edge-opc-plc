@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Node with a value that shows a positive trend.
 /// </summary>
-public class PosTrendPluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class PosTrendPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
@@ -51,10 +51,10 @@ public class PosTrendPluginNode(PlcSimulation plcSimulation, TimeService timeSer
         if (_isEnabled)
         {
             _posTrendAnomalyPhase = _random.Next(10);
-            _posTrendCycleInPhase = _plcSimulation.SimulationCycleCount;
+            _posTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _logger.LogTrace($"First pos trend anomaly phase: {_posTrendAnomalyPhase}");
 
-            _node.Start(PosTrendGenerator, _plcSimulation.SimulationCycleLength);
+            _node.Start(PosTrendGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
     }
 
@@ -116,7 +116,7 @@ public class PosTrendPluginNode(PlcSimulation plcSimulation, TimeService timeSer
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_posTrendCycleInPhase == 0)
         {
-            _posTrendCycleInPhase = _plcSimulation.SimulationCycleCount;
+            _posTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _posTrendPhase++;
             _logger.LogTrace($"Pos trend phase: {_posTrendPhase}, data: {nextValue}");
         }
@@ -145,7 +145,7 @@ public class PosTrendPluginNode(PlcSimulation plcSimulation, TimeService timeSer
     public void ResetTrendData()
     {
         _posTrendAnomalyPhase = _random.Next(10);
-        _posTrendCycleInPhase = _plcSimulation.SimulationCycleCount;
+        _posTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
         _posTrendPhase = 0;
     }
 }

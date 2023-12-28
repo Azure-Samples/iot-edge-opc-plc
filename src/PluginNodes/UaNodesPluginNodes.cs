@@ -14,7 +14,7 @@ using System.Linq;
 /// To produce a binary *.PredefinedNodes.uanodes file from an XML NodeSet file, run the following command:
 /// ModelCompiler.cmd <XML_NodeSet_FileName_Without_Extension>
 /// </summary>
-public class UaNodesPluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class UaNodesPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
 
     private List<string> _nodesFileNames;

@@ -10,7 +10,7 @@ using System.Web;
 /// <summary>
 /// Node with special chars in name and ID.
 /// </summary>
-public class SpecialCharNamePluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class SpecialCharNamePluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;

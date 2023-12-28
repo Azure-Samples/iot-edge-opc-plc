@@ -10,7 +10,7 @@ using System.Text;
 /// <summary>
 /// Node with ID of 3950 chars.
 /// </summary>
-public class LongIdPluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class LongIdPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;

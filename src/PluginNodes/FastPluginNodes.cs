@@ -11,7 +11,7 @@ using System.Timers;
 /// <summary>
 /// Nodes with fast changing values.
 /// </summary>
-public class FastPluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class FastPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private uint NodeCount { get; set; } = 1;
     private uint NodeRate { get; set; } = 1000; // ms.

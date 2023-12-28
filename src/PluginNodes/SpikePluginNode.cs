@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Node with a sine wave value with a spike anomaly.
 /// </summary>
-public class SpikePluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class SpikePluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
@@ -48,11 +48,11 @@ public class SpikePluginNode(PlcSimulation plcSimulation, TimeService timeServic
     {
         if (_isEnabled)
         {
-            _spikeCycleInPhase = _plcSimulation.SimulationCycleCount;
-            _spikeAnomalyCycle = _random.Next(_plcSimulation.SimulationCycleCount);
+            _spikeCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
+            _spikeAnomalyCycle = _random.Next(_plcNodeManager.PlcSimulationInstance.SimulationCycleCount);
             _logger.LogTrace($"First spike anomaly cycle: {_spikeAnomalyCycle}");
 
-            _node.Start(SpikeGenerator, _plcSimulation.SimulationCycleLength);
+            _node.Start(SpikeGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
     }
 
@@ -101,15 +101,15 @@ public class SpikePluginNode(PlcSimulation plcSimulation, TimeService timeServic
         }
         else
         {
-            nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / _plcSimulation.SimulationCycleCount) * _spikeCycleInPhase);
+            nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / _plcNodeManager.PlcSimulationInstance.SimulationCycleCount) * _spikeCycleInPhase);
         }
         _logger.LogTrace($"Spike cycle: {_spikeCycleInPhase} data: {nextValue}");
 
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_spikeCycleInPhase == 0)
         {
-            _spikeCycleInPhase = _plcSimulation.SimulationCycleCount;
-            _spikeAnomalyCycle = _random.Next(_plcSimulation.SimulationCycleCount);
+            _spikeCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
+            _spikeAnomalyCycle = _random.Next(_plcNodeManager.PlcSimulationInstance.SimulationCycleCount);
             _logger.LogTrace($"Next spike anomaly cycle: {_spikeAnomalyCycle}");
         }
 

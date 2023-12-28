@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Node with a value that shows a negative trend.
 /// </summary>
-public class NegTrendPluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class NegTrendPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
@@ -51,10 +51,10 @@ public class NegTrendPluginNode(PlcSimulation plcSimulation, TimeService timeSer
         if (_isEnabled)
         {
             _negTrendAnomalyPhase = _random.Next(10);
-            _negTrendCycleInPhase = _plcSimulation.SimulationCycleCount;
+            _negTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _logger.LogTrace($"First neg trend anomaly phase: {_negTrendAnomalyPhase}");
 
-            _node.Start(NegTrendGenerator, _plcSimulation.SimulationCycleLength);
+            _node.Start(NegTrendGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
     }
 
@@ -116,7 +116,7 @@ public class NegTrendPluginNode(PlcSimulation plcSimulation, TimeService timeSer
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_negTrendCycleInPhase == 0)
         {
-            _negTrendCycleInPhase = _plcSimulation.SimulationCycleCount;
+            _negTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _negTrendPhase++;
             _logger.LogTrace($"Neg trend phase: {_negTrendPhase}, data: {nextValue}");
         }
@@ -145,7 +145,7 @@ public class NegTrendPluginNode(PlcSimulation plcSimulation, TimeService timeSer
     public void ResetTrendData()
     {
         _negTrendAnomalyPhase = _random.Next(10);
-        _negTrendCycleInPhase = _plcSimulation.SimulationCycleCount;
+        _negTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
         _negTrendPhase = 0;
     }
 }

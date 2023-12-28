@@ -13,7 +13,7 @@ using System.Timers;
 /// <summary>
 /// Complex type boiler node.
 /// </summary>
-public class ComplexTypeBoilerPluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private PlcNodeManager _plcNodeManager;
     private Boiler1State _node;

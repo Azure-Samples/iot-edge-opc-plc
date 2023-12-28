@@ -10,7 +10,7 @@ using System.Timers;
 /// <summary>
 /// Nodes with slow changing values.
 /// </summary>
-public class SlowPluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
+public class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private uint NodeCount { get; set; } = 1;
     private uint NodeRate { get; set; } = 10000; // ms.
