@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
+using OpcPlc.Configuration;
 using OpcPlc.Extensions;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
@@ -24,7 +25,7 @@ public class OpcPlcServer
     private string[] _args;
     private CancellationTokenSource _cancellationTokenSource;
 
-    public Configuration Config { get; set; }
+    public OpcPlcConfiguration Config { get; set; }
 
     /// <summary>
     /// The LoggerFactory used to create logging objects.
@@ -68,10 +69,11 @@ public class OpcPlcServer
     {
         // Initialize configuration.
         _args = args;
-        LoadPluginNodes();
-        (Config, PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, PluginNodes);
+        Config = new OpcPlcConfiguration();
 
         InitLogging();
+        LoadPluginNodes();
+        (PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, Config, PluginNodes);
 
         // Show usage if requested
         if (Config.ShowHelp)
@@ -80,7 +82,7 @@ public class OpcPlcServer
             return;
         }
 
-        // Validate and parse extra arguments
+        // Validate and parse extra arguments.
         if (extraArgs.Count > 0)
         {
             Logger.LogWarning($"Found one or more invalid command line arguments: {string.Join(" ", extraArgs)}");
@@ -134,8 +136,8 @@ public class OpcPlcServer
         Logger.LogInformation("Restarting PLC server and simulation ...");
         LogLogo();
 
-        (Config, PlcSimulationInstance, _) = CliOptions.InitConfiguration(_args, PluginNodes);
         InitLogging();
+        (PlcSimulationInstance, _) = CliOptions.InitConfiguration(_args, Config, PluginNodes);
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
     }
 
@@ -160,7 +162,7 @@ public class OpcPlcServer
             .Where(t => pluginNodesType.IsAssignableFrom(t) &&
                         !t.IsInterface &&
                         !t.IsAbstract)
-            .Select(t => Activator.CreateInstance(t))
+            .Select(t => Activator.CreateInstance(t, PlcSimulationInstance, TimeService, Logger))
             .Cast<IPluginNodes>()
             .ToImmutableList();
     }
@@ -262,7 +264,8 @@ public class OpcPlcServer
     private async Task StartPlcServerAndSimulationAsync()
     {
         // init OPC configuration and tracing
-        ApplicationConfiguration plcApplicationConfiguration = await Config.OpcUa.ConfigureAsync().ConfigureAwait(false);
+        var opcUaAppConfigFactory = new OpcUaAppConfigFactory(Config, Logger, LoggerFactory);
+        ApplicationConfiguration plcApplicationConfiguration = await opcUaAppConfigFactory.ConfigureAsync().ConfigureAwait(false);
 
         // start the server.
         Logger.LogInformation("Starting server on endpoint {endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);

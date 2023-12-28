@@ -6,6 +6,7 @@ using Opc.Ua;
 using Opc.Ua.Bindings;
 using Opc.Ua.Server;
 using OpcPlc.CompanionSpecs.DI;
+using OpcPlc.Configuration;
 using OpcPlc.DeterministicAlarms;
 using OpcPlc.PluginNodes.Models;
 using OpcPlc.Reference;
@@ -30,15 +31,15 @@ public partial class PlcServer : StandardServer
 
     public DeterministicAlarmsNodeManager DeterministicAlarmsNodeManager { get; set; }
 
-    public readonly Configuration _config;
+    public readonly OpcPlcConfiguration _config;
     public readonly PlcSimulation _plcSimulation;
     public readonly TimeService _timeService;
     private readonly ImmutableList<IPluginNodes> _pluginNodes;
     private readonly ILogger _logger;
 
-    public PlcServer(Configuration configuration, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
+    public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
-        _config = configuration;
+        _config = config;
         _plcSimulation = plcSimulation;
         _timeService = timeService;
         _pluginNodes = pluginNodes;

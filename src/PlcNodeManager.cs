@@ -3,6 +3,7 @@ namespace OpcPlc;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
+using OpcPlc.Configuration;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
@@ -10,14 +11,14 @@ using System.Collections.Immutable;
 
 public class PlcNodeManager : CustomNodeManager2
 {
-    private readonly Configuration _config;
+    private readonly OpcPlcConfiguration _config;
     private readonly ImmutableList<IPluginNodes> _pluginNodes;
     private readonly ILogger _logger;
 
-    public PlcNodeManager(IServerInternal server, Configuration configuration, ApplicationConfiguration appConfig, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
+    public PlcNodeManager(IServerInternal server, OpcPlcConfiguration config, ApplicationConfiguration appConfig, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
         : base(server, appConfig, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
     {
-        _config = configuration;
+        _config = config;
         _timeService = timeService;
         _pluginNodes = pluginNodes;
         _logger = logger;
