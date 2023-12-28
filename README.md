@@ -249,7 +249,6 @@ More information about this feature can be found [here](deterministic-alarms.md)
 - Sample NuGet config to consume a local package (needs to be next to the solution file): `./samples/nuget.config`
 - Sample project file that shows how to import the local OPC PLC nuget package: `./samples/OpcUaUnitTests.prj`
 - Note: The NuGet package is not published to NuGet.org
-- Limitation: The NuGet package has some static dependencies that are required for its functionality, such as Boilers, CompanionSpecs, SimpleEvent and nodesfile.json. These dependencies are automatically copied to the output folder of any project (A) that uses the NuGet package. However, this does not happen for any project (B) that depends on project (A), and the NuGet package will not work properly in project (B). To work around this limitation, you need to add the NuGet package as a direct reference to project (B) as well.
 
 ## Build
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR you need to:
