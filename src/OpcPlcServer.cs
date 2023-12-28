@@ -332,7 +332,7 @@ public class OpcPlcServer
         }
         else
         {
-            Config.LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-{Config.OpcUa.ServerPort}-plc.log";
+            Config.LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-{GetPort()}-plc.log";
         }
 
         if (!string.IsNullOrEmpty(Config.LogFileName))
@@ -359,6 +359,26 @@ public class OpcPlcServer
             }).Build();
 
         return host;
+    }
+
+    private string GetPort()
+    {
+        string port = Config.OpcUa.ServerPort.ToString();
+
+        foreach (var arg in _args)
+        {
+            if (arg.StartsWith("--pn="))
+            {
+                return arg.Substring("--pn=".Length).Trim();
+            }
+
+            if (arg.StartsWith("--portnum="))
+            {
+                return arg.Substring("--portnum=".Length).Trim();
+            }
+        }
+
+        return port;
     }
 
     private void LogLogo()
