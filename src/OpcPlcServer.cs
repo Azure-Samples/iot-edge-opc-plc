@@ -256,6 +256,7 @@ public class OpcPlcServer
 
         PlcSimulationInstance.Stop();
         PlcServer.Stop();
+        _cancellationTokenSource.Dispose();
     }
 
     private async Task StartPlcServerAndSimulationAsync()
