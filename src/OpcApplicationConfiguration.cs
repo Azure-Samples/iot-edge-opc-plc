@@ -6,7 +6,6 @@ using Opc.Ua.Configuration;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using static Program;
 
 /// <summary>
 /// Class for OPC Application configuration.
@@ -25,14 +24,14 @@ public partial class OpcApplicationConfiguration
     }
 
     public string HostnameLabel => _hostname.Contains('.')
-                                            ? _hostname[.._hostname.IndexOf('.')]
-                                            : _hostname;
+                                        ? _hostname[.._hostname.IndexOf('.')]
+                                        : _hostname;
 
-    public string ApplicationName => Config.ProgramName;
+    public string ApplicationName => _config.ProgramName;
 
-    public string ApplicationUri => $"urn:{Config.ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath)
+    public string ApplicationUri => $"urn:{_config.ProgramName}:{HostnameLabel}{(string.IsNullOrEmpty(ServerPath)
         ? string.Empty
-        : (ServerPath.StartsWith('/') ? string.Empty : ":"))}{ServerPath.Replace('/', ':')}";
+        : (_config.OpcUa.ServerPath.StartsWith('/') ? string.Empty : ":"))}{ServerPath.Replace('/', ':')}";
 
     public string ProductUri => "https://github.com/azure-samples/iot-edge-opc-plc";
 
@@ -113,11 +112,11 @@ public partial class OpcApplicationConfiguration
             }
             catch (Exception ex)
             {
-                Logger.LogWarning(ex, "Could not get hostname.");
+                _logger.LogWarning(ex, "Could not get hostname.");
             }
         }
 
-        Logger.LogInformation("Alternate base addresses (for server binding and certificate DNSNames and IPAddresses extensions): {alternateBaseAddresses}", alternateBaseAddresses);
+        _logger.LogInformation("Alternate base addresses (for server binding and certificate DNSNames and IPAddresses extensions): {alternateBaseAddresses}", alternateBaseAddresses);
 
         // configure OPC UA server
         var serverBuilder = application.Build(ApplicationUri, ProductUri)
@@ -162,20 +161,20 @@ public partial class OpcApplicationConfiguration
 
         foreach (var policy in ApplicationConfiguration.ServerConfiguration.SecurityPolicies)
         {
-            Logger.LogInformation("Added security policy {securityPolicyUri} with mode {securityMode}",
+            _logger.LogInformation("Added security policy {securityPolicyUri} with mode {securityMode}",
                 policy.SecurityPolicyUri,
                 policy.SecurityMode);
 
             if (policy.SecurityMode == MessageSecurityMode.None)
             {
-                Logger.LogWarning("Security policy {none} is a security risk and needs to be disabled for production use", "None");
+                _logger.LogWarning("Security policy {none} is a security risk and needs to be disabled for production use", "None");
             }
         }
 
-        Logger.LogInformation("LDS(-ME) registration interval set to {ldsRegistrationInterval} ms (0 means no registration)",
+        _logger.LogInformation("LDS(-ME) registration interval set to {ldsRegistrationInterval} ms (0 means no registration)",
             LdsRegistrationInterval);
 
-        var microsoftLogger = Program.LoggerFactory.CreateLogger("OpcUa");
+        var microsoftLogger = _loggerFactory.CreateLogger("OpcUa");
 
         // set logger interface, disables TraceEvent
         Utils.SetLogger(microsoftLogger);
@@ -184,7 +183,7 @@ public partial class OpcApplicationConfiguration
         var certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
         if (certificate == null)
         {
-            Logger.LogInformation("No existing application certificate found. Creating a self-signed application certificate valid since yesterday for {defaultLifeTime} months, " +
+            _logger.LogInformation("No existing application certificate found. Creating a self-signed application certificate valid since yesterday for {defaultLifeTime} months, " +
                 "with a {defaultKeySize} bit key and {defaultHashSize} bit hash",
                 CertificateFactory.DefaultLifeTime,
                 CertificateFactory.DefaultKeySize,
@@ -192,7 +191,7 @@ public partial class OpcApplicationConfiguration
         }
         else
         {
-            Logger.LogInformation("Application certificate with thumbprint {thumbprint} found in the application certificate store",
+            _logger.LogInformation("Application certificate with thumbprint {thumbprint} found in the application certificate store",
                 certificate.Thumbprint);
         }
 
@@ -206,11 +205,11 @@ public partial class OpcApplicationConfiguration
         if (certificate == null)
         {
             certificate = ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
-            Logger.LogInformation("Application certificate with thumbprint {thumbprint} created",
+            _logger.LogInformation("Application certificate with thumbprint {thumbprint} created",
                 certificate.Thumbprint);
         }
 
-        Logger.LogInformation("Application certificate is for ApplicationUri {applicationUri}, ApplicationName {applicationName} and Subject is {subject}",
+        _logger.LogInformation("Application certificate is for ApplicationUri {applicationUri}, ApplicationName {applicationName} and Subject is {subject}",
             ApplicationConfiguration.ApplicationUri,
             ApplicationConfiguration.ApplicationName,
             ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate.Subject);
@@ -223,7 +222,7 @@ public partial class OpcApplicationConfiguration
 
         // show certificate store information
         await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
-        Logger.LogInformation("Application configured with MaxSessionCount {maxSessionCount} and MaxSubscriptionCount {maxSubscriptionCount}",
+        _logger.LogInformation("Application configured with MaxSessionCount {maxSessionCount} and MaxSubscriptionCount {maxSubscriptionCount}",
             ApplicationConfiguration.ServerConfiguration.MaxSessionCount,
             ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount);
 
@@ -232,17 +231,17 @@ public partial class OpcApplicationConfiguration
 
     private void ConfigureUserTokenPolicies(IApplicationConfigurationBuilderServerSelected serverBuilder)
     {
-        if (!Config.DisableAnonymousAuth)
+        if (!_config.DisableAnonymousAuth)
         {
             serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.Anonymous));
         }
 
-        if (!Config.DisableUsernamePasswordAuth)
+        if (!_config.DisableUsernamePasswordAuth)
         {
             serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.UserName));
         }
 
-        if (!Config.DisableCertAuth)
+        if (!_config.DisableCertAuth)
         {
             serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.Certificate));
         }

@@ -1,5 +1,6 @@
 namespace OpcPlc;
 
+using Microsoft.Extensions.Logging;
 using Mono.Options;
 using Opc.Ua;
 using OpcPlc.Certs;
@@ -18,10 +19,10 @@ public static class CliOptions
 {
     private static Mono.Options.OptionSet _options;
 
-    public static (Configuration Config, PlcSimulation PlcSimulationInstance, List<string> ExtraArgs) InitConfiguration(string[] args, ImmutableList<IPluginNodes> pluginNodes)
+    public static (Configuration Config, PlcSimulation PlcSimulationInstance, List<string> ExtraArgs) InitConfiguration(string[] args, ImmutableList<IPluginNodes> pluginNodes, ILogger logger, ILoggerFactory loggerFactory)
     {
         var config = new Configuration();
-        config.OpcUa = new OpcApplicationConfiguration();
+        config.OpcUa = new OpcApplicationConfiguration(config, logger, loggerFactory);
         var plcSimulation = new PlcSimulation();
 
         _options = new Mono.Options.OptionSet {

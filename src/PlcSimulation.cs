@@ -42,8 +42,8 @@ public class PlcSimulation
         if (EventInstanceCount > 0)
         {
             _eventInstanceGenerator = EventInstanceRate >= 50 || !Stopwatch.IsHighResolution
-                ? _plcServer.TimeService.NewTimer(UpdateEventInstances, intervalInMilliseconds: EventInstanceRate)
-                : _plcServer.TimeService.NewFastTimer(UpdateVeryFastEventInstances, intervalInMilliseconds: EventInstanceRate);
+                ? _plcServer._timeService.NewTimer(UpdateEventInstances, intervalInMilliseconds: EventInstanceRate)
+                : _plcServer._timeService.NewFastTimer(UpdateVeryFastEventInstances, intervalInMilliseconds: EventInstanceRate);
         }
 
         // Start simulation of nodes from plugin nodes list.

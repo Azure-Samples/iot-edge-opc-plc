@@ -3,16 +3,24 @@ namespace OpcPlc;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
+using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
-using static OpcPlc.Program;
+using System.Collections.Immutable;
 
 public class PlcNodeManager : CustomNodeManager2
 {
-    public PlcNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService)
-        : base(server, configuration, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
+    private readonly Configuration _config;
+    private readonly ImmutableList<IPluginNodes> _pluginNodes;
+    private readonly ILogger _logger;
+
+    public PlcNodeManager(IServerInternal server, Configuration configuration, ApplicationConfiguration appConfig, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
+        : base(server, appConfig, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
     {
+        _config = configuration;
         _timeService = timeService;
+        _pluginNodes = pluginNodes;
+        _logger = logger;
         SystemContext.NodeIdFactory = this;
     }
 
@@ -49,7 +57,7 @@ public class PlcNodeManager : CustomNodeManager2
 
             _externalReferences = externalReferences;
 
-            FolderState root = CreateFolder(parent: null, Config.ProgramName, Config.ProgramName, NamespaceType.OpcPlcApplications);
+            FolderState root = CreateFolder(parent: null, _config.ProgramName, _config.ProgramName, NamespaceType.OpcPlcApplications);
             root.AddReference(ReferenceTypes.Organizes, isInverse: true, ObjectIds.ObjectsFolder);
             references.Add(new NodeStateReference(ReferenceTypes.Organizes, isInverse: false, root.NodeId));
             root.EventNotifier = EventNotifiers.SubscribeToEvents;
@@ -61,14 +69,14 @@ public class PlcNodeManager : CustomNodeManager2
                 FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
 
                 // Add nodes to address space from plugin nodes list.
-                foreach (var plugin in Program.PluginNodes)
+                foreach (var plugin in _pluginNodes)
                 {
                     plugin.AddToAddressSpace(telemetryFolder, methodsFolder, plcNodeManager: this);
                 }
             }
             catch (Exception e)
             {
-                Logger.LogError(e, "Error creating address space");
+                _logger.LogError(e, "Error creating address space");
             }
 
             AddPredefinedNode(SystemContext, root);
@@ -183,7 +191,7 @@ public class PlcNodeManager : CustomNodeManager2
         }
         else
         {
-            Logger.LogDebug("NodeId type is {nodeIdType}", (string)path.GetType().ToString());
+            _logger.LogDebug("NodeId type is {nodeIdType}", (string)path.GetType().ToString());
             baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
         }

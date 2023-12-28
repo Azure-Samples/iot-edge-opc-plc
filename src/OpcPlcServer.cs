@@ -69,7 +69,7 @@ public class OpcPlcServer
         // Initialize configuration.
         _args = args;
         LoadPluginNodes();
-        (Config, PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, PluginNodes);
+        (Config, PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, PluginNodes, Logger, LoggerFactory);
 
         InitLogging();
 
@@ -134,7 +134,7 @@ public class OpcPlcServer
         Logger.LogInformation("Restarting PLC server and simulation ...");
         LogLogo();
 
-        (Config, PlcSimulationInstance, _) = CliOptions.InitConfiguration(_args, PluginNodes);
+        (Config, PlcSimulationInstance, _) = CliOptions.InitConfiguration(_args, PluginNodes, Logger, LoggerFactory);
         InitLogging();
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
     }
@@ -283,7 +283,7 @@ public class OpcPlcServer
         Logger.LogInformation("Certificate authentication: {certAuth}", Config.DisableCertAuth ? "Disabled" : "Enabled");
 
         // Add simple events, alarms, reference test simulation and deterministic alarms.
-        PlcServer = new PlcServer(TimeService, Logger);
+        PlcServer = new PlcServer(Config, PlcSimulationInstance, TimeService, PluginNodes, Logger);
         PlcServer.Start(plcApplicationConfiguration);
         Logger.LogInformation("OPC UA Server started");
 
