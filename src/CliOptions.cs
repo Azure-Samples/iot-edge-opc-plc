@@ -23,7 +23,7 @@ public static class CliOptions
     {
         var config = new Configuration();
         config.OpcUa = new OpcApplicationConfiguration(config, logger, loggerFactory);
-        var plcSimulation = new PlcSimulation();
+        var plcSimulation = new PlcSimulation(pluginNodes);
 
         _options = new Mono.Options.OptionSet {
             // log configuration
