@@ -1,5 +1,6 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -9,10 +10,8 @@ using System.Web;
 /// <summary>
 /// Node with special chars in name and ID.
 /// </summary>
-public class SpecialCharNamePluginNode : IPluginNodes
+public class SpecialCharNamePluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;
 

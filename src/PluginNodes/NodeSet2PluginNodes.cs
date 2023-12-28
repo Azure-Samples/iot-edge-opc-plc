@@ -8,15 +8,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Nodes that are configured via *.NodeSet2.xml file(s).
 /// </summary>
-public class NodeSet2PluginNodes : IPluginNodes
+public class NodeSet2PluginNodes(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private List<string> _nodesFileNames;
     private PlcNodeManager _plcNodeManager;
     private Stream _nodes2File;
@@ -35,7 +32,7 @@ public class NodeSet2PluginNodes : IPluginNodes
 
         if (_nodesFileNames?.Any() ?? false)
         {
-            AddNodes((FolderState)telemetryFolder.Parent); // Root.
+            AddNodes();
         }
     }
 
@@ -47,7 +44,7 @@ public class NodeSet2PluginNodes : IPluginNodes
     {
     }
 
-    private void AddNodes(FolderState folder)
+    private void AddNodes()
     {
         foreach (var file in _nodesFileNames)
         {
@@ -60,11 +57,11 @@ public class NodeSet2PluginNodes : IPluginNodes
             }
             catch (Exception e)
             {
-                Logger.LogError(e, "Error loading NodeSet2 file {file}: {error}", file, e.Message);
+                _logger.LogError(e, "Error loading NodeSet2 file {file}: {error}", file, e.Message);
             }
         }
 
-        Logger.LogInformation("Completed processing NodeSet2 file(s)");
+        _logger.LogInformation("Completed processing NodeSet2 file(s)");
     }
 
     /// <summary>

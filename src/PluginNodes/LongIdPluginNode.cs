@@ -1,5 +1,6 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -9,10 +10,8 @@ using System.Text;
 /// <summary>
 /// Node with ID of 3950 chars.
 /// </summary>
-public class LongIdPluginNode : IPluginNodes
+public class LongIdPluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;
 

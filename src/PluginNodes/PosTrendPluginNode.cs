@@ -6,15 +6,12 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Node with a value that shows a positive trend.
 /// </summary>
-public class PosTrendPluginNode : IPluginNodes
+public class PosTrendPluginNode(PlcSimulation plcSimulation, TimeService timeService, ILogger logger) : PluginNodeBase(plcSimulation, timeService, logger)
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<double> _node;
@@ -54,10 +51,10 @@ public class PosTrendPluginNode : IPluginNodes
         if (_isEnabled)
         {
             _posTrendAnomalyPhase = _random.Next(10);
-            _posTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
-            Logger.LogTrace($"First pos trend anomaly phase: {_posTrendAnomalyPhase}");
+            _posTrendCycleInPhase = _plcSimulation.SimulationCycleCount;
+            _logger.LogTrace($"First pos trend anomaly phase: {_posTrendAnomalyPhase}");
 
-            _node.Start(PosTrendGenerator, PlcSimulationInstance.SimulationCycleLength);
+            _node.Start(PosTrendGenerator, _plcSimulation.SimulationCycleLength);
         }
     }
 
@@ -113,15 +110,15 @@ public class PosTrendPluginNode : IPluginNodes
         if (_isEnabled && _posTrendPhase >= _posTrendAnomalyPhase)
         {
             nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10d);
-            Logger.LogTrace("Generate postrend anomaly");
+            _logger.LogTrace("Generate postrend anomaly");
         }
 
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_posTrendCycleInPhase == 0)
         {
-            _posTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
+            _posTrendCycleInPhase = _plcSimulation.SimulationCycleCount;
             _posTrendPhase++;
-            Logger.LogTrace($"Pos trend phase: {_posTrendPhase}, data: {nextValue}");
+            _logger.LogTrace($"Pos trend phase: {_posTrendPhase}, data: {nextValue}");
         }
 
         return nextValue;
@@ -138,7 +135,7 @@ public class PosTrendPluginNode : IPluginNodes
     private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         ResetTrendData();
-        Logger.LogDebug("ResetPosTrend method called");
+        _logger.LogDebug("ResetPosTrend method called");
         return ServiceResult.Good;
     }
 
@@ -148,7 +145,7 @@ public class PosTrendPluginNode : IPluginNodes
     public void ResetTrendData()
     {
         _posTrendAnomalyPhase = _random.Next(10);
-        _posTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
+        _posTrendCycleInPhase = _plcSimulation.SimulationCycleCount;
         _posTrendPhase = 0;
     }
 }
