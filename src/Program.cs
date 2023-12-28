@@ -237,6 +237,7 @@ public static class Program
             await PnJsonHelper.PrintPublisherConfigJsonAsync(
                 Config.PnJson,
                 $"{GetIpAddress()}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
+                !OpcUaConfig.EnableUnsecureTransport,
                 PluginNodes,
                 Logger).ConfigureAwait(false);
         }
@@ -245,6 +246,7 @@ public static class Program
             await PnJsonHelper.PrintPublisherConfigJsonAsync(
                 Config.PnJson,
                 $"{OpcUaConfig.Hostname}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
+                !OpcUaConfig.EnableUnsecureTransport,
                 PluginNodes,
                 Logger).ConfigureAwait(false);
         }
