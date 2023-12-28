@@ -65,4 +65,6 @@ public class Configuration
     public string LogLevelCli { get; set; } = "info";
 
     public TimeSpan LogFileFlushTimeSpanSec { get; set; } = TimeSpan.FromSeconds(30);
+
+    public OpcApplicationConfiguration OpcUa { get; set; }
 }

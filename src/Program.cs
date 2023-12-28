@@ -26,8 +26,6 @@ public static class Program
 
     public static Configuration Config { get; set; }
 
-    public static OpcApplicationConfiguration OpcUaConfig { get; set; }
-
     /// <summary>
     /// The LoggerFactory used to create logging objects.
     /// </summary>
@@ -80,7 +78,7 @@ public static class Program
         // Initialize configuration.
         _args = args;
         LoadPluginNodes();
-        (Config, OpcUaConfig, PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, PluginNodes);
+        (Config, PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, PluginNodes);
 
         InitLogging();
 
@@ -145,7 +143,7 @@ public static class Program
         Logger.LogInformation("Restarting PLC server and simulation ...");
         LogLogo();
 
-        (Config, OpcUaConfig, PlcSimulationInstance, _) = CliOptions.InitConfiguration(_args, PluginNodes);
+        (Config, PlcSimulationInstance, _) = CliOptions.InitConfiguration(_args, PluginNodes);
         InitLogging();
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
     }
@@ -189,7 +187,7 @@ public static class Program
             }
             else if (Config.ShowPublisherConfigJsonPh)
             {
-                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{OpcUaConfig.Hostname}:{Config.WebServerPort}/{Config.PnJson}");
+                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{Config.OpcUa.Hostname}:{Config.WebServerPort}/{Config.PnJson}");
             }
             else
             {
@@ -236,8 +234,8 @@ public static class Program
         {
             await PnJsonHelper.PrintPublisherConfigJsonAsync(
                 Config.PnJson,
-                $"{GetIpAddress()}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
-                !OpcUaConfig.EnableUnsecureTransport,
+                $"{GetIpAddress()}:{Config.OpcUa.ServerPort}{Config.OpcUa.ServerPath}",
+                !Config.OpcUa.EnableUnsecureTransport,
                 PluginNodes,
                 Logger).ConfigureAwait(false);
         }
@@ -245,8 +243,8 @@ public static class Program
         {
             await PnJsonHelper.PrintPublisherConfigJsonAsync(
                 Config.PnJson,
-                $"{OpcUaConfig.Hostname}:{OpcUaConfig.ServerPort}{OpcUaConfig.ServerPath}",
-                !OpcUaConfig.EnableUnsecureTransport,
+                $"{Config.OpcUa.Hostname}:{Config.OpcUa.ServerPort}{Config.OpcUa.ServerPath}",
+                !Config.OpcUa.EnableUnsecureTransport,
                 PluginNodes,
                 Logger).ConfigureAwait(false);
         }
@@ -270,7 +268,7 @@ public static class Program
     private static async Task StartPlcServerAndSimulationAsync()
     {
         // init OPC configuration and tracing
-        ApplicationConfiguration plcApplicationConfiguration = await OpcUaConfig.ConfigureAsync().ConfigureAwait(false);
+        ApplicationConfiguration plcApplicationConfiguration = await Config.OpcUa.ConfigureAsync().ConfigureAwait(false);
 
         // start the server.
         Logger.LogInformation("Starting server on endpoint {endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
@@ -286,7 +284,7 @@ public static class Program
             PlcSimulationInstance.DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
 
         Logger.LogInformation("Anonymous authentication: {anonymousAuth}", Config.DisableAnonymousAuth ? "Disabled" : "Enabled");
-        Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", OpcUaConfig.DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
+        Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", Config.OpcUa.DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
         Logger.LogInformation("Username/Password authentication: {usernamePasswordAuth}", Config.DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
         Logger.LogInformation("Certificate authentication: {certAuth}", Config.DisableCertAuth ? "Disabled" : "Enabled");
 
@@ -339,7 +337,7 @@ public static class Program
         }
         else
         {
-            Config.LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-{OpcUaConfig.ServerPort}-plc.log";
+            Config.LogFileName = $"{Dns.GetHostName().Split('.')[0].ToLowerInvariant()}-{Config.OpcUa.ServerPort}-plc.log";
         }
 
         if (!string.IsNullOrEmpty(Config.LogFileName))
