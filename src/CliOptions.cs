@@ -5,6 +5,7 @@ using Mono.Options;
 using Opc.Ua;
 using OpcPlc.Certs;
 using OpcPlc.Helpers;
+using OpcPlc.Logging;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
@@ -19,10 +20,11 @@ public static class CliOptions
 {
     private static Mono.Options.OptionSet _options;
 
-    public static (Configuration Config, PlcSimulation PlcSimulationInstance, List<string> ExtraArgs) InitConfiguration(string[] args, ImmutableList<IPluginNodes> pluginNodes, ILogger logger, ILoggerFactory loggerFactory)
+    public static (Configuration Config, PlcSimulation PlcSimulationInstance, List<string> ExtraArgs) InitConfiguration(string[] args, ImmutableList<IPluginNodes> pluginNodes)
     {
         var config = new Configuration();
-        config.OpcUa = new OpcApplicationConfiguration(config, logger, loggerFactory);
+        var loggerFactory = LoggingProvider.CreateDefaultLoggerFactory(LogLevel.Information);
+        config.OpcUa = new OpcApplicationConfiguration(config, loggerFactory);
         var plcSimulation = new PlcSimulation(pluginNodes);
 
         _options = new Mono.Options.OptionSet {

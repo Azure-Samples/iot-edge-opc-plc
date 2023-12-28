@@ -69,7 +69,7 @@ public class OpcPlcServer
         // Initialize configuration.
         _args = args;
         LoadPluginNodes();
-        (Config, PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, PluginNodes, Logger, LoggerFactory);
+        (Config, PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, PluginNodes);
 
         InitLogging();
 
@@ -134,7 +134,7 @@ public class OpcPlcServer
         Logger.LogInformation("Restarting PLC server and simulation ...");
         LogLogo();
 
-        (Config, PlcSimulationInstance, _) = CliOptions.InitConfiguration(_args, PluginNodes, Logger, LoggerFactory);
+        (Config, PlcSimulationInstance, _) = CliOptions.InitConfiguration(_args, PluginNodes);
         InitLogging();
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
     }

@@ -20,11 +20,11 @@ public partial class OpcApplicationConfiguration
     private readonly ILogger _logger;
     private readonly ILoggerFactory _loggerFactory;
 
-    public OpcApplicationConfiguration(Configuration configuration, ILogger logger, ILoggerFactory loggerFactory)
+    public OpcApplicationConfiguration(Configuration configuration, ILoggerFactory loggerFactory)
     {
         _config = configuration;
-        _logger = logger;
         _loggerFactory = loggerFactory;
+        _logger = loggerFactory.CreateLogger("OpcPlc");
 
         OpcOwnCertStorePath = OpcOwnCertDirectoryStorePathDefault;
         OpcTrustedCertStorePath = OpcTrustedCertDirectoryStorePathDefault;
