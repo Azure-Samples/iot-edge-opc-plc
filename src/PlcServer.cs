@@ -15,7 +15,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
-using static Program;
 
 public partial class PlcServer : StandardServer
 {
@@ -31,9 +30,12 @@ public partial class PlcServer : StandardServer
 
     public readonly TimeService TimeService;
 
-    public PlcServer(TimeService timeService)
+    private readonly ILogger _logger;
+
+    public PlcServer(TimeService timeService, ILogger logger)
     {
         TimeService = timeService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -87,17 +89,17 @@ public partial class PlcServer : StandardServer
             if (string.IsNullOrWhiteSpace(scriptFileName))
             {
                 string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";
-                Logger.LogError(errorMessage);
+                _logger.LogError(errorMessage);
                 throw new Exception(errorMessage);
             }
             if (!File.Exists(scriptFileName))
             {
                 string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist.";
-                Logger.LogError(errorMessage);
+                _logger.LogError(errorMessage);
                 throw new Exception(errorMessage);
             }
 
-            DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, scriptFileName);
+            DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, scriptFileName, _logger);
             nodeManagers.Add(DeterministicAlarmsNodeManager);
         }
 
@@ -182,7 +184,7 @@ public partial class PlcServer : StandardServer
             asyncResult.AsyncState is object[] asyncStateArray &&
             asyncStateArray[0] is TcpServerChannel channel)
         {
-            using var scope = Logger.BeginScope("ChannelId:\"{ChannelId}\"", channel.Id);
+            using var scope = _logger.BeginScope("ChannelId:\"{ChannelId}\"", channel.Id);
             base.ProcessRequest(request, calldata);
         }
         else

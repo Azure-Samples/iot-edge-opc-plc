@@ -282,7 +282,7 @@ public class OpcPlcServer
         Logger.LogInformation("Certificate authentication: {certAuth}", Config.DisableCertAuth ? "Disabled" : "Enabled");
 
         // Add simple events, alarms, reference test simulation and deterministic alarms.
-        PlcServer = new PlcServer(TimeService);
+        PlcServer = new PlcServer(TimeService, Logger);
         PlcServer.Start(plcApplicationConfiguration);
         Logger.LogInformation("OPC UA Server started");
 
