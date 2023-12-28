@@ -1,11 +1,20 @@
 namespace OpcPlc;
 
 using Opc.Ua;
+using OpcPlc.PluginNodes.Models;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Timers;
 
 public class PlcSimulation
 {
+    private readonly ImmutableList<IPluginNodes> _pluginNodes;
+
+    public PlcSimulation(ImmutableList<IPluginNodes> pluginNodes)
+    {
+        _pluginNodes = pluginNodes;
+    }
+
     /// <summary>
     /// Flags for node generation.
     /// </summary>
@@ -47,7 +56,7 @@ public class PlcSimulation
         }
 
         // Start simulation of nodes from plugin nodes list.
-        foreach (var plugin in Program.PluginNodes)
+        foreach (var plugin in _pluginNodes)
         {
             plugin.StartSimulation();
         }
@@ -61,7 +70,7 @@ public class PlcSimulation
         Disable(_eventInstanceGenerator);
 
         // Stop simulation of nodes from plugin nodes list.
-        foreach (var plugin in Program.PluginNodes)
+        foreach (var plugin in _pluginNodes)
         {
             plugin.StopSimulation();
         }
