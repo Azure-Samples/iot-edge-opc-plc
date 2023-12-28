@@ -11,15 +11,12 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Timers;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Boiler that inherits from DI companion spec.
 /// </summary>
-public class Boiler2PluginNodes : IPluginNodes
+public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState _tempSpeedDegreesPerSecNode;
     private BaseDataVariableState _baseTempDegreesNode;
@@ -87,7 +84,7 @@ public class Boiler2PluginNodes : IPluginNodes
 
     public void StartSimulation()
     {
-        _nodeGenerator = TimeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
+        _nodeGenerator = _timeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
         StartTimers();
     }
 
@@ -170,7 +167,7 @@ public class Boiler2PluginNodes : IPluginNodes
     private void SetValue<T>(BaseVariableState variable, T value)
     {
         variable.Value = value;
-        variable.Timestamp = TimeService.Now();
+        variable.Timestamp = _timeService.Now();
         variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
 
@@ -233,7 +230,7 @@ public class Boiler2PluginNodes : IPluginNodes
     private ServiceResult SwitchOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         SetValue(_heaterStateNode, inputArguments.First());
-        Logger.LogDebug($"SwitchOnCall method called with argument: {inputArguments.First()}");
+        _logger.LogDebug($"SwitchOnCall method called with argument: {inputArguments.First()}");
 
         return ServiceResult.Good;
     }
@@ -286,8 +283,8 @@ public class Boiler2PluginNodes : IPluginNodes
 
     private void StartTimers()
     {
-        _maintenanceGenerator = TimeService.NewTimer(UpdateMaintenance, intervalInMilliseconds: (uint)_maintenanceInterval.TotalMilliseconds);
-        _overheatGenerator = TimeService.NewTimer(UpdateOverheat, intervalInMilliseconds: (uint)_overheatInterval.TotalMilliseconds);
+        _maintenanceGenerator = _timeService.NewTimer(UpdateMaintenance, intervalInMilliseconds: (uint)_maintenanceInterval.TotalMilliseconds);
+        _overheatGenerator = _timeService.NewTimer(UpdateOverheat, intervalInMilliseconds: (uint)_overheatInterval.TotalMilliseconds);
     }
 
     private void UpdateMaintenance(object state, ElapsedEventArgs elapsedEventArgs)

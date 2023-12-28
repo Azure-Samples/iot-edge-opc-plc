@@ -15,14 +15,14 @@ public static class PnJsonHelper
     /// <summary>
     /// Show and save pn.json
     /// </summary>
-    public static async Task PrintPublisherConfigJsonAsync(string pnJsonFileName, string serverPath, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
+    public static async Task PrintPublisherConfigJsonAsync(string pnJsonFileName, string serverPath, bool useSecurity, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
         var sb = new StringBuilder();
 
         sb.AppendLine(Environment.NewLine + "[");
         sb.AppendLine("  {");
         sb.AppendLine($"    \"EndpointUrl\": \"opc.tcp://{serverPath}\",");
-        sb.AppendLine($"    \"UseSecurity\": {(!Program.OpcUaConfig.EnableUnsecureTransport).ToString().ToLowerInvariant()},");
+        sb.AppendLine($"    \"UseSecurity\": {(useSecurity).ToString().ToLowerInvariant()},");
         sb.AppendLine("    \"OpcNodes\": [");
 
         // Print config from plugin nodes list.

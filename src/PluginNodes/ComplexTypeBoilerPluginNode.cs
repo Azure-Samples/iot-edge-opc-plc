@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
 using BoilerModel1;
 using Microsoft.Extensions.Logging;
@@ -9,15 +9,12 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Timers;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Complex type boiler node.
 /// </summary>
-public class ComplexTypeBoilerPluginNode : IPluginNodes
+public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private PlcNodeManager _plcNodeManager;
     private Boiler1State _node;
     private ITimer _nodeGenerator;
@@ -38,7 +35,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
 
     public void StartSimulation()
     {
-        _nodeGenerator = TimeService.NewTimer(UpdateBoiler1, intervalInMilliseconds: 1000);
+        _nodeGenerator = _timeService.NewTimer(UpdateBoiler1, intervalInMilliseconds: 1000);
     }
 
     public void StopSimulation()
@@ -167,7 +164,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.On;
-        Logger.LogDebug("OnHeaterOnCall method called");
+        _logger.LogDebug("OnHeaterOnCall method called");
         return ServiceResult.Good;
     }
 
@@ -177,7 +174,7 @@ public class ComplexTypeBoilerPluginNode : IPluginNodes
     private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.Off;
-        Logger.LogDebug("OnHeaterOffCall method called");
+        _logger.LogDebug("OnHeaterOffCall method called");
         return ServiceResult.Good;
     }
 }

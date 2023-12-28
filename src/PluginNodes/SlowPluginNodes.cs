@@ -6,15 +6,12 @@ using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
 using System.Timers;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Nodes with slow changing values.
 /// </summary>
-public class SlowPluginNodes : IPluginNodes
+public class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private uint NodeCount { get; set; } = 1;
     private uint NodeRate { get; set; } = 10000; // ms.
     private NodeType NodeType { get; set; } = NodeType.UInt;
@@ -77,7 +74,7 @@ public class SlowPluginNodes : IPluginNodes
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
         _plcNodeManager = plcNodeManager;
-        _slowFastCommon = new SlowFastCommon(_plcNodeManager);
+        _slowFastCommon = new SlowFastCommon(_plcNodeManager, _timeService, _logger);
 
         FolderState folder = _plcNodeManager.CreateFolder(
             telemetryFolder,
@@ -119,7 +116,7 @@ public class SlowPluginNodes : IPluginNodes
 
     public void StartSimulation()
     {
-        _nodeGenerator = TimeService.NewTimer(UpdateNodes, intervalInMilliseconds: NodeRate);
+        _nodeGenerator = _timeService.NewTimer(UpdateNodes, intervalInMilliseconds: NodeRate);
     }
 
     public void StopSimulation()
@@ -185,7 +182,7 @@ public class SlowPluginNodes : IPluginNodes
     private ServiceResult OnStopUpdateSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _updateNodes = false;
-        Logger.LogDebug("StopUpdateSlowNodes method called");
+        _logger.LogDebug("StopUpdateSlowNodes method called");
         return ServiceResult.Good;
     }
 
@@ -195,7 +192,7 @@ public class SlowPluginNodes : IPluginNodes
     private ServiceResult OnStartUpdateSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _updateNodes = true;
-        Logger.LogDebug("StartUpdateSlowNodes method called");
+        _logger.LogDebug("StartUpdateSlowNodes method called");
         return ServiceResult.Good;
     }
 

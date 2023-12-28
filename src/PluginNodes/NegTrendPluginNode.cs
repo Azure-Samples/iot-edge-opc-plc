@@ -6,15 +6,12 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Node with a value that shows a negative trend.
 /// </summary>
-public class NegTrendPluginNode : IPluginNodes
+public class NegTrendPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<double> _node;
@@ -54,10 +51,10 @@ public class NegTrendPluginNode : IPluginNodes
         if (_isEnabled)
         {
             _negTrendAnomalyPhase = _random.Next(10);
-            _negTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
-            Logger.LogTrace($"First neg trend anomaly phase: {_negTrendAnomalyPhase}");
+            _negTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
+            _logger.LogTrace($"First neg trend anomaly phase: {_negTrendAnomalyPhase}");
 
-            _node.Start(NegTrendGenerator, PlcSimulationInstance.SimulationCycleLength);
+            _node.Start(NegTrendGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
     }
 
@@ -113,15 +110,15 @@ public class NegTrendPluginNode : IPluginNodes
         if (_isEnabled && _negTrendPhase >= _negTrendAnomalyPhase)
         {
             nextValue = TREND_BASEVALUE - ((_negTrendPhase - _negTrendAnomalyPhase) / 10d);
-            Logger.LogTrace("Generate negtrend anomaly");
+            _logger.LogTrace("Generate negtrend anomaly");
         }
 
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_negTrendCycleInPhase == 0)
         {
-            _negTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
+            _negTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _negTrendPhase++;
-            Logger.LogTrace($"Neg trend phase: {_negTrendPhase}, data: {nextValue}");
+            _logger.LogTrace($"Neg trend phase: {_negTrendPhase}, data: {nextValue}");
         }
 
         return nextValue;
@@ -138,7 +135,7 @@ public class NegTrendPluginNode : IPluginNodes
     private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         ResetTrendData();
-        Logger.LogDebug("ResetNegTrend method called");
+        _logger.LogDebug("ResetNegTrend method called");
         return ServiceResult.Good;
     }
 
@@ -148,7 +145,7 @@ public class NegTrendPluginNode : IPluginNodes
     public void ResetTrendData()
     {
         _negTrendAnomalyPhase = _random.Next(10);
-        _negTrendCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
+        _negTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
         _negTrendPhase = 0;
     }
 }

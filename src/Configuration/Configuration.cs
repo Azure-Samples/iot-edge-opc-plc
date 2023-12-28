@@ -1,8 +1,8 @@
-namespace OpcPlc;
+namespace OpcPlc.Configuration;
 
 using System;
 
-public class Configuration
+public class OpcPlcConfiguration
 {
     /// <summary>
     /// Name of the application.
@@ -65,4 +65,6 @@ public class Configuration
     public string LogLevelCli { get; set; } = "info";
 
     public TimeSpan LogFileFlushTimeSpanSec { get; set; } = TimeSpan.FromSeconds(30);
+
+    public OpcApplicationConfiguration OpcUa { get; set; } = new OpcApplicationConfiguration();
 }

@@ -8,16 +8,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Nodes that are configured via binary *.PredefinedNodes.uanodes file(s).
 /// To produce a binary *.PredefinedNodes.uanodes file from an XML NodeSet file, run the following command:
 /// ModelCompiler.cmd <XML_NodeSet_FileName_Without_Extension>
 /// </summary>
-public class UaNodesPluginNodes : IPluginNodes
+public class UaNodesPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
     private List<string> _nodesFileNames;
     private PlcNodeManager _plcNodeManager;
@@ -37,7 +35,7 @@ public class UaNodesPluginNodes : IPluginNodes
 
         if (_nodesFileNames?.Any() ?? false)
         {
-            AddNodes((FolderState)telemetryFolder.Parent); // Root.
+            AddNodes();
         }
     }
 
@@ -51,7 +49,7 @@ public class UaNodesPluginNodes : IPluginNodes
         // No simulation.
     }
 
-    private void AddNodes(FolderState folder)
+    private void AddNodes()
     {
         foreach (var file in _nodesFileNames)
         {
@@ -64,11 +62,11 @@ public class UaNodesPluginNodes : IPluginNodes
             }
             catch (Exception e)
             {
-                Logger.LogError(e, "Error loading binary uanodes file {file}: {error}", file, e.Message);
+                _logger.LogError(e, "Error loading binary uanodes file {file}: {error}", file, e.Message);
             }
         }
 
-        Logger.LogInformation("Completed processing binary uanodes file(s)");
+        _logger.LogInformation("Completed processing binary uanodes file(s)");
     }
 
     /// <summary>

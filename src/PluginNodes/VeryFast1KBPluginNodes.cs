@@ -1,22 +1,20 @@
 namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Nodes with 1 kB (ByteString) values.
 /// The first byte cycles from 0 to 255 in a configurable rate in ms.
 /// The values are deterministic but scrambled to ensure that they are not efficiently compressed.
 /// </summary>
-public class VeryFast1KBPluginNodes : IPluginNodes
+public class VeryFast1KBPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private uint NodeCount { get; set; } = 1;
     private uint NodeRate { get; set; } = 1000; // ms.
 
@@ -61,8 +59,8 @@ public class VeryFast1KBPluginNodes : IPluginNodes
         // Only use the fast timers when we need to go really fast,
         // since they consume more resources and create an own thread.
         _nodeGenerator = NodeRate >= 50 || !Stopwatch.IsHighResolution
-            ? TimeService.NewTimer((s, e) => UpdateNodes(), NodeRate)
-            : TimeService.NewFastTimer((s, e) => UpdateNodes(), intervalInMilliseconds: NodeRate);
+            ? _timeService.NewTimer((s, e) => UpdateNodes(), NodeRate)
+            : _timeService.NewFastTimer((s, e) => UpdateNodes(), intervalInMilliseconds: NodeRate);
     }
 
     public void StopSimulation()
@@ -125,7 +123,7 @@ public class VeryFast1KBPluginNodes : IPluginNodes
     private void SetValue<T>(BaseVariableState variable, T value)
     {
         variable.Value = value;
-        variable.Timestamp = TimeService.Now();
+        variable.Timestamp = _timeService.Now();
         variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
 

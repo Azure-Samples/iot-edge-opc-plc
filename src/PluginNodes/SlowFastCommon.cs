@@ -2,20 +2,25 @@ namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
+using Serilog.Core;
 using System;
-using static OpcPlc.Program;
 
 public class SlowFastCommon
 {
     private readonly PlcNodeManager _plcNodeManager;
+    protected readonly TimeService _timeService;
+    protected readonly ILogger _logger;
+
     private readonly Random _random = new();
     private BaseDataVariableState _numberOfUpdates;
     private uint _badNodesCycle = 0;
     private const string NumberOfUpdates = "NumberOfUpdates";
 
-    public SlowFastCommon(PlcNodeManager plcNodeManager)
+    public SlowFastCommon(PlcNodeManager plcNodeManager, TimeService timeService, ILogger logger)
     {
         _plcNodeManager = plcNodeManager ?? throw new ArgumentNullException(nameof(plcNodeManager));
+        _timeService = timeService;
+        _logger = logger;
     }
 
     public (BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes) CreateNodes(NodeType nodeType, string name, uint count, FolderState folder, FolderState simulatorFolder, bool nodeRandomization, string nodeStepSize, string nodeMinValue, string nodeMaxValue, uint nodeRate, uint nodeSamplingInterval)
@@ -39,9 +44,9 @@ public class SlowFastCommon
 
         if (count > 0)
         {
-            Logger.LogInformation($"Creating {count} {name} nodes of type: {type}");
-            Logger.LogInformation("Node values will change every " + nodeRate + " ms");
-            Logger.LogInformation("Node values sampling rate is " + nodeSamplingInterval + " ms");
+            _logger.LogInformation($"Creating {count} {name} nodes of type: {type}");
+            _logger.LogInformation("Node values will change every " + nodeRate + " ms");
+            _logger.LogInformation("Node values sampling rate is " + nodeSamplingInterval + " ms");
         }
 
         for (int i = 0; i < count; i++)
@@ -137,7 +142,7 @@ public class SlowFastCommon
     {
         if (nodes == null || nodes.Length == 0)
         {
-            Logger.LogWarning("Invalid argument {argument} provided.", nodes);
+            _logger.LogWarning("Invalid argument {argument} provided.", nodes);
             return;
         }
 
@@ -278,7 +283,7 @@ public class SlowFastCommon
     private void SetValue<T>(BaseVariableState variable, T value)
     {
         variable.Value = value;
-        variable.Timestamp = TimeService.Now();
+        variable.Timestamp = _timeService.Now();
         variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
 

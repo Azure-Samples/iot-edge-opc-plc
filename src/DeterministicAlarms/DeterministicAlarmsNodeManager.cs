@@ -1,5 +1,6 @@
-﻿namespace OpcPlc.DeterministicAlarms;
+namespace OpcPlc.DeterministicAlarms;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
 using OpcPlc.DeterministicAlarms.Configuration;
@@ -8,8 +9,6 @@ using OpcPlc.DeterministicAlarms.SimBackend;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using static OpcPlc.Program;
-using Microsoft.Extensions.Logging;
 
 public class DeterministicAlarmsNodeManager : CustomNodeManager2
 {
@@ -20,37 +19,40 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
     private readonly IServerInternal _server;
     private readonly ServerSystemContext _defaultSystemContext;
     private readonly Dictionary<string, SimSourceNodeState> _sourceNodes = new();
-    private readonly Configuration.Configuration _scriptconfiguration;
+    private readonly Configuration.Configuration _scriptConfiguration;
     private readonly TimeService _timeService;
+    private readonly ILogger _logger;
     private Dictionary<string, string> _scriptAlarmToSources;
-    private readonly string _scriptFileName;
 
     /// <summary>
     /// Initializes the node manager.
     /// </summary>
-    public DeterministicAlarmsNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, string scriptFileName) : base(server, configuration)
+    public DeterministicAlarmsNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, string scriptFileName, ILogger logger) : base(server, configuration)
     {
         _server = server;
         _defaultSystemContext = _server.DefaultSystemContext.Copy();
         SystemContext.NodeIdFactory = this;
         SystemContext.SystemHandle = _system = new SimBackendService();
-        _scriptFileName = scriptFileName;
         _timeService = timeService;
+        _logger = logger;
 
         // set one namespace for the type model and one names for dynamically created nodes.
-        string[] namespaceUrls = new string[1];
-        namespaceUrls[0] = OpcPlc.Namespaces.OpcPlcDeterministicAlarmsInstance;
+        string[] namespaceUrls =
+            [
+                OpcPlc.Namespaces.OpcPlcDeterministicAlarmsInstance,
+            ];
+
         SetNamespaces(namespaceUrls);
 
         // read script configuration file
         try
         {
-            var jsonstring = File.ReadAllText(_scriptFileName);
-            _scriptconfiguration = Configuration.Configuration.FromJson(jsonstring);
+            string json = File.ReadAllText(scriptFileName);
+            _scriptConfiguration = Configuration.Configuration.FromJson(json);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Cannot read or decode deterministic alarm script file");
+            _logger.LogError(ex, "Cannot read or decode deterministic alarm script file");
         }
     }
 
@@ -116,12 +118,12 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         try
         {
             VerifyScriptConfiguration(scriptConfiguration);
-            Logger.LogInformation("Script starts executing");
+            _logger.LogInformation("Script starts executing");
             var scriptEngine = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable, _timeService);
         }
         catch (ScriptException ex)
         {
-            Logger.LogError($"Script Engine Exception '{ex.Message}'\nSCRIPT WILL NOT START");
+            _logger.LogError($"Script Engine Exception '{ex.Message}'\nSCRIPT WILL NOT START");
             throw;
         }
     }
@@ -135,7 +137,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
     {
         if (step == null)
         {
-            Logger.LogInformation("SCRIPT ENDED");
+            _logger.LogInformation("SCRIPT ENDED");
         }
         else
         {
@@ -200,16 +202,16 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
     {
         if (step.Event != null)
         {
-            Logger.LogInformation($"({loopNumber}) -\t{step.Event.AlarmId}\t{step.Event.Reason}");
+            _logger.LogInformation($"({loopNumber}) -\t{step.Event.AlarmId}\t{step.Event.Reason}");
             foreach (var sc in step.Event.StateChanges)
             {
-                Logger.LogInformation($"\t\t{sc.StateType} - {sc.State}");
+                _logger.LogInformation($"\t\t{sc.StateType} - {sc.State}");
             }
         }
 
         if (step.SleepInSeconds > 0)
         {
-            Logger.LogInformation($"({loopNumber}) -\tSleep: {step.SleepInSeconds}");
+            _logger.LogInformation($"({loopNumber}) -\tSleep: {step.SleepInSeconds}");
         }
     }
 
@@ -470,7 +472,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
             }
 
             // Folders Nodes
-            foreach (var folder in _scriptconfiguration.Folders)
+            foreach (var folder in _scriptConfiguration.Folders)
             {
                 var simFolderState = new SimFolderState(SystemContext, null, new NodeId(folder.Name, NamespaceIndex), folder.Name);
                 simFolderState.AddReference(ReferenceTypeIds.HasNotifier, true, ObjectIds.Server);
@@ -496,7 +498,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
             }
         }
 
-        ReplayScriptStart(_scriptconfiguration);
+        ReplayScriptStart(_scriptConfiguration);
     }
 
     /// <summary>

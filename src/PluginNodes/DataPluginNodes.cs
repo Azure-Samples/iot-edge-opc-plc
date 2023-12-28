@@ -5,22 +5,19 @@ using Opc.Ua;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Nodes with values: Cycling step-up, alternating boolean, random signed 32-bit integer and random unsigend 32-bit integer.
 /// </summary>
-public class DataPluginNodes : IPluginNodes
+public class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _stepUpNode;
     private SimulatedVariableNode<bool> _alternatingBooleanNode;
     private SimulatedVariableNode<int> _randomSignedInt32;
     private SimulatedVariableNode<uint> _randomUnsignedInt32;
-    private readonly Random _random = new Random();
+    private readonly Random _random = new();
     private bool _stepUpStarted;
     private int _stepUpCycleInPhase;
     private int _alternatingBooleanCycleInPhase;
@@ -54,14 +51,14 @@ public class DataPluginNodes : IPluginNodes
     {
         if (_isEnabled)
         {
-            _stepUpCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
+            _stepUpCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _stepUpStarted = true;
-            _alternatingBooleanCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
+            _alternatingBooleanCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
 
-            _stepUpNode.Start(StepUpGenerator, PlcSimulationInstance.SimulationCycleLength);
-            _alternatingBooleanNode.Start(AlternatingBooleanGenerator, PlcSimulationInstance.SimulationCycleLength);
-            _randomSignedInt32.Start(value => _random.Next(int.MinValue, int.MaxValue), PlcSimulationInstance.SimulationCycleLength);
-            _randomUnsignedInt32.Start(value => (uint)_random.Next(), PlcSimulationInstance.SimulationCycleLength);
+            _stepUpNode.Start(StepUpGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
+            _alternatingBooleanNode.Start(AlternatingBooleanGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
+            _randomSignedInt32.Start(value => _random.Next(int.MinValue, int.MaxValue), _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
+            _randomUnsignedInt32.Start(value => (uint)_random.Next(), _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
     }
 
@@ -175,32 +172,32 @@ public class DataPluginNodes : IPluginNodes
     }
 
     /// <summary>
-    /// Method to reset the stepup value. Executes synchronously.
+    /// Method to reset the step-up value. Executes synchronously.
     /// </summary>
     private ServiceResult OnResetStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         ResetStepUpData();
-        Logger.LogDebug("ResetStepUp method called");
+        _logger.LogDebug("ResetStepUp method called");
         return ServiceResult.Good;
     }
 
     /// <summary>
-    /// Method to start the stepup value. Executes synchronously.
+    /// Method to start the step-up value. Executes synchronously.
     /// </summary>
     private ServiceResult OnStartStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         StartStepUp();
-        Logger.LogDebug("StartStepUp method called");
+        _logger.LogDebug("StartStepUp method called");
         return ServiceResult.Good;
     }
 
     /// <summary>
-    /// Method to stop the stepup value. Executes synchronously.
+    /// Method to stop the step-up value. Executes synchronously.
     /// </summary>
     private ServiceResult OnStopStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         StopStepUp();
-        Logger.LogDebug("StopStepUp method called");
+        _logger.LogDebug("StopStepUp method called");
         return ServiceResult.Good;
     }
 
@@ -210,8 +207,8 @@ public class DataPluginNodes : IPluginNodes
     /// </summary>
     private uint StepUpGenerator(uint value)
     {
-        // increase step up value
-        if (_stepUpStarted && (_stepUpCycleInPhase % (PlcSimulationInstance.SimulationCycleCount / 50) == 0))
+        // increase step-up value
+        if (_stepUpStarted && (_stepUpCycleInPhase % (_plcNodeManager.PlcSimulationInstance.SimulationCycleCount / 50) == 0))
         {
             value++;
         }
@@ -219,7 +216,7 @@ public class DataPluginNodes : IPluginNodes
         // end of cycle: reset cycle count
         if (--_stepUpCycleInPhase == 0)
         {
-            _stepUpCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
+            _stepUpCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
         }
 
         return value;
@@ -232,16 +229,16 @@ public class DataPluginNodes : IPluginNodes
     private bool AlternatingBooleanGenerator(bool value)
     {
         // calculate next boolean value
-        bool nextAlternatingBoolean = _alternatingBooleanCycleInPhase % PlcSimulationInstance.SimulationCycleCount == 0 ? !value : value;
+        bool nextAlternatingBoolean = _alternatingBooleanCycleInPhase % _plcNodeManager.PlcSimulationInstance.SimulationCycleCount == 0 ? !value : value;
         if (value != nextAlternatingBoolean)
         {
-            Logger.LogTrace($"Data change to: {nextAlternatingBoolean}");
+            _logger.LogTrace($"Data change to: {nextAlternatingBoolean}");
         }
 
         // end of cycle: reset cycle count
         if (--_alternatingBooleanCycleInPhase == 0)
         {
-            _alternatingBooleanCycleInPhase = PlcSimulationInstance.SimulationCycleCount;
+            _alternatingBooleanCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
         }
 
         return nextAlternatingBoolean;

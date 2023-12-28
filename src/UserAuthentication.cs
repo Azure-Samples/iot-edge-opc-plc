@@ -5,7 +5,6 @@ using Opc.Ua;
 using Opc.Ua.Server;
 using System;
 using System.Security.Cryptography.X509Certificates;
-using static Program;
 
 public partial class PlcServer
 {
@@ -58,13 +57,13 @@ public partial class PlcServer
         }
 
         // user with permission to configure server
-        if (userName == Config.AdminUser && password == Config.AdminPassword)
+        if (userName == _config.AdminUser && password == _config.AdminPassword)
         {
             return new SystemConfigurationIdentity(new UserIdentity(userNameToken));
         }
 
         // standard users for CTT verification
-        if (!(userName == Config.DefaultUser && password == Config.DefaultPassword))
+        if (!(userName == _config.DefaultUser && password == _config.DefaultPassword))
         {
             // construct translation object with default text.
             var info = new TranslationInfo(
@@ -96,7 +95,7 @@ public partial class PlcServer
         if (args.NewIdentity is UserNameIdentityToken userNameToken)
         {
             args.Identity = VerifyPassword(userNameToken);
-            Logger.LogInformation("UserName Token Accepted: {displayName}", args.Identity.DisplayName);
+            _logger.LogInformation("UserName Token Accepted: {displayName}", args.Identity.DisplayName);
             return;
         }
 
@@ -105,7 +104,7 @@ public partial class PlcServer
         {
             VerifyCertificate(x509Token.Certificate);
             args.Identity = new UserIdentity(x509Token);
-            Logger.LogInformation("X509 Token Accepted: {displayName}", args.Identity.DisplayName);
+            _logger.LogInformation("X509 Token Accepted: {displayName}", args.Identity.DisplayName);
         }
     }
 
@@ -154,7 +153,7 @@ public partial class PlcServer
             throw new ServiceResultException(new ServiceResult(
                 result,
                 info.Key,
-                "http://opcfoundation.org/UA/Sample/",
+                namespaceUri: "http://opcfoundation.org/UA/Sample/",
                 new LocalizedText(info)));
         }
     }

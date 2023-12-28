@@ -6,16 +6,18 @@ using Opc.Ua;
 using Opc.Ua.Bindings;
 using Opc.Ua.Server;
 using OpcPlc.CompanionSpecs.DI;
+using OpcPlc.Configuration;
 using OpcPlc.DeterministicAlarms;
+using OpcPlc.PluginNodes.Models;
 using OpcPlc.Reference;
 using SimpleEvents;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
-using static Program;
 
 public partial class PlcServer : StandardServer
 {
@@ -29,11 +31,19 @@ public partial class PlcServer : StandardServer
 
     public DeterministicAlarmsNodeManager DeterministicAlarmsNodeManager { get; set; }
 
-    public readonly TimeService TimeService;
+    public readonly OpcPlcConfiguration _config;
+    public readonly PlcSimulation _plcSimulation;
+    public readonly TimeService _timeService;
+    private readonly ImmutableList<IPluginNodes> _pluginNodes;
+    private readonly ILogger _logger;
 
-    public PlcServer(TimeService timeService)
+    public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
-        TimeService = timeService;
+        _config = config;
+        _plcSimulation = plcSimulation;
+        _timeService = timeService;
+        _pluginNodes = pluginNodes;
+        _logger = logger;
     }
 
     /// <summary>
@@ -58,46 +68,50 @@ public partial class PlcServer : StandardServer
 
         PlcNodeManager = new PlcNodeManager(
             server,
-            configuration,
-            TimeService);
+            _config,
+            appConfig: configuration,
+            _timeService,
+            _plcSimulation,
+            _pluginNodes,
+            _logger);
 
         nodeManagers.Add(PlcNodeManager);
 
-        if (PlcSimulationInstance.AddSimpleEventsSimulation)
+        if (_plcSimulation.AddSimpleEventsSimulation)
         {
             SimpleEventsNodeManager = new SimpleEventsNodeManager(server, configuration);
             nodeManagers.Add(SimpleEventsNodeManager);
         }
 
-        if (PlcSimulationInstance.AddAlarmSimulation)
+        if (_plcSimulation.AddAlarmSimulation)
         {
             AlarmNodeManager = new AlarmConditionServerNodeManager(server, configuration);
             nodeManagers.Add(AlarmNodeManager);
         }
 
-        if (PlcSimulationInstance.AddReferenceTestSimulation)
+        if (_plcSimulation.AddReferenceTestSimulation)
         {
             SimulationNodeManager = new ReferenceNodeManager(server, configuration);
             nodeManagers.Add(SimulationNodeManager);
         }
 
-        if (PlcSimulationInstance.DeterministicAlarmSimulationFile != null)
+        if (_plcSimulation.DeterministicAlarmSimulationFile != null)
         {
-            var scriptFileName = PlcSimulationInstance.DeterministicAlarmSimulationFile;
+            var scriptFileName = _plcSimulation.DeterministicAlarmSimulationFile;
             if (string.IsNullOrWhiteSpace(scriptFileName))
             {
                 string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";
-                Logger.LogError(errorMessage);
+                _logger.LogError(errorMessage);
                 throw new Exception(errorMessage);
             }
             if (!File.Exists(scriptFileName))
             {
                 string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist.";
-                Logger.LogError(errorMessage);
+                _logger.LogError(errorMessage);
                 throw new Exception(errorMessage);
             }
 
-            DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, scriptFileName);
+            DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, _timeService, scriptFileName, _logger);
             nodeManagers.Add(DeterministicAlarmsNodeManager);
         }
 
@@ -182,7 +196,7 @@ public partial class PlcServer : StandardServer
             asyncResult.AsyncState is object[] asyncStateArray &&
             asyncStateArray[0] is TcpServerChannel channel)
         {
-            using var scope = Logger.BeginScope("ChannelId:\"{ChannelId}\"", channel.Id);
+            using var scope = _logger.BeginScope("ChannelId:\"{ChannelId}\"", channel.Id);
             base.ProcessRequest(request, calldata);
         }
         else

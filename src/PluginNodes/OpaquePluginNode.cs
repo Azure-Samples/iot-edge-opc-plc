@@ -1,5 +1,6 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -8,10 +9,8 @@ using System.Collections.Generic;
 /// <summary>
 /// Node with an opaque identifier (free-format byte string that might or might not be human interpretable).
 /// </summary>
-public class OpaquePluginNode : IPluginNodes
+public class OpaquePluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint> _node;
 

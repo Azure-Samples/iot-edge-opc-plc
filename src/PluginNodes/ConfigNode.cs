@@ -1,4 +1,4 @@
-﻿namespace OpcPlc;
+namespace OpcPlc.PluginNodes;
 
 using Newtonsoft.Json;
 using System.Collections.Generic;

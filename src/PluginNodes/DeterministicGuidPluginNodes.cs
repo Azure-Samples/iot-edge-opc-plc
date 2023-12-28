@@ -6,18 +6,15 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Nodes with deterministic GUIDs as ID.
 /// </summary>
-public class DeterministicGuidPluginNodes : IPluginNodes
+public class DeterministicGuidPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private readonly DeterministicGuid _deterministicGuid = new ();
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<uint>[] _nodes;
-
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
 
     private static uint NodeCount { get; set; } = 1;
     private uint NodeRate { get; set; } = 1000; // ms.
@@ -67,8 +64,8 @@ public class DeterministicGuidPluginNodes : IPluginNodes
 
         if (NodeCount > 0)
         {
-            Logger.LogInformation($"Creating {NodeCount} GUID node(s) of type: {NodeType}");
-            Logger.LogInformation($"Node values will change every {NodeRate} ms");
+            _logger.LogInformation($"Creating {NodeCount} GUID node(s) of type: {NodeType}");
+            _logger.LogInformation($"Node values will change every {NodeRate} ms");
         }
 
         for (int i = 0; i < NodeCount; i++)

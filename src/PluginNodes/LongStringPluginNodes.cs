@@ -1,5 +1,6 @@
-﻿namespace OpcPlc.PluginNodes;
+namespace OpcPlc.PluginNodes;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.PluginNodes.Models;
 using System;
@@ -9,10 +10,8 @@ using System.Text;
 /// <summary>
 /// Nodes that change value every second to string containing single repeated uppercase letter.
 /// </summary>
-public class LongStringPluginNodes : IPluginNodes
+public class LongStringPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<string> _longStringIdNode10;
     private SimulatedVariableNode<string> _longStringIdNode50;

@@ -7,15 +7,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Timers;
-using static OpcPlc.Program;
 
 /// <summary>
 /// Nodes with fast changing values.
 /// </summary>
-public class FastPluginNodes : IPluginNodes
+public class FastPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
-    public IReadOnlyCollection<NodeWithIntervals> Nodes { get; private set; } = new List<NodeWithIntervals>();
-
     private uint NodeCount { get; set; } = 1;
     private uint NodeRate { get; set; } = 1000; // ms.
     private NodeType NodeType { get; set; } = NodeType.UInt;
@@ -83,7 +80,7 @@ public class FastPluginNodes : IPluginNodes
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
         _plcNodeManager = plcNodeManager;
-        _slowFastCommon = new SlowFastCommon(_plcNodeManager);
+        _slowFastCommon = new SlowFastCommon(_plcNodeManager, _timeService, _logger);
 
         FolderState folder = _plcNodeManager.CreateFolder(
             telemetryFolder,
@@ -128,8 +125,8 @@ public class FastPluginNodes : IPluginNodes
         // Only use the fast timers when we need to go really fast,
         // since they consume more resources and create an own thread.
         _nodeGenerator = NodeRate >= 50 || !Stopwatch.IsHighResolution
-            ? TimeService.NewTimer(UpdateNodes, NodeRate)
-            : TimeService.NewFastTimer(UpdateVeryFastNodes, intervalInMilliseconds: NodeRate);
+            ? _timeService.NewTimer(UpdateNodes, NodeRate)
+            : _timeService.NewFastTimer(UpdateVeryFastNodes, intervalInMilliseconds: NodeRate);
     }
 
     public void StopSimulation()
@@ -193,7 +190,7 @@ public class FastPluginNodes : IPluginNodes
     private ServiceResult OnStopUpdateFastNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _updateNodes = false;
-        Logger.LogDebug("StopUpdateFastNodes method called");
+        _logger.LogDebug("StopUpdateFastNodes method called");
         return ServiceResult.Good;
     }
 
@@ -203,7 +200,7 @@ public class FastPluginNodes : IPluginNodes
     private ServiceResult OnStartUpdateFastNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _updateNodes = true;
-        Logger.LogDebug("StartUpdateFastNodes method called");
+        _logger.LogDebug("StartUpdateFastNodes method called");
         return ServiceResult.Good;
     }
 
