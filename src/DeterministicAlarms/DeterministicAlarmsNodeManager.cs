@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.DeterministicAlarms;
+namespace OpcPlc.DeterministicAlarms;
 
 using Opc.Ua;
 using Opc.Ua.Server;
@@ -8,8 +8,6 @@ using OpcPlc.DeterministicAlarms.SimBackend;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using static OpcPlc.Program;
-using Microsoft.Extensions.Logging;
 
 public class DeterministicAlarmsNodeManager : CustomNodeManager2
 {
@@ -23,7 +21,6 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
     private readonly Configuration.Configuration _scriptconfiguration;
     private readonly TimeService _timeService;
     private Dictionary<string, string> _scriptAlarmToSources;
-    private readonly string _scriptFileName;
 
     /// <summary>
     /// Initializes the node manager.
@@ -34,19 +31,21 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         _defaultSystemContext = _server.DefaultSystemContext.Copy();
         SystemContext.NodeIdFactory = this;
         SystemContext.SystemHandle = _system = new SimBackendService();
-        _scriptFileName = scriptFileName;
         _timeService = timeService;
 
         // set one namespace for the type model and one names for dynamically created nodes.
-        string[] namespaceUrls = new string[1];
-        namespaceUrls[0] = OpcPlc.Namespaces.OpcPlcDeterministicAlarmsInstance;
+        string[] namespaceUrls =
+            [
+                OpcPlc.Namespaces.OpcPlcDeterministicAlarmsInstance,
+            ];
+
         SetNamespaces(namespaceUrls);
 
         // read script configuration file
         try
         {
-            var jsonstring = File.ReadAllText(_scriptFileName);
-            _scriptconfiguration = Configuration.Configuration.FromJson(jsonstring);
+            string json = File.ReadAllText(scriptFileName);
+            _scriptconfiguration = Configuration.Configuration.FromJson(json);
         }
         catch (Exception ex)
         {
