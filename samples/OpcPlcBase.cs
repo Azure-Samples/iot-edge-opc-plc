@@ -1,6 +1,8 @@
 namespace UnitTests;
 
+using OpcPlc;
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,11 +14,11 @@ public class OpcPlcBase
 {
     private const int MaxPortTries = 10;
 
+    private static readonly ConcurrentDictionary<int, OpcPlcServer> _opcPlcs = new();
+
     private readonly OpcPlcServer _opcPlcServer;
     private readonly bool _endpointUrlOverridden;
     private readonly Random _rnd = new(1234); // Seeded (deterministic) random number generator.
-
-    private bool _isOpcPlcServerRunning;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OpcPlcBase"/> class.
@@ -24,9 +26,11 @@ public class OpcPlcBase
     /// </summary>
     public OpcPlcBase(string[] args, int port = 51234, string? endpointUriOverride = null)
     {
-        if (_isOpcPlcServerRunning && _opcPlcServer is not null)
+        if (_opcPlcs.TryGetValue(port, out var existingOpcPlc))
         {
-            // Already running.
+            // Already running at the same port.
+            _opcPlcServer = existingOpcPlc;
+            OpcPlcEndpointUrl = existingOpcPlc.PlcServer.GetEndpoints()[0].EndpointUrl;
             return;
         }
 
@@ -46,6 +50,7 @@ public class OpcPlcBase
             try
             {
                 OpcPlcEndpointUrl = StartOpcPlcServerAsync(args, port, CancellationToken.None).GetAwaiter().GetResult();
+                _ = _opcPlcs.TryAdd(port, _opcPlcServer);
                 break;
             }
             catch (Exception)
@@ -65,7 +70,7 @@ public class OpcPlcBase
     /// <summary>
     /// Gets the OPC PLC server endpoint URL.
     /// </summary>
-    public static string OpcPlcEndpointUrl { get; private set; } = string.Empty;
+    public string OpcPlcEndpointUrl { get; private set; } = string.Empty;
 
     /// <summary>
     /// Restarts the OPC PLC server with the same configuration.
@@ -101,8 +106,6 @@ public class OpcPlcBase
                 await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
                 continue;
             }
-
-            _isOpcPlcServerRunning = true;
 
             return _opcPlcServer.PlcServer.GetEndpoints()[0].EndpointUrl;
         }
