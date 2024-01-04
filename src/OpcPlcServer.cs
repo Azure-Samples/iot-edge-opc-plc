@@ -24,6 +24,7 @@ public class OpcPlcServer
 {
     private string[] _args;
     private CancellationTokenSource _cancellationTokenSource;
+    private ImmutableList<IPluginNodes> _pluginNodes;
 
     public OpcPlcConfiguration Config { get; set; }
 
@@ -36,11 +37,6 @@ public class OpcPlcServer
     /// Logging object.
     /// </summary>
     public ILogger Logger { get; set; }
-
-    /// <summary>
-    /// Nodes to extend the address space.
-    /// </summary>
-    public ImmutableList<IPluginNodes> PluginNodes { get; set; }
 
     /// <summary>
     /// OPC UA server object.
@@ -73,7 +69,7 @@ public class OpcPlcServer
 
         InitLogging();
         LoadPluginNodes();
-        (PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, Config, PluginNodes);
+        (PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, Config, _pluginNodes);
 
         // Show usage if requested
         if (Config.ShowHelp)
@@ -150,13 +146,13 @@ public class OpcPlcServer
     }
 
     /// <summary>
-    /// Load plugin nodes using reflection.
+    /// Load plugin nodes to extend the address space using reflection.
     /// </summary>
     private void LoadPluginNodes()
     {
         var pluginNodesType = typeof(IPluginNodes);
 
-        PluginNodes = pluginNodesType.Assembly.ExportedTypes
+        _pluginNodes = pluginNodesType.Assembly.ExportedTypes
             .Where(t => pluginNodesType.IsAssignableFrom(t) &&
                         !t.IsInterface &&
                         !t.IsAbstract)
@@ -229,7 +225,7 @@ public class OpcPlcServer
                 Config.PnJson,
                 $"{GetIpAddress()}:{Config.OpcUa.ServerPort}{Config.OpcUa.ServerPath}",
                 !Config.OpcUa.EnableUnsecureTransport,
-                PluginNodes,
+                _pluginNodes,
                 Logger).ConfigureAwait(false);
         }
         else if (Config.ShowPublisherConfigJsonPh)
@@ -238,7 +234,7 @@ public class OpcPlcServer
                 Config.PnJson,
                 $"{Config.OpcUa.Hostname}:{Config.OpcUa.ServerPort}{Config.OpcUa.ServerPath}",
                 !Config.OpcUa.EnableUnsecureTransport,
-                PluginNodes,
+                _pluginNodes,
                 Logger).ConfigureAwait(false);
         }
 
@@ -284,7 +280,7 @@ public class OpcPlcServer
         Logger.LogInformation("Certificate authentication: {certAuth}", Config.DisableCertAuth ? "Disabled" : "Enabled");
 
         // Add simple events, alarms, reference test simulation and deterministic alarms.
-        PlcServer = new PlcServer(Config, PlcSimulationInstance, TimeService, PluginNodes, Logger);
+        PlcServer = new PlcServer(Config, PlcSimulationInstance, TimeService, _pluginNodes, Logger);
         PlcServer.Start(plcApplicationConfiguration);
         Logger.LogInformation("OPC UA Server started");
 
