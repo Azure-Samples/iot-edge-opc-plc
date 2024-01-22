@@ -1,6 +1,9 @@
 namespace OpcPlc;
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -9,6 +12,12 @@ using OpcPlc.Extensions;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
 using OpcPlc.PluginNodes.Models;
+using OpenTelemetry;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using System;
 using System.Collections.Immutable;
 using System.Data;
@@ -101,11 +110,7 @@ public class OpcPlcServer
         Logger.LogDebug("Build date: {date}",
             $"{File.GetCreationTime(Assembly.GetExecutingAssembly().Location)}");
 
-        using var host = CreateHostBuilder(args);
-        if (Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh)
-        {
-            StartWebServer(host);
-        }
+        StartWebServer(args);
 
         try
         {
@@ -164,24 +169,37 @@ public class OpcPlcServer
     /// <summary>
     /// Start web server to host pn.json.
     /// </summary>
-    private void StartWebServer(IHost host)
+    private void StartWebServer(string[] args)
     {
         try
         {
-            host.Start();
+            var builder = WebApplication.CreateBuilder(args);
 
-            if (Config.ShowPublisherConfigJsonIp)
-            {
-                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{GetIpAddress()}:{Config.WebServerPort}/{Config.PnJson}");
-            }
-            else if (Config.ShowPublisherConfigJsonPh)
-            {
-                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{Config.OpcUa.Hostname}:{Config.WebServerPort}/{Config.PnJson}");
-            }
-            else
-            {
-                Logger.LogInformation("Web server started on port {webServerPort}", Config.WebServerPort);
-            }
+            builder.Services.AddControllers();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddAuthorization();
+
+            builder.Services.AddOpenTelemetry()
+                .ConfigureResource(resource => resource.AddService("opc-plc", "OpcPlcServer")
+                                                       .AddTelemetrySdk())
+                .WithTracing(tracing => tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddSource("Opc-PLC-ActivitySource")
+                    .AddOtlpExporter(opt => {
+                        opt.Protocol = OtlpExportProtocol.Grpc;
+                        opt.Endpoint = new Uri("http://otel-collector.opcuabroker-monitoring.svc.cluster.local:4317");
+                        opt.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
+                    }));
+
+            builder.WebHost.UseUrls($"http://*:{Config.WebServerPort}");
+            builder.WebHost.UseContentRoot(Directory.GetCurrentDirectory());
+
+            var app = builder.Build();
+            app.UseAuthorization();
+            app.MapControllers();
+            app.RunAsync();
+
+            Logger.LogInformation("Web server started on port {webServerPort}", Config.WebServerPort);
         }
         catch (Exception e)
         {

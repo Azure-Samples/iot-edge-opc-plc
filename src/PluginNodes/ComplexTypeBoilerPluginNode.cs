@@ -7,6 +7,7 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Timers;
 
@@ -15,6 +16,7 @@ using System.Timers;
 /// </summary>
 public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
+    private ActivitySource activitySource = new ActivitySource("Opc-PLC-ActivitySource");
     private PlcNodeManager _plcNodeManager;
     private Boiler1State _node;
     private ITimer _nodeGenerator;
@@ -106,11 +108,17 @@ public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger
 
         if (_node.BoilerStatus.Value.HeaterState == BoilerHeaterStateType.On)
         {
+            using Activity activity = activitySource.StartActivity("Boiler1HeaterOn");
+            activity?.SetTag("Boiler1", "HeaterOn");
+            _logger.LogInformation($"Boiler1HeaterOn Activity TraceId: {activity.TraceId}, Activity SpanId: {activity.SpanId}");
             // Heater on, increase by 1.
             newTemperature.Bottom = currentTemperatureBottom + 1;
         }
         else
         {
+            using Activity activity = activitySource.StartActivity("Boiler1HeaterOFF");
+            activity?.SetTag("Boiler1", "HeaterOFF");
+            _logger.LogInformation($"Boiler1HeaterOFF Activity TraceId: {activity.TraceId}, Activity SpanId: {activity.SpanId}");
             // Heater off, decrease down to a minimum of 20.
             newTemperature.Bottom = Math.Max(20, currentTemperatureBottom - 1);
         }
