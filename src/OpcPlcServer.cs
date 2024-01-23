@@ -102,10 +102,12 @@ public class OpcPlcServer
             (Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion);
 
         // Show OPC UA SDK version.
-        Logger.LogInformation("OPC UA SDK {Version} from {Date}",
+        Logger.LogInformation(
+            "OPC UA SDK {Version} from {Date}",
             Utils.GetAssemblyBuildNumber(),
             Utils.GetAssemblyTimestamp());
-        Logger.LogDebug("OPC UA SDK informational version: {Version}",
+        Logger.LogDebug(
+            "OPC UA SDK informational version: {Version}",
             Utils.GetAssemblySoftwareVersion());
 
         using var host = CreateHostBuilder(args);
