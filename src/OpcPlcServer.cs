@@ -91,15 +91,22 @@ public class OpcPlcServer
         Logger.LogInformation("Log file: {logFileName}", Path.GetFullPath(Config.LogFileName));
         Logger.LogInformation("Log level: {logLevel}", Config.LogLevelCli);
 
-        // Show version.
+        // Show OPC PLC version.
         var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
-        Logger.LogInformation("{ProgramName} {version} starting up ...",
+        Logger.LogInformation("{ProgramName} v{Version} from {Date} starting up ...",
             Config.ProgramName,
-            $"v{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} (SDK {Utils.GetAssemblyBuildNumber()})");
-        Logger.LogDebug("Informational version: {version}",
-            $"v{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion} (SDK {Utils.GetAssemblySoftwareVersion()} from {Utils.GetAssemblyTimestamp()})");
-        Logger.LogDebug("Build date: {date}",
-            $"{File.GetCreationTime(Assembly.GetExecutingAssembly().Location)}");
+            $"{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart}",
+            File.GetLastWriteTimeUtc(Assembly.GetExecutingAssembly().Location));
+        Logger.LogDebug("{ProgramName} informational version: v{Version}",
+            Config.ProgramName,
+            (Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion);
+
+        // Show OPC UA SDK version.
+        Logger.LogInformation("OPC UA SDK {Version} from {Date}",
+            Utils.GetAssemblyBuildNumber(),
+            Utils.GetAssemblyTimestamp());
+        Logger.LogDebug("OPC UA SDK informational version: {Version}",
+            Utils.GetAssemblySoftwareVersion());
 
         using var host = CreateHostBuilder(args);
         if (Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh)
