@@ -5,7 +5,6 @@ using Opc.Ua;
 using Opc.Ua.Configuration;
 using Opc.Ua.Security.Certificates;
 using OpcPlc.Certs;
-using OpcPlc.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;

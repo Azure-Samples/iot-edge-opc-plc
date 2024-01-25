@@ -2,7 +2,6 @@ namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
-using Serilog.Core;
 using System;
 
 public class SlowFastCommon
