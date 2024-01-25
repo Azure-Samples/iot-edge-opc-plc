@@ -36,6 +36,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             MaxStringLength = _config.OpcUa.OpcMaxStringLength,
             MaxMessageSize = 4 * 1024 * 1024, // 4 MB.
             MaxByteStringLength = 4 * 1024 * 1024, // 4 MB.
+            ChannelLifetime = 60_000, // 60 s.
         };
 
         var operationLimits = new OperationLimits() {
