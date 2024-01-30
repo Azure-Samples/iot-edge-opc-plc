@@ -15,7 +15,8 @@ using System.Timers;
 /// <summary>
 /// Boiler that inherits from DI companion spec.
 /// </summary>
-public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes{
+public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+{
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState _tempSpeedDegreesPerSecNode;
     private BaseDataVariableState _baseTempDegreesNode;
@@ -180,6 +181,7 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
         float baseTempDegrees = (float)_baseTempDegreesNode.Value;
         float targetTempDegrees = (float)_targetTempDegreesNode.Value;
         float overheatThresholdDegrees = (float)_overheatThresholdDegreesNode.Value;
+
         if ((bool)_heaterStateNode.Value)
         {
             // Heater on, increase by specified speed, but the step should not be bigger than targetTemp.

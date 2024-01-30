@@ -1,4 +1,4 @@
 {
   "name": "iotedge/opc-plc",
-  "buildAlways":  true
+  "buildAlways": true
 }
