@@ -7,7 +7,6 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -17,7 +16,6 @@ using System.Timers;
 /// Boiler that inherits from DI companion spec.
 /// </summary>
 public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes{
-    private ActivitySource activitySource = new ActivitySource("Opc-PLC-ActivitySource");
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState _tempSpeedDegreesPerSecNode;
     private BaseDataVariableState _baseTempDegreesNode;
@@ -182,12 +180,8 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
         float baseTempDegrees = (float)_baseTempDegreesNode.Value;
         float targetTempDegrees = (float)_targetTempDegreesNode.Value;
         float overheatThresholdDegrees = (float)_overheatThresholdDegreesNode.Value;
-
         if ((bool)_heaterStateNode.Value)
         {
-            using var activity = activitySource.StartActivity("Boiler2HeaterOn");
-            activity?.SetTag("Boiler2", "HeaterON");
-            _logger.LogInformation($"Boiler2HeaterOn Activity TraceId: {activity.TraceId}, Activity SpanId: {activity.SpanId}");
             // Heater on, increase by specified speed, but the step should not be bigger than targetTemp.
             newTemperature = currentTemperatureDegrees + Math.Min(tempSpeedDegreesPerSec, Math.Abs(targetTempDegrees - currentTemperatureDegrees));
 
@@ -199,9 +193,6 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
         }
         else
         {
-            using var activity = activitySource.StartActivity("Boiler2HeaterOFF");
-            activity?.SetTag("Boiler2", "HeaterOFF");
-            _logger.LogInformation($"Boiler2HeaterOFF Activity TraceId: {activity.TraceId}, Activity SpanId: {activity.SpanId}");
             // Heater off, decrease by specified speed, but the step should not be bigger than baseTemp.
             newTemperature = currentTemperatureDegrees - Math.Min(tempSpeedDegreesPerSec, Math.Abs(currentTemperatureDegrees - baseTempDegrees));
 

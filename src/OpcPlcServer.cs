@@ -172,19 +172,20 @@ public class OpcPlcServer
     private void StartWebServer(string[] args)
     {
         try
-        {
+        {  
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddAuthorization();
-
             builder.Services.AddOpenTelemetry()
-                .ConfigureResource(resource => resource.AddService("opc-plc", "OpcPlcServer")
+                .ConfigureResource(resource => resource.AddService("opc-plc", "OpcPlcServer", "1.0.0")
                                                        .AddTelemetrySdk())
+
                 .WithTracing(tracing => tracing
                     .AddAspNetCoreInstrumentation()
-                    .AddSource("Opc-PLC-ActivitySource")
+                    .AddHttpClientInstrumentation()
+                    .AddSource(EndpointBase.ActivitySourceName)
                     .AddOtlpExporter(opt => {
                         opt.Protocol = OtlpExportProtocol.Grpc;
                         opt.Endpoint = new Uri("http://otel-collector.opcuabroker-monitoring.svc.cluster.local:4317");
@@ -195,8 +196,10 @@ public class OpcPlcServer
             builder.WebHost.UseContentRoot(Directory.GetCurrentDirectory());
 
             var app = builder.Build();
+            app.UseHttpsRedirection();
             app.UseAuthorization();
             app.MapControllers();
+
             app.RunAsync();
 
             Logger.LogInformation("Web server started on port {webServerPort}", Config.WebServerPort);
