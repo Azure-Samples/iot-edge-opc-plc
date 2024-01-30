@@ -179,17 +179,16 @@ public class OpcPlcServer
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddAuthorization();
             builder.Services.AddOpenTelemetry()
-                .ConfigureResource(resource => resource.AddService("opc-plc", "OpcPlcServer", "1.0.0")
+                .ConfigureResource(resource => resource.AddService("Opc-Plc")
                                                        .AddTelemetrySdk())
-
                 .WithTracing(tracing => tracing
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddSource(EndpointBase.ActivitySourceName)
                     .AddOtlpExporter(opt => {
-                        opt.Protocol = OtlpExportProtocol.Grpc;
-                        opt.Endpoint = new Uri("http://otel-collector.opcuabroker-monitoring.svc.cluster.local:4317");
-                        opt.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = (int)TimeSpan.FromSeconds(60).TotalMilliseconds;
+                        opt.Protocol = Config.OtlpProtocol;
+                        opt.Endpoint = new Uri(Config.OtlpEndpointUri);
+                        opt.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = Config.OtlpExportInterval;
                     }));
 
             builder.WebHost.UseUrls($"http://*:{Config.WebServerPort}");
