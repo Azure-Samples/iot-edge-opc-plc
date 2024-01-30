@@ -186,7 +186,7 @@ public class OpcPlcServer
                     .AddHttpClientInstrumentation()
                     .AddSource(EndpointBase.ActivitySourceName)
                     .AddOtlpExporter(opt => {
-                        opt.Protocol = Config.OtlpProtocol;
+                        opt.Protocol = OtlpExportProtocol.Grpc;
                         opt.Endpoint = new Uri(Config.OtlpEndpointUri);
                         opt.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = Config.OtlpExportInterval;
                     }));

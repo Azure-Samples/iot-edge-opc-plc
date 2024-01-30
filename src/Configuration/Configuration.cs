@@ -39,12 +39,7 @@ public class OpcPlcConfiguration
     /// <summary>
     /// Gets or sets OTLP reporting endpoint URI.
     /// </summary>
-    public string OtlpEndpointUri { get; set; } = "http://otel-collector.opcuabroker-monitoring.svc.cluster.local:4317";
-
-    /// <summary>
-    /// Gets or sets the OTLP export protocol.
-    /// </summary>
-    public OtlpExportProtocol OtlpProtocol { get; set; } = OtlpExportProtocol.Grpc;
+    public string OtlpEndpointUri { get; set; } = "http://localhost:4317";
 
     /// <summary>
     /// Gets or sets a the export interval in milliseconds.
