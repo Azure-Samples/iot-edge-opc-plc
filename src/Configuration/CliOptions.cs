@@ -77,8 +77,6 @@ public static class CliOptions
             { "otlpe|otlpendpoint=", $"the endpoint Uri to which the otlp exporter is going to send traces .\nDefault: {config.OtlpEndpointUri}", (s) => config.OtlpEndpointUri = s },
             { "otlpei|otlpexportinterval=", $"the interval in seconds to export traces in milliseconds.\nDefault: {config.OtlpExportInterval}", (int i) => config.OtlpExportInterval = i },
 
-
-
             { "lr|ldsreginterval=", $"the LDS(-ME) registration interval in ms. If 0, then the registration is disabled.\nDefault: {config.OpcUa.LdsRegistrationInterval}", (int i) => {
                     if (i >= 0)
                     {
