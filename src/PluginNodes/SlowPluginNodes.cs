@@ -67,7 +67,7 @@ public class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNo
 
         optionSet.Add(
             "ssi|slownodesamplinginterval=",
-            $"rate in milliseconds to sample slow nodes.\nDefault: {NodeSamplingInterval}",
+            $"rate in milliseconds for pn.json client to sample slow nodes.\nDefault: {NodeSamplingInterval}",
             (uint i) => NodeSamplingInterval = i);
     }
 
@@ -129,7 +129,7 @@ public class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNo
 
     private void AddNodes(FolderState folder, FolderState simulatorFolder)
     {
-        (_nodes, _badNodes) = _slowFastCommon.CreateNodes(NodeType, "Slow", NodeCount, folder, simulatorFolder, NodeRandomization, NodeStepSize, NodeMinValue, NodeMaxValue, NodeRate, NodeSamplingInterval);
+        (_nodes, _badNodes) = _slowFastCommon.CreateNodes(NodeType, "Slow", NodeCount, folder, simulatorFolder, NodeRandomization, NodeStepSize, NodeMinValue, NodeMaxValue, NodeRate);
 
         ExposeNodesWithIntervals();
     }

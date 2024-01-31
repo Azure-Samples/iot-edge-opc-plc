@@ -522,7 +522,7 @@ Options:
                                Double|Bool|UIntArray).
                                Default: 1
       --fsi, --fastnodesamplinginterval=VALUE
-                             rate in milliseconds to sample fast nodes.
+                             rate in milliseconds for pn.json client to sample fast nodes.
                                Default: 0
       --vfr, --veryfastrate=VALUE
                              rate in milliseconds to change fast nodes.
@@ -560,7 +560,7 @@ Options:
                                Double|Bool|UIntArray).
                                Default: 1
       --ssi, --slownodesamplinginterval=VALUE
-                             rate in milliseconds to sample slow nodes.
+                             rate in milliseconds for pn.json client to sample slow nodes.
                                Default: 0
       --ns, --nospikes       do not generate spike data.
                                Default: False

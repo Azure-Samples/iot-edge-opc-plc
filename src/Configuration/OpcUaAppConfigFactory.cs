@@ -297,7 +297,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             _logger.LogWarning("Automatically accepting all client certificates, this is a security risk!");
         }
 
-        _config.OpcUa.ApplicationConfiguration.CertificateValidator.CertificateValidation += new CertificateValidationEventHandler(CertificateValidator_CertificateValidation);
+        _config.OpcUa.ApplicationConfiguration.CertificateValidator.CertificateValidation += CertificateValidator_CertificateValidation;
 
         // remove issuer and trusted certificates with the given thumbprints
         if (_config.OpcUa.ThumbprintsToRemove?.Count > 0 &&
