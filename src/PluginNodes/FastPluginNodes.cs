@@ -139,7 +139,7 @@ public class FastPluginNodes(TimeService timeService, ILogger logger) : PluginNo
 
     private void AddNodes(FolderState folder, FolderState simulatorFolder)
     {
-        (_nodes, _badNodes) = _slowFastCommon.CreateNodes(NodeType, "Fast", NodeCount, folder, simulatorFolder, NodeRandomization, NodeStepSize, NodeMinValue, NodeMaxValue, NodeRate, NodeSamplingInterval);
+        (_nodes, _badNodes) = _slowFastCommon.CreateNodes(NodeType, "Fast", NodeCount, folder, simulatorFolder, NodeRandomization, NodeStepSize, NodeMinValue, NodeMaxValue, NodeRate);
 
         ExposeNodesWithIntervals();
     }
