@@ -67,7 +67,7 @@ public class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNo
 
         optionSet.Add(
             "ssi|slownodesamplinginterval=",
-            $"rate in milliseconds to sample slow nodes.\nDefault: {NodeSamplingInterval}",
+            $"rate in milliseconds for pn.json client to sample slow nodes.\nDefault: {NodeSamplingInterval}",
             (uint i) => NodeSamplingInterval = i);
     }
 
