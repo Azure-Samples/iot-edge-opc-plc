@@ -2,7 +2,6 @@ namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
-using Serilog.Core;
 using System;
 
 public class SlowFastCommon
@@ -23,30 +22,29 @@ public class SlowFastCommon
         _logger = logger;
     }
 
-    public (BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes) CreateNodes(NodeType nodeType, string name, uint count, FolderState folder, FolderState simulatorFolder, bool nodeRandomization, string nodeStepSize, string nodeMinValue, string nodeMaxValue, uint nodeRate, uint nodeSamplingInterval)
+    public (BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes) CreateNodes(NodeType nodeType, string name, uint count, FolderState folder, FolderState simulatorFolder, bool nodeRandomization, string nodeStepSize, string nodeMinValue, string nodeMaxValue, uint nodeRate)
     {
-        var nodes = CreateBaseLoadNodes(folder, name, count, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
+        var nodes = CreateBaseLoadNodes(folder, name, count, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate);
 
         uint badNodesCount = count == 0u
             ? 0u
             : 1u;
 
-        var badNodes = CreateBaseLoadNodes(folder, $"Bad{name}", badNodesCount, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate, nodeSamplingInterval);
+        var badNodes = CreateBaseLoadNodes(folder, $"Bad{name}", badNodesCount, nodeType, nodeRandomization, nodeStepSize, nodeMinValue, nodeMaxValue, nodeRate);
 
         _numberOfUpdates = CreateNumberOfUpdatesVariable(name, simulatorFolder);
 
         return (nodes, badNodes);
     }
 
-    private BaseDataVariableState[] CreateBaseLoadNodes(FolderState folder, string name, uint count, NodeType type, bool randomize, string stepSize, string minValue, string maxValue, uint nodeRate, uint nodeSamplingInterval)
+    private BaseDataVariableState[] CreateBaseLoadNodes(FolderState folder, string name, uint count, NodeType type, bool randomize, string stepSize, string minValue, string maxValue, uint nodeRate)
     {
         var nodes = new BaseDataVariableState[count];
 
         if (count > 0)
         {
             _logger.LogInformation($"Creating {count} {name} nodes of type: {type}");
-            _logger.LogInformation("Node values will change every " + nodeRate + " ms");
-            _logger.LogInformation("Node values sampling rate is " + nodeSamplingInterval + " ms");
+            _logger.LogInformation($"Node values will change every {nodeRate} ms");
         }
 
         for (int i = 0; i < count; i++)
