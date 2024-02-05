@@ -6,7 +6,6 @@
 namespace OpcPlc.Logging;
 
 using Microsoft.Extensions.Logging;
-using System;
 
 /// <summary>
 /// Provides utility for creating logger factory.
