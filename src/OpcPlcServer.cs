@@ -9,8 +9,6 @@ using OpcPlc.Extensions;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
 using OpcPlc.PluginNodes.Models;
-using OpenTelemetry.Resources;
-using OpenTelemetry;
 using System;
 using System.Collections.Immutable;
 using System.Data;
@@ -21,8 +19,6 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenTelemetry.Trace;
-using OpenTelemetry.Exporter;
 
 public class OpcPlcServer
 {
@@ -132,23 +128,7 @@ public class OpcPlcServer
 
         Logger.LogInformation("OPC UA server exiting ...");
     }
-    public void ConfigureTelemetry()
-    {
-        // Configure OpenTelemetry Tracing
-        using var tracerProvider = Sdk.CreateTracerProviderBuilder()
-            .AddAspNetCoreInstrumentation()
-            .AddSource(EndpointBase.ActivitySourceName)
-            .AddSource("test-source")
-            .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                .AddTelemetrySdk() // Adds information(name, version, language) about the SDK that's used to collect telemetry.
-                .AddService("OpcPlc", "OpcPlc", "1.0.0")) // (Program.OpcPlcServer.Config.ProgramName))
-            .AddOtlpExporter(opt => {
-                opt.Endpoint = new Uri(Program.OpcPlcServer.Config.OtlpEndpointUri);
-                opt.Protocol = OtlpExportProtocol.Grpc;
-            })
-            .AddConsoleExporter()
-            .Build();
-    }
+
     /// <summary>
     /// Restart the PLC server and simulation.
     /// </summary>
