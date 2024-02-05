@@ -76,7 +76,7 @@ public static class CliOptions
             // OTLP Exporter Configuration
             { "otlpen|otlpenabled", $"enables the otlp exporter.\nDefault: {config.OtlpEnabled}", (s) => config.OtlpEnabled = s != null },
             { "otlpep|otlpendpoint=", $"the endpoint URI to which the otlp exporter is going to send traces.\nDefault: {config.OtlpEndpointUri}", (s) => config.OtlpEndpointUri = s },
-            { "otlpei|otlpexportinterval=", $"the interval in seconds to export traces in seconds.\nDefault: {config.OtlpExportInterval}", (int i) => {
+            { "otlpei|otlpexportinterval=", $"the interval to export traces in seconds.\nDefault: {config.OtlpExportInterval}", (int i) => {
                     if (i > 0)
                     {
                         config.OtlpExportInterval = TimeSpan.FromSeconds(i);
