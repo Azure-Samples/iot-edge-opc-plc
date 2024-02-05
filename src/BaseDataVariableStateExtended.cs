@@ -1,4 +1,4 @@
-﻿namespace OpcPlc;
+namespace OpcPlc;
 
 using Opc.Ua;
 using System;
@@ -18,8 +18,8 @@ public class BaseDataVariableStateExtended : BaseDataVariableState
         ArgumentNullException.ThrowIfNull(nodeState);
 
         Randomize = randomize;
-        StepSize = stepSize ?? throw new ArgumentNullException(nameof(stepSize));
-        MinValue = minValue ?? throw new ArgumentNullException(nameof(minValue));
-        MaxValue = maxValue ?? throw new ArgumentNullException(nameof(maxValue));
+        StepSize = stepSize;
+        MinValue = minValue;
+        MaxValue = maxValue;
     }
 }
