@@ -66,10 +66,9 @@ public class Startup
             .SetResourceBuilder(ResourceBuilder.CreateDefault()
                 .AddService(Program.OpcPlcServer.Config.ProgramName))
             .AddOtlpExporter(opt => {
-                opt.Endpoint = new Uri("http://otel-collector.opcuabroker-monitoring.svc.cluster.local:4317");
+                opt.Endpoint = new Uri(Program.OpcPlcServer.Config.OtlpEndpointUri);
                 opt.Protocol = OtlpExportProtocol.Grpc;
             })
-            .AddConsoleExporter()
             .Build();
     }
 }
