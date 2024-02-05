@@ -47,6 +47,11 @@ public class OpcPlcConfiguration
     public string OtlpEndpointUri { get; set; } = "http://localhost:4317";
 
     /// <summary>
+    /// Gets or sets a the export interval in seconds.
+    /// </summary>
+    public TimeSpan OtlpExportInterval { get; set; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>
     /// Show OPC Publisher configuration file using IP address as EndpointUrl.
     /// </summary>
     public bool ShowPublisherConfigJsonIp { get; set; }
