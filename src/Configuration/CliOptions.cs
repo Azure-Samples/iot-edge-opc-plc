@@ -73,9 +73,9 @@ public static class CliOptions
                 }
             },
 
-            // OTLP configuration
-            { "otlpe|otlpendpoint=", $"the endpoint Uri to which the otlp exporter is going to send traces .\nDefault: {config.OtlpEndpointUri}", (s) => config.OtlpEndpointUri = s },
-            { "otlpei|otlpexportinterval=", $"the interval in seconds to export traces in milliseconds.\nDefault: {config.OtlpExportInterval}", (int i) => config.OtlpExportInterval = i },
+            // OTLP Exporter Configuration
+            { "otlpe|otlpenabled", $"enables the otlp exporter.\nDefault: {config.OtlpEnabled}", (s) => config.OtlpEnabled = s != null },
+            { "otlpep|otlpendpoint=", $"the endpoint URI to which the otlp exporter is going to send traces.\nDefault: {config.OtlpEndpointUri}", (s) => config.OtlpEndpointUri = s },
 
             { "lr|ldsreginterval=", $"the LDS(-ME) registration interval in ms. If 0, then the registration is disabled.\nDefault: {config.OpcUa.LdsRegistrationInterval}", (int i) => {
                     if (i >= 0)

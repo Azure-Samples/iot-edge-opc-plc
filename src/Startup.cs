@@ -1,5 +1,6 @@
 namespace OpcPlc;
 
+using System;
 using System.IO;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -7,6 +8,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Opc.Ua;
+using OpenTelemetry;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 public class Startup
 {
@@ -18,10 +24,12 @@ public class Startup
     public IConfiguration Configuration { get; }
 
     // This method gets called by the runtime. Use this method to add services to the container.
-#pragma warning disable IDE0060 // Remove unused parameter
     public void ConfigureServices(IServiceCollection services)
-#pragma warning restore IDE0060 // Remove unused parameter
     {
+        if (Program.OpcPlcServer.Config.OtlpEnabled)
+        {
+            ConfigureOpenTelemetryTracing();
+        }
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -47,5 +55,21 @@ public class Startup
                 context.Response.StatusCode = 404;
             }
         });
+    }
+
+    // This method configures OpenTelemetry tracing.
+    public void ConfigureOpenTelemetryTracing()
+    {
+        var tracerProvider = Sdk.CreateTracerProviderBuilder()
+            .AddAspNetCoreInstrumentation()
+            .AddSource(EndpointBase.ActivitySourceName)
+            .SetResourceBuilder(ResourceBuilder.CreateDefault()
+                .AddService(Program.OpcPlcServer.Config.ProgramName))
+            .AddOtlpExporter(opt => {
+                opt.Endpoint = new Uri("http://otel-collector.opcuabroker-monitoring.svc.cluster.local:4317");
+                opt.Protocol = OtlpExportProtocol.Grpc;
+            })
+            .AddConsoleExporter()
+            .Build();
     }
 }

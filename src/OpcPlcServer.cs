@@ -1,9 +1,6 @@
 namespace OpcPlc;
 
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -12,12 +9,8 @@ using OpcPlc.Extensions;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
 using OpcPlc.PluginNodes.Models;
-using OpenTelemetry;
-using OpenTelemetry.Exporter;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
+using OpenTelemetry;
 using System;
 using System.Collections.Immutable;
 using System.Data;
@@ -28,6 +21,8 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Exporter;
 
 public class OpcPlcServer
 {
@@ -100,17 +95,30 @@ public class OpcPlcServer
         Logger.LogInformation("Log file: {logFileName}", Path.GetFullPath(Config.LogFileName));
         Logger.LogInformation("Log level: {logLevel}", Config.LogLevelCli);
 
-        // Show version.
+        // Show OPC PLC version.
         var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
-        Logger.LogInformation("{ProgramName} {version} starting up ...",
+        Logger.LogInformation("{ProgramName} v{Version} from {Date} starting up ...",
             Config.ProgramName,
-            $"v{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart} (SDK {Utils.GetAssemblyBuildNumber()})");
-        Logger.LogDebug("Informational version: {version}",
-            $"v{(Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion} (SDK {Utils.GetAssemblySoftwareVersion()} from {Utils.GetAssemblyTimestamp()})");
-        Logger.LogDebug("Build date: {date}",
-            $"{File.GetCreationTime(Assembly.GetExecutingAssembly().Location)}");
+            $"{fileVersion.ProductMajorPart}.{fileVersion.ProductMinorPart}.{fileVersion.ProductBuildPart}",
+            File.GetLastWriteTimeUtc(Assembly.GetExecutingAssembly().Location));
+        Logger.LogDebug("{ProgramName} informational version: v{Version}",
+            Config.ProgramName,
+            (Attribute.GetCustomAttribute(Assembly.GetEntryAssembly(), typeof(AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute)?.InformationalVersion);
 
-        StartWebServer(args);
+        // Show OPC UA SDK version.
+        Logger.LogInformation(
+            "OPC UA SDK {Version} from {Date}",
+            Utils.GetAssemblyBuildNumber(),
+            Utils.GetAssemblyTimestamp());
+        Logger.LogDebug(
+            "OPC UA SDK informational version: {Version}",
+            Utils.GetAssemblySoftwareVersion());
+
+        using var host = CreateHostBuilder(args);
+        if (Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh)
+        {
+            StartWebServer(host);
+        }
 
         try
         {
@@ -124,7 +132,23 @@ public class OpcPlcServer
 
         Logger.LogInformation("OPC UA server exiting ...");
     }
-
+    public void ConfigureTelemetry()
+    {
+        // Configure OpenTelemetry Tracing
+        using var tracerProvider = Sdk.CreateTracerProviderBuilder()
+            .AddAspNetCoreInstrumentation()
+            .AddSource(EndpointBase.ActivitySourceName)
+            .AddSource("test-source")
+            .SetResourceBuilder(ResourceBuilder.CreateDefault()
+                .AddTelemetrySdk() // Adds information(name, version, language) about the SDK that's used to collect telemetry.
+                .AddService("OpcPlc", "OpcPlc", "1.0.0")) // (Program.OpcPlcServer.Config.ProgramName))
+            .AddOtlpExporter(opt => {
+                opt.Endpoint = new Uri(Program.OpcPlcServer.Config.OtlpEndpointUri);
+                opt.Protocol = OtlpExportProtocol.Grpc;
+            })
+            .AddConsoleExporter()
+            .Build();
+    }
     /// <summary>
     /// Restart the PLC server and simulation.
     /// </summary>
@@ -169,39 +193,24 @@ public class OpcPlcServer
     /// <summary>
     /// Start web server to host pn.json.
     /// </summary>
-    private void StartWebServer(string[] args)
+    private void StartWebServer(IHost host)
     {
         try
-        {  
-            var builder = WebApplication.CreateBuilder(args);
+        {
+            host.Start();
 
-            builder.Services.AddControllers();
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddAuthorization();
-            builder.Services.AddOpenTelemetry()
-                .ConfigureResource(resource => resource.AddService("Opc-Plc")
-                                                       .AddTelemetrySdk())
-                .WithTracing(tracing => tracing
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddSource(EndpointBase.ActivitySourceName)
-                    .AddOtlpExporter(opt => {
-                        opt.Protocol = OtlpExportProtocol.Grpc;
-                        opt.Endpoint = new Uri(Config.OtlpEndpointUri);
-                        opt.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = Config.OtlpExportInterval;
-                    }));
-
-            builder.WebHost.UseUrls($"http://*:{Config.WebServerPort}");
-            builder.WebHost.UseContentRoot(Directory.GetCurrentDirectory());
-
-            var app = builder.Build();
-            app.UseHttpsRedirection();
-            app.UseAuthorization();
-            app.MapControllers();
-
-            app.RunAsync();
-
-            Logger.LogInformation("Web server started on port {webServerPort}", Config.WebServerPort);
+            if (Config.ShowPublisherConfigJsonIp)
+            {
+                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{GetIpAddress()}:{Config.WebServerPort}/{Config.PnJson}");
+            }
+            else if (Config.ShowPublisherConfigJsonPh)
+            {
+                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{Config.OpcUa.Hostname}:{Config.WebServerPort}/{Config.PnJson}");
+            }
+            else
+            {
+                Logger.LogInformation("Web server started on port {webServerPort}", Config.WebServerPort);
+            }
         }
         catch (Exception e)
         {
