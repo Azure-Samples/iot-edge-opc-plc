@@ -68,7 +68,7 @@ public class Startup
             .AddOtlpExporter(opt => {
                 opt.Endpoint = new Uri(Program.OpcPlcServer.Config.OtlpEndpointUri);
                 opt.Protocol = OtlpExportProtocol.Grpc;
-                opt.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = Program.OpcPlcServer.Config.OtlpExportInterval.Milliseconds;
+                opt.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = (int)Program.OpcPlcServer.Config.OtlpExportInterval.TotalMilliseconds;
             })
             .Build();
     }
