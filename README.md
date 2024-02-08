@@ -328,6 +328,18 @@ Options:
                              the max length of a string OPC can transmit/
                                receive.
                                Default: 4194304
+      --otlpee, --otlpendpoint=VALUE
+                             the endpoint URI to which the OTLP exporter is
+                               going to send traces.
+                               Default:
+      --otlpei, --otlpexportinterval=VALUE
+                             the interval for exporting OTLP information in
+                               seconds.
+                               Default: 00:01:00
+      --otlpep, --otlpexportprotocol=VALUE
+                             the protocol for exporting OTLP information.
+                               (allowed values: grpc, protobuf).
+                               Default: grpc
       --lr, --ldsreginterval=VALUE
                              the LDS(-ME) registration interval in ms. If 0,
                                then the registration is disabled.
@@ -358,7 +370,8 @@ Options:
                                Default: 2000
       --at, --appcertstoretype=VALUE
                              the own application cert store type.
-                               (allowed values: Directory, X509Store, FlatDirectory)
+                               (allowed values: Directory, X509Store,
+                               FlatDirectory)
                                Default: 'Directory'
       --ap, --appcertstorepath=VALUE
                              the path where the own application cert should be
@@ -522,7 +535,8 @@ Options:
                                Double|Bool|UIntArray).
                                Default: 1
       --fsi, --fastnodesamplinginterval=VALUE
-                             rate in milliseconds for pn.json client to sample fast nodes.
+                             rate in milliseconds for pn.json client to sample
+                               fast nodes.
                                Default: 0
       --vfr, --veryfastrate=VALUE
                              rate in milliseconds to change fast nodes.
@@ -560,7 +574,8 @@ Options:
                                Double|Bool|UIntArray).
                                Default: 1
       --ssi, --slownodesamplinginterval=VALUE
-                             rate in milliseconds for pn.json client to sample slow nodes.
+                             rate in milliseconds for pn.json client to sample
+                               slow nodes.
                                Default: 0
       --ns, --nospikes       do not generate spike data.
                                Default: False
