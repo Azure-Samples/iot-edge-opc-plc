@@ -330,7 +330,7 @@ Options:
                                Default: 4194304
       --otlpee, --otlpendpoint=VALUE
                              the endpoint URI to which the OTLP exporter is
-                               going to send traces.
+                               going to send information.
                                Default: ''
       --otlpei, --otlpexportinterval=VALUE
                              the interval for exporting OTLP information in

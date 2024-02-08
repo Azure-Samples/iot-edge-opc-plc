@@ -74,7 +74,7 @@ public static class CliOptions
             },
 
             // OTLP Exporter Configuration
-            { "otlpee|otlpendpoint=", $"the endpoint URI to which the OTLP exporter is going to send traces.\nDefault: '{config.OtlpEndpointUri}'", (s) => config.OtlpEndpointUri = s },
+            { "otlpee|otlpendpoint=", $"the endpoint URI to which the OTLP exporter is going to send information.\nDefault: '{config.OtlpEndpointUri}'", (s) => config.OtlpEndpointUri = s },
             { "otlpei|otlpexportinterval=", $"the interval for exporting OTLP information in seconds.\nDefault: {config.OtlpExportInterval.TotalSeconds}", (uint i) => config.OtlpExportInterval = TimeSpan.FromSeconds(i) },
             { "otlpep|otlpexportprotocol=", $"the protocol for exporting OTLP information.\n(allowed values: grpc, protobuf).\nDefault: {config.OtlpExportProtocol}", (string s) => config.OtlpExportProtocol = s },
 
