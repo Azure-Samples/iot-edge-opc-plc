@@ -110,6 +110,11 @@ public class OpcPlcServer
             "OPC UA SDK informational version: {Version}",
             Utils.GetAssemblySoftwareVersion());
 
+        if (Program.OpcPlcServer.Config.OtlpEndpointUri is not null)
+        {
+            OtelHelper.ConfigureOpenTelemetryTracing(Config.ProgramName, Config.OtlpEndpointUri, Config.OtlpExportProtocol, Config.OtlpExportInterval);
+        }
+
         using var host = CreateHostBuilder(args);
         if (Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh)
         {

@@ -24,12 +24,10 @@ public class Startup
     public IConfiguration Configuration { get; }
 
     // This method gets called by the runtime. Use this method to add services to the container.
+#pragma warning disable IDE0060 // Remove unused parameter
     public void ConfigureServices(IServiceCollection services)
+#pragma warning restore IDE0060 // Remove unused parameter
     {
-        if (Program.OpcPlcServer.Config.OtlpEndpointUri is not null)
-        {
-            ConfigureOpenTelemetryTracing();
-        }
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -54,23 +52,5 @@ public class Startup
                 context.Response.StatusCode = 404;
             }
         });
-    }
-
-    // This method configures OpenTelemetry tracing.
-    public void ConfigureOpenTelemetryTracing()
-    {
-        _ = Sdk.CreateTracerProviderBuilder()
-            .AddAspNetCoreInstrumentation()
-            .AddSource(EndpointBase.ActivitySourceName)
-            .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                .AddService(Program.OpcPlcServer.Config.ProgramName))
-            .AddOtlpExporter(opt => {
-                opt.Endpoint = new Uri(Program.OpcPlcServer.Config.OtlpEndpointUri);
-                opt.Protocol = Program.OpcPlcServer.Config.OtlpExportProtocol == "protobuf"
-                    ? OtlpExportProtocol.HttpProtobuf
-                    : OtlpExportProtocol.Grpc;
-                opt.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = (int)Program.OpcPlcServer.Config.OtlpExportInterval.TotalMilliseconds;
-            })
-            .Build();
     }
 }
