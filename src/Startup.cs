@@ -26,7 +26,7 @@ public class Startup
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-        if (Program.OpcPlcServer.Config.OtlpEnabled)
+        if (Program.OpcPlcServer.Config.OtlpEndpointUri is not null)
         {
             ConfigureOpenTelemetryTracing();
         }

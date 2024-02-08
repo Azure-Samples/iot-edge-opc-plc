@@ -37,14 +37,9 @@ public class OpcPlcConfiguration
     public string DefaultPassword { get; set; } = "password";
 
     /// <summary>
-    /// Open Telemetry enabled.
-    /// </summary>
-    public bool OtlpEnabled { get; set; } = false;
-
-    /// <summary>
     /// Gets or sets OTLP reporting endpoint URI.
     /// </summary>
-    public string OtlpEndpointUri { get; set; } = "http://localhost:4317";
+    public string OtlpEndpointUri { get; set; } // e.g. "http://localhost:4317"
 
     /// <summary>
     /// Gets or sets a the export interval in seconds.
