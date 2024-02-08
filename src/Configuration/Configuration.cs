@@ -1,5 +1,6 @@
 namespace OpcPlc.Configuration;
 
+using OpenTelemetry.Exporter;
 using System;
 
 public class OpcPlcConfiguration
@@ -34,6 +35,21 @@ public class OpcPlcConfiguration
     /// Default user password.
     /// </summary>
     public string DefaultPassword { get; set; } = "password";
+
+    /// <summary>
+    /// Gets or sets OTLP reporting endpoint URI.
+    /// </summary>
+    public string OtlpEndpointUri { get; set; } // e.g. "http://localhost:4317"
+
+    /// <summary>
+    /// Gets or sets the OTLP export interval in seconds.
+    /// </summary>
+    public TimeSpan OtlpExportInterval { get; set; } = TimeSpan.FromSeconds(60);
+
+    // <summary>
+    /// Gets or sets the OTLP export protocol: grpc, protobuf.
+    /// </summary>
+    public string OtlpExportProtocol { get; set; } = "grpc";
 
     /// <summary>
     /// Show OPC Publisher configuration file using IP address as EndpointUrl.

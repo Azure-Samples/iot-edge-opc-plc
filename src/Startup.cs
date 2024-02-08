@@ -1,12 +1,18 @@
 namespace OpcPlc;
 
-using System.IO;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Opc.Ua;
+using OpenTelemetry;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using System;
+using System.IO;
 
 public class Startup
 {
@@ -33,8 +39,7 @@ public class Startup
         }
 
         // Serve pn.json
-        app.Run(async context =>
-        {
+        app.Run(async context => {
             if (context.Request.Method == "GET" &&
                 context.Request.Path == (Program.OpcPlcServer.Config.PnJson[0] != '/' ? "/" : string.Empty) + Program.OpcPlcServer.Config.PnJson &&
                 File.Exists(Program.OpcPlcServer.Config.PnJson))

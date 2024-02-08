@@ -57,7 +57,7 @@ public static class CliOptions
             { "ei|eventinstances=", $"number of event instances.\nDefault: {plcSimulation.EventInstanceCount}", (uint i) => plcSimulation.EventInstanceCount = i },
             { "er|eventrate=", $"rate in milliseconds to send events.\nDefault: {plcSimulation.EventInstanceRate}", (uint i) => plcSimulation.EventInstanceRate = i },
 
-            // OPC configuration
+            // OPC UA configuration
             { "pn|portnum=", $"the server port of the OPC server endpoint.\nDefault: {config.OpcUa.ServerPort}", (ushort i) => config.OpcUa.ServerPort = i },
             { "op|path=", $"the endpoint URL path part of the OPC server endpoint.\nDefault: '{config.OpcUa.ServerPath}'", (s) => config.OpcUa.ServerPath = s },
             { "ph|plchostname=", $"the fully-qualified hostname of the PLC.\nDefault: {config.OpcUa.Hostname}", (s) => config.OpcUa.Hostname = s },
@@ -72,6 +72,12 @@ public static class CliOptions
                     }
                 }
             },
+
+            // OTLP Exporter Configuration
+            { "otlpee|otlpendpoint=", $"the endpoint URI to which the OTLP exporter is going to send information.\nDefault: '{config.OtlpEndpointUri}'", (s) => config.OtlpEndpointUri = s },
+            { "otlpei|otlpexportinterval=", $"the interval for exporting OTLP information in seconds.\nDefault: {config.OtlpExportInterval.TotalSeconds}", (uint i) => config.OtlpExportInterval = TimeSpan.FromSeconds(i) },
+            { "otlpep|otlpexportprotocol=", $"the protocol for exporting OTLP information.\n(allowed values: grpc, protobuf).\nDefault: {config.OtlpExportProtocol}", (string s) => config.OtlpExportProtocol = s },
+
             { "lr|ldsreginterval=", $"the LDS(-ME) registration interval in ms. If 0, then the registration is disabled.\nDefault: {config.OpcUa.LdsRegistrationInterval}", (int i) => {
                     if (i >= 0)
                     {
