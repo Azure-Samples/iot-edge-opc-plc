@@ -1,7 +1,5 @@
 namespace OpcPlc;
 
-using System;
-using System.IO;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -13,6 +11,8 @@ using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using System;
+using System.IO;
 
 public class Startup
 {
@@ -41,8 +41,7 @@ public class Startup
         }
 
         // Serve pn.json
-        app.Run(async context =>
-        {
+        app.Run(async context => {
             if (context.Request.Method == "GET" &&
                 context.Request.Path == (Program.OpcPlcServer.Config.PnJson[0] != '/' ? "/" : string.Empty) + Program.OpcPlcServer.Config.PnJson &&
                 File.Exists(Program.OpcPlcServer.Config.PnJson))
@@ -60,7 +59,7 @@ public class Startup
     // This method configures OpenTelemetry tracing.
     public void ConfigureOpenTelemetryTracing()
     {
-        var tracerProvider = Sdk.CreateTracerProviderBuilder()
+        _ = Sdk.CreateTracerProviderBuilder()
             .AddAspNetCoreInstrumentation()
             .AddSource(EndpointBase.ActivitySourceName)
             .SetResourceBuilder(ResourceBuilder.CreateDefault()
