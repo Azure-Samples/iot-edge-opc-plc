@@ -47,12 +47,12 @@ public class SpecialCharNamePluginNode(TimeService timeService, ILogger logger) 
 
     private void AddNodes(FolderState folder)
     {
-        string SpecialChars = HttpUtility.HtmlDecode(@"&quot;!&#167;$%&amp;/()=?`&#180;\+~*&#39;#_-:.;,&lt;&gt;|@^&#176;€&#181;{[]}");
+        string specialChars = HttpUtility.HtmlDecode(@"&quot;!&#167;$%&amp;/()=?`&#180;\+~*&#39;#_-:.;,&lt;&gt;|@^&#176;€&#181;{[]}");
 
         BaseDataVariableState variable = _plcNodeManager.CreateBaseVariable(
             folder,
-            path: "Special_" + SpecialChars,
-            name: SpecialChars,
+            path: "Special_" + specialChars,
+            name: specialChars,
             new NodeId((uint)BuiltInType.UInt32),
             ValueRanks.Scalar,
             AccessLevels.CurrentReadOrWrite,

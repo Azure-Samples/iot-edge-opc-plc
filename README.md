@@ -216,7 +216,7 @@ The option `--dalm=<file>` enables deterministic testing of Alarms and Condition
 More information about this feature can be found [here](deterministic-alarms.md).
 
 ## Other features
-- Node with special characters in name and NodeId:
+- Node with special characters in name and NodeId
 - Node with long ID (3950 bytes)
 - Nodes with large values (10/50 kB string, 100 kB StringArray, 200 kB ByteArray)
 - Nodes for testing all datatypes, arrays, methods, permissions, etc. The ReferenceNodeManager of the [OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard) is used for this purpose.
@@ -226,7 +226,7 @@ More information about this feature can be found [here](deterministic-alarms.md)
   - `> 0`: Slow and Fast nodes are updated the given number of times, then they stop being updated (the value of the configuration node is decremented at every update).
 - Nodes with deterministic random GUIDs as node IDs: `--gn=<number_of_nodes>`
 - Node with opaque identifier (free-format byte string)
-- Nodes with 1 kB (ByteString) values. The first byte cycles from 0 to 255 in a configurable rate in ms. The values are deterministic but scrambled to ensure that they are not efficiently compressed.
+- Nodes with 1 kB (ByteString) values: `--vf1k`. The first byte cycles from 0 to 255 in a configurable rate in ms: `--vf1kr`. The values are deterministic but scrambled to ensure that they are not efficiently compressed.
 - Load binary *.PredefinedNodes.uanodes file(s) compiled from an XML NodeSet: `--unf=<PredefinedNodes_uanodes>`
 - Load *.NodeSet2.xml file(s): `--ns2=<NodeSet2_xml>`
 
