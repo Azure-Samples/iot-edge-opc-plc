@@ -331,11 +331,11 @@ Options:
       --otlpee, --otlpendpoint=VALUE
                              the endpoint URI to which the OTLP exporter is
                                going to send traces.
-                               Default:
+                               Default: ''
       --otlpei, --otlpexportinterval=VALUE
                              the interval for exporting OTLP information in
                                seconds.
-                               Default: 00:01:00
+                               Default: 60
       --otlpep, --otlpexportprotocol=VALUE
                              the protocol for exporting OTLP information.
                                (allowed values: grpc, protobuf).

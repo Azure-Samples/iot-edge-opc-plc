@@ -74,8 +74,8 @@ public static class CliOptions
             },
 
             // OTLP Exporter Configuration
-            { "otlpee|otlpendpoint=", $"the endpoint URI to which the OTLP exporter is going to send traces.\nDefault: {config.OtlpEndpointUri}", (s) => config.OtlpEndpointUri = s },
-            { "otlpei|otlpexportinterval=", $"the interval for exporting OTLP information in seconds.\nDefault: {config.OtlpExportInterval}", (uint i) => config.OtlpExportInterval = TimeSpan.FromSeconds(i) },
+            { "otlpee|otlpendpoint=", $"the endpoint URI to which the OTLP exporter is going to send traces.\nDefault: '{config.OtlpEndpointUri}'", (s) => config.OtlpEndpointUri = s },
+            { "otlpei|otlpexportinterval=", $"the interval for exporting OTLP information in seconds.\nDefault: {config.OtlpExportInterval.TotalSeconds}", (uint i) => config.OtlpExportInterval = TimeSpan.FromSeconds(i) },
             { "otlpep|otlpexportprotocol=", $"the protocol for exporting OTLP information.\n(allowed values: grpc, protobuf).\nDefault: {config.OtlpExportProtocol}", (string s) => config.OtlpExportProtocol = s },
 
             { "lr|ldsreginterval=", $"the LDS(-ME) registration interval in ms. If 0, then the registration is disabled.\nDefault: {config.OpcUa.LdsRegistrationInterval}", (int i) => {
