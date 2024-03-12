@@ -30,6 +30,7 @@ public class TimeService
             AutoReset = true,
             Enabled = true
         };
+
         timer.Elapsed += callback;
         return timer;
     }
@@ -52,6 +53,7 @@ public class TimeService
             Interval = intervalInMilliseconds,
             AutoReset = true
         };
+
         timer.Elapsed += callback;
         timer.Enabled = true;
         return timer;
@@ -76,7 +78,7 @@ public class TimeService
     /// or methods from the <see cref="Timer"/> class into the
     /// <see cref="ITimer"/> interface.
     /// </summary>
-    private class TimerAdapter : Timer, ITimer
+    private sealed class TimerAdapter : Timer, ITimer
     {
     }
 }
@@ -225,7 +227,7 @@ public class FastTimer : ITimer
 
         while (true)
         {
-            var elapsed = sw.ElapsedTicks * TickFrequency;
+            var elapsed = sw.ElapsedTicks * _tickFrequency;
             var diff = nextTrigger - elapsed;
             if (diff <= 0f)
                 break;
@@ -264,7 +266,7 @@ public class FastTimer : ITimer
         Interlocked.Exchange(ref _isRunning, 0);
     }
 
-    private static readonly float TickFrequency = 1000f / Stopwatch.Frequency;
+    private static readonly float _tickFrequency = 1000f / Stopwatch.Frequency;
 
     private bool _isEnabled = false;
     private int _isRunning = 0;
