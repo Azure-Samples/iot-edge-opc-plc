@@ -78,9 +78,9 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         // configure OPC UA server
         var serverBuilder = application.Build(applicationUri, _config.OpcUa.ProductUri)
                 .SetTransportQuotas(transportQuotas)
-                .AsServer(baseAddresses: new string[] {
+                .AsServer(baseAddresses: [
                     $"opc.tcp://{_config.OpcUa.Hostname}:{_config.OpcUa.ServerPort}{_config.OpcUa.ServerPath}",
-                },
+                ],
                 alternateBaseAddresses.ToArray())
                 .AddSignAndEncryptPolicies()
                 .AddSignPolicies();

@@ -259,12 +259,12 @@ namespace AlarmCondition
         /// <summary>
         /// The responses used with the dialog condition.
         /// </summary>
-        private readonly LocalizedText[] s_ResponseOptions = new LocalizedText[]
-        {
+        private readonly LocalizedText[] s_ResponseOptions =
+        [
             "Online",
             "Offline",
             "No Change"
-        };
+        ];
 
         /// <summary>
         /// Creates a new alarm for the source.
