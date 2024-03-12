@@ -57,13 +57,13 @@ public partial class PlcServer
         }
 
         // user with permission to configure server
-        if (userName == _config.AdminUser && password == _config.AdminPassword)
+        if (userName == Config.AdminUser && password == Config.AdminPassword)
         {
             return new SystemConfigurationIdentity(new UserIdentity(userNameToken));
         }
 
         // standard users for CTT verification
-        if (!(userName == _config.DefaultUser && password == _config.DefaultPassword))
+        if (!(userName == Config.DefaultUser && password == Config.DefaultPassword))
         {
             // construct translation object with default text.
             var info = new TranslationInfo(

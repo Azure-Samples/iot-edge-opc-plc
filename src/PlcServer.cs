@@ -31,17 +31,17 @@ public partial class PlcServer : StandardServer
 
     public DeterministicAlarmsNodeManager DeterministicAlarmsNodeManager { get; set; }
 
-    public readonly OpcPlcConfiguration _config;
-    public readonly PlcSimulation _plcSimulation;
-    public readonly TimeService _timeService;
+    public readonly OpcPlcConfiguration Config;
+    public readonly PlcSimulation PlcSimulation;
+    public readonly TimeService TimeService;
     private readonly ImmutableList<IPluginNodes> _pluginNodes;
     private readonly ILogger _logger;
 
     public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
-        _config = config;
-        _plcSimulation = plcSimulation;
-        _timeService = timeService;
+        Config = config;
+        PlcSimulation = plcSimulation;
+        TimeService = timeService;
         _pluginNodes = pluginNodes;
         _logger = logger;
     }
@@ -68,36 +68,36 @@ public partial class PlcServer : StandardServer
 
         PlcNodeManager = new PlcNodeManager(
             server,
-            _config,
+            Config,
             appConfig: configuration,
-            _timeService,
-            _plcSimulation,
+            TimeService,
+            PlcSimulation,
             _pluginNodes,
             _logger);
 
         nodeManagers.Add(PlcNodeManager);
 
-        if (_plcSimulation.AddSimpleEventsSimulation)
+        if (PlcSimulation.AddSimpleEventsSimulation)
         {
             SimpleEventsNodeManager = new SimpleEventsNodeManager(server, configuration);
             nodeManagers.Add(SimpleEventsNodeManager);
         }
 
-        if (_plcSimulation.AddAlarmSimulation)
+        if (PlcSimulation.AddAlarmSimulation)
         {
             AlarmNodeManager = new AlarmConditionServerNodeManager(server, configuration);
             nodeManagers.Add(AlarmNodeManager);
         }
 
-        if (_plcSimulation.AddReferenceTestSimulation)
+        if (PlcSimulation.AddReferenceTestSimulation)
         {
             SimulationNodeManager = new ReferenceNodeManager(server, configuration);
             nodeManagers.Add(SimulationNodeManager);
         }
 
-        if (_plcSimulation.DeterministicAlarmSimulationFile != null)
+        if (PlcSimulation.DeterministicAlarmSimulationFile != null)
         {
-            var scriptFileName = _plcSimulation.DeterministicAlarmSimulationFile;
+            var scriptFileName = PlcSimulation.DeterministicAlarmSimulationFile;
             if (string.IsNullOrWhiteSpace(scriptFileName))
             {
                 string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";
@@ -111,7 +111,7 @@ public partial class PlcServer : StandardServer
                 throw new Exception(errorMessage);
             }
 
-            DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, _timeService, scriptFileName, _logger);
+            DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, scriptFileName, _logger);
             nodeManagers.Add(DeterministicAlarmsNodeManager);
         }
 

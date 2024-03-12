@@ -24,14 +24,14 @@ public sealed class SyslogFormatter : ConsoleFormatter, IDisposable
     /// <summary>
     /// Map of <see cref="LogLevel"/> to syslog severity.
     /// </summary>
-    private static readonly string[] _syslogMap = new string[] {
+    private static readonly string[] _syslogMap = [
         /* Trace */ "<7>",
         /* Debug */ "<7>",
         /* Info  */ "<6>",
         /* Warn */  "<4>",
         /* Error */ "<3>",
         /* Crit  */ "<3>",
-        };
+        ];
 
     private readonly IDisposable _optionsReloadToken;
 

@@ -20,8 +20,7 @@ public sealed class DiNodeManager : CustomNodeManager2
         SystemContext.NodeIdFactory = this;
 
         // Set one namespace for the type model and one namespace for dynamically created nodes.
-        string[] namespaceUrls = new string[1];
-        namespaceUrls[0] = OpcPlc.Namespaces.DI;
+        string[] namespaceUrls = [OpcPlc.Namespaces.DI];
         SetNamespaces(namespaceUrls);
     }
 

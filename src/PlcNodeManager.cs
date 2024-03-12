@@ -16,7 +16,7 @@ public class PlcNodeManager : CustomNodeManager2
     private readonly ILogger _logger;
 
     public PlcNodeManager(IServerInternal server, OpcPlcConfiguration config, ApplicationConfiguration appConfig, TimeService timeService, PlcSimulation plcSimulation, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
-        : base(server, appConfig, new string[] { Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance, })
+        : base(server, appConfig, [Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance,])
     {
         _config = config;
         _timeService = timeService;
