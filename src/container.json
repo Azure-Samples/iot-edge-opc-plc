@@ -1,4 +1,8 @@
 {
-    "name": "iotedge/opc-plc",
-    "buildAlways": true
+  "name": "iotedge/opc-plc",
+  "buildAlways": true,
+  "exposes": [
+    "8080",
+    "50000"
+  ]
 }
