@@ -53,8 +53,7 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
         SystemContext.NodeIdFactory = this;
 
         // set one namespace for the type model and one names for dynamically created nodes.
-        string[] namespaceUrls = new string[1];
-        namespaceUrls[0] = OpcPlc.Namespaces.OpcPlcSimpleEvents;
+        string[] namespaceUrls = [OpcPlc.Namespaces.OpcPlcSimpleEvents];
         SetNamespaces(namespaceUrls);
     }
 

@@ -46,7 +46,7 @@ namespace OpcPlc.Reference
         /// Initializes the node manager.
         /// </summary>
         public ReferenceNodeManager(IServerInternal server, ApplicationConfiguration configuration)
-            : base(server, configuration, new string[] { OpcPlc.Namespaces.OpcPlcReferenceTest })
+            : base(server, configuration, [OpcPlc.Namespaces.OpcPlcReferenceTest])
         {
             SystemContext.NodeIdFactory = this;
 
@@ -537,7 +537,7 @@ namespace OpcPlc.Reference
 
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "Boolean", "Boolean", BuiltInType.Boolean, ValueRanks.OneDimension, new Boolean[] { true, false, true, false, true, false, true, false, true });
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "Byte", "Byte", BuiltInType.Byte, ValueRanks.OneDimension, new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
-                    CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "ByteString", "ByteString", BuiltInType.ByteString, ValueRanks.OneDimension, new Byte[][] { new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, new Byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 } });
+                    CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "ByteString", "ByteString", BuiltInType.ByteString, ValueRanks.OneDimension, new Byte[][] { [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] });
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "DateTime", "DateTime", BuiltInType.DateTime, ValueRanks.OneDimension, new DateTime[] { DateTime.MinValue, DateTime.MaxValue, DateTime.MinValue, DateTime.MaxValue, DateTime.MinValue, DateTime.MaxValue, DateTime.MinValue, DateTime.MaxValue, DateTime.MinValue });
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "Double", "Double", BuiltInType.Double, ValueRanks.OneDimension, new double[] { 9.00001d, 9.0002d, 9.003d, 9.04d, 9.5d, 9.06d, 9.007d, 9.008d, 9.0009d });
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "Duration", "Duration", DataTypeIds.Duration, ValueRanks.OneDimension, new double[] { 9.00001d, 9.0002d, 9.003d, 9.04d, 9.5d, 9.06d, 9.007d, 9.008d, 9.0009d }, null);
@@ -592,21 +592,21 @@ namespace OpcPlc.Reference
                     const string daMultiStateValueDiscrete = "DataAccess_MultiStateValueDiscreteType_";
 
                     // Add our Nodes to the folder, and specify their customized discrete enumerations
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "001", "001", new string[] { "open", "closed", "jammed" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "002", "002", new string[] { "red", "green", "blue", "cyan" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "003", "003", new string[] { "lolo", "lo", "normal", "hi", "hihi" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "004", "004", new string[] { "left", "right", "center" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "005", "005", new string[] { "circle", "cross", "triangle" });
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "001", "001", ["open", "closed", "jammed"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "002", "002", ["red", "green", "blue", "cyan"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "003", "003", ["lolo", "lo", "normal", "hi", "hihi"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "004", "004", ["left", "right", "center"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "005", "005", ["circle", "cross", "triangle"]);
 
                     // Add our Nodes to the folder and specify varying data types
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "Byte", "Byte", DataTypeIds.Byte, new string[] { "open", "closed", "jammed" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "Int16", "Int16", DataTypeIds.Int16, new string[] { "red", "green", "blue", "cyan" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "Int32", "Int32", DataTypeIds.Int32, new string[] { "lolo", "lo", "normal", "hi", "hihi" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "Int64", "Int64", DataTypeIds.Int64, new string[] { "left", "right", "center" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "SByte", "SByte", DataTypeIds.SByte, new string[] { "open", "closed", "jammed" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "UInt16", "UInt16", DataTypeIds.UInt16, new string[] { "red", "green", "blue", "cyan" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "UInt32", "UInt32", DataTypeIds.UInt32, new string[] { "lolo", "lo", "normal", "hi", "hihi" });
-                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "UInt64", "UInt64", DataTypeIds.UInt64, new string[] { "left", "right", "center" });
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "Byte", "Byte", DataTypeIds.Byte, ["open", "closed", "jammed"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "Int16", "Int16", DataTypeIds.Int16, ["red", "green", "blue", "cyan"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "Int32", "Int32", DataTypeIds.Int32, ["lolo", "lo", "normal", "hi", "hihi"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "Int64", "Int64", DataTypeIds.Int64, ["left", "right", "center"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "SByte", "SByte", DataTypeIds.SByte, ["open", "closed", "jammed"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "UInt16", "UInt16", DataTypeIds.UInt16, ["red", "green", "blue", "cyan"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "UInt32", "UInt32", DataTypeIds.UInt32, ["lolo", "lo", "normal", "hi", "hihi"]);
+                    CreateMultiStateValueDiscreteItemVariable(multiStateValueDiscreteFolder, daMultiStateValueDiscrete + "UInt64", "UInt64", DataTypeIds.UInt64, ["left", "right", "center"]);
 
                     #endregion
 
@@ -854,11 +854,11 @@ namespace OpcPlc.Reference
                     addMethod.InputArguments.DataType = DataTypeIds.Argument;
                     addMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    addMethod.InputArguments.Value = new Argument[]
-                    {
+                    addMethod.InputArguments.Value =
+                    [
                         new Argument() { Name = "Float value", Description = "Float value",  DataType = DataTypeIds.Float, ValueRank = ValueRanks.Scalar },
                         new Argument() { Name = "UInt32 value", Description = "UInt32 value",  DataType = DataTypeIds.UInt32, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     // set output arguments
                     addMethod.OutputArguments = new PropertyState<Argument[]>(addMethod);
@@ -870,10 +870,10 @@ namespace OpcPlc.Reference
                     addMethod.OutputArguments.DataType = DataTypeIds.Argument;
                     addMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    addMethod.OutputArguments.Value = new Argument[]
-                    {
+                    addMethod.OutputArguments.Value =
+                    [
                         new Argument() { Name = "Add Result", Description = "Add Result",  DataType = DataTypeIds.Float, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     addMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnAddCall);
                     #endregion
@@ -890,11 +890,11 @@ namespace OpcPlc.Reference
                     multiplyMethod.InputArguments.DataType = DataTypeIds.Argument;
                     multiplyMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    multiplyMethod.InputArguments.Value = new Argument[]
-                    {
+                    multiplyMethod.InputArguments.Value =
+                    [
                         new Argument() { Name = "Int16 value", Description = "Int16 value",  DataType = DataTypeIds.Int16, ValueRank = ValueRanks.Scalar },
                         new Argument() { Name = "UInt16 value", Description = "UInt16 value",  DataType = DataTypeIds.UInt16, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     // set output arguments
                     multiplyMethod.OutputArguments = new PropertyState<Argument[]>(multiplyMethod);
@@ -906,10 +906,10 @@ namespace OpcPlc.Reference
                     multiplyMethod.OutputArguments.DataType = DataTypeIds.Argument;
                     multiplyMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    multiplyMethod.OutputArguments.Value = new Argument[]
-                    {
+                    multiplyMethod.OutputArguments.Value =
+                    [
                         new Argument() { Name = "Multiply Result", Description = "Multiply Result",  DataType = DataTypeIds.Int32, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     multiplyMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnMultiplyCall);
                     #endregion
@@ -926,11 +926,11 @@ namespace OpcPlc.Reference
                     divideMethod.InputArguments.DataType = DataTypeIds.Argument;
                     divideMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    divideMethod.InputArguments.Value = new Argument[]
-                    {
+                    divideMethod.InputArguments.Value =
+                    [
                         new Argument() { Name = "Int32 value", Description = "Int32 value",  DataType = DataTypeIds.Int32, ValueRank = ValueRanks.Scalar },
                         new Argument() { Name = "UInt16 value", Description = "UInt16 value",  DataType = DataTypeIds.UInt16, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     // set output arguments
                     divideMethod.OutputArguments = new PropertyState<Argument[]>(divideMethod);
@@ -942,10 +942,10 @@ namespace OpcPlc.Reference
                     divideMethod.OutputArguments.DataType = DataTypeIds.Argument;
                     divideMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    divideMethod.OutputArguments.Value = new Argument[]
-                    {
+                    divideMethod.OutputArguments.Value =
+                    [
                         new Argument() { Name = "Divide Result", Description = "Divide Result",  DataType = DataTypeIds.Float, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     divideMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnDivideCall);
                     #endregion
@@ -962,11 +962,11 @@ namespace OpcPlc.Reference
                     substractMethod.InputArguments.DataType = DataTypeIds.Argument;
                     substractMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    substractMethod.InputArguments.Value = new Argument[]
-                    {
+                    substractMethod.InputArguments.Value =
+                    [
                         new Argument() { Name = "Int16 value", Description = "Int16 value",  DataType = DataTypeIds.Int16, ValueRank = ValueRanks.Scalar },
                         new Argument() { Name = "Byte value", Description = "Byte value",  DataType = DataTypeIds.Byte, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     // set output arguments
                     substractMethod.OutputArguments = new PropertyState<Argument[]>(substractMethod);
@@ -978,10 +978,10 @@ namespace OpcPlc.Reference
                     substractMethod.OutputArguments.DataType = DataTypeIds.Argument;
                     substractMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    substractMethod.OutputArguments.Value = new Argument[]
-                    {
+                    substractMethod.OutputArguments.Value =
+                    [
                         new Argument() { Name = "Substract Result", Description = "Substract Result",  DataType = DataTypeIds.Int16, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     substractMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnSubstractCall);
                     #endregion
@@ -998,10 +998,10 @@ namespace OpcPlc.Reference
                     helloMethod.InputArguments.DataType = DataTypeIds.Argument;
                     helloMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    helloMethod.InputArguments.Value = new Argument[]
-                    {
+                    helloMethod.InputArguments.Value =
+                    [
                         new Argument() { Name = "String value", Description = "String value",  DataType = DataTypeIds.String, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     // set output arguments
                     helloMethod.OutputArguments = new PropertyState<Argument[]>(helloMethod);
@@ -1013,10 +1013,10 @@ namespace OpcPlc.Reference
                     helloMethod.OutputArguments.DataType = DataTypeIds.Argument;
                     helloMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    helloMethod.OutputArguments.Value = new Argument[]
-                    {
+                    helloMethod.OutputArguments.Value =
+                    [
                         new Argument() { Name = "Hello Result", Description = "Hello Result",  DataType = DataTypeIds.String, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     helloMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnHelloCall);
                     #endregion
@@ -1033,10 +1033,10 @@ namespace OpcPlc.Reference
                     inputMethod.InputArguments.DataType = DataTypeIds.Argument;
                     inputMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    inputMethod.InputArguments.Value = new Argument[]
-                    {
+                    inputMethod.InputArguments.Value =
+                    [
                         new Argument() { Name = "String value", Description = "String value",  DataType = DataTypeIds.String, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     inputMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnInputCall);
                     #endregion
@@ -1054,10 +1054,10 @@ namespace OpcPlc.Reference
                     outputMethod.OutputArguments.DataType = DataTypeIds.Argument;
                     outputMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
 
-                    outputMethod.OutputArguments.Value = new Argument[]
-                    {
+                    outputMethod.OutputArguments.Value =
+                    [
                         new Argument() { Name = "Output Result", Description = "Output Result",  DataType = DataTypeIds.String, ValueRank = ValueRanks.Scalar }
-                    };
+                    ];
 
                     outputMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnOutputCall);
                     #endregion

@@ -100,14 +100,14 @@ namespace AlarmCondition
             {
                 case "HighAlarm":
                 {
-                    alarm.Limits = new double[] { 80 };
+                    alarm.Limits = [80];
                     alarm.State |= UnderlyingSystemAlarmStates.High;
                     break;
                 }
 
                 case "HighLowAlarm":
                 {
-                    alarm.Limits = new double[] { 90, 70, 30, 10 };
+                    alarm.Limits = [90, 70, 30, 10];
                     alarm.State |= UnderlyingSystemAlarmStates.High;
                     break;
                 }

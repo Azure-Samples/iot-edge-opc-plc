@@ -341,8 +341,8 @@ public class SlowFastCommon
         return stepSize;
     }
 
-    private readonly (StatusCode, bool)[] BadStatusSequence = new (StatusCode, bool)[]
-    {
+    private readonly (StatusCode, bool)[] BadStatusSequence =
+    [
             ( StatusCodes.Good, true ),
             ( StatusCodes.Good, true ),
             ( StatusCodes.Good, true ),
@@ -353,5 +353,5 @@ public class SlowFastCommon
             ( StatusCodes.UncertainLastUsableValue, true),
             ( StatusCodes.BadDataLost, true),
             ( StatusCodes.BadNoCommunication, false)
-    };
+    ];
 }
