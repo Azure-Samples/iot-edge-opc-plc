@@ -13,7 +13,6 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System;
 using System.IO;
-using Prometheus.Client.DependencyInjection;
 
 public class Startup
 {
