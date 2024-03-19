@@ -1,4 +1,4 @@
-namespace OpcPlc.Extensions;
+﻿namespace OpcPlc.Extensions;
 
 using System.Threading;
 using System.Threading.Tasks;
