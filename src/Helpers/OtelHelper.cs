@@ -30,7 +30,7 @@ public static class OtelHelper
 
         _ = Sdk.CreateMeterProviderBuilder()
             .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                .AddService(serviceName).AddTelemetrySdk())
+                .AddService(DiagnosticsConfig.ServiceName).AddTelemetrySdk())
             .AddMeter(DiagnosticsConfig.Meter.Name)
             .AddRuntimeInstrumentation()
             .AddOtlpExporter((exporterOptions, metricsReaderOptions) => {
@@ -43,7 +43,6 @@ public static class OtelHelper
                 metricsReaderOptions.PeriodicExportingMetricReaderOptions = new PeriodicExportingMetricReaderOptions {
                     ExportIntervalMilliseconds = (int?)exportInterval.TotalMilliseconds };
             })
-            // .AddPrometheusExporter()//opt => opt.Url = new Uri("http://localhost:9184/metrics"))
             .Build();
     }
 }

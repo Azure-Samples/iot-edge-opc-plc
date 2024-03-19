@@ -9,7 +9,15 @@ using Microsoft.Extensions.Logging;
 
 public static class DiagnosticsConfig
 {
+    /// <summary>
+    /// The name of the service.
+    /// </summary>
     public const string ServiceName = "opc-plc";
+
+    /// <summary>
+    /// The meter for the service.
+    /// </summary>
+    public static readonly Meter Meter = new(ServiceName);
 
     private const string OPC_PLC_POD_COUNT_METRIC = "opc_plc_pod_count";
     private const string OPC_PLC_SESSION_COUNT_METRIC = "opc_plc_session_count";
@@ -94,9 +102,6 @@ public static class DiagnosticsConfig
         { "cluster",            CLUSTER_NAME ?? "cluster"       },
     };
 
-    public static readonly Meter Meter = new(ServiceName);
-
-    // private static readonly UpDownCounter<int> PodCount = Meter.CreateUpDownCounter<int>(OPC_PLC_POD_COUNT_METRIC);
     private static readonly UpDownCounter<int> SessionCount = Meter.CreateUpDownCounter<int>(OPC_PLC_SESSION_COUNT_METRIC);
     private static readonly UpDownCounter<int> SubscriptionCount = Meter.CreateUpDownCounter<int>(OPC_PLC_SUBSCRIPTION_COUNT_METRIC);
     private static readonly UpDownCounter<int> MonitoredItemCount = Meter.CreateUpDownCounter<int>(OPC_PLC_MONITORED_ITEM_COUNT_METRIC);
@@ -104,17 +109,22 @@ public static class DiagnosticsConfig
     private static readonly Counter<int> PublishedCountWithType = Meter.CreateCounter<int>(OPC_PLC_PUBLISHED_COUNT_WITH_TYPE_METRIC);
     private static readonly Counter<int> TotalErrors = Meter.CreateCounter<int>(OPC_PLC_TOTAL_ERRORS_METRIC);
 
-    private static readonly ObservableGauge<int> PodCountGauge = Meter.CreateObservableGauge<int>(OPC_PLC_POD_COUNT_METRIC, () =>
-    {
+    private static readonly ObservableGauge<int> PodCountGauge = Meter.CreateObservableGauge<int>(OPC_PLC_POD_COUNT_METRIC, () => {
         return new Measurement<int>(1, ConvertDictionaryToKeyVaultPairArray(BaseDimensions));
     });
 
+    /// <summary>
+    /// Add a session count.
+    /// </summary>
     public static void AddSessionCount(string sessionId, int delta = 1)
     {
         var dimensions = MergeWithBaseDimensions(new KeyValuePair<string, object>("session", sessionId));
         SessionCount.Add(delta, dimensions);
     }
 
+    /// <summary>
+    /// Add a subscription count.
+    /// </summary>
     public static void AddSubscriptionCount(string sessionId, string subscriptionId, int delta = 1)
     {
         var dimensions = MergeWithBaseDimensions(
@@ -124,6 +134,9 @@ public static class DiagnosticsConfig
         SubscriptionCount.Add(delta, dimensions);
     }
 
+    /// <summary>
+    /// Add a monitored item count.
+    /// </summary>
     public static void AddMonitoredItemCount(string sessionId, string subscriptionId, int delta = 1)
     {
         var dimensions = MergeWithBaseDimensions(
@@ -132,6 +145,9 @@ public static class DiagnosticsConfig
         MonitoredItemCount.Add(delta, dimensions);
     }
 
+    /// <summary>
+    /// Add a published count.
+    /// </summary>
     public static void AddPublishedCount(string sessionId, string subscriptionId, int dataPoints, int events)
     {
         var dimensions = ConvertDictionaryToKeyVaultPairArray(BaseDimensions);
@@ -152,6 +168,9 @@ public static class DiagnosticsConfig
         }
     }
 
+    /// <summary>
+    /// Record total errors.
+    /// </summary>
     public static void RecordTotalErrors(string operation, string errorType, int delta = 1)
     {
         var dimensions = MergeWithBaseDimensions(
@@ -160,12 +179,17 @@ public static class DiagnosticsConfig
         TotalErrors.Add(delta, dimensions);
     }
 
-
+    /// <summary>
+    /// Convert a dictionary to a key value pair array.
+    /// </summary>
     private static KeyValuePair<string, object>[] ConvertDictionaryToKeyVaultPairArray(IDictionary<string, object> dictionary)
     {
         return dictionary.Select(item => new KeyValuePair<string, object>(item.Key, item.Value)).ToArray();
     }
 
+    /// <summary>
+    /// Merge the base dimensions with the given dimensions.
+    /// </summary>
     private static KeyValuePair<string, object>[] MergeWithBaseDimensions(params KeyValuePair<string, object>[] items)
     {
         var newDimensions = new Dictionary<string, object>(BaseDimensions);
@@ -173,7 +197,6 @@ public static class DiagnosticsConfig
         {
             newDimensions[item.Key] = item.Value;
         }
-
         return ConvertDictionaryToKeyVaultPairArray(newDimensions);
     }
 }
