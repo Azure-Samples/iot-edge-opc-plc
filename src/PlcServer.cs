@@ -19,7 +19,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 
-using Meters = OpcPlc.DiagnosticsConfig;
+using Meters = OpcPlc.MetricsConfig;
 
 public partial class PlcServer : StandardServer
 {

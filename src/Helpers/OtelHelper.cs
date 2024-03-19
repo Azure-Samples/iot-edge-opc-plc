@@ -30,8 +30,8 @@ public static class OtelHelper
 
         _ = Sdk.CreateMeterProviderBuilder()
             .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                .AddService(DiagnosticsConfig.ServiceName).AddTelemetrySdk())
-            .AddMeter(DiagnosticsConfig.Meter.Name)
+                .AddService(MetricsConfig.ServiceName).AddTelemetrySdk())
+            .AddMeter(MetricsConfig.Meter.Name)
             .AddRuntimeInstrumentation()
             .AddOtlpExporter((exporterOptions, metricsReaderOptions) => {
                 exporterOptions.Endpoint = new Uri(exportEndpointUri);

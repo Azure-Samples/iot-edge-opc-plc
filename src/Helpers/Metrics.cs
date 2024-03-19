@@ -5,9 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
 
-using Microsoft.Extensions.Logging;
-
-public static class DiagnosticsConfig
+public static class MetricsConfig
 {
     /// <summary>
     /// The name of the service.
