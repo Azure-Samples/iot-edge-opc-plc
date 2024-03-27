@@ -220,7 +220,7 @@ public partial class PlcServer : StandardServer
         {
             var responseHeader = base.Read(requestHeader, maxAge, timestampsToReturn, nodesToRead, out results, out diagnosticInfos);
 
-            _logger.LogDebug("{function} completed successfully.", nameof(Read));
+            _logger.LogDebug("{function} completed successfully", nameof(Read));
 
             return responseHeader;
         }
