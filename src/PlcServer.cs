@@ -74,7 +74,7 @@ public partial class PlcServer : StandardServer
 
             Meters.AddSessionCount(sessionId.ToString());
 
-            _logger.LogDebug("{function} completed successfully with sesssionId: {sessionId}.", nameof(CreateSession), sessionId);
+            _logger.LogDebug("{function} completed successfully with sesssionId: {sessionId}", nameof(CreateSession), sessionId);
 
             return responseHeader;
         }
@@ -108,7 +108,7 @@ public partial class PlcServer : StandardServer
             Meters.AddSubscriptionCount(context.SessionId.ToString(), subscriptionId.ToString());
 
             _logger.LogDebug(
-                "{function} completed successfully with sessionId: {sessionId} and subscriptionId: {subscriptionId}.",
+                "{function} completed successfully with sessionId: {sessionId} and subscriptionId: {subscriptionId}",
                 nameof(CreateSubscription),
                 context.SessionId,
                 subscriptionId);
@@ -139,7 +139,7 @@ public partial class PlcServer : StandardServer
 
             Meters.AddMonitoredItemCount(context.SessionId.ToString(), subscriptionId.ToString(), itemsToCreate.Count);
 
-            _logger.LogDebug("{function} completed successfully with sessionId: {sessionId}, subscriptionId: {subscriptionId} and count: {count}.",
+            _logger.LogDebug("{function} completed successfully with sessionId: {sessionId}, subscriptionId: {subscriptionId} and count: {count}",
                 nameof(CreateMonitoredItems),
                 context.SessionId,
                 subscriptionId,
@@ -187,13 +187,13 @@ public partial class PlcServer : StandardServer
                 }
                 else
                 {
-                    Console.WriteLine("Unknown notification type");
+                    _logger.LogDebug("Unknown notification type: {notificationType}", x.Body.GetType().Name);
                 }
             });
 
             Meters.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), dataChanges, events);
 
-            _logger.LogDebug("{function} successfully with session: {sessionId} and subscriptionId: {subscriptionId}.",
+            _logger.LogDebug("{function} successfully with session: {sessionId} and subscriptionId: {subscriptionId}",
                 nameof(Publish),
                 context.SessionId,
                 subscriptionId);
@@ -238,7 +238,7 @@ public partial class PlcServer : StandardServer
         {
             var responseHeader = base.Write(requestHeader, nodesToWrite, out results, out diagnosticInfos);
 
-            _logger.LogDebug("{function} completed successfully.", nameof(Write));
+            _logger.LogDebug("{function} completed successfully", nameof(Write));
 
             return responseHeader;
         }

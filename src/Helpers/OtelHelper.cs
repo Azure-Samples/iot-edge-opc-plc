@@ -41,7 +41,8 @@ public static class OtelHelper
 
                 metricsReaderOptions.TemporalityPreference = MetricReaderTemporalityPreference.Cumulative;
                 metricsReaderOptions.PeriodicExportingMetricReaderOptions = new PeriodicExportingMetricReaderOptions {
-                    ExportIntervalMilliseconds = (int?)exportInterval.TotalMilliseconds };
+                    ExportIntervalMilliseconds = (int?)exportInterval.TotalMilliseconds
+                };
             })
             .Build();
     }
