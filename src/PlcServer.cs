@@ -203,7 +203,7 @@ public partial class PlcServer : StandardServer
         catch (Exception ex)
         {
             Meters.RecordTotalErrors(nameof(Publish), ex.GetType().ToString());
-            _logger.LogError(ex, "Error publishing.");
+            _logger.LogError(ex, "Error publishing");
             throw;
         }
     }
@@ -227,7 +227,7 @@ public partial class PlcServer : StandardServer
         catch (Exception ex)
         {
             Meters.RecordTotalErrors(nameof(Read), ex.GetType().ToString());
-            _logger.LogError(ex, "Error reading.");
+            _logger.LogError(ex, "Error reading");
             throw;
         }
     }
@@ -245,7 +245,7 @@ public partial class PlcServer : StandardServer
         catch (Exception ex)
         {
             Meters.RecordTotalErrors(nameof(Write), ex.GetType().ToString());
-            _logger.LogError(ex, "Error writing.");
+            _logger.LogError(ex, "Error writing");
             throw;
         }
     }
@@ -304,13 +304,13 @@ public partial class PlcServer : StandardServer
             var scriptFileName = PlcSimulation.DeterministicAlarmSimulationFile;
             if (string.IsNullOrWhiteSpace(scriptFileName))
             {
-                string errorMessage = "The script file for deterministic testing is not set (deterministicalarms).";
+                string errorMessage = "The script file for deterministic testing is not set (deterministicalarms)";
                 _logger.LogError(errorMessage);
                 throw new Exception(errorMessage);
             }
             if (!File.Exists(scriptFileName))
             {
-                string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist.";
+                string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist";
                 _logger.LogError(errorMessage);
                 throw new Exception(errorMessage);
             }
