@@ -112,7 +112,7 @@ public class OpcPlcServer
 
         if (Config.OtlpEndpointUri is not null)
         {
-            OtelHelper.ConfigureOpenTelemetryTracing(Config.ProgramName, Config.OtlpEndpointUri, Config.OtlpExportProtocol, Config.OtlpExportInterval);
+            OtelHelper.ConfigureOpenTelemetry(Config.ProgramName, Config.OtlpEndpointUri, Config.OtlpExportProtocol, Config.OtlpExportInterval);
         }
 
         using var host = CreateHostBuilder(args);
