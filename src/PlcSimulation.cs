@@ -90,7 +90,7 @@ public class PlcSimulation
             var e = new BaseEventState(null);
             var info = new TranslationInfo(
                 "EventInstanceCycleEventKey",
-                "en-us",
+                locale: string.Empty, // Invariant.
                 "Event with index '{0}' and event cycle '{1}'",
                 i, eventInstanceCycle);
 

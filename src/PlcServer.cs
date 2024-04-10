@@ -425,8 +425,8 @@ public partial class PlcServer : StandardServer
             if (currentSessions.Count > 0)
             {
                 // provide some time for the connected clients to detect the shutdown state.
-                ServerInternal.Status.Value.ShutdownReason = new LocalizedText("en-US", "Application closed.");
-                ServerInternal.Status.Variable.ShutdownReason.Value = new LocalizedText("en-US", "Application closed.");
+                ServerInternal.Status.Value.ShutdownReason = new LocalizedText(string.Empty, "Application closed."); // Invariant.
+                ServerInternal.Status.Variable.ShutdownReason.Value = new LocalizedText(string.Empty, "Application closed."); // Invariant.
                 ServerInternal.Status.Value.State = ServerState.Shutdown;
                 ServerInternal.Status.Variable.State.Value = ServerState.Shutdown;
                 ServerInternal.Status.Variable.ClearChangeMasks(ServerInternal.DefaultSystemContext, true);
