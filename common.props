@@ -15,31 +15,38 @@
     <HighEntropyVA>true</HighEntropyVA>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <NeutralLanguage>en-US</NeutralLanguage>
-    <LangVersion>8.0</LangVersion>
     <IsPackable>false</IsPackable>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
-    <ItemGroup Condition="'$(IsPackable)' != 'false'">
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <None Include="$(MSBuildThisFileDirectory)/docs/media/icon.png" Pack="true" PackagePath="\"/>
   </ItemGroup>
+
   <PropertyGroup>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
+
   <ItemGroup Condition="$(NO_GIT) == ''">
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
     <PackageReference Include="Nerdbank.GitVersioning" Version="3.1.74" PrivateAssets="All"/>
   </ItemGroup>
+
   <ItemGroup Condition="'$(FX_COP)' != ''">
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.3" />
   </ItemGroup>
+
   <PropertyGroup>
     <IncludeOpenAPIAnalyzers>true</IncludeOpenAPIAnalyzers>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(FX_COP)' != ''">
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
+
   <PropertyGroup>
     <PrereleaseSuffix>$(PrereleaseVersionNoLeadingHyphen)-$(GitCommitIdShort)</PrereleaseSuffix>
     <PrereleaseVersion Condition="'$(BUILD_SOURCEVERSION)' != ''">[$(NuGetPackageVersion)]</PrereleaseVersion>
