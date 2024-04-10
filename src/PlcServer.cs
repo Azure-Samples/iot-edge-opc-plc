@@ -74,7 +74,7 @@ public partial class PlcServer : StandardServer
 
             Meters.AddSessionCount(sessionId.ToString());
 
-            _logger.LogDebug("{function} completed successfully with sesssionId: {sessionId}", nameof(CreateSession), sessionId);
+            _logger.LogDebug("{function} completed successfully with sessionId: {sessionId}", nameof(CreateSession), sessionId);
 
             return responseHeader;
         }
@@ -324,16 +324,6 @@ public partial class PlcServer : StandardServer
         return masterNodeManager;
     }
 
-    public override ResponseHeader DeleteMonitoredItems(RequestHeader requestHeader, uint subscriptionId, UInt32Collection monitoredItemIds, out StatusCodeCollection results, out DiagnosticInfoCollection diagnosticInfos)
-    {
-        return base.DeleteMonitoredItems(requestHeader, subscriptionId, monitoredItemIds, out results, out diagnosticInfos);
-    }
-
-    public override ResponseHeader CloseSession(RequestHeader requestHeader, bool deleteSubscriptions)
-    {
-        return base.CloseSession(requestHeader, deleteSubscriptions);
-    }
-
     /// <summary>
     /// Loads the non-configurable properties for the application.
     /// </summary>
@@ -375,7 +365,7 @@ public partial class PlcServer : StandardServer
 
             if (id != null)
             {
-                resourceManager.Add(id.Value, "en-US", field.Name);
+                resourceManager.Add(id.Value, locale: string.Empty, field.Name); // Empty locale name: Invariant.
             }
         }
 
