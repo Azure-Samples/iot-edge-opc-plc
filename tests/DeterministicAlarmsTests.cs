@@ -171,6 +171,6 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
 
     private static LocalizedText English(string text)
     {
-        return new LocalizedText(string.Empty, text); // Invariant.
+        return new LocalizedText("en-US", text);
     }
 }
