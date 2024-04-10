@@ -68,7 +68,7 @@ public partial class PlcServer
             // construct translation object with default text.
             var info = new TranslationInfo(
                 "InvalidPassword",
-                "en-US",
+                locale: string.Empty, // Invariant.
                 "Invalid username or password.",
                 userName);
 
@@ -133,7 +133,7 @@ public partial class PlcServer
             {
                 info = new TranslationInfo(
                     "InvalidCertificate",
-                    "en-US",
+                    locale: string.Empty, // Invariant.
                     "'{0}' is an invalid user certificate.",
                     certificate.Subject);
 
@@ -144,7 +144,7 @@ public partial class PlcServer
                 // construct translation object with default text.
                 info = new TranslationInfo(
                     "UntrustedCertificate",
-                    "en-US",
+                    locale: string.Empty, // Invariant.
                     "'{0}' is not a trusted user certificate.",
                     certificate.Subject);
             }

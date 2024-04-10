@@ -221,7 +221,10 @@ public class OpcPlcServer
                 ip = hostEntry.AddressList[0].ToString();
             }
         }
-        catch { }
+        catch
+        {
+            // Default to Dns.GetHostName.
+        }
 
         return ip;
     }
