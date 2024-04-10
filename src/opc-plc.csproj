@@ -19,6 +19,7 @@
     <PackageOutputPath>$(OutputPath)</PackageOutputPath>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
