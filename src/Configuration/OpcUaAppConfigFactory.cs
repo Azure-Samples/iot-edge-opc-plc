@@ -111,7 +111,10 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             .SetMaxSessionCount(_config.OpcUa.MaxSessionCount)
             .SetMaxSubscriptionCount(_config.OpcUa.MaxSubscriptionCount)
             .SetMaxQueuedRequestCount(_config.OpcUa.MaxQueuedRequestCount)
-            .SetOperationLimits(operationLimits);
+            .SetOperationLimits(operationLimits)
+            // Ignore max channel count.
+            // TODO: Remove this when the OPC UA stack supports more than 100 channels.
+            .SetMaxChannelCount(0);
 
         // Security configuration.
         _config.OpcUa.ApplicationConfiguration = await InitApplicationSecurityAsync(securityBuilder).ConfigureAwait(false);
