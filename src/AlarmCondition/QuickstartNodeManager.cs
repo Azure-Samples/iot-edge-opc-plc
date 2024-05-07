@@ -1454,7 +1454,7 @@ namespace AlarmCondition
             }
 
             // construct id for root node.
-            NodeId rootId = handle.RootId;
+            var rootId = new NodeId(handle.RootId, handle.NodeId.NamespaceIndex);
 
             NodeState target;
             if (cache != null)
@@ -3935,7 +3935,7 @@ namespace AlarmCondition
 
                 if (!string.IsNullOrEmpty(handle.ComponentPath))
                 {
-                    if (m_componentCache.TryGetValue(handle.RootId, out entry))
+                    if (m_componentCache.TryGetValue(new NodeId(handle.RootId, handle.NodeId.NamespaceIndex), out entry))
                     {
                         return entry.Entry.FindChildBySymbolicName(context, handle.ComponentPath);
                     }
@@ -3953,7 +3953,7 @@ namespace AlarmCondition
         }
 
         /// <summary>
-        /// Removes a reference to a component in thecache.
+        /// Removes a reference to a component in the cache.
         /// </summary>
         protected void RemoveNodeFromComponentCache(ISystemContext context, NodeHandle handle)
         {
@@ -3970,7 +3970,7 @@ namespace AlarmCondition
 
                     if (!string.IsNullOrEmpty(handle.ComponentPath))
                     {
-                        nodeId = handle.RootId;
+                        nodeId = new NodeId(handle.RootId, handle.NodeId.NamespaceIndex);
                     }
 
                     if (m_componentCache.TryGetValue(nodeId, out CacheEntry entry))
@@ -4004,7 +4004,7 @@ namespace AlarmCondition
                 if (!string.IsNullOrEmpty(handle.ComponentPath))
                 {
 
-                    if (m_componentCache.TryGetValue(handle.RootId, out CacheEntry entry))
+                    if (m_componentCache.TryGetValue(new NodeId(handle.RootId, handle.NodeId.NamespaceIndex), out CacheEntry entry))
                     {
                         entry.RefCount++;
 
@@ -4025,14 +4025,13 @@ namespace AlarmCondition
                             RefCount = 1,
                             Entry = root
                         };
-                        m_componentCache.Add(handle.RootId, entry);
+                        m_componentCache.Add(new NodeId(handle.RootId, handle.NodeId.NamespaceIndex), entry);
                     }
                 }
 
                 // simply add the node to the cache.
                 else
                 {
-
                     if (m_componentCache.TryGetValue(handle.NodeId, out CacheEntry entry))
                     {
                         entry.RefCount++;
