@@ -361,6 +361,10 @@ Options:
       --msec, --maxsessioncount=VALUE
                              maximum number of parallel sessions.
                                Default: 100
+      --mset, --maxsessiontimeout=VALUE
+                             maximum time that a session can remain open
+                               without communication in milliseconds.
+                               Default: 3600000
       --msuc, --maxsubscriptioncount=VALUE
                              maximum number of subscriptions.
                                Default: 100

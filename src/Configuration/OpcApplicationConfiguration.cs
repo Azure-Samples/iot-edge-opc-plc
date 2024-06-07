@@ -30,6 +30,8 @@ public partial class OpcApplicationConfiguration
 
     public int MaxSessionCount { get; set; } = 100;
 
+    public int MaxSessionTimeout { get; set; } = 3_600_000; // 1 h.
+
     public int MaxSubscriptionCount { get; set; } = 100;
 
     public int MaxQueuedRequestCount { get; set; } = 2_000;

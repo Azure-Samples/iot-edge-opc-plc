@@ -98,6 +98,7 @@ public static class CliOptions
             { "to|trustowncert", $"the own certificate is put into the trusted certificate store automatically.\nDefault: {config.OpcUa.TrustMyself}", (s) => config.OpcUa.TrustMyself = s != null },
 
             { "msec|maxsessioncount=", $"maximum number of parallel sessions.\nDefault: {config.OpcUa.MaxSessionCount}", (int i) => config.OpcUa.MaxSessionCount = i },
+            { "mset|maxsessiontimeout=", $"maximum time that a session can remain open without communication in milliseconds.\nDefault: {config.OpcUa.MaxSessionTimeout}", (int i) => config.OpcUa.MaxSessionTimeout = i },
 
             { "msuc|maxsubscriptioncount=", $"maximum number of subscriptions.\nDefault: {config.OpcUa.MaxSubscriptionCount}", (int i) => config.OpcUa.MaxSubscriptionCount = i },
             { "mqrc|maxqueuedrequestcount=", $"maximum number of requests that will be queued waiting for a thread.\nDefault: {config.OpcUa.MaxQueuedRequestCount}", (int i) => config.OpcUa.MaxQueuedRequestCount = i },
