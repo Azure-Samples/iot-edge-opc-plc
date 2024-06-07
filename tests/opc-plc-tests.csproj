@@ -13,15 +13,15 @@
     <PackageReference Include="Moq" Version="4.20.70" />
     <PackageReference Include="NUnit" Version="4.1.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
   </ItemGroup>
 
   <Choose>
     <When Condition="'$(Configuration)'=='Release'">
       <ItemGroup>
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.5.374.50-preview" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.5.374.50-preview" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" Version="1.5.374.50-preview" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.5.374.54" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.5.374.54" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" Version="1.5.374.54" NoWarn="NU5104" />
       </ItemGroup>
     </When>
     <Otherwise>

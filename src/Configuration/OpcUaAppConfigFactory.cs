@@ -109,6 +109,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             .SetAuditingEnabled(true)
             // Set the server capabilities.
             .SetMaxSessionCount(_config.OpcUa.MaxSessionCount)
+            .SetMaxSessionTimeout(_config.OpcUa.MaxSessionTimeout)
             .SetMaxSubscriptionCount(_config.OpcUa.MaxSubscriptionCount)
             .SetMaxQueuedRequestCount(_config.OpcUa.MaxQueuedRequestCount)
             .SetOperationLimits(operationLimits)
