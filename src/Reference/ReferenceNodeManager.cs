@@ -2,7 +2,7 @@
  * Copyright (c) 2005-2020 The OPC Foundation, Inc. All rights reserved.
  *
  * OPC Foundation MIT License 1.00
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +11,7 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
@@ -122,7 +122,7 @@ namespace OpcPlc.Reference
             return false;
         }
 
-        private static Opc.Ua.Range GetAnalogRange(BuiltInType builtInType)
+        private static Range GetAnalogRange(BuiltInType builtInType)
         {
             switch (builtInType)
             {
@@ -159,7 +159,7 @@ namespace OpcPlc.Reference
         /// <remarks>
         /// The externalReferences is an out parameter that allows the node manager to link to nodes
         /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
-        /// should have a reference to the root folder node(s) exposed by this node manager.  
+        /// should have a reference to the root folder node(s) exposed by this node manager.
         /// </remarks>
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
         {
@@ -178,7 +178,7 @@ namespace OpcPlc.Reference
                 root.EventNotifier = EventNotifiers.SubscribeToEvents;
                 AddRootNotifier(root);
 
-                List<BaseDataVariableState> variables = new List<BaseDataVariableState>();
+                var variables = new List<BaseDataVariableState>();
 
                 try
                 {
@@ -1001,7 +1001,7 @@ namespace OpcPlc.Reference
                         new Argument() { Name = "Substract Result", Description = "Substract Result",  DataType = DataTypeIds.Int16, ValueRank = ValueRanks.Scalar }
                     ];
 
-                    substractMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnSubstractCall);
+                    substractMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnSubtractCall);
                     #endregion
 
                     #region Hello Method
@@ -1483,22 +1483,19 @@ namespace OpcPlc.Reference
         /// </summary>
         private FolderState CreateFolder(NodeState parent, string path, string name)
         {
-            FolderState folder = new FolderState(parent);
+            var folder = new FolderState(parent) {
+                SymbolicName = name,
+                ReferenceTypeId = ReferenceTypes.Organizes,
+                TypeDefinitionId = ObjectTypeIds.FolderType,
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(path, NamespaceIndex),
+                DisplayName = new LocalizedText("en", name),
+                WriteMask = AttributeWriteMask.None,
+                UserWriteMask = AttributeWriteMask.None,
+                EventNotifier = EventNotifiers.None,
+            };
 
-            folder.SymbolicName = name;
-            folder.ReferenceTypeId = ReferenceTypes.Organizes;
-            folder.TypeDefinitionId = ObjectTypeIds.FolderType;
-            folder.NodeId = new NodeId(path, NamespaceIndex);
-            folder.BrowseName = new QualifiedName(path, NamespaceIndex);
-            folder.DisplayName = new LocalizedText("en", name);
-            folder.WriteMask = AttributeWriteMask.None;
-            folder.UserWriteMask = AttributeWriteMask.None;
-            folder.EventNotifier = EventNotifiers.None;
-
-            if (parent != null)
-            {
-                parent.AddChild(folder);
-            }
+            parent?.AddChild(folder);
 
             return folder;
         }
@@ -1508,22 +1505,20 @@ namespace OpcPlc.Reference
         /// </summary>
         private BaseObjectState CreateObject(NodeState parent, string path, string name)
         {
-            BaseObjectState folder = new BaseObjectState(parent);
+            var folder = new BaseObjectState(parent) {
+                SymbolicName = name,
+                ReferenceTypeId = ReferenceTypes.Organizes,
+                TypeDefinitionId = ObjectTypeIds.BaseObjectType,
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(name, NamespaceIndex),
+            };
 
-            folder.SymbolicName = name;
-            folder.ReferenceTypeId = ReferenceTypes.Organizes;
-            folder.TypeDefinitionId = ObjectTypeIds.BaseObjectType;
-            folder.NodeId = new NodeId(path, NamespaceIndex);
-            folder.BrowseName = new QualifiedName(name, NamespaceIndex);
             folder.DisplayName = folder.BrowseName.Name;
             folder.WriteMask = AttributeWriteMask.None;
             folder.UserWriteMask = AttributeWriteMask.None;
             folder.EventNotifier = EventNotifiers.None;
 
-            if (parent != null)
-            {
-                parent.AddChild(folder);
-            }
+            parent?.AddChild(folder);
 
             return folder;
         }
@@ -1533,12 +1528,13 @@ namespace OpcPlc.Reference
         /// </summary>
         private BaseObjectTypeState CreateObjectType(NodeState parent, IDictionary<NodeId, IList<IReference>> externalReferences, string path, string name)
         {
-            BaseObjectTypeState type = new BaseObjectTypeState();
+            var type = new BaseObjectTypeState {
+                SymbolicName = name,
+                SuperTypeId = ObjectTypeIds.BaseObjectType,
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(name, NamespaceIndex),
+            };
 
-            type.SymbolicName = name;
-            type.SuperTypeId = ObjectTypeIds.BaseObjectType;
-            type.NodeId = new NodeId(path, NamespaceIndex);
-            type.BrowseName = new QualifiedName(name, NamespaceIndex);
             type.DisplayName = type.BrowseName.Name;
             type.WriteMask = AttributeWriteMask.None;
             type.UserWriteMask = AttributeWriteMask.None;
@@ -1589,7 +1585,7 @@ namespace OpcPlc.Reference
         /// </summary>
         private DataItemState CreateDataItemVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank)
         {
-            DataItemState variable = new DataItemState(parent);
+            var variable = new DataItemState(parent);
             variable.ValuePrecision = new PropertyState<double>(variable);
             variable.Definition = new PropertyState<string>(variable);
 
@@ -1612,7 +1608,7 @@ namespace OpcPlc.Reference
             variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
             variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
             variable.Historizing = false;
-            variable.Value = Opc.Ua.TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
+            variable.Value = TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
             variable.StatusCode = StatusCodes.Good;
             variable.Timestamp = DateTime.UtcNow;
 
@@ -1632,19 +1628,18 @@ namespace OpcPlc.Reference
             variable.Definition.AccessLevel = AccessLevels.CurrentReadOrWrite;
             variable.Definition.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
 
-            if (parent != null)
-            {
-                parent.AddChild(variable);
-            }
+            parent?.AddChild(variable);
 
             return variable;
         }
 
         private DataItemState[] CreateDataItemVariables(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, UInt16 numVariables)
         {
-            List<DataItemState> itemsCreated = new List<DataItemState>();
-            // create the default name first:
-            itemsCreated.Add(CreateDataItemVariable(parent, path, name, dataType, valueRank));
+            var itemsCreated = new List<DataItemState> {
+                // create the default name first:
+                CreateDataItemVariable(parent, path, name, dataType, valueRank),
+            };
+
             // now to create the remaining NUMBERED items
             for (uint i = 0; i < numVariables; i++)
             {
@@ -1664,17 +1659,17 @@ namespace OpcPlc.Reference
             ref StatusCode statusCode,
             ref DateTime timestamp)
         {
-            DataItemState variable = node as DataItemState;
+            var variable = node as DataItemState;
 
             // verify data type.
-            Opc.Ua.TypeInfo typeInfo = Opc.Ua.TypeInfo.IsInstanceOfDataType(
+            TypeInfo typeInfo = TypeInfo.IsInstanceOfDataType(
                 value,
                 variable.DataType,
                 variable.ValueRank,
                 context.NamespaceUris,
                 context.TypeTable);
 
-            if (typeInfo == null || typeInfo == Opc.Ua.TypeInfo.Unknown)
+            if (typeInfo == null || typeInfo == TypeInfo.Unknown)
             {
                 return StatusCodes.BadTypeMismatch;
             }
@@ -1683,7 +1678,7 @@ namespace OpcPlc.Reference
             {
                 double number = Convert.ToDouble(value);
                 number = Math.Round(number, (int)variable.ValuePrecision.Value);
-                value = Opc.Ua.TypeInfo.Cast(number, typeInfo.BuiltInType);
+                value = TypeInfo.Cast(number, typeInfo.BuiltInType);
             }
 
             return ServiceResult.Good;
@@ -1702,15 +1697,17 @@ namespace OpcPlc.Reference
             return (CreateAnalogItemVariable(parent, path, name, dataType, valueRank, initialValues, null));
         }
 
-        private AnalogItemState CreateAnalogItemVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, object initialValues, Opc.Ua.Range customRange)
+        private AnalogItemState CreateAnalogItemVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, object initialValues, Range customRange)
         {
             return CreateAnalogItemVariable(parent, path, name, (uint)dataType, valueRank, initialValues, customRange);
         }
 
-        private AnalogItemState CreateAnalogItemVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank, object initialValues, Opc.Ua.Range customRange)
+        private AnalogItemState CreateAnalogItemVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank, object initialValues, Range customRange)
         {
-            AnalogItemState variable = new AnalogItemState(parent);
-            variable.BrowseName = new QualifiedName(path, NamespaceIndex);
+            var variable = new AnalogItemState(parent) {
+                BrowseName = new QualifiedName(path, NamespaceIndex),
+            };
+
             variable.EngineeringUnits = new PropertyState<EUInformation>(variable);
             variable.InstrumentRange = new PropertyState<Range>(variable);
 
@@ -1742,7 +1739,7 @@ namespace OpcPlc.Reference
                 variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
             }
 
-            BuiltInType builtInType = Opc.Ua.TypeInfo.GetBuiltInType(dataType, Server.TypeTree);
+            BuiltInType builtInType = TypeInfo.GetBuiltInType(dataType, Server.TypeTree);
 
             // Simulate a mV Voltmeter
             Range newRange = GetAnalogRange(builtInType);
@@ -1762,7 +1759,7 @@ namespace OpcPlc.Reference
 
             if (initialValues == null)
             {
-                variable.Value = Opc.Ua.TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
+                variable.Value = TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
             }
             else
             {
@@ -1787,10 +1784,7 @@ namespace OpcPlc.Reference
             variable.InstrumentRange.AccessLevel = AccessLevels.CurrentReadOrWrite;
             variable.InstrumentRange.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
 
-            if (parent != null)
-            {
-                parent.AddChild(variable);
-            }
+            parent?.AddChild(variable);
 
             return variable;
         }
@@ -1800,13 +1794,13 @@ namespace OpcPlc.Reference
         /// </summary>
         private TwoStateDiscreteState CreateTwoStateDiscreteItemVariable(NodeState parent, string path, string name, string trueState, string falseState)
         {
-            TwoStateDiscreteState variable = new TwoStateDiscreteState(parent);
-
-            variable.NodeId = new NodeId(path, NamespaceIndex);
-            variable.BrowseName = new QualifiedName(path, NamespaceIndex);
-            variable.DisplayName = new LocalizedText("en", name);
-            variable.WriteMask = AttributeWriteMask.None;
-            variable.UserWriteMask = AttributeWriteMask.None;
+            var variable = new TwoStateDiscreteState(parent) {
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(path, NamespaceIndex),
+                DisplayName = new LocalizedText("en", name),
+                WriteMask = AttributeWriteMask.None,
+                UserWriteMask = AttributeWriteMask.None,
+            };
 
             variable.Create(
                 SystemContext,
@@ -1834,10 +1828,7 @@ namespace OpcPlc.Reference
             variable.FalseState.AccessLevel = AccessLevels.CurrentReadOrWrite;
             variable.FalseState.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
 
-            if (parent != null)
-            {
-                parent.AddChild(variable);
-            }
+            parent?.AddChild(variable);
 
             return variable;
         }
@@ -1847,13 +1838,13 @@ namespace OpcPlc.Reference
         /// </summary>
         private MultiStateDiscreteState CreateMultiStateDiscreteItemVariable(NodeState parent, string path, string name, params string[] values)
         {
-            MultiStateDiscreteState variable = new MultiStateDiscreteState(parent);
-
-            variable.NodeId = new NodeId(path, NamespaceIndex);
-            variable.BrowseName = new QualifiedName(path, NamespaceIndex);
-            variable.DisplayName = new LocalizedText("en", name);
-            variable.WriteMask = AttributeWriteMask.None;
-            variable.UserWriteMask = AttributeWriteMask.None;
+            var variable = new MultiStateDiscreteState(parent) {
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(path, NamespaceIndex),
+                DisplayName = new LocalizedText("en", name),
+                WriteMask = AttributeWriteMask.None,
+                UserWriteMask = AttributeWriteMask.None,
+            };
 
             variable.Create(
                 SystemContext,
@@ -1874,7 +1865,7 @@ namespace OpcPlc.Reference
             variable.Timestamp = DateTime.UtcNow;
             variable.OnWriteValue = OnWriteDiscrete;
 
-            LocalizedText[] strings = new LocalizedText[values.Length];
+            var strings = new LocalizedText[values.Length];
 
             for (int ii = 0; ii < strings.Length; ii++)
             {
@@ -1885,10 +1876,7 @@ namespace OpcPlc.Reference
             variable.EnumStrings.AccessLevel = AccessLevels.CurrentReadOrWrite;
             variable.EnumStrings.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
 
-            if (parent != null)
-            {
-                parent.AddChild(variable);
-            }
+            parent?.AddChild(variable);
 
             return variable;
         }
@@ -1906,13 +1894,13 @@ namespace OpcPlc.Reference
         /// </summary>
         private MultiStateValueDiscreteState CreateMultiStateValueDiscreteItemVariable(NodeState parent, string path, string name, NodeId nodeId, params string[] enumNames)
         {
-            MultiStateValueDiscreteState variable = new MultiStateValueDiscreteState(parent);
-
-            variable.NodeId = new NodeId(path, NamespaceIndex);
-            variable.BrowseName = new QualifiedName(path, NamespaceIndex);
-            variable.DisplayName = new LocalizedText("en", name);
-            variable.WriteMask = AttributeWriteMask.None;
-            variable.UserWriteMask = AttributeWriteMask.None;
+            var variable = new MultiStateValueDiscreteState(parent) {
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(path, NamespaceIndex),
+                DisplayName = new LocalizedText("en", name),
+                WriteMask = AttributeWriteMask.None,
+                UserWriteMask = AttributeWriteMask.None,
+            };
 
             variable.Create(
                 SystemContext,
@@ -1938,14 +1926,14 @@ namespace OpcPlc.Reference
             // ValueAsText = the actual enumerated value
 
             // set the enumerated strings
-            LocalizedText[] strings = new LocalizedText[enumNames.Length];
+            var strings = new LocalizedText[enumNames.Length];
             for (int ii = 0; ii < strings.Length; ii++)
             {
                 strings[ii] = enumNames[ii];
             }
 
             // set the enumerated values
-            EnumValueType[] values = new EnumValueType[enumNames.Length];
+            var values = new EnumValueType[enumNames.Length];
             for (int ii = 0; ii < values.Length; ii++)
             {
                 values[ii] = new EnumValueType();
@@ -1958,10 +1946,7 @@ namespace OpcPlc.Reference
             variable.EnumValues.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
             variable.ValueAsText.Value = variable.EnumValues.Value[0].DisplayName;
 
-            if (parent != null)
-            {
-                parent.AddChild(variable);
-            }
+            parent?.AddChild(variable);
 
             return variable;
         }
@@ -1975,17 +1960,17 @@ namespace OpcPlc.Reference
             ref StatusCode statusCode,
             ref DateTime timestamp)
         {
-            MultiStateDiscreteState variable = node as MultiStateDiscreteState;
+            var variable = node as MultiStateDiscreteState;
 
             // verify data type.
-            Opc.Ua.TypeInfo typeInfo = Opc.Ua.TypeInfo.IsInstanceOfDataType(
+            TypeInfo typeInfo = TypeInfo.IsInstanceOfDataType(
                 value,
                 variable.DataType,
                 variable.ValueRank,
                 context.NamespaceUris,
                 context.TypeTable);
 
-            if (typeInfo == null || typeInfo == Opc.Ua.TypeInfo.Unknown)
+            if (typeInfo == null || typeInfo == TypeInfo.Unknown)
             {
                 return StatusCodes.BadTypeMismatch;
             }
@@ -2014,13 +1999,13 @@ namespace OpcPlc.Reference
             ref StatusCode statusCode,
             ref DateTime timestamp)
         {
-            MultiStateValueDiscreteState variable = node as MultiStateValueDiscreteState;
+            var variable = node as MultiStateValueDiscreteState;
 
             TypeInfo typeInfo = TypeInfo.Construct(value);
 
             if (variable == null ||
                 typeInfo == null ||
-                typeInfo == Opc.Ua.TypeInfo.Unknown ||
+                typeInfo == TypeInfo.Unknown ||
                 !TypeInfo.IsNumericType(typeInfo.BuiltInType))
             {
                 return StatusCodes.BadTypeMismatch;
@@ -2059,14 +2044,14 @@ namespace OpcPlc.Reference
             AnalogItemState variable = node as AnalogItemState;
 
             // verify data type.
-            Opc.Ua.TypeInfo typeInfo = Opc.Ua.TypeInfo.IsInstanceOfDataType(
+            TypeInfo typeInfo = TypeInfo.IsInstanceOfDataType(
                 value,
                 variable.DataType,
                 variable.ValueRank,
                 context.NamespaceUris,
                 context.TypeTable);
 
-            if (typeInfo == null || typeInfo == Opc.Ua.TypeInfo.Unknown)
+            if (typeInfo == null || typeInfo == TypeInfo.Unknown)
             {
                 return StatusCodes.BadTypeMismatch;
             }
@@ -2116,20 +2101,20 @@ namespace OpcPlc.Reference
             ref StatusCode statusCode,
             ref DateTime timestamp)
         {
-            PropertyState<Range> variable = node as PropertyState<Range>;
-            ExtensionObject extensionObject = value as ExtensionObject;
-            TypeInfo typeInfo = TypeInfo.Construct(value);
+            var variable = node as PropertyState<Range>;
+            var extensionObject = value as ExtensionObject;
+            var typeInfo = TypeInfo.Construct(value);
 
             if (variable == null ||
                 extensionObject == null ||
                 typeInfo == null ||
-                typeInfo == Opc.Ua.TypeInfo.Unknown)
+                typeInfo == TypeInfo.Unknown)
             {
                 return StatusCodes.BadTypeMismatch;
             }
 
-            Range newRange = extensionObject.Body as Range;
-            AnalogItemState parent = variable.Parent as AnalogItemState;
+            var newRange = extensionObject.Body as Range;
+            var parent = variable.Parent as AnalogItemState;
             if (newRange == null ||
                 parent == null)
             {
@@ -2167,21 +2152,22 @@ namespace OpcPlc.Reference
         /// </summary>
         private BaseDataVariableState CreateVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank)
         {
-            BaseDataVariableState variable = new BaseDataVariableState(parent);
+            var variable = new BaseDataVariableState(parent) {
+                SymbolicName = name,
+                ReferenceTypeId = ReferenceTypes.Organizes,
+                TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(path, NamespaceIndex),
+                DisplayName = new LocalizedText("en", name),
+                WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description,
+                UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description,
+                DataType = dataType,
+                ValueRank = valueRank,
+                AccessLevel = AccessLevels.CurrentReadOrWrite,
+                UserAccessLevel = AccessLevels.CurrentReadOrWrite,
+                Historizing = false,
+            };
 
-            variable.SymbolicName = name;
-            variable.ReferenceTypeId = ReferenceTypes.Organizes;
-            variable.TypeDefinitionId = VariableTypeIds.BaseDataVariableType;
-            variable.NodeId = new NodeId(path, NamespaceIndex);
-            variable.BrowseName = new QualifiedName(path, NamespaceIndex);
-            variable.DisplayName = new LocalizedText("en", name);
-            variable.WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
-            variable.UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
-            variable.DataType = dataType;
-            variable.ValueRank = valueRank;
-            variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Historizing = false;
             variable.Value = GetNewValue(variable);
             variable.StatusCode = StatusCodes.Good;
             variable.Timestamp = DateTime.UtcNow;
@@ -2195,10 +2181,7 @@ namespace OpcPlc.Reference
                 variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
             }
 
-            if (parent != null)
-            {
-                parent.AddChild(variable);
-            }
+            parent?.AddChild(variable);
 
             return variable;
         }
@@ -2213,7 +2196,7 @@ namespace OpcPlc.Reference
             // first, create a new Parent folder for this data-type
             FolderState newParentFolder = CreateFolder(parent, path, name);
 
-            List<BaseDataVariableState> itemsCreated = new List<BaseDataVariableState>();
+            var itemsCreated = new List<BaseDataVariableState>();
             // now to create the remaining NUMBERED items
             for (uint i = 0; i < numVariables; i++)
             {
@@ -2260,7 +2243,8 @@ namespace OpcPlc.Reference
                 string newName = string.Format("{0}_{1}", name, i.ToString("00"));
                 string newPath = string.Format("{0}_{1}", path, newName);
                 itemsCreated.Add(CreateDynamicVariable(newParentFolder, newPath, newName, dataType, valueRank));
-            }//for i
+            }
+
             return (itemsCreated.ToArray());
         }
 
@@ -2269,12 +2253,13 @@ namespace OpcPlc.Reference
         /// </summary>
         private BaseDataVariableTypeState CreateVariableType(NodeState parent, IDictionary<NodeId, IList<IReference>> externalReferences, string path, string name, BuiltInType dataType, int valueRank)
         {
-            BaseDataVariableTypeState type = new BaseDataVariableTypeState();
+            var type = new BaseDataVariableTypeState {
+                SymbolicName = name,
+                SuperTypeId = VariableTypeIds.BaseDataVariableType,
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(name, NamespaceIndex),
+            };
 
-            type.SymbolicName = name;
-            type.SuperTypeId = VariableTypeIds.BaseDataVariableType;
-            type.NodeId = new NodeId(path, NamespaceIndex);
-            type.BrowseName = new QualifiedName(name, NamespaceIndex);
             type.DisplayName = type.BrowseName.Name;
             type.WriteMask = AttributeWriteMask.None;
             type.UserWriteMask = AttributeWriteMask.None;
@@ -2307,12 +2292,13 @@ namespace OpcPlc.Reference
         /// </summary>
         private DataTypeState CreateDataType(NodeState parent, IDictionary<NodeId, IList<IReference>> externalReferences, string path, string name)
         {
-            DataTypeState type = new DataTypeState();
+            var type = new DataTypeState {
+                SymbolicName = name,
+                SuperTypeId = DataTypeIds.Structure,
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(name, NamespaceIndex),
+            };
 
-            type.SymbolicName = name;
-            type.SuperTypeId = DataTypeIds.Structure;
-            type.NodeId = new NodeId(path, NamespaceIndex);
-            type.BrowseName = new QualifiedName(name, NamespaceIndex);
             type.DisplayName = type.BrowseName.Name;
             type.WriteMask = AttributeWriteMask.None;
             type.UserWriteMask = AttributeWriteMask.None;
@@ -2342,12 +2328,13 @@ namespace OpcPlc.Reference
         /// </summary>
         private ReferenceTypeState CreateReferenceType(NodeState parent, IDictionary<NodeId, IList<IReference>> externalReferences, string path, string name)
         {
-            ReferenceTypeState type = new ReferenceTypeState();
+            var type = new ReferenceTypeState {
+                SymbolicName = name,
+                SuperTypeId = ReferenceTypeIds.NonHierarchicalReferences,
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(name, NamespaceIndex),
+            };
 
-            type.SymbolicName = name;
-            type.SuperTypeId = ReferenceTypeIds.NonHierarchicalReferences;
-            type.NodeId = new NodeId(path, NamespaceIndex);
-            type.BrowseName = new QualifiedName(name, NamespaceIndex);
             type.DisplayName = type.BrowseName.Name;
             type.WriteMask = AttributeWriteMask.None;
             type.UserWriteMask = AttributeWriteMask.None;
@@ -2379,11 +2366,12 @@ namespace OpcPlc.Reference
         /// </summary>
         private ViewState CreateView(NodeState parent, IDictionary<NodeId, IList<IReference>> externalReferences, string path, string name)
         {
-            ViewState type = new ViewState();
+            var type = new ViewState {
+                SymbolicName = name,
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(name, NamespaceIndex),
+            };
 
-            type.SymbolicName = name;
-            type.NodeId = new NodeId(path, NamespaceIndex);
-            type.BrowseName = new QualifiedName(name, NamespaceIndex);
             type.DisplayName = type.BrowseName.Name;
             type.WriteMask = AttributeWriteMask.None;
             type.UserWriteMask = AttributeWriteMask.None;
@@ -2414,22 +2402,19 @@ namespace OpcPlc.Reference
         /// </summary>
         private MethodState CreateMethod(NodeState parent, string path, string name)
         {
-            MethodState method = new MethodState(parent);
+            var method = new MethodState(parent) {
+                SymbolicName = name,
+                ReferenceTypeId = ReferenceTypeIds.HasComponent,
+                NodeId = new NodeId(path, NamespaceIndex),
+                BrowseName = new QualifiedName(path, NamespaceIndex),
+                DisplayName = new LocalizedText("en", name),
+                WriteMask = AttributeWriteMask.None,
+                UserWriteMask = AttributeWriteMask.None,
+                Executable = true,
+                UserExecutable = true,
+            };
 
-            method.SymbolicName = name;
-            method.ReferenceTypeId = ReferenceTypeIds.HasComponent;
-            method.NodeId = new NodeId(path, NamespaceIndex);
-            method.BrowseName = new QualifiedName(path, NamespaceIndex);
-            method.DisplayName = new LocalizedText("en", name);
-            method.WriteMask = AttributeWriteMask.None;
-            method.UserWriteMask = AttributeWriteMask.None;
-            method.Executable = true;
-            method.UserExecutable = true;
-
-            if (parent != null)
-            {
-                parent.AddChild(method);
-            }
+            parent?.AddChild(method);
 
             return method;
         }
@@ -2527,7 +2512,7 @@ namespace OpcPlc.Reference
             }
         }
 
-        private ServiceResult OnSubstractCall(
+        private ServiceResult OnSubtractCall(
             ISystemContext context,
             MethodState method,
             IList<object> inputArguments,
@@ -2573,7 +2558,7 @@ namespace OpcPlc.Reference
                 string op1 = (string)inputArguments[0];
 
                 // set output parameter
-                outputArguments[0] = (string)("hello " + op1);
+                outputArguments[0] = "hello " + op1;
                 return ServiceResult.Good;
             }
             catch
@@ -2608,7 +2593,7 @@ namespace OpcPlc.Reference
             try
             {
                 // set output parameter
-                outputArguments[0] = (string)("Output");
+                outputArguments[0] = "Output";
                 return ServiceResult.Good;
             }
             catch
@@ -2678,7 +2663,7 @@ namespace OpcPlc.Reference
         {
             lock (Lock)
             {
-                // quickly exclude nodes that are not in the namespace. 
+                // quickly exclude nodes that are not in the namespace.
                 if (!IsNodeIdInNamespace(nodeId))
                 {
                     return null;
@@ -2691,11 +2676,11 @@ namespace OpcPlc.Reference
                     return null;
                 }
 
-                NodeHandle handle = new NodeHandle();
-
-                handle.NodeId = nodeId;
-                handle.Node = node;
-                handle.Validated = true;
+                var handle = new NodeHandle {
+                    NodeId = nodeId,
+                    Node = node,
+                    Validated = true,
+                };
 
                 return handle;
             }
