@@ -9,7 +9,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Node with an opaque identifier (free-format byte string that might or might not be human interpretable).
-/// and nodes of type NodeId with IdType of String, UInt32, ByteString, and Guid.
+/// as well as nodes of type NodeId and ExpandedNodeId with IdType of String, Numeric, Opaque, and Guid.
 /// </summary>
 public class OpaqueAndNodeIdPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
@@ -72,7 +72,6 @@ public class OpaqueAndNodeIdPluginNode(TimeService timeService, ILogger logger) 
             NamespaceType.OpcPlcApplications,
             defaultValue: new NodeId("this is a string node id", 3)
         );
-        var stringNodeId = _plcNodeManager.CreateVariableNode<NodeId>(stringNodeIdVariable);
 
         BaseDataVariableState numericNodeIdVariable = _plcNodeManager.CreateBaseVariable(
             folder,
@@ -85,7 +84,6 @@ public class OpaqueAndNodeIdPluginNode(TimeService timeService, ILogger logger) 
             NamespaceType.OpcPlcApplications,
             defaultValue: new NodeId(42, 3)
         );
-        var numericNodeId = _plcNodeManager.CreateVariableNode<NodeId>(numericNodeIdVariable);
 
         BaseDataVariableState opaqueNodeIdVariable = _plcNodeManager.CreateBaseVariable(
             folder,
@@ -98,7 +96,6 @@ public class OpaqueAndNodeIdPluginNode(TimeService timeService, ILogger logger) 
             NamespaceType.OpcPlcApplications,
             defaultValue: new NodeId(new byte[] { 0x01, 0x02, 0x03, 0x04 }, 3)
         );
-        var opaqueNodeId = _plcNodeManager.CreateVariableNode<NodeId>(opaqueNodeIdVariable);
 
         BaseDataVariableState guidNodeIdVariable = _plcNodeManager.CreateBaseVariable(
             folder,
@@ -111,7 +108,54 @@ public class OpaqueAndNodeIdPluginNode(TimeService timeService, ILogger logger) 
             NamespaceType.OpcPlcApplications,
             defaultValue: new NodeId(Guid.NewGuid(), 3)
         );
-        var guidNodeId = _plcNodeManager.CreateVariableNode<NodeId>(opaqueNodeIdVariable);
+
+        BaseDataVariableState stringExpandedNodeIdVariable = _plcNodeManager.CreateBaseVariable(
+            folder,
+            "ScalarStaticExpandedNodeIdString",
+            "ScalarStaticExpandedNodeIdString",
+            new NodeId("ScalarStaticExpandedNodeIdString", 3),
+            ValueRanks.Scalar,
+            AccessLevels.CurrentReadOrWrite,
+            "String representation of the ExpandedNodeId",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: new ExpandedNodeId("this is a string expanded node id", 3, OpcPlc.Namespaces.OpcPlcApplications, 0)
+        );
+
+        BaseDataVariableState numericExpandedNodeIdVariable = _plcNodeManager.CreateBaseVariable(
+            folder,
+            "ScalarStaticExpandedNodeIdNumeric",
+            "ScalarStaticExpandedNodeIdNumeric",
+            new NodeId("ScalarStaticExpandedNodeIdNumeric", 3),
+            ValueRanks.Scalar,
+            AccessLevels.CurrentReadOrWrite,
+            "Numeric representation of the ExpandedNodeId",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: new ExpandedNodeId(444u, 3, OpcPlc.Namespaces.OpcPlcApplications, 0)
+        );
+
+        BaseDataVariableState guidExpandedNodeIdVariable = _plcNodeManager.CreateBaseVariable(
+            folder,
+            "ScalarStaticExpandedNodeIdGuid",
+            "ScalarStaticExpandedNodeIdGuid",
+            new NodeId("ScalarStaticExpandedNodeIdGuid", 3),
+            ValueRanks.Scalar,
+            AccessLevels.CurrentReadOrWrite,
+            "Guid representation of the ExpandedNodeId",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: new ExpandedNodeId(Guid.NewGuid(), 3, OpcPlc.Namespaces.OpcPlcApplications, 0)
+        );
+
+        BaseDataVariableState opaqueExpandedNodeIdVariable = _plcNodeManager.CreateBaseVariable(
+            folder,
+            "ScalarStaticExpandedNodeIdOpaque",
+            "ScalarStaticExpandedNodeIdOpaque",
+            new NodeId("ScalarStaticExpandedNodeIdOpaque", 3),
+            ValueRanks.Scalar,
+            AccessLevels.CurrentReadOrWrite,
+            "Opaque representation of the ExpandedNodeId",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: new ExpandedNodeId(new byte[] { 0xCA, 0xFE}, 3, OpcPlc.Namespaces.OpcPlcApplications, 0)
+        );
 
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
@@ -121,6 +165,10 @@ public class OpaqueAndNodeIdPluginNode(TimeService timeService, ILogger logger) 
             PluginNodesHelper.GetNodeWithIntervals(numericNodeIdVariable.NodeId, _plcNodeManager),
             PluginNodesHelper.GetNodeWithIntervals(opaqueNodeIdVariable.NodeId, _plcNodeManager),
             PluginNodesHelper.GetNodeWithIntervals(guidNodeIdVariable.NodeId, _plcNodeManager),
+            PluginNodesHelper.GetNodeWithIntervals(stringExpandedNodeIdVariable.NodeId, _plcNodeManager),
+            PluginNodesHelper.GetNodeWithIntervals(numericExpandedNodeIdVariable.NodeId, _plcNodeManager),
+            PluginNodesHelper.GetNodeWithIntervals(guidExpandedNodeIdVariable.NodeId, _plcNodeManager),
+            PluginNodesHelper.GetNodeWithIntervals(opaqueExpandedNodeIdVariable.NodeId, _plcNodeManager),
         };
     }
 }

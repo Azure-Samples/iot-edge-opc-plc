@@ -39,5 +39,29 @@ public class OpaqueAndNodeIdTests : SubscriptionTestsBase
         var opaqueNodeIdValue = ReadValue<Opc.Ua.NodeId>(opaqueNodeId);
         opaqueNodeIdValue.Should().NotBeNull();
         opaqueNodeIdValue.IdType.Should().Be(Opc.Ua.IdType.Opaque);
+
+        var stringExpandedNodeId = FindNode(specialFolder, Namespaces.OpcPlcApplications, "ScalarStaticExpandedNodeIdString");
+        stringExpandedNodeId.Should().NotBeNull();
+        var stringExpandedNodeIdValue = ReadValue<Opc.Ua.ExpandedNodeId>(stringExpandedNodeId);
+        stringExpandedNodeIdValue.Should().NotBeNull();
+        stringExpandedNodeIdValue.IdType.Should().Be(Opc.Ua.IdType.String);
+
+        var numericExpandedNodeId = FindNode(specialFolder, Namespaces.OpcPlcApplications, "ScalarStaticExpandedNodeIdNumeric");
+        numericExpandedNodeId.Should().NotBeNull();
+        var numericExpandedNodeIdValue = ReadValue<Opc.Ua.ExpandedNodeId>(numericExpandedNodeId);
+        numericExpandedNodeIdValue.Should().NotBeNull();
+        numericExpandedNodeIdValue.IdType.Should().Be(Opc.Ua.IdType.Numeric);
+
+        var guidExpandedNodeId = FindNode(specialFolder, Namespaces.OpcPlcApplications, "ScalarStaticExpandedNodeIdGuid");
+        guidExpandedNodeId.Should().NotBeNull();
+        var guidExpandedNodeIdValue = ReadValue<Opc.Ua.ExpandedNodeId>(guidExpandedNodeId);
+        guidExpandedNodeIdValue.Should().NotBeNull();
+        guidExpandedNodeIdValue.IdType.Should().Be(Opc.Ua.IdType.Guid);
+
+        var opaqueExpandedNodeId = FindNode(specialFolder, Namespaces.OpcPlcApplications, "ScalarStaticExpandedNodeIdOpaque");
+        opaqueExpandedNodeId.Should().NotBeNull();
+        var opaqueExpandedNodeIdValue = ReadValue<Opc.Ua.ExpandedNodeId>(opaqueExpandedNodeId);
+        opaqueExpandedNodeIdValue.Should().NotBeNull();
+        opaqueExpandedNodeIdValue.IdType.Should().Be(Opc.Ua.IdType.Opaque);
     }
 }
