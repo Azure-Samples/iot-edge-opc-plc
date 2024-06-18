@@ -38,6 +38,7 @@ namespace OpcPlc.Reference
     using Opc.Ua;
     using Opc.Ua.Server;
     using Range = Opc.Ua.Range;
+    using Opc.Ua.Test;
 
     public class ReferenceNodeManager : CustomNodeManager2
     {
@@ -182,6 +183,7 @@ namespace OpcPlc.Reference
                 try
                 {
                     #region Scalar_Static
+                    ResetRandomGenerator(1);
                     FolderState scalarFolder = CreateFolder(root, "Scalar", "Scalar");
                     BaseDataVariableState scalarInstructions = CreateVariable(scalarFolder, "Scalar_Instructions", "Scalar_Instructions", DataTypeIds.String, ValueRanks.Scalar);
                     scalarInstructions.Value = "A library of Read/Write Variables of all supported data-types.";
@@ -227,6 +229,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Scalar_Static_Arrays
+                    ResetRandomGenerator(2);
                     FolderState arraysFolder = CreateFolder(staticFolder, "Scalar_Static_Arrays", "Arrays");
                     const string staticArrays = "Scalar_Static_Arrays_";
 
@@ -291,6 +294,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Scalar_Static_Arrays2D
+                    ResetRandomGenerator(3);
                     FolderState arrays2DFolder = CreateFolder(staticFolder, "Scalar_Static_Arrays2D", "Arrays2D");
                     const string staticArrays2D = "Scalar_Static_Arrays2D_";
                     variables.Add(CreateVariable(arrays2DFolder, staticArrays2D + "Boolean", "Boolean", DataTypeIds.Boolean, ValueRanks.TwoDimensions));
@@ -322,6 +326,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Scalar_Static_ArrayDynamic
+                    ResetRandomGenerator(4);
                     FolderState arrayDymnamicFolder = CreateFolder(staticFolder, "Scalar_Static_ArrayDymamic", "ArrayDymamic");
                     const string staticArraysDynamic = "Scalar_Static_ArrayDynamic_";
                     variables.Add(CreateVariable(arrayDymnamicFolder, staticArraysDynamic + "Boolean", "Boolean", DataTypeIds.Boolean, ValueRanks.OneOrMoreDimensions));
@@ -353,6 +358,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Scalar_Static_Mass
+                    ResetRandomGenerator(5);
                     // create 100 instances of each static scalar type
                     FolderState massFolder = CreateFolder(staticFolder, "Scalar_Static_Mass", "Mass");
                     const string staticMass = "Scalar_Static_Mass_";
@@ -383,6 +389,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Scalar_Simulation
+                    ResetRandomGenerator(6);
                     FolderState simulationFolder = CreateFolder(scalarFolder, "Scalar_Simulation", "Simulation");
                     const string scalarSimulation = "Scalar_Simulation_";
                     CreateDynamicVariable(simulationFolder, scalarSimulation + "Boolean", "Boolean", DataTypeIds.Boolean, ValueRanks.Scalar);
@@ -422,6 +429,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Scalar_Simulation_Arrays
+                    ResetRandomGenerator(7);
                     FolderState arraysSimulationFolder = CreateFolder(simulationFolder, "Scalar_Simulation_Arrays", "Arrays");
                     const string simulationArrays = "Scalar_Simulation_Arrays_";
                     CreateDynamicVariable(arraysSimulationFolder, simulationArrays + "Boolean", "Boolean", DataTypeIds.Boolean, ValueRanks.OneDimension);
@@ -453,6 +461,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Scalar_Simulation_Mass
+                    ResetRandomGenerator(8);
                     FolderState massSimulationFolder = CreateFolder(simulationFolder, "Scalar_Simulation_Mass", "Mass");
                     const string massSimulation = "Scalar_Simulation_Mass_";
                     CreateDynamicVariables(massSimulationFolder, massSimulation + "Boolean", "Boolean", DataTypeIds.Boolean, ValueRanks.Scalar, 100);
@@ -484,6 +493,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region DataAccess_DataItem
+                    ResetRandomGenerator(9);
                     FolderState daFolder = CreateFolder(root, "DataAccess", "DataAccess");
                     BaseDataVariableState daInstructions = CreateVariable(daFolder, "DataAccess_Instructions", "Instructions", DataTypeIds.String, ValueRanks.Scalar);
                     daInstructions.Value = "A library of Read/Write Variables of all supported data-types.";
@@ -505,6 +515,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region DataAccess_AnalogType
+                    ResetRandomGenerator(10);
                     FolderState analogItemFolder = CreateFolder(daFolder, "DataAccess_AnalogType", "AnalogType");
                     const string daAnalogItem = "DataAccess_AnalogType_";
 
@@ -532,6 +543,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region DataAccess_AnalogType_Array
+                    ResetRandomGenerator(11);
                     FolderState analogArrayFolder = CreateFolder(analogItemFolder, "DataAccess_AnalogType_Array", "Array");
                     const string daAnalogArray = "DataAccess_AnalogType_Array_";
 
@@ -565,6 +577,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region DataAccess_DiscreteType
+                    ResetRandomGenerator(12);
                     FolderState discreteTypeFolder = CreateFolder(daFolder, "DataAccess_DiscreteType", "DiscreteType");
                     FolderState twoStateDiscreteFolder = CreateFolder(discreteTypeFolder, "DataAccess_TwoStateDiscreteType", "TwoStateDiscreteType");
                     const string daTwoStateDiscrete = "DataAccess_TwoStateDiscreteType_";
@@ -588,6 +601,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region DataAccess_MultiStateValueDiscreteType
+                    ResetRandomGenerator(13);
                     FolderState multiStateValueDiscreteFolder = CreateFolder(discreteTypeFolder, "DataAccess_MultiStateValueDiscreteType", "MultiStateValueDiscreteType");
                     const string daMultiStateValueDiscrete = "DataAccess_MultiStateValueDiscreteType_";
 
@@ -611,6 +625,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region References
+                    ResetRandomGenerator(14);
                     FolderState referencesFolder = CreateFolder(root, "References", "References");
                     const string referencesPrefix = "References_";
 
@@ -657,6 +672,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region AccessRights
+                    ResetRandomGenerator(15);
                     FolderState folderAccessRights = CreateFolder(root, "AccessRights", "AccessRights");
                     const string accessRights = "AccessRights_";
 
@@ -809,6 +825,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region NodeIds
+                    ResetRandomGenerator(16);
                     FolderState nodeIdsFolder = CreateFolder(root, "NodeIds", "NodeIds");
                     const string nodeIds = "NodeIds_";
 
@@ -832,6 +849,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Methods
+                    ResetRandomGenerator(17);
                     FolderState methodsFolder = CreateFolder(root, "Methods", "Methods");
                     const string methods = "Methods_";
 
@@ -1064,6 +1082,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Views
+                    ResetRandomGenerator(18);
                     FolderState viewsFolder = CreateFolder(root, "Views", "Views");
                     const string views = "Views_";
 
@@ -1072,6 +1091,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Locales
+                    ResetRandomGenerator(19);
                     FolderState localesFolder = CreateFolder(root, "Locales", "Locales");
                     const string locales = "Locales_";
 
@@ -1158,6 +1178,7 @@ namespace OpcPlc.Reference
                     #endregion
 
                     #region Attributes
+                    ResetRandomGenerator(20);
                     FolderState folderAttributes = CreateFolder(root, "Attributes", "Attributes");
 
                     #region AccessAll
@@ -1391,6 +1412,16 @@ namespace OpcPlc.Reference
                             AttributeWriteMask.UserWriteMask | AttributeWriteMask.ValueForVariableType | AttributeWriteMask.ValueRank | AttributeWriteMask.WriteMask;
                     variables.Add(allAccessUser1);
                     #endregion
+                    #endregion
+
+                    #region MyCompany
+                    ResetRandomGenerator(21);
+                    FolderState myCompanyFolder = CreateFolder(root, "MyCompany", "MyCompany");
+                    const string myCompany = "MyCompany_";
+
+                    BaseDataVariableState myCompanyInstructions = CreateVariable(myCompanyFolder, myCompany + "Instructions", "Instructions", DataTypeIds.String, ValueRanks.Scalar);
+                    myCompanyInstructions.Value = "A place for the vendor to describe their address-space.";
+                    variables.Add(myCompanyInstructions);
                     #endregion
                 }
                 catch (Exception e)
@@ -2571,14 +2602,16 @@ namespace OpcPlc.Reference
             }
         }
 
+        private void ResetRandomGenerator(int seed, int boundaryValueFrequency = 0)
+        {
+            m_randomSource = new RandomSource(seed);
+            m_generator = new DataGenerator(m_randomSource);
+            m_generator.BoundaryValueFrequency = boundaryValueFrequency;
+        }
+
         private object GetNewValue(BaseVariableState variable)
         {
-            if (m_generator == null)
-            {
-                m_generator = new Opc.Ua.Test.DataGenerator(null) {
-                    BoundaryValueFrequency = 0,
-                };
-            }
+            ArgumentNullException.ThrowIfNull(m_generator);
 
             object value = null;
             int retryCount = 0;
@@ -2688,6 +2721,7 @@ namespace OpcPlc.Reference
         private UInt16 m_simulationInterval = 1000;
         private bool m_simulationEnabled = true;
         private List<BaseDataVariableState> m_dynamicNodes;
+        private RandomSource m_randomSource;
         #endregion
     }
 }
