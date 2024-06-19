@@ -9,7 +9,6 @@ using NUnit.Framework;
 [TestFixture]
 public class OpaqueAndNodeIdTests : SubscriptionTestsBase
 {
-
     [Test]
     public void TestNodeIdNodes()
     {
