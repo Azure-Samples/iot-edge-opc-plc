@@ -134,12 +134,11 @@ public class BoilerTests : SimulatorTestsBase
         var nodeId = NodeId.Create(BoilerModel1.Variables.Boiler1_BoilerStatus, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var value = Session.ReadValue(nodeId).Value;
 
+        // change dynamic in-memory created Boiler type to expected BoilerDataType by serializing and deserializing it.
+        var inmemoryBoilerDataType = (value as ExtensionObject).Body;
+        var json = JsonSerializer.Serialize(inmemoryBoilerDataType);
 
-        var x = (value as ExtensionObject).Body;
-        var json = JsonSerializer.Serialize(x);
-
-        var bt = JsonSerializer.Deserialize<BoilerDataType>(json);
-        return bt;
-        //return value.Should().BeOfType<ExtensionObject>().Which.Body.Should().BeOfType<BoilerDataType>().Subject;
+        var boilerDataTypeFromGeneratedSourceCode = JsonSerializer.Deserialize<BoilerDataType>(json);
+        return boilerDataTypeFromGeneratedSourceCode;
     }
 }
