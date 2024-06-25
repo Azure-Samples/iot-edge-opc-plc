@@ -18,7 +18,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
-
 using Meters = OpcPlc.MetricsConfig;
 
 public partial class PlcServer : StandardServer
@@ -262,9 +261,14 @@ public partial class PlcServer : StandardServer
     {
         var nodeManagers = new List<INodeManager>();
 
+        var x = typeof(StandardServer).GetField("m_serverInternal", BindingFlags.Instance | BindingFlags.NonPublic);
+        var y = x.FieldType.GetField("m_factory", BindingFlags.Instance | BindingFlags.NonPublic);
+        y.SetValue(server, new EncodeableFactory(false));
+
         // Add encodable complex types.
+
         server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
-        EncodeableFactory.GlobalFactory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
+        // EncodeableFactory.GlobalFactory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
 
         // Add DI node manager first so that it gets the namespace index 2.
         var diNodeManager = new DiNodeManager(server, configuration);
@@ -425,6 +429,7 @@ public partial class PlcServer : StandardServer
             if (currentSessions.Count > 0)
             {
                 // provide some time for the connected clients to detect the shutdown state.
+#pragma warning disable CS0618 // Type or member is obsolete
                 ServerInternal.Status.Value.ShutdownReason = new LocalizedText(string.Empty, "Application closed."); // Invariant.
                 ServerInternal.Status.Variable.ShutdownReason.Value = new LocalizedText(string.Empty, "Application closed."); // Invariant.
                 ServerInternal.Status.Value.State = ServerState.Shutdown;
@@ -439,6 +444,7 @@ public partial class PlcServer : StandardServer
 
                     Thread.Sleep(TimeSpan.FromSeconds(1));
                 }
+#pragma warning restore CS0618 // Type or member is obsolete
             }
         }
         catch
