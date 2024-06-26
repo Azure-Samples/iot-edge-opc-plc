@@ -26,7 +26,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
     [SetUp]
     public void CreateMonitoredItem()
     {
-        SetUpMonitoredItem(Objects.Server, NodeClass.Object, Attributes.EventNotifier);
+        SetUpMonitoredItem(AlarmNodeId("VendingMachines"), NodeClass.Object, Attributes.EventNotifier);
 
         AddMonitoredItem();
     }
