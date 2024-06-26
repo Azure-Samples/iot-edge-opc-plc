@@ -431,7 +431,6 @@ public partial class PlcServer : StandardServer
             if (currentSessions.Count > 0)
             {
                 // provide some time for the connected clients to detect the shutdown state.
-#pragma warning disable CS0618 // Type or member is obsolete
                 ServerInternal.Status.Value.ShutdownReason = new LocalizedText(string.Empty, "Application closed."); // Invariant.
                 ServerInternal.Status.Variable.ShutdownReason.Value = new LocalizedText(string.Empty, "Application closed."); // Invariant.
                 ServerInternal.Status.Value.State = ServerState.Shutdown;
@@ -446,7 +445,6 @@ public partial class PlcServer : StandardServer
 
                     Thread.Sleep(TimeSpan.FromSeconds(1));
                 }
-#pragma warning restore CS0618 // Type or member is obsolete
             }
         }
         catch
