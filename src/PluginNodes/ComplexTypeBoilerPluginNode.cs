@@ -59,6 +59,12 @@ public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger
         // Convert to node that can be manipulated within the server.
         _node = new Boiler1State(null);
         _node.Create(_plcNodeManager.SystemContext, passiveBoiler1Node);
+        _node.BoilerStatus.Value = new BoilerDataType {
+            Pressure = 99_000,
+            Temperature = new BoilerTemperatureType { Bottom = 100, Top = 95 },
+            HeaterState = BoilerHeaterStateType.On,
+        };
+        _node.BoilerStatus.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: true);
 
         // Put Boiler #2 into Boilers folder.
         // TODO: Find a better solution to avoid this dependency between boilers.
