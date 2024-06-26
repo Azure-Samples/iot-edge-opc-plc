@@ -2619,14 +2619,14 @@ namespace OpcPlc.Reference
             while (value == null && retryCount < 10)
             {
                 value = m_generator.GetRandom(variable.DataType, variable.ValueRank, new uint[] { 10 }, Server.TypeTree);
-                // skip Variant Null
-                if (value is Variant variant)
+
+                // Skip Variant Null.
+                if (value is Variant variant &&
+                    variant.Value is null)
                 {
-                    if (variant.Value == null)
-                    {
-                        value = null;
-                    }
+                    value = null;
                 }
+
                 retryCount++;
             }
 

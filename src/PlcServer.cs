@@ -261,13 +261,13 @@ public partial class PlcServer : StandardServer
     {
         var nodeManagers = new List<INodeManager>();
 
-        // When used via NuGet package in-memory, the server needs to use it's own encodeable factory.
+        // When used via NuGet package in-memory, the server needs to use its own encodable factory.
         // Otherwise the client will not load the type definitions for decoding correctly. There is currently no public
-        // API to set the encodeable factory and it is not possible to provide own implementation, because other classes
-        // require the StandardServer or ServerInternalData as objects, so we need to use reflection to set it. 
+        // API to set the encodable factory and it is not possible to provide an own implementation, because other classes
+        // require the StandardServer or ServerInternalData as objects, so we need to use reflection to set it.
         var serverInternalDataField = typeof(StandardServer).GetField("m_serverInternal", BindingFlags.Instance | BindingFlags.NonPublic);
-        var encodeableFactoryField = serverInternalDataField.FieldType.GetField("m_factory", BindingFlags.Instance | BindingFlags.NonPublic);
-        encodeableFactoryField.SetValue(server, new EncodeableFactory(false));
+        var encodableFactoryField = serverInternalDataField.FieldType.GetField("m_factory", BindingFlags.Instance | BindingFlags.NonPublic);
+        encodableFactoryField.SetValue(server, new EncodeableFactory(false));
 
         // Add encodable complex types.
         server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
