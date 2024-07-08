@@ -597,9 +597,21 @@ Options:
                              the filename that contains the list of nodes to be
                                created in the OPC UA address space.
       --vf1k, --veryfast1knodes=VALUE
-                             number of very fast 1 kB nodes.
+                             number of very fast 1 kB nodes (Deprecated: Use
+                               veryfastbsnodes).
                                Default: 1
       --vf1kr, --veryfast1krate=VALUE
-                             rate in ms to change very fast 1 kB nodes.
+                             rate in ms to change very fast 1 kB nodes (
+                               Deprecated: Use veryfastbsrate).
+                               Default: 1000
+      --vfbs, --veryfastbsnodes=VALUE
+                             number of very fast ByteString nodes.
+                               Default: 1
+      --vfbss, --veryfastbssize=VALUE
+                             size in bytes to change very fast ByteString nodes
+                               (min. 1).
+                               Default: 1024
+      --vfbsr, --veryfastbsrate=VALUE
+                             rate in ms to change very fast ByteString nodes.
                                Default: 1000
 ```

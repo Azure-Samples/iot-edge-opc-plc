@@ -9,30 +9,36 @@ using System.Diagnostics;
 using System.Text;
 
 /// <summary>
-/// Nodes with 1 kB (ByteString) values.
+/// Nodes with configurable kB (ByteString) values.
 /// The first byte cycles from 0 to 255 in a configurable rate in ms.
 /// The values are deterministic but scrambled to ensure that they are not efficiently compressed.
 /// </summary>
-public class VeryFast1KBPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private uint NodeCount { get; set; } = 1;
+    private uint NodeSize { get; set; } = 1024; // Bytes.
     private uint NodeRate { get; set; } = 1000; // ms.
 
     private readonly DeterministicGuid _deterministicGuid = new();
     private PlcNodeManager _plcNodeManager;
-    private BaseDataVariableState[] _veryFast1KBNodes;
+    private BaseDataVariableState[] _veryFastByteStringNodes;
     private ITimer _nodeGenerator;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
         optionSet.Add(
-            "vf1k|veryfast1knodes=",
-            $"number of very fast 1 kB nodes (Deprecated: Use veryfastbsnodes).\nDefault: {NodeCount}",
+            "vfbs|veryfastbsnodes=",
+            $"number of very fast ByteString nodes.\nDefault: {NodeCount}",
             (uint i) => NodeCount = i);
 
         optionSet.Add(
-            "vf1kr|veryfast1krate=",
-            $"rate in ms to change very fast 1 kB nodes (Deprecated: Use veryfastbsrate).\nDefault: {NodeRate}",
+            "vfbss|veryfastbssize=",
+            $"size in bytes to change very fast ByteString nodes (min. 1).\nDefault: {NodeSize}",
+            (uint i) => NodeSize = i);
+
+        optionSet.Add(
+            "vfbsr|veryfastbsrate=",
+            $"rate in ms to change very fast ByteString nodes.\nDefault: {NodeRate}",
             (uint i) => NodeRate = i);
     }
 
@@ -47,8 +53,8 @@ public class VeryFast1KBPluginNodes(TimeService timeService, ILogger logger) : P
 
         FolderState folder = _plcNodeManager.CreateFolder(
             telemetryFolder,
-            path: "VeryFast1kB",
-            name: "VeryFast1kB",
+            path: "VeryFastByteString",
+            name: "VeryFastByteString",
             NamespaceType.OpcPlcApplications);
 
         AddNodes(folder);
@@ -74,23 +80,27 @@ public class VeryFast1KBPluginNodes(TimeService timeService, ILogger logger) : P
     private void AddNodes(FolderState folder)
     {
         var nodes = new List<NodeWithIntervals>();
-        _veryFast1KBNodes = new BaseDataVariableState[NodeCount];
+        _veryFastByteStringNodes = new BaseDataVariableState[NodeCount];
+
+        int nodeSize = NodeSize < 1
+            ? 1
+            : (int)NodeSize;
 
         for (int i = 0; i < NodeCount; i++)
         {
-            string oneKbGuid = GetLongDeterministicGuid(maxLength: 1024);
-            var initialByteArray = Encoding.UTF8.GetBytes(oneKbGuid);
+            string nodeSizeGuid = GetLongDeterministicGuid(nodeSize);
+            var initialByteArray = Encoding.UTF8.GetBytes(nodeSizeGuid);
 
-            string name = $"VeryFast1kB{(i + 1)}";
+            string name = $"VeryFastByteString{(i + 1)}";
 
-            _veryFast1KBNodes[i] = _plcNodeManager.CreateBaseVariable(
+            _veryFastByteStringNodes[i] = _plcNodeManager.CreateBaseVariable(
                 folder,
                 path: name,
                 name: name,
                 new NodeId((uint)BuiltInType.ByteString),
                 ValueRanks.Scalar,
                 AccessLevels.CurrentReadOrWrite,
-                "Very fast changing 1 kB node",
+                "Very fast changing ByteString node",
                 NamespaceType.OpcPlcApplications,
                 initialByteArray);
 
@@ -107,16 +117,16 @@ public class VeryFast1KBPluginNodes(TimeService timeService, ILogger logger) : P
 
     private void UpdateNodes()
     {
-        for (int i = 0; i < _veryFast1KBNodes.Length; i++)
+        for (int i = 0; i < _veryFastByteStringNodes.Length; i++)
         {
-            byte[] arrayValue = (byte[])_veryFast1KBNodes[i].Value;
+            byte[] arrayValue = (byte[])_veryFastByteStringNodes[i].Value;
 
             // Update first byte in the range 0 to 255.
             arrayValue[0] = arrayValue[0] == 255
                 ? (byte)0
                 : (byte)(arrayValue[0] + 1);
 
-            SetValue(_veryFast1KBNodes[i], arrayValue);
+            SetValue(_veryFastByteStringNodes[i], arrayValue);
         }
     }
 
