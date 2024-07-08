@@ -27,12 +27,12 @@ public class VeryFast1KBPluginNodes(TimeService timeService, ILogger logger) : P
     {
         optionSet.Add(
             "vf1k|veryfast1knodes=",
-            $"number of very fast 1 kB nodes.\nDefault: {NodeCount}",
+            $"number of very fast 1 kB nodes (Deprecated: Use veryfastbsnodes).\nDefault: {NodeCount}",
             (uint i) => NodeCount = i);
 
         optionSet.Add(
             "vf1kr|veryfast1krate=",
-            $"rate in ms to change very fast 1 kB nodes.\nDefault: {NodeRate}",
+            $"rate in ms to change very fast 1 kB nodes (Deprecated: Use veryfastbsrate).\nDefault: {NodeRate}",
             (uint i) => NodeRate = i);
     }
 
