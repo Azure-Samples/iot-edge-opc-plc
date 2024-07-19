@@ -81,8 +81,7 @@ internal class MetricsTests
     [Test]
     public void TestAddMonitoredItemCount()
     {
-        var sessionId = Guid.NewGuid().ToString();
-        Meters.AddMonitoredItemCount(sessionId);
+        Meters.AddMonitoredItemCount(1);
         _metrics.TryGetValue("opc_plc_monitored_item_count", out var counter).Should().BeTrue();
         counter.Should().Be(1);
     }

@@ -136,7 +136,7 @@ public partial class PlcServer : StandardServer
 
             var responseHeader = base.CreateMonitoredItems(requestHeader, subscriptionId, timestampsToReturn, itemsToCreate, out results, out diagnosticInfos);
 
-            Meters.AddMonitoredItemCount(context.SessionId.ToString(), itemsToCreate.Count);
+            Meters.AddMonitoredItemCount(itemsToCreate.Count);
 
             _logger.LogDebug("{function} completed successfully with sessionId: {sessionId}, subscriptionId: {subscriptionId} and count: {count}",
                 nameof(CreateMonitoredItems),

@@ -133,11 +133,9 @@ public static class MetricsHelper
     /// <summary>
     /// Add a monitored item count.
     /// </summary>
-    public static void AddMonitoredItemCount(string sessionId, int delta = 1)
+    public static void AddMonitoredItemCount(int delta = 1)
     {
-        var dimensions = MergeWithBaseDimensions(
-                        new KeyValuePair<string, object>("session", sessionId));
-        MonitoredItemCount.Add(delta, dimensions);
+        MonitoredItemCount.Add(delta, ConvertDictionaryToKeyVaultPairArray(BaseDimensions));
     }
 
     /// <summary>
