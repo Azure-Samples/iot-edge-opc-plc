@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
 
-public static class MetricsConfig
+public static class MetricsHelper
 {
     /// <summary>
     /// The name of the service.
@@ -21,7 +21,6 @@ public static class MetricsConfig
     private const string OPC_PLC_SESSION_COUNT_METRIC = "opc_plc_session_count";
     private const string OPC_PLC_SUBSCRIPTION_COUNT_METRIC = "opc_plc_subscription_count";
     private const string OPC_PLC_MONITORED_ITEM_COUNT_METRIC = "opc_plc_monitored_item_count";
-    private const string OPC_PLC_PUBLISHED_COUNT_METRIC = "opc_plc_published_count";
     private const string OPC_PLC_PUBLISHED_COUNT_WITH_TYPE_METRIC = "opc_plc_published_count_with_type";
     private const string OPC_PLC_TOTAL_ERRORS_METRIC = "opc_plc_total_errors";
 
@@ -103,7 +102,6 @@ public static class MetricsConfig
     private static readonly UpDownCounter<int> SessionCount = Meter.CreateUpDownCounter<int>(OPC_PLC_SESSION_COUNT_METRIC);
     private static readonly UpDownCounter<int> SubscriptionCount = Meter.CreateUpDownCounter<int>(OPC_PLC_SUBSCRIPTION_COUNT_METRIC);
     private static readonly UpDownCounter<int> MonitoredItemCount = Meter.CreateUpDownCounter<int>(OPC_PLC_MONITORED_ITEM_COUNT_METRIC);
-    private static readonly Counter<int> PublishedCount = Meter.CreateCounter<int>(OPC_PLC_PUBLISHED_COUNT_METRIC);
     private static readonly Counter<int> PublishedCountWithType = Meter.CreateCounter<int>(OPC_PLC_PUBLISHED_COUNT_WITH_TYPE_METRIC);
     private static readonly Counter<int> TotalErrors = Meter.CreateCounter<int>(OPC_PLC_TOTAL_ERRORS_METRIC);
 
@@ -135,11 +133,10 @@ public static class MetricsConfig
     /// <summary>
     /// Add a monitored item count.
     /// </summary>
-    public static void AddMonitoredItemCount(string sessionId, string subscriptionId, int delta = 1)
+    public static void AddMonitoredItemCount(string sessionId, int delta = 1)
     {
         var dimensions = MergeWithBaseDimensions(
-                        new KeyValuePair<string, object>("session", sessionId),
-                        new KeyValuePair<string, object>("subscription", subscriptionId));
+                        new KeyValuePair<string, object>("session", sessionId));
         MonitoredItemCount.Add(delta, dimensions);
     }
 
@@ -148,14 +145,11 @@ public static class MetricsConfig
     /// </summary>
     public static void AddPublishedCount(string sessionId, string subscriptionId, int dataPoints, int events)
     {
-        var dimensions = ConvertDictionaryToKeyVaultPairArray(BaseDimensions);
-        PublishedCount.Add(1, dimensions);
-
         if (dataPoints > 0)
         {
             var dataPointsDimensions = MergeWithBaseDimensions(
                         new KeyValuePair<string, object>("type", "data_point"));
-            PublishedCountWithType.Add(dataPoints, dataPointsDimensions);;
+            PublishedCountWithType.Add(dataPoints, dataPointsDimensions);
         }
 
         if (events > 0)
@@ -169,11 +163,10 @@ public static class MetricsConfig
     /// <summary>
     /// Record total errors.
     /// </summary>
-    public static void RecordTotalErrors(string operation, string errorType, int delta = 1)
+    public static void RecordTotalErrors(string operation, int delta = 1)
     {
         var dimensions = MergeWithBaseDimensions(
-            new KeyValuePair<string, object>("operation", operation),
-            new KeyValuePair<string, object>("error_type", errorType));
+            new KeyValuePair<string, object>("operation", operation));
         TotalErrors.Add(delta, dimensions);
     }
 

@@ -18,7 +18,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
-using Meters = OpcPlc.MetricsConfig;
+using Meters = OpcPlc.MetricsHelper;
 
 public partial class PlcServer : StandardServer
 {
@@ -79,7 +79,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(CreateSession), ex.GetType().ToString());
+            Meters.RecordTotalErrors(nameof(CreateSession));
             _logger.LogError(ex, "Error creating session");
             throw;
         }
@@ -116,7 +116,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(CreateSubscription), ex.GetType().ToString());
+            Meters.RecordTotalErrors(nameof(CreateSubscription));
             _logger.LogError(ex, "Error creating subscription");
             throw;
         }
@@ -136,7 +136,7 @@ public partial class PlcServer : StandardServer
 
             var responseHeader = base.CreateMonitoredItems(requestHeader, subscriptionId, timestampsToReturn, itemsToCreate, out results, out diagnosticInfos);
 
-            Meters.AddMonitoredItemCount(context.SessionId.ToString(), subscriptionId.ToString(), itemsToCreate.Count);
+            Meters.AddMonitoredItemCount(context.SessionId.ToString(), itemsToCreate.Count);
 
             _logger.LogDebug("{function} completed successfully with sessionId: {sessionId}, subscriptionId: {subscriptionId} and count: {count}",
                 nameof(CreateMonitoredItems),
@@ -148,7 +148,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(CreateMonitoredItems), ex.GetType().ToString());
+            Meters.RecordTotalErrors(nameof(CreateMonitoredItems));
             _logger.LogError(ex, "Error creating monitored items");
             throw;
         }
@@ -201,7 +201,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(Publish), ex.GetType().ToString());
+            Meters.RecordTotalErrors(nameof(Publish));
             _logger.LogError(ex, "Error publishing");
             throw;
         }
@@ -225,7 +225,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(Read), ex.GetType().ToString());
+            Meters.RecordTotalErrors(nameof(Read));
             _logger.LogError(ex, "Error reading");
             throw;
         }
@@ -243,7 +243,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(Write), ex.GetType().ToString());
+            Meters.RecordTotalErrors(nameof(Write));
             _logger.LogError(ex, "Error writing");
             throw;
         }
