@@ -27,19 +27,13 @@ internal class MetricsTests
         };
 
         _meterListener.SetMeasurementEventCallback(
-            (Instrument instrument, long measurement, ReadOnlySpan<KeyValuePair<string, object?>> tags, object? state) => {
-                _metrics.Add(instrument.Name, measurement);
-            });
+            (Instrument instrument, long measurement, ReadOnlySpan<KeyValuePair<string, object?>> tags, object? state) => _metrics.Add(instrument.Name, measurement));
 
         _meterListener.SetMeasurementEventCallback(
-            (Instrument instrument, double measurement, ReadOnlySpan<KeyValuePair<string, object?>> tags, object? state) => {
-                _metrics.Add(instrument.Name, measurement);
-            });
+            (Instrument instrument, double measurement, ReadOnlySpan<KeyValuePair<string, object?>> tags, object? state) => _metrics.Add(instrument.Name, measurement));
 
         _meterListener.SetMeasurementEventCallback(
-            (Instrument instrument, int measurement, ReadOnlySpan<KeyValuePair<string, object?>> tags, object? state) => {
-                _metrics.Add(instrument.Name, measurement);
-            });
+            (Instrument instrument, int measurement, ReadOnlySpan<KeyValuePair<string, object?>> tags, object? state) => _metrics.Add(instrument.Name, measurement));
 
         _meterListener.Start();
     }
