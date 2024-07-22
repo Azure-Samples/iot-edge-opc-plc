@@ -29,9 +29,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Reflection.Emit;
 using System.Threading;
 using Opc.Ua;
 using Opc.Ua.Server;
+using Opc.Ua.Test;
 
 namespace AlarmCondition
 {
@@ -271,7 +273,8 @@ namespace AlarmCondition
                     if (!m_sources.TryGetValue(sourcePath, out SourceState source))
                     {
                         NodeId sourceId = ModelUtils.ConstructIdForSource(sourcePath, NamespaceIndex);
-                        m_sources[sourcePath] = source = new SourceState(this, sourceId, sourcePath);
+                        ResetRandomGenerator(ii);
+                        m_sources[sourcePath] = source = new SourceState(this, sourceId, sourcePath, m_generator);
                     }
 
                     // HasEventSource and HasNotifier control the propagation of event notifications so
@@ -456,6 +459,14 @@ namespace AlarmCondition
                 cache?.Add(handle.NodeId, target);
             }
         }
+
+        private void ResetRandomGenerator(int seed, int boundaryValueFrequency = 0)
+        {
+            m_randomSource = new RandomSource(seed);
+            m_generator = new DataGenerator(m_randomSource);
+            m_generator.BoundaryValueFrequency = boundaryValueFrequency;
+        }
+
         #endregion
 
         #region Private Fields
@@ -463,6 +474,8 @@ namespace AlarmCondition
         private readonly Dictionary<string, AreaState> m_areas;
         private readonly Dictionary<string, SourceState> m_sources;
         private Timer m_simulationTimer;
+        private RandomSource m_randomSource;
+        private DataGenerator m_generator;
         #endregion
     }
 }
