@@ -17,6 +17,11 @@ public static class MetricsHelper
     /// </summary>
     public static readonly Meter Meter = new(ServiceName);
 
+    /// <summary>
+    /// Gets or sets whether the meter is enabled.
+    /// </summary>
+    public static bool IsEnabled { get; set; }
+
     private const string OPC_PLC_SESSION_COUNT_METRIC = "opc_plc_session_count";
     private const string OPC_PLC_SUBSCRIPTION_COUNT_METRIC = "opc_plc_subscription_count";
     private const string OPC_PLC_MONITORED_ITEM_COUNT_METRIC = "opc_plc_monitored_item_count";
@@ -93,19 +98,24 @@ public static class MetricsHelper
         { "cluster",            CLUSTER_NAME ?? "cluster"       },
     };
 
-    private static readonly UpDownCounter<int> SessionCount = Meter.CreateUpDownCounter<int>(OPC_PLC_SESSION_COUNT_METRIC);
-    private static readonly UpDownCounter<int> SubscriptionCount = Meter.CreateUpDownCounter<int>(OPC_PLC_SUBSCRIPTION_COUNT_METRIC);
-    private static readonly UpDownCounter<int> MonitoredItemCount = Meter.CreateUpDownCounter<int>(OPC_PLC_MONITORED_ITEM_COUNT_METRIC);
-    private static readonly Counter<int> PublishedCountWithType = Meter.CreateCounter<int>(OPC_PLC_PUBLISHED_COUNT_WITH_TYPE_METRIC);
-    private static readonly Counter<int> TotalErrors = Meter.CreateCounter<int>(OPC_PLC_TOTAL_ERRORS_METRIC);
+    private static readonly UpDownCounter<int> _sessionCount = Meter.CreateUpDownCounter<int>(OPC_PLC_SESSION_COUNT_METRIC);
+    private static readonly UpDownCounter<int> _subscriptionCount = Meter.CreateUpDownCounter<int>(OPC_PLC_SUBSCRIPTION_COUNT_METRIC);
+    private static readonly UpDownCounter<int> _monitoredItemCount = Meter.CreateUpDownCounter<int>(OPC_PLC_MONITORED_ITEM_COUNT_METRIC);
+    private static readonly Counter<int> _publishedCountWithType = Meter.CreateCounter<int>(OPC_PLC_PUBLISHED_COUNT_WITH_TYPE_METRIC);
+    private static readonly Counter<int> _totalErrors = Meter.CreateCounter<int>(OPC_PLC_TOTAL_ERRORS_METRIC);
 
     /// <summary>
     /// Add a session count.
     /// </summary>
     public static void AddSessionCount(string sessionId, int delta = 1)
     {
+        if (!IsEnabled)
+        {
+            return;
+        }
+
         var dimensions = MergeWithBaseDimensions(new KeyValuePair<string, object>("session", sessionId));
-        SessionCount.Add(delta, dimensions);
+        _sessionCount.Add(delta, dimensions);
     }
 
     /// <summary>
@@ -113,11 +123,16 @@ public static class MetricsHelper
     /// </summary>
     public static void AddSubscriptionCount(string sessionId, string subscriptionId, int delta = 1)
     {
+        if (!IsEnabled)
+        {
+            return;
+        }
+
         var dimensions = MergeWithBaseDimensions(
                        new KeyValuePair<string, object>("session", sessionId),
                        new KeyValuePair<string, object>("subscription", subscriptionId));
 
-        SubscriptionCount.Add(delta, dimensions);
+        _subscriptionCount.Add(delta, dimensions);
     }
 
     /// <summary>
@@ -125,7 +140,12 @@ public static class MetricsHelper
     /// </summary>
     public static void AddMonitoredItemCount(int delta = 1)
     {
-        MonitoredItemCount.Add(delta, ConvertDictionaryToKeyVaultPairArray(_baseDimensions));
+        if (!IsEnabled)
+        {
+            return;
+        }
+
+        _monitoredItemCount.Add(delta, ConvertDictionaryToKeyVaultPairArray(_baseDimensions));
     }
 
     /// <summary>
@@ -133,18 +153,23 @@ public static class MetricsHelper
     /// </summary>
     public static void AddPublishedCount(string sessionId, string subscriptionId, int dataPoints, int events)
     {
+        if (!IsEnabled)
+        {
+            return;
+        }
+
         if (dataPoints > 0)
         {
             var dataPointsDimensions = MergeWithBaseDimensions(
                         new KeyValuePair<string, object>("type", "data_point"));
-            PublishedCountWithType.Add(dataPoints, dataPointsDimensions);
+            _publishedCountWithType.Add(dataPoints, dataPointsDimensions);
         }
 
         if (events > 0)
         {
             var eventsDimensions = MergeWithBaseDimensions(
                         new KeyValuePair<string, object>("type", "event"));
-            PublishedCountWithType.Add(events, eventsDimensions);
+            _publishedCountWithType.Add(events, eventsDimensions);
         }
     }
 
@@ -153,9 +178,14 @@ public static class MetricsHelper
     /// </summary>
     public static void RecordTotalErrors(string operation, int delta = 1)
     {
+        if (!IsEnabled)
+        {
+            return;
+        }
+
         var dimensions = MergeWithBaseDimensions(
             new KeyValuePair<string, object>("operation", operation));
-        TotalErrors.Add(delta, dimensions);
+        _totalErrors.Add(delta, dimensions);
     }
 
     /// <summary>

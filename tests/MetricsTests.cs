@@ -48,6 +48,8 @@ internal class MetricsTests
     public void SetUp()
     {
         _metrics.Clear();
+
+        MetricsHelper.IsEnabled = true;
     }
 
     [TearDown]
