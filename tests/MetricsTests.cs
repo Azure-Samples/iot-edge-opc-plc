@@ -5,11 +5,11 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
-using Meters = OpcPlc.MetricsHelper;
 
 /// <summary>
 /// Tests for Metrics.
 /// </summary>
+[NonParallelizable]
 internal class MetricsTests
 {
     private readonly MeterListener _meterListener;
@@ -62,7 +62,7 @@ internal class MetricsTests
     public void TestAddSessionCount()
     {
         var sessionId = Guid.NewGuid().ToString();
-        Meters.AddSessionCount(sessionId.ToString());
+        MetricsHelper.AddSessionCount(sessionId.ToString());
         _metrics.TryGetValue("opc_plc_session_count", out var counter).Should().BeTrue();
         counter.Should().Be(1);
     }
@@ -72,7 +72,7 @@ internal class MetricsTests
     {
         var sessionId = Guid.NewGuid().ToString();
         var subscriptionId = Guid.NewGuid().ToString();
-        Meters.AddSubscriptionCount(sessionId, subscriptionId);
+        MetricsHelper.AddSubscriptionCount(sessionId, subscriptionId);
         _metrics.TryGetValue("opc_plc_subscription_count", out var counter).Should().BeTrue();
         counter.Should().Be(1);
     }
@@ -80,7 +80,7 @@ internal class MetricsTests
     [Test]
     public void TestAddMonitoredItemCount()
     {
-        Meters.AddMonitoredItemCount(1);
+        MetricsHelper.AddMonitoredItemCount(1);
         _metrics.TryGetValue("opc_plc_monitored_item_count", out var counter).Should().BeTrue();
         counter.Should().Be(1);
     }
@@ -90,7 +90,7 @@ internal class MetricsTests
     {
         var sessionId = Guid.NewGuid().ToString();
         var subscriptionId = Guid.NewGuid().ToString();
-        Meters.AddPublishedCount(sessionId, subscriptionId, 1, 0);
+        MetricsHelper.AddPublishedCount(sessionId, subscriptionId, 1, 0);
         _metrics.TryGetValue("opc_plc_published_count_with_type", out var counter).Should().BeTrue();
         counter.Should().Be(1);
     }
@@ -98,9 +98,8 @@ internal class MetricsTests
     [Test]
     public void TestRecordTotalErrors()
     {
-        Meters.RecordTotalErrors("operation");
+        MetricsHelper.RecordTotalErrors("operation");
         _metrics.TryGetValue("opc_plc_total_errors", out var counter).Should().BeTrue(); ;
         counter.Should().Be(1);
     }
 }
-
