@@ -263,8 +263,8 @@ namespace AlarmCondition
 
         private byte[] GetNextGuidAsByteArray()
         {
-            // unpack the object to Uuid and then explicit cast to Guid to access the byte[]
-            // using RandomGenerator with known known seed to get reproducible results
+            // Unpack the object to Uuid and then explicitly cast to Guid to access the byte[]
+            // using a random generator with a known seed to get reproducible results.
             return ((Guid)((Uuid)m_generator.GetRandom(
                 NodeId.Parse($"i={(int)BuiltInType.Guid}"),
                 ValueRanks.Scalar, new uint[] { 1 },
