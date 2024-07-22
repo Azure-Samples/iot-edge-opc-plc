@@ -18,7 +18,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
-using Meters = OpcPlc.MetricsConfig;
 
 public partial class PlcServer : StandardServer
 {
@@ -45,6 +44,8 @@ public partial class PlcServer : StandardServer
         TimeService = timeService;
         _pluginNodes = pluginNodes;
         _logger = logger;
+
+        MetricsHelper.IsEnabled = Config.OtlpEndpointUri is not null;
     }
 
     public override ResponseHeader CreateSession(
@@ -71,7 +72,7 @@ public partial class PlcServer : StandardServer
         {
             var responseHeader = base.CreateSession(requestHeader, clientDescription, serverUri, endpointUrl, sessionName, clientNonce, clientCertificate, requestedSessionTimeout, maxResponseMessageSize, out sessionId, out authenticationToken, out revisedSessionTimeout, out serverNonce, out serverCertificate, out serverEndpoints, out serverSoftwareCertificates, out serverSignature, out maxRequestMessageSize);
 
-            Meters.AddSessionCount(sessionId.ToString());
+            MetricsHelper.AddSessionCount(sessionId.ToString());
 
             _logger.LogDebug("{function} completed successfully with sessionId: {sessionId}", nameof(CreateSession), sessionId);
 
@@ -79,7 +80,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(CreateSession), ex.GetType().ToString());
+            MetricsHelper.RecordTotalErrors(nameof(CreateSession));
             _logger.LogError(ex, "Error creating session");
             throw;
         }
@@ -104,7 +105,7 @@ public partial class PlcServer : StandardServer
 
             var responseHeader = base.CreateSubscription(requestHeader, requestedPublishingInterval, requestedLifetimeCount, requestedMaxKeepAliveCount, maxNotificationsPerPublish, publishingEnabled, priority, out subscriptionId, out revisedPublishingInterval, out revisedLifetimeCount, out revisedMaxKeepAliveCount);
 
-            Meters.AddSubscriptionCount(context.SessionId.ToString(), subscriptionId.ToString());
+            MetricsHelper.AddSubscriptionCount(context.SessionId.ToString(), subscriptionId.ToString());
 
             _logger.LogDebug(
                 "{function} completed successfully with sessionId: {sessionId} and subscriptionId: {subscriptionId}",
@@ -116,7 +117,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(CreateSubscription), ex.GetType().ToString());
+            MetricsHelper.RecordTotalErrors(nameof(CreateSubscription));
             _logger.LogError(ex, "Error creating subscription");
             throw;
         }
@@ -136,7 +137,7 @@ public partial class PlcServer : StandardServer
 
             var responseHeader = base.CreateMonitoredItems(requestHeader, subscriptionId, timestampsToReturn, itemsToCreate, out results, out diagnosticInfos);
 
-            Meters.AddMonitoredItemCount(context.SessionId.ToString(), subscriptionId.ToString(), itemsToCreate.Count);
+            MetricsHelper.AddMonitoredItemCount(itemsToCreate.Count);
 
             _logger.LogDebug("{function} completed successfully with sessionId: {sessionId}, subscriptionId: {subscriptionId} and count: {count}",
                 nameof(CreateMonitoredItems),
@@ -148,7 +149,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(CreateMonitoredItems), ex.GetType().ToString());
+            MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
             _logger.LogError(ex, "Error creating monitored items");
             throw;
         }
@@ -173,8 +174,7 @@ public partial class PlcServer : StandardServer
             int events = 0;
             int dataChanges = 0;
             int diagnostics = 0;
-            notificationMessage.NotificationData.ForEach(x =>
-            {
+            notificationMessage.NotificationData.ForEach(x => {
                 if (x.Body is DataChangeNotification changeNotification)
                 {
                     dataChanges += changeNotification.MonitoredItems.Count;
@@ -190,7 +190,7 @@ public partial class PlcServer : StandardServer
                 }
             });
 
-            Meters.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), dataChanges, events);
+            MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), dataChanges, events);
 
             _logger.LogDebug("{function} successfully with session: {sessionId} and subscriptionId: {subscriptionId}",
                 nameof(Publish),
@@ -201,7 +201,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(Publish), ex.GetType().ToString());
+            MetricsHelper.RecordTotalErrors(nameof(Publish));
             _logger.LogError(ex, "Error publishing");
             throw;
         }
@@ -225,7 +225,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(Read), ex.GetType().ToString());
+            MetricsHelper.RecordTotalErrors(nameof(Read));
             _logger.LogError(ex, "Error reading");
             throw;
         }
@@ -243,7 +243,7 @@ public partial class PlcServer : StandardServer
         }
         catch (Exception ex)
         {
-            Meters.RecordTotalErrors(nameof(Write), ex.GetType().ToString());
+            MetricsHelper.RecordTotalErrors(nameof(Write));
             _logger.LogError(ex, "Error writing");
             throw;
         }
@@ -437,7 +437,7 @@ public partial class PlcServer : StandardServer
                 ServerInternal.Status.Variable.State.Value = ServerState.Shutdown;
                 ServerInternal.Status.Variable.ClearChangeMasks(ServerInternal.DefaultSystemContext, true);
 
-                for (uint secondsUntilShutdown = _plcShutdownWaitSeconds; secondsUntilShutdown > 0; secondsUntilShutdown--)
+                for (uint secondsUntilShutdown = PlcShutdownWaitSeconds; secondsUntilShutdown > 0; secondsUntilShutdown--)
                 {
                     ServerInternal.Status.Value.SecondsTillShutdown = secondsUntilShutdown;
                     ServerInternal.Status.Variable.SecondsTillShutdown.Value = secondsUntilShutdown;
@@ -455,5 +455,5 @@ public partial class PlcServer : StandardServer
         base.OnServerStopping();
     }
 
-    private const uint _plcShutdownWaitSeconds = 10;
+    private const uint PlcShutdownWaitSeconds = 10;
 }

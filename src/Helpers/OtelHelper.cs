@@ -6,7 +6,6 @@ using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using OpenTelemetry.Extensions.Hosting;
 
 using System;
 
@@ -30,8 +29,8 @@ public static class OtelHelper
 
         _ = Sdk.CreateMeterProviderBuilder()
             .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                .AddService(MetricsConfig.ServiceName).AddTelemetrySdk())
-            .AddMeter(MetricsConfig.Meter.Name)
+                .AddService(MetricsHelper.ServiceName).AddTelemetrySdk())
+            .AddMeter(MetricsHelper.Meter.Name)
             .AddRuntimeInstrumentation()
             .AddOtlpExporter((exporterOptions, metricsReaderOptions) => {
                 exporterOptions.Endpoint = new Uri(exportEndpointUri);
