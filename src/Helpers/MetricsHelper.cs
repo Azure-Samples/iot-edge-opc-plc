@@ -17,7 +17,6 @@ public static class MetricsHelper
     /// </summary>
     public static readonly Meter Meter = new(ServiceName);
 
-    private const string OPC_PLC_POD_COUNT_METRIC = "opc_plc_pod_count";
     private const string OPC_PLC_SESSION_COUNT_METRIC = "opc_plc_session_count";
     private const string OPC_PLC_SUBSCRIPTION_COUNT_METRIC = "opc_plc_subscription_count";
     private const string OPC_PLC_MONITORED_ITEM_COUNT_METRIC = "opc_plc_monitored_item_count";
@@ -53,13 +52,11 @@ public static class MetricsHelper
         {
             try
             {
-                var simulationId = Environment.GetEnvironmentVariable("SIMULATION_ID");
-                if (string.IsNullOrEmpty(simulationId))
-                {
-                    return null;
-                }
+                string simulationId = Environment.GetEnvironmentVariable("SIMULATION_ID");
 
-                return simulationId;
+                return string.IsNullOrEmpty(simulationId)
+                    ? null
+                    : simulationId;
             }
             catch (Exception)
             {
@@ -74,14 +71,11 @@ public static class MetricsHelper
         {
             try
             {
-                var clusterName = Environment.GetEnvironmentVariable("DEPLOYMENT_NAME");
+                string clusterName = Environment.GetEnvironmentVariable("DEPLOYMENT_NAME");
 
-                if (string.IsNullOrEmpty(clusterName))
-                {
-                    return null;
-                }
-
-                return clusterName;
+                return string.IsNullOrEmpty(clusterName)
+                    ? null
+                    : clusterName;
             }
             catch (Exception)
             {
@@ -90,7 +84,7 @@ public static class MetricsHelper
         }
     }
 
-    private static readonly IDictionary<string, object> BaseDimensions = new Dictionary<string, object>
+    private static readonly IDictionary<string, object> _baseDimensions = new Dictionary<string, object>
     {
         { "kubernetes_node",    KUBERNETES_NODE ?? "node"       },
         { "role_instance",      ROLE_INSTANCE ?? "host"         },
@@ -104,10 +98,6 @@ public static class MetricsHelper
     private static readonly UpDownCounter<int> MonitoredItemCount = Meter.CreateUpDownCounter<int>(OPC_PLC_MONITORED_ITEM_COUNT_METRIC);
     private static readonly Counter<int> PublishedCountWithType = Meter.CreateCounter<int>(OPC_PLC_PUBLISHED_COUNT_WITH_TYPE_METRIC);
     private static readonly Counter<int> TotalErrors = Meter.CreateCounter<int>(OPC_PLC_TOTAL_ERRORS_METRIC);
-
-    private static readonly ObservableGauge<int> PodCountGauge = Meter.CreateObservableGauge<int>(OPC_PLC_POD_COUNT_METRIC, () => {
-        return new Measurement<int>(1, ConvertDictionaryToKeyVaultPairArray(BaseDimensions));
-    });
 
     /// <summary>
     /// Add a session count.
@@ -135,7 +125,7 @@ public static class MetricsHelper
     /// </summary>
     public static void AddMonitoredItemCount(int delta = 1)
     {
-        MonitoredItemCount.Add(delta, ConvertDictionaryToKeyVaultPairArray(BaseDimensions));
+        MonitoredItemCount.Add(delta, ConvertDictionaryToKeyVaultPairArray(_baseDimensions));
     }
 
     /// <summary>
@@ -181,7 +171,7 @@ public static class MetricsHelper
     /// </summary>
     private static KeyValuePair<string, object>[] MergeWithBaseDimensions(params KeyValuePair<string, object>[] items)
     {
-        var newDimensions = new Dictionary<string, object>(BaseDimensions);
+        var newDimensions = new Dictionary<string, object>(_baseDimensions);
         foreach (var item in items)
         {
             newDimensions[item.Key] = item.Value;
