@@ -27,9 +27,12 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
+using Microsoft.AspNetCore.Hosting.Server;
 using Opc.Ua;
+using Opc.Ua.Test;
 using System;
 using System.Collections.Generic;
+using System.Reflection.Emit;
 
 namespace AlarmCondition
 {
@@ -45,7 +48,8 @@ namespace AlarmCondition
         public SourceState(
             AlarmConditionServerNodeManager nodeManager,
             NodeId nodeId,
-            string sourcePath)
+            string sourcePath,
+            DataGenerator generator)
         :
             base(null)
         {
@@ -68,6 +72,7 @@ namespace AlarmCondition
             EventNotifier = EventNotifiers.None;
 
             // create a dialog.
+            m_generator = generator;
             m_dialog = CreateDialog("OnlineState");
 
             // create the table of conditions.
@@ -223,7 +228,7 @@ namespace AlarmCondition
             AddChild(node);
 
             // initialize event information.
-            node.EventId.Value = Guid.NewGuid().ToByteArray();
+            node.EventId.Value = GetNextGuidAsByteArray();
             node.EventType.Value = node.TypeDefinitionId;
             node.SourceNode.Value = NodeId;
             node.SourceName.Value = SymbolicName;
@@ -254,6 +259,16 @@ namespace AlarmCondition
 
             // return the new node.
             return node;
+        }
+
+        private byte[] GetNextGuidAsByteArray()
+        {
+            // Unpack the object to Uuid and then explicitly cast to Guid to access the byte[]
+            // using a random generator with a known seed to get reproducible results.
+            return ((Guid)((Uuid)m_generator.GetRandom(
+                NodeId.Parse($"i={(int)BuiltInType.Guid}"),
+                ValueRanks.Scalar, new uint[] { 1 },
+                m_nodeManager.Server.TypeTree))).ToByteArray();
         }
 
         /// <summary>
@@ -411,7 +426,7 @@ namespace AlarmCondition
             }
 
             // update the basic event information (include generating a unique id for the event).
-            node.EventId.Value = Guid.NewGuid().ToByteArray();
+            node.EventId.Value = GetNextGuidAsByteArray();
             node.Time.Value = DateTime.UtcNow;
             node.ReceiveTime.Value = node.Time.Value;
 
@@ -727,6 +742,7 @@ namespace AlarmCondition
         private readonly Dictionary<string, AlarmConditionState> m_events;
         private readonly Dictionary<NodeId, AlarmConditionState> m_branches;
         private readonly DialogConditionState m_dialog;
+        private DataGenerator m_generator;
         #endregion
     }
 }
