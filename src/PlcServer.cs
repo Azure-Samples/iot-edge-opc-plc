@@ -3,22 +3,14 @@ namespace OpcPlc;
 using AlarmCondition;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
-using Opc.Ua.Bindings;
 using Opc.Ua.Server;
-using OpcPlc.CompanionSpecs.DI;
 using OpcPlc.Configuration;
 using OpcPlc.DeterministicAlarms;
 using OpcPlc.PluginNodes.Models;
 using OpcPlc.Reference;
 using SimpleEvents;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
-using System.Threading;
-using Meters = OpcPlc.MetricsHelper;
+using Meters = MetricsHelper;
 
 public partial class PlcServer : StandardServer
 {
@@ -173,8 +165,7 @@ public partial class PlcServer : StandardServer
             int events = 0;
             int dataChanges = 0;
             int diagnostics = 0;
-            notificationMessage.NotificationData.ForEach(x =>
-            {
+            notificationMessage.NotificationData.ForEach(x => {
                 if (x.Body is DataChangeNotification changeNotification)
                 {
                     dataChanges += changeNotification.MonitoredItems.Count;
