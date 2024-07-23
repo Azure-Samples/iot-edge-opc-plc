@@ -337,7 +337,13 @@ public class OpcPlcServer
                 throw new ArgumentOutOfRangeException(nameof(Config.LogLevelCli), $"Unknown log level: {Config.LogLevelCli}");
         }
 
-        LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(logLevel);
+        LoggerFactory = LoggingProvider.CreateDefaultLoggerFactory(
+                logLevel,
+                Config.ProgramName,
+                Config.OtlpEndpointUri,
+                Config.OtlpExportProtocol,
+                Config.OtlpExportInterval
+            );
 
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("_GW_LOGP")))
         {

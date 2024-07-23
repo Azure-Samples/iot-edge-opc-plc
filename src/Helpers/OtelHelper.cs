@@ -1,5 +1,6 @@
 namespace OpcPlc.Helpers;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;

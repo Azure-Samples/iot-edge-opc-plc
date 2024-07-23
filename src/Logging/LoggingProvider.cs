@@ -6,6 +6,10 @@
 namespace OpcPlc.Logging;
 
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Resources;
+using System;
 
 /// <summary>
 /// Provides utility for creating logger factory.
@@ -15,7 +19,7 @@ public static class LoggingProvider
     /// <summary>
     /// Create ILoggerFactory object with default configuration.
     /// </summary>
-    public static ILoggerFactory CreateDefaultLoggerFactory(LogLevel level)
+    public static ILoggerFactory CreateDefaultLoggerFactory(LogLevel level, string serviceName, string exportEndpointUri, string exportProtocol, TimeSpan exportInterval)
     {
         var loggerFactory = LoggerFactory.Create(builder =>
         {
@@ -24,6 +28,16 @@ public static class LoggingProvider
             .AddConsoleFormatter<
                 SyslogFormatter,
                 SyslogFormatterOptions>();
+            builder.AddOpenTelemetry(options =>
+            {
+                options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName));
+                options.AddOtlpExporter(exporterOptions =>
+                {
+                    exporterOptions.Endpoint = new Uri(exportEndpointUri);
+                    exporterOptions.Protocol = exportProtocol == "protobuf" ? OtlpExportProtocol.HttpProtobuf : OtlpExportProtocol.Grpc;
+                    exporterOptions.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = (int)exportInterval.TotalMilliseconds;
+                });
+            });
         });
 
         return loggerFactory;
