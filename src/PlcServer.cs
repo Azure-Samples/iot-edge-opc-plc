@@ -220,18 +220,38 @@ public partial class PlcServer : StandardServer
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
 
+            subscriptionId = default;
+            availableSequenceNumbers = default;
+            moreNotifications = default;
+            notificationMessage = default;
+            results = default;
+            diagnosticInfos = default;
+
             if (ex.Message == StatusCodes.BadNoSubscription.ToString())
             {
-                _logger.LogDebug("Failed to publish: BadNoSubscription");
-
-                subscriptionId = default;
-                availableSequenceNumbers = default;
-                moreNotifications = default;
-                notificationMessage = default;
-                results = default;
-                diagnosticInfos = default;
+                _logger.LogDebug(
+                    "Failed to publish: {StatusCode}",
+                    StatusCodes.BadNoSubscription.ToString());
 
                 return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
+            }
+
+            if (ex.Message == StatusCodes.BadSessionIdInvalid.ToString())
+            {
+                _logger.LogDebug(
+                    "Failed to publish: {StatusCode}",
+                    StatusCodes.BadSessionIdInvalid.ToString());
+
+                return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
+            }
+
+            if (ex.Message == StatusCodes.BadSecureChannelIdInvalid.ToString())
+            {
+                _logger.LogDebug(
+                    "Failed to publish: {StatusCode}",
+                    StatusCodes.BadSecureChannelIdInvalid.ToString());
+
+                return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
             }
 
             _logger.LogError(ex, "Error publishing");
