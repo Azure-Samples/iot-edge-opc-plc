@@ -36,6 +36,7 @@ public partial class PlcServer : StandardServer
     public readonly TimeService TimeService;
     private readonly ImmutableList<IPluginNodes> _pluginNodes;
     private readonly ILogger _logger;
+    private readonly Timer _periodicLoggingTimer;
 
     public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
@@ -44,6 +45,13 @@ public partial class PlcServer : StandardServer
         TimeService = timeService;
         _pluginNodes = pluginNodes;
         _logger = logger;
+
+        _periodicLoggingTimer = new Timer(
+            (state) => _logger.LogInformation(
+                    "Open sessions: {Sessions}, open subscriptions: {Subscriptions}",
+                    ServerInternal.SessionManager.GetSessions().Count,
+                    ServerInternal.SubscriptionManager.GetSubscriptions().Count),
+            state: null, dueTime: TimeSpan.FromSeconds(60), period: TimeSpan.FromSeconds(60));
 
         MetricsHelper.IsEnabled = Config.OtlpEndpointUri is not null;
     }
