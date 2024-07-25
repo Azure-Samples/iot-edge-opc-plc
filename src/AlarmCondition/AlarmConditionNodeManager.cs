@@ -139,7 +139,7 @@ namespace AlarmCondition
 
                 // start the simulation.
                 m_system.StartSimulation();
-                m_simulationTimer = new Timer(OnRaiseSystemEvents, null, 1000, 1000);
+                m_simulationTimer = new Timer(OnRaiseSystemEvents, state: null, dueTime: 1000, period: 1000);
             }
         }
 

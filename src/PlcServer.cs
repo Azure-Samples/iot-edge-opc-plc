@@ -36,6 +36,7 @@ public partial class PlcServer : StandardServer
     public readonly TimeService TimeService;
     private readonly ImmutableList<IPluginNodes> _pluginNodes;
     private readonly ILogger _logger;
+    private readonly Timer _periodicLoggingTimer;
 
     public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
@@ -44,6 +45,22 @@ public partial class PlcServer : StandardServer
         TimeService = timeService;
         _pluginNodes = pluginNodes;
         _logger = logger;
+
+        _periodicLoggingTimer = new Timer(
+            (state) => {
+                try
+                {
+                    _logger.LogInformation(
+                        "Open sessions: {Sessions}, open subscriptions: {Subscriptions}",
+                        ServerInternal.SessionManager.GetSessions().Count,
+                        ServerInternal.SubscriptionManager.GetSubscriptions().Count);
+                }
+                catch
+                {
+                    // Ignore error during logging.
+                }
+            },
+            state: null, dueTime: TimeSpan.FromSeconds(60), period: TimeSpan.FromSeconds(60));
 
         MetricsHelper.IsEnabled = Config.OtlpEndpointUri is not null;
     }
@@ -133,7 +150,7 @@ public partial class PlcServer : StandardServer
     {
         try
         {
-            OperationContext context = ValidateRequest(requestHeader, RequestType.CreateSubscription);
+            OperationContext context = ValidateRequest(requestHeader, RequestType.CreateMonitoredItems);
 
             var responseHeader = base.CreateMonitoredItems(requestHeader, subscriptionId, timestampsToReturn, itemsToCreate, out results, out diagnosticInfos);
 
@@ -167,7 +184,7 @@ public partial class PlcServer : StandardServer
     {
         try
         {
-            OperationContext context = ValidateRequest(requestHeader, RequestType.CreateSubscription);
+            OperationContext context = ValidateRequest(requestHeader, RequestType.Publish);
 
             var responseHeader = base.Publish(requestHeader, subscriptionAcknowledgements, out subscriptionId, out availableSequenceNumbers, out moreNotifications, out notificationMessage, out results, out diagnosticInfos);
 
@@ -202,6 +219,21 @@ public partial class PlcServer : StandardServer
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
+
+            if (ex.Message == StatusCodes.BadNoSubscription.ToString())
+            {
+                _logger.LogDebug("Failed to publish: BadNoSubscription");
+
+                subscriptionId = default;
+                availableSequenceNumbers = default;
+                moreNotifications = default;
+                notificationMessage = default;
+                results = default;
+                diagnosticInfos = default;
+
+                return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
+            }
+
             _logger.LogError(ex, "Error publishing");
             throw;
         }
