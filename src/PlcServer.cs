@@ -202,6 +202,21 @@ public partial class PlcServer : StandardServer
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
+
+            if (ex.Message == StatusCodes.BadNoSubscription.ToString())
+            {
+                _logger.LogDebug("Failed to publish: BadNoSubscription");
+
+                subscriptionId = default;
+                availableSequenceNumbers = default;
+                moreNotifications = default;
+                notificationMessage = default;
+                results = default;
+                diagnosticInfos = default;
+
+                return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
+            }
+
             _logger.LogError(ex, "Error publishing");
             throw;
         }
