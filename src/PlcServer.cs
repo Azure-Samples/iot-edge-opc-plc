@@ -133,7 +133,7 @@ public partial class PlcServer : StandardServer
     {
         try
         {
-            OperationContext context = ValidateRequest(requestHeader, RequestType.CreateSubscription);
+            OperationContext context = ValidateRequest(requestHeader, RequestType.CreateMonitoredItems);
 
             var responseHeader = base.CreateMonitoredItems(requestHeader, subscriptionId, timestampsToReturn, itemsToCreate, out results, out diagnosticInfos);
 
@@ -167,7 +167,7 @@ public partial class PlcServer : StandardServer
     {
         try
         {
-            OperationContext context = ValidateRequest(requestHeader, RequestType.CreateSubscription);
+            OperationContext context = ValidateRequest(requestHeader, RequestType.Publish);
 
             var responseHeader = base.Publish(requestHeader, subscriptionAcknowledgements, out subscriptionId, out availableSequenceNumbers, out moreNotifications, out notificationMessage, out results, out diagnosticInfos);
 
