@@ -47,10 +47,19 @@ public partial class PlcServer : StandardServer
         _logger = logger;
 
         _periodicLoggingTimer = new Timer(
-            (state) => _logger.LogInformation(
-                    "Open sessions: {Sessions}, open subscriptions: {Subscriptions}",
-                    ServerInternal.SessionManager.GetSessions().Count,
-                    ServerInternal.SubscriptionManager.GetSubscriptions().Count),
+            (state) => {
+                try
+                {
+                    _logger.LogInformation(
+                        "Open sessions: {Sessions}, open subscriptions: {Subscriptions}",
+                        ServerInternal.SessionManager.GetSessions().Count,
+                        ServerInternal.SubscriptionManager.GetSubscriptions().Count);
+                }
+                catch
+                {
+                    // Ignore error during logging.
+                }
+            },
             state: null, dueTime: TimeSpan.FromSeconds(60), period: TimeSpan.FromSeconds(60));
 
         MetricsHelper.IsEnabled = Config.OtlpEndpointUri is not null;
