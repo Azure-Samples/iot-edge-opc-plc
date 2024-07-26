@@ -182,6 +182,13 @@ public partial class PlcServer : StandardServer
         out StatusCodeCollection results,
         out DiagnosticInfoCollection diagnosticInfos)
     {
+        subscriptionId = default;
+        availableSequenceNumbers = default;
+        moreNotifications = default;
+        notificationMessage = default;
+        results = default;
+        diagnosticInfos = default;
+
         try
         {
             OperationContext context = ValidateRequest(requestHeader, RequestType.Publish);
@@ -216,48 +223,40 @@ public partial class PlcServer : StandardServer
 
             return responseHeader;
         }
-        catch (ServiceResultException ex)
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadNoSubscription)
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
 
-            subscriptionId = default;
-            availableSequenceNumbers = default;
-            moreNotifications = default;
-            notificationMessage = default;
-            results = default;
-            diagnosticInfos = default;
+            _logger.LogDebug(
+                ex,
+                "Failed to publish: {StatusCode}",
+                StatusCodes.BadNoSubscription.ToString());
 
-            if (ex.StatusCode == StatusCodes.BadNoSubscription)
-            {
-                _logger.LogDebug(
-                    "Failed to publish: {StatusCode}",
-                    StatusCodes.BadNoSubscription.ToString());
-
-                return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
-            }
-
-            if (ex.StatusCode == StatusCodes.BadSessionIdInvalid)
-            {
-                _logger.LogDebug(
-                    "Failed to publish: {StatusCode}",
-                    StatusCodes.BadSessionIdInvalid.ToString());
-
-                return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
-            }
-
-            if (ex.StatusCode == StatusCodes.BadSecureChannelIdInvalid)
-            {
-                _logger.LogDebug(
-                    "Failed to publish: {StatusCode}",
-                    StatusCodes.BadSecureChannelIdInvalid.ToString());
-
-                return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
-            }
-
-            _logger.LogError(ex, "Error publishing");
-            throw;
+            return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
         }
-        catch(Exception ex)
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSessionIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Publish));
+
+            _logger.LogDebug(
+                ex,
+                "Failed to publish: {StatusCode}",
+                StatusCodes.BadSessionIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
+        }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSecureChannelIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Publish));
+
+            _logger.LogDebug(
+                ex,
+                "Failed to publish: {StatusCode}",
+                StatusCodes.BadSecureChannelIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
+        }
+        catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
 
