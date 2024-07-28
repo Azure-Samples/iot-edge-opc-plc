@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 
@@ -50,10 +51,14 @@ public partial class PlcServer : StandardServer
             (state) => {
                 try
                 {
+                    var curProc = Process.GetCurrentProcess();
+
                     _logger.LogInformation(
-                        "Open sessions: {Sessions}, open subscriptions: {Subscriptions}",
+                        "Open sessions: {Sessions}, open subscriptions: {Subscriptions}, monitored items: {MonitoredItems}, working set {WorkingSet:N0} MB",
                         ServerInternal.SessionManager.GetSessions().Count,
-                        ServerInternal.SubscriptionManager.GetSubscriptions().Count);
+                        ServerInternal.SubscriptionManager.GetSubscriptions().Count,
+                        ServerInternal.SubscriptionManager.GetSubscriptions().Sum(s => s.MonitoredItemCount),
+                        curProc.WorkingSet64 / 1024 / 1024);
                 }
                 catch
                 {
