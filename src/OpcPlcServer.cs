@@ -22,6 +22,9 @@ using System.Threading.Tasks;
 
 public class OpcPlcServer
 {
+    private const int DefaultMinThreads = 20;
+    private const int DefaultCompletionPortThreads = 20;
+
     private string[] _args;
     private CancellationTokenSource _cancellationTokenSource;
     private ImmutableList<IPluginNodes> _pluginNodes;
@@ -87,9 +90,16 @@ public class OpcPlcServer
 
         LogLogo();
 
-        Logger.LogInformation("Current directory: {currentDirectory}", Directory.GetCurrentDirectory());
-        Logger.LogInformation("Log file: {logFileName}", Path.GetFullPath(Config.LogFileName));
-        Logger.LogInformation("Log level: {logLevel}", Config.LogLevelCli);
+        ThreadPool.SetMinThreads(DefaultMinThreads, DefaultCompletionPortThreads);
+        ThreadPool.GetMinThreads(out int minWorkerThreads, out int minCompletionPortThreads);
+        Logger.LogInformation(
+            "Min worker threads: {MinWorkerThreads}, min completion port threads: {MinCompletionPortThreads}",
+            minWorkerThreads,
+            minCompletionPortThreads);
+
+        Logger.LogInformation("Current directory: {CurrentDirectory}", Directory.GetCurrentDirectory());
+        Logger.LogInformation("Log file: {LogFileName}", Path.GetFullPath(Config.LogFileName));
+        Logger.LogInformation("Log level: {LogLevel}", Config.LogLevelCli);
 
         // Show OPC PLC version.
         var fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);

@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 
@@ -50,10 +51,25 @@ public partial class PlcServer : StandardServer
             (state) => {
                 try
                 {
+                    var curProc = Process.GetCurrentProcess();
+
+                    ThreadPool.GetAvailableThreads(out int availWorkerThreads, out int availCompletionPortThreads);
+
                     _logger.LogInformation(
-                        "Open sessions: {Sessions}, open subscriptions: {Subscriptions}",
+                        "\n\t# Open sessions: {Sessions}\n" +
+                        "\t# Open subscriptions: {Subscriptions}\n" +
+                        "\t# Monitored items: {MonitoredItems:N0}\n" +
+                        "\t# Working set {WorkingSet:N0} MB\n" +
+                        "\t# Available worker threads: {AvailWorkerThreads:N0}\n" +
+                        "\t# Available completion port threads: {AvailCompletionPortThreads:N0}\n" +
+                        "\t# Thread count: {ThreadCount:N0}",
                         ServerInternal.SessionManager.GetSessions().Count,
-                        ServerInternal.SubscriptionManager.GetSubscriptions().Count);
+                        ServerInternal.SubscriptionManager.GetSubscriptions().Count,
+                        ServerInternal.SubscriptionManager.GetSubscriptions().Sum(s => s.MonitoredItemCount),
+                        curProc.WorkingSet64 / 1024 / 1024,
+                        availWorkerThreads,
+                        availCompletionPortThreads,
+                        curProc.Threads.Count);
                 }
                 catch
                 {
@@ -148,6 +164,9 @@ public partial class PlcServer : StandardServer
         out MonitoredItemCreateResultCollection results,
         out DiagnosticInfoCollection diagnosticInfos)
     {
+        results = default;
+        diagnosticInfos = default;
+
         try
         {
             OperationContext context = ValidateRequest(requestHeader, RequestType.CreateMonitoredItems);
@@ -164,9 +183,43 @@ public partial class PlcServer : StandardServer
 
             return responseHeader;
         }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadNoSubscription)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
+
+            _logger.LogDebug(
+                ex,
+                "Failed creating monitored items: {StatusCode}",
+                StatusCodes.BadNoSubscription.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
+        }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSessionIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
+
+            _logger.LogDebug(
+                ex,
+                "Failed creating monitored items: {StatusCode}",
+                StatusCodes.BadSessionIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
+        }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSecureChannelIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
+
+            _logger.LogDebug(
+                ex,
+                "Failed creating monitored items: {StatusCode}",
+                StatusCodes.BadSecureChannelIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
+        }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
+
             _logger.LogError(ex, "Error creating monitored items");
             throw;
         }
@@ -182,6 +235,13 @@ public partial class PlcServer : StandardServer
         out StatusCodeCollection results,
         out DiagnosticInfoCollection diagnosticInfos)
     {
+        subscriptionId = default;
+        availableSequenceNumbers = default;
+        moreNotifications = default;
+        notificationMessage = default;
+        results = default;
+        diagnosticInfos = default;
+
         try
         {
             OperationContext context = ValidateRequest(requestHeader, RequestType.Publish);
@@ -216,48 +276,40 @@ public partial class PlcServer : StandardServer
 
             return responseHeader;
         }
-        catch (ServiceResultException ex)
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadNoSubscription)
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
 
-            subscriptionId = default;
-            availableSequenceNumbers = default;
-            moreNotifications = default;
-            notificationMessage = default;
-            results = default;
-            diagnosticInfos = default;
+            _logger.LogDebug(
+                ex,
+                "Failed to publish: {StatusCode}",
+                StatusCodes.BadNoSubscription.ToString());
 
-            if (ex.StatusCode == StatusCodes.BadNoSubscription)
-            {
-                _logger.LogDebug(
-                    "Failed to publish: {StatusCode}",
-                    StatusCodes.BadNoSubscription.ToString());
-
-                return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
-            }
-
-            if (ex.StatusCode == StatusCodes.BadSessionIdInvalid)
-            {
-                _logger.LogDebug(
-                    "Failed to publish: {StatusCode}",
-                    StatusCodes.BadSessionIdInvalid.ToString());
-
-                return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
-            }
-
-            if (ex.StatusCode == StatusCodes.BadSecureChannelIdInvalid)
-            {
-                _logger.LogDebug(
-                    "Failed to publish: {StatusCode}",
-                    StatusCodes.BadSecureChannelIdInvalid.ToString());
-
-                return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
-            }
-
-            _logger.LogError(ex, "Error publishing");
-            throw;
+            return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
         }
-        catch(Exception ex)
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSessionIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Publish));
+
+            _logger.LogDebug(
+                ex,
+                "Failed to publish: {StatusCode}",
+                StatusCodes.BadSessionIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
+        }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSecureChannelIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Publish));
+
+            _logger.LogDebug(
+                ex,
+                "Failed to publish: {StatusCode}",
+                StatusCodes.BadSecureChannelIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
+        }
+        catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
 
@@ -274,6 +326,9 @@ public partial class PlcServer : StandardServer
         out DataValueCollection results,
         out DiagnosticInfoCollection diagnosticInfos)
     {
+        results = default;
+        diagnosticInfos = default;
+
         try
         {
             var responseHeader = base.Read(requestHeader, maxAge, timestampsToReturn, nodesToRead, out results, out diagnosticInfos);
@@ -282,9 +337,43 @@ public partial class PlcServer : StandardServer
 
             return responseHeader;
         }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadNoSubscription)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Read));
+
+            _logger.LogDebug(
+                ex,
+                "Failed to read: {StatusCode}",
+                StatusCodes.BadNoSubscription.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
+        }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSessionIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Read));
+
+            _logger.LogDebug(
+                ex,
+                "Failed to read: {StatusCode}",
+                StatusCodes.BadSessionIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
+        }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSecureChannelIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Read));
+
+            _logger.LogDebug(
+                ex,
+                "Failed to read: {StatusCode}",
+                StatusCodes.BadSecureChannelIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
+        }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Read));
+
             _logger.LogError(ex, "Error reading");
             throw;
         }
