@@ -164,6 +164,9 @@ public partial class PlcServer : StandardServer
         out MonitoredItemCreateResultCollection results,
         out DiagnosticInfoCollection diagnosticInfos)
     {
+        results = default;
+        diagnosticInfos = default;
+
         try
         {
             OperationContext context = ValidateRequest(requestHeader, RequestType.CreateMonitoredItems);
@@ -180,9 +183,43 @@ public partial class PlcServer : StandardServer
 
             return responseHeader;
         }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadNoSubscription)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
+
+            _logger.LogDebug(
+                ex,
+                "Failed creating monitored items: {StatusCode}",
+                StatusCodes.BadNoSubscription.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
+        }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSessionIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
+
+            _logger.LogDebug(
+                ex,
+                "Failed creating monitored items: {StatusCode}",
+                StatusCodes.BadSessionIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
+        }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSecureChannelIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
+
+            _logger.LogDebug(
+                ex,
+                "Failed creating monitored items: {StatusCode}",
+                StatusCodes.BadSecureChannelIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
+        }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
+
             _logger.LogError(ex, "Error creating monitored items");
             throw;
         }
@@ -289,6 +326,9 @@ public partial class PlcServer : StandardServer
         out DataValueCollection results,
         out DiagnosticInfoCollection diagnosticInfos)
     {
+        results = default;
+        diagnosticInfos = default;
+
         try
         {
             var responseHeader = base.Read(requestHeader, maxAge, timestampsToReturn, nodesToRead, out results, out diagnosticInfos);
@@ -297,9 +337,43 @@ public partial class PlcServer : StandardServer
 
             return responseHeader;
         }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadNoSubscription)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Read));
+
+            _logger.LogDebug(
+                ex,
+                "Failed to read: {StatusCode}",
+                StatusCodes.BadNoSubscription.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
+        }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSessionIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Read));
+
+            _logger.LogDebug(
+                ex,
+                "Failed to read: {StatusCode}",
+                StatusCodes.BadSessionIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
+        }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSecureChannelIdInvalid)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Read));
+
+            _logger.LogDebug(
+                ex,
+                "Failed to read: {StatusCode}",
+                StatusCodes.BadSecureChannelIdInvalid.ToString());
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
+        }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Read));
+
             _logger.LogError(ex, "Error reading");
             throw;
         }
