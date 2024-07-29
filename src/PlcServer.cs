@@ -53,12 +53,23 @@ public partial class PlcServer : StandardServer
                 {
                     var curProc = Process.GetCurrentProcess();
 
+                    ThreadPool.GetAvailableThreads(out int availWorkerThreads, out int availCompletionPortThreads);
+
                     _logger.LogInformation(
-                        "Open sessions: {Sessions}, open subscriptions: {Subscriptions}, monitored items: {MonitoredItems}, working set {WorkingSet:N0} MB",
+                        "\n\t# Open sessions: {Sessions}\n" +
+                        "\t# Open subscriptions: {Subscriptions}\n" +
+                        "\t# Monitored items: {MonitoredItems:N0}\n" +
+                        "\t# Working set {WorkingSet:N0} MB\n" +
+                        "\t# Available worker threads: {AvailWorkerThreads:N0}\n" +
+                        "\t# Available completion port threads: {AvailCompletionPortThreads:N0}\n" +
+                        "\t# Thread count: {ThreadCount:N0}",
                         ServerInternal.SessionManager.GetSessions().Count,
                         ServerInternal.SubscriptionManager.GetSubscriptions().Count,
                         ServerInternal.SubscriptionManager.GetSubscriptions().Sum(s => s.MonitoredItemCount),
-                        curProc.WorkingSet64 / 1024 / 1024);
+                        curProc.WorkingSet64 / 1024 / 1024,
+                        availWorkerThreads,
+                        availCompletionPortThreads,
+                        curProc.Threads.Count);
                 }
                 catch
                 {
