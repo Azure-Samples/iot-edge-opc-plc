@@ -59,7 +59,7 @@ public partial class PlcServer : StandardServer
                         "\n\t# Open sessions: {Sessions}\n" +
                         "\t# Open subscriptions: {Subscriptions}\n" +
                         "\t# Monitored items: {MonitoredItems:N0}\n" +
-                        "\t# Working set {WorkingSet:N0} MB\n" +
+                        "\t# Working set: {WorkingSet:N0} MB\n" +
                         "\t# Available worker threads: {AvailWorkerThreads:N0}\n" +
                         "\t# Available completion port threads: {AvailCompletionPortThreads:N0}\n" +
                         "\t# Thread count: {ThreadCount:N0}",
