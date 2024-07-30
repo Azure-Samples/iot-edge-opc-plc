@@ -1,5 +1,7 @@
 namespace OpcPlc;
 
+using Microsoft.Extensions.Logging;
+using Opc.Ua;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
@@ -151,18 +153,37 @@ public static class MetricsHelper
     /// <summary>
     /// Add a published count.
     /// </summary>
-    public static void AddPublishedCount(string sessionId, string subscriptionId, int dataPoints, int events)
+    public static void AddPublishedCount(string sessionId, string subscriptionId, NotificationMessage notificationMessage, ILogger logger)
     {
         if (!IsEnabled)
         {
             return;
         }
 
-        if (dataPoints > 0)
+        int events = 0;
+        int dataChanges = 0;
+        int diagnostics = 0;
+        notificationMessage.NotificationData.ForEach(x => {
+            if (x.Body is DataChangeNotification changeNotification)
+            {
+                dataChanges += changeNotification.MonitoredItems.Count;
+                diagnostics += changeNotification.DiagnosticInfos.Count;
+            }
+            else if (x.Body is EventNotificationList eventNotification)
+            {
+                events += eventNotification.Events.Count;
+            }
+            else
+            {
+                logger.LogDebug("Unknown notification type: {NotificationType}", x.Body.GetType().Name);
+            }
+        });
+
+        if (dataChanges > 0)
         {
             var dataPointsDimensions = MergeWithBaseDimensions(
                         new KeyValuePair<string, object>("type", "data_point"));
-            _publishedCountWithType.Add(dataPoints, dataPointsDimensions);
+            _publishedCountWithType.Add(dataChanges, dataPointsDimensions);
         }
 
         if (events > 0)

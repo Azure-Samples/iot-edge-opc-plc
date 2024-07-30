@@ -22,6 +22,8 @@ using System.Threading;
 
 public partial class PlcServer : StandardServer
 {
+    private const uint PlcShutdownWaitSeconds = 10;
+
     public PlcNodeManager PlcNodeManager { get; set; }
 
     public AlarmConditionServerNodeManager AlarmNodeManager { get; set; }
@@ -39,6 +41,8 @@ public partial class PlcServer : StandardServer
     private readonly ILogger _logger;
     private readonly Timer _periodicLoggingTimer;
 
+    private bool _disablePublishMetrics;
+
     public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
         Config = config;
@@ -55,21 +59,20 @@ public partial class PlcServer : StandardServer
 
                     ThreadPool.GetAvailableThreads(out int availWorkerThreads, out int availCompletionPortThreads);
 
-                    _logger.LogInformation(
-                        "\n\t# Open sessions: {Sessions}\n" +
-                        "\t# Open subscriptions: {Subscriptions}\n" +
-                        "\t# Monitored items: {MonitoredItems:N0}\n" +
-                        "\t# Working set: {WorkingSet:N0} MB\n" +
-                        "\t# Available worker threads: {AvailWorkerThreads:N0}\n" +
-                        "\t# Available completion port threads: {AvailCompletionPortThreads:N0}\n" +
-                        "\t# Thread count: {ThreadCount:N0}",
-                        ServerInternal.SessionManager.GetSessions().Count,
-                        ServerInternal.SubscriptionManager.GetSubscriptions().Count,
-                        ServerInternal.SubscriptionManager.GetSubscriptions().Sum(s => s.MonitoredItemCount),
+                    int sessionCount = ServerInternal.SessionManager.GetSessions().Count;
+                    IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
+                    int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
+
+                    LogPeriodicInfo(
+                        sessionCount,
+                        subscriptions.Count,
+                        monitoredItemsCount,
                         curProc.WorkingSet64 / 1024 / 1024,
                         availWorkerThreads,
                         availCompletionPortThreads,
                         curProc.Threads.Count);
+
+                    _disablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
                 }
                 catch
                 {
@@ -107,14 +110,15 @@ public partial class PlcServer : StandardServer
 
             MetricsHelper.AddSessionCount(sessionId.ToString());
 
-            _logger.LogDebug("{function} completed successfully with sessionId: {sessionId}", nameof(CreateSession), sessionId);
+            LogSuccessWithSessionId(nameof(CreateSession), sessionId);
 
             return responseHeader;
         }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(CreateSession));
-            _logger.LogError(ex, "Error creating session");
+
+            LogError(nameof(CreateSession), ex);
             throw;
         }
     }
@@ -140,8 +144,7 @@ public partial class PlcServer : StandardServer
 
             MetricsHelper.AddSubscriptionCount(context.SessionId.ToString(), subscriptionId.ToString());
 
-            _logger.LogDebug(
-                "{function} completed successfully with sessionId: {sessionId} and subscriptionId: {subscriptionId}",
+            LogSuccessWithSessionIdAndSubscriptionId(
                 nameof(CreateSubscription),
                 context.SessionId,
                 subscriptionId);
@@ -151,7 +154,8 @@ public partial class PlcServer : StandardServer
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(CreateSubscription));
-            _logger.LogError(ex, "Error creating subscription");
+
+            LogError(nameof(CreateSubscription), ex);
             throw;
         }
     }
@@ -175,7 +179,7 @@ public partial class PlcServer : StandardServer
 
             MetricsHelper.AddMonitoredItemCount(itemsToCreate.Count);
 
-            _logger.LogDebug("{function} completed successfully with sessionId: {sessionId}, subscriptionId: {subscriptionId} and count: {count}",
+            LogSuccessWithSessionIdAndSubscriptionIdAndCount(
                 nameof(CreateMonitoredItems),
                 context.SessionId,
                 subscriptionId,
@@ -183,44 +187,11 @@ public partial class PlcServer : StandardServer
 
             return responseHeader;
         }
-        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadNoSubscription)
-        {
-            MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
-
-            _logger.LogDebug(
-                ex,
-                "Failed creating monitored items: {StatusCode}",
-                StatusCodes.BadNoSubscription.ToString());
-
-            return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
-        }
-        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSessionIdInvalid)
-        {
-            MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
-
-            _logger.LogDebug(
-                ex,
-                "Failed creating monitored items: {StatusCode}",
-                StatusCodes.BadSessionIdInvalid.ToString());
-
-            return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
-        }
-        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSecureChannelIdInvalid)
-        {
-            MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
-
-            _logger.LogDebug(
-                ex,
-                "Failed creating monitored items: {StatusCode}",
-                StatusCodes.BadSecureChannelIdInvalid.ToString());
-
-            return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
-        }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(CreateMonitoredItems));
 
-            _logger.LogError(ex, "Error creating monitored items");
+            LogError(nameof(CreateSubscription), ex);
             throw;
         }
     }
@@ -248,28 +219,12 @@ public partial class PlcServer : StandardServer
 
             var responseHeader = base.Publish(requestHeader, subscriptionAcknowledgements, out subscriptionId, out availableSequenceNumbers, out moreNotifications, out notificationMessage, out results, out diagnosticInfos);
 
-            int events = 0;
-            int dataChanges = 0;
-            int diagnostics = 0;
-            notificationMessage.NotificationData.ForEach(x => {
-                if (x.Body is DataChangeNotification changeNotification)
-                {
-                    dataChanges += changeNotification.MonitoredItems.Count;
-                    diagnostics += changeNotification.DiagnosticInfos.Count;
-                }
-                else if (x.Body is EventNotificationList eventNotification)
-                {
-                    events += eventNotification.Events.Count;
-                }
-                else
-                {
-                    _logger.LogDebug("Unknown notification type: {notificationType}", x.Body.GetType().Name);
-                }
-            });
+            if (!_disablePublishMetrics)
+            {
+                MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), notificationMessage, _logger);
+            }
 
-            MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), dataChanges, events);
-
-            _logger.LogDebug("{function} successfully with session: {sessionId} and subscriptionId: {subscriptionId}",
+            LogSuccessWithSessionIdAndSubscriptionId(
                 nameof(Publish),
                 context.SessionId,
                 subscriptionId);
@@ -280,10 +235,10 @@ public partial class PlcServer : StandardServer
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
 
-            _logger.LogDebug(
-                ex,
-                "Failed to publish: {StatusCode}",
-                StatusCodes.BadNoSubscription.ToString());
+            LogErrorWithStatusCode(
+                nameof(Publish),
+                nameof(StatusCodes.BadNoSubscription),
+                ex);
 
             return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
         }
@@ -291,10 +246,10 @@ public partial class PlcServer : StandardServer
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
 
-            _logger.LogDebug(
-                ex,
-                "Failed to publish: {StatusCode}",
-                StatusCodes.BadSessionIdInvalid.ToString());
+            LogErrorWithStatusCode(
+                nameof(Publish),
+                nameof(StatusCodes.BadSessionIdInvalid),
+                ex);
 
             return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
         }
@@ -302,10 +257,10 @@ public partial class PlcServer : StandardServer
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
 
-            _logger.LogDebug(
-                ex,
-                "Failed to publish: {StatusCode}",
-                StatusCodes.BadSecureChannelIdInvalid.ToString());
+            LogErrorWithStatusCode(
+                nameof(Publish),
+                nameof(StatusCodes.BadSecureChannelIdInvalid),
+                ex);
 
             return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
         }
@@ -313,7 +268,7 @@ public partial class PlcServer : StandardServer
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
 
-            _logger.LogError(ex, "Error publishing");
+            LogError(nameof(Publish), ex);
             throw;
         }
     }
@@ -333,48 +288,15 @@ public partial class PlcServer : StandardServer
         {
             var responseHeader = base.Read(requestHeader, maxAge, timestampsToReturn, nodesToRead, out results, out diagnosticInfos);
 
-            _logger.LogDebug("{function} completed successfully", nameof(Read));
+            LogSuccess(nameof(Read));
 
             return responseHeader;
-        }
-        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadNoSubscription)
-        {
-            MetricsHelper.RecordTotalErrors(nameof(Read));
-
-            _logger.LogDebug(
-                ex,
-                "Failed to read: {StatusCode}",
-                StatusCodes.BadNoSubscription.ToString());
-
-            return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
-        }
-        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSessionIdInvalid)
-        {
-            MetricsHelper.RecordTotalErrors(nameof(Read));
-
-            _logger.LogDebug(
-                ex,
-                "Failed to read: {StatusCode}",
-                StatusCodes.BadSessionIdInvalid.ToString());
-
-            return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
-        }
-        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSecureChannelIdInvalid)
-        {
-            MetricsHelper.RecordTotalErrors(nameof(Read));
-
-            _logger.LogDebug(
-                ex,
-                "Failed to read: {StatusCode}",
-                StatusCodes.BadSecureChannelIdInvalid.ToString());
-
-            return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
         }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Read));
 
-            _logger.LogError(ex, "Error reading");
+            LogError(nameof(Read), ex);
             throw;
         }
     }
@@ -385,14 +307,15 @@ public partial class PlcServer : StandardServer
         {
             var responseHeader = base.Write(requestHeader, nodesToWrite, out results, out diagnosticInfos);
 
-            _logger.LogDebug("{function} completed successfully", nameof(Write));
+            LogSuccess(nameof(Write));
 
             return responseHeader;
         }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Write));
-            _logger.LogError(ex, "Error writing");
+
+            LogError(nameof(Write), ex);
             throw;
         }
     }
@@ -459,13 +382,13 @@ public partial class PlcServer : StandardServer
             if (string.IsNullOrWhiteSpace(scriptFileName))
             {
                 string errorMessage = "The script file for deterministic testing is not set (deterministicalarms)";
-                _logger.LogError(errorMessage);
+                LogErrorMessage(errorMessage);
                 throw new Exception(errorMessage);
             }
             if (!File.Exists(scriptFileName))
             {
                 string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist";
-                _logger.LogError(errorMessage);
+                LogErrorMessage(errorMessage);
                 throw new Exception(errorMessage);
             }
 
@@ -603,5 +526,49 @@ public partial class PlcServer : StandardServer
         base.OnServerStopping();
     }
 
-    private const uint PlcShutdownWaitSeconds = 10;
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "\n\t# Open sessions: {Sessions}\n" +
+                  "\t# Open subscriptions: {Subscriptions}\n" +
+                  "\t# Monitored items: {MonitoredItems:N0}\n" +
+                  "\t# Working set: {WorkingSet:N0} MB\n" +
+                  "\t# Available worker threads: {AvailWorkerThreads:N0}\n" +
+                  "\t# Available completion port threads: {AvailCompletionPortThreads:N0}\n" +
+                  "\t# Thread count: {ThreadCount:N0}")]
+    partial void LogPeriodicInfo(int sessions, int subscriptions, int monitoredItems, long workingSet, int availWorkerThreads, int availCompletionPortThreads, int threadCount);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "{Function} completed successfully")]
+    partial void LogSuccess(string function);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "{Function} completed successfully with sessionId: {SessionId}")]
+    partial void LogSuccessWithSessionId(string function, NodeId sessionId);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "{Function} completed successfully with sessionId: {SessionId} and subscriptionId: {SubscriptionId}")]
+    partial void LogSuccessWithSessionIdAndSubscriptionId(string function, NodeId sessionId, uint subscriptionId);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "{Function} completed successfully with sessionId: {SessionId}, subscriptionId: {SubscriptionId} and count: {Count}")]
+    partial void LogSuccessWithSessionIdAndSubscriptionIdAndCount(string function, NodeId sessionId, uint subscriptionId, int count);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "{Function} error")]
+    partial void LogError(string function, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "{Function} error: {StatusCode}")]
+    partial void LogErrorWithStatusCode(string function, string statusCode, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "{message}")]
+    partial void LogErrorMessage(string message);
 }
