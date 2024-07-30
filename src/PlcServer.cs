@@ -22,6 +22,8 @@ using System.Threading;
 
 public partial class PlcServer : StandardServer
 {
+    private const uint PlcShutdownWaitSeconds = 10;
+
     public PlcNodeManager PlcNodeManager { get; set; }
 
     public AlarmConditionServerNodeManager AlarmNodeManager { get; set; }
@@ -39,6 +41,8 @@ public partial class PlcServer : StandardServer
     private readonly ILogger _logger;
     private readonly Timer _periodicLoggingTimer;
 
+    private bool _disablePublishMetrics;
+
     public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
         Config = config;
@@ -55,14 +59,20 @@ public partial class PlcServer : StandardServer
 
                     ThreadPool.GetAvailableThreads(out int availWorkerThreads, out int availCompletionPortThreads);
 
+                    int sessionCount = ServerInternal.SessionManager.GetSessions().Count;
+                    IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
+                    int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
+
                     LogPeriodicInfo(
-                        ServerInternal.SessionManager.GetSessions().Count,
-                        ServerInternal.SubscriptionManager.GetSubscriptions().Count,
-                        ServerInternal.SubscriptionManager.GetSubscriptions().Sum(s => s.MonitoredItemCount),
+                        sessionCount,
+                        subscriptions.Count,
+                        monitoredItemsCount,
                         curProc.WorkingSet64 / 1024 / 1024,
                         availWorkerThreads,
                         availCompletionPortThreads,
                         curProc.Threads.Count);
+
+                    _disablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
                 }
                 catch
                 {
@@ -209,7 +219,10 @@ public partial class PlcServer : StandardServer
 
             var responseHeader = base.Publish(requestHeader, subscriptionAcknowledgements, out subscriptionId, out availableSequenceNumbers, out moreNotifications, out notificationMessage, out results, out diagnosticInfos);
 
-            MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), notificationMessage, _logger);
+            if (!_disablePublishMetrics)
+            {
+                MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), notificationMessage, _logger);
+            }
 
             LogSuccessWithSessionIdAndSubscriptionId(
                 nameof(Publish),
@@ -512,8 +525,6 @@ public partial class PlcServer : StandardServer
 
         base.OnServerStopping();
     }
-
-    private const uint PlcShutdownWaitSeconds = 10;
 
     [LoggerMessage(
         Level = LogLevel.Information,
