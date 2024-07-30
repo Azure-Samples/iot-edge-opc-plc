@@ -248,24 +248,7 @@ public partial class PlcServer : StandardServer
 
             var responseHeader = base.Publish(requestHeader, subscriptionAcknowledgements, out subscriptionId, out availableSequenceNumbers, out moreNotifications, out notificationMessage, out results, out diagnosticInfos);
 
-            int events = 0;
-            int dataChanges = 0;
-            int diagnostics = 0;
-            notificationMessage.NotificationData.ForEach(x => {
-                if (x.Body is DataChangeNotification changeNotification)
-                {
-                    dataChanges += changeNotification.MonitoredItems.Count;
-                    diagnostics += changeNotification.DiagnosticInfos.Count;
-                }
-                else if (x.Body is EventNotificationList eventNotification)
-                {
-                    events += eventNotification.Events.Count;
-                }
-                else
-                {
-                    _logger.LogDebug("Unknown notification type: {notificationType}", x.Body.GetType().Name);
-                }
-            });
+            MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), notificationMessage, _logger);
 
             MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), dataChanges, events);
 
