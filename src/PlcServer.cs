@@ -224,7 +224,7 @@ public partial class PlcServer : StandardServer
 
             LogErrorWithStatusCode(
                 nameof(Publish),
-                StatusCodes.BadNoSubscription.ToString(),
+                nameof(StatusCodes.BadNoSubscription),
                 ex);
 
             return new ResponseHeader { ServiceResult = StatusCodes.BadNoSubscription };
@@ -235,7 +235,7 @@ public partial class PlcServer : StandardServer
 
             LogErrorWithStatusCode(
                 nameof(Publish),
-                StatusCodes.BadSessionIdInvalid.ToString(),
+                nameof(StatusCodes.BadSessionIdInvalid),
                 ex);
 
             return new ResponseHeader { ServiceResult = StatusCodes.BadSessionIdInvalid };
@@ -246,7 +246,7 @@ public partial class PlcServer : StandardServer
 
             LogErrorWithStatusCode(
                 nameof(Publish),
-                StatusCodes.BadSecureChannelIdInvalid.ToString(),
+                nameof(StatusCodes.BadSecureChannelIdInvalid),
                 ex);
 
             return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
