@@ -175,7 +175,7 @@ public static class MetricsHelper
             }
             else
             {
-                logger.LogDebug("Unknown notification type: {notificationType}", x.Body.GetType().Name);
+                logger.LogDebug("Unknown notification type: {NotificationType}", x.Body.GetType().Name);
             }
         });
 
