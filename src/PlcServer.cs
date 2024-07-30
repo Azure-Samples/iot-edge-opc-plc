@@ -552,7 +552,7 @@ public partial class PlcServer : StandardServer
     partial void LogError(string function, Exception exception);
 
     [LoggerMessage(
-        Level = LogLevel.Error,
+        Level = LogLevel.Debug,
         Message = "{Function} error: {StatusCode}")]
     partial void LogErrorWithStatusCode(string function, string statusCode, Exception exception);
 
