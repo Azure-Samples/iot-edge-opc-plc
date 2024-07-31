@@ -23,6 +23,7 @@ using System.Threading;
 public partial class PlcServer : StandardServer
 {
     private const uint PlcShutdownWaitSeconds = 10;
+    private const int PeriodicLoggingTimerSeconds = 60;
 
     public PlcNodeManager PlcNodeManager { get; set; }
 
@@ -42,6 +43,12 @@ public partial class PlcServer : StandardServer
     private readonly Timer _periodicLoggingTimer;
 
     private bool _disablePublishMetrics;
+    private uint _countCreateSession;
+    private uint _countCreateSubscription;
+    private uint _countCreateMonitoredItems;
+    private uint _countPublish;
+    private uint _countRead;
+    private uint _countWrite;
 
     public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
@@ -63,6 +70,8 @@ public partial class PlcServer : StandardServer
                     IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
                     int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
 
+                    _disablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
+
                     LogPeriodicInfo(
                         sessionCount,
                         subscriptions.Count,
@@ -70,16 +79,29 @@ public partial class PlcServer : StandardServer
                         curProc.WorkingSet64 / 1024 / 1024,
                         availWorkerThreads,
                         availCompletionPortThreads,
-                        curProc.Threads.Count);
+                        curProc.Threads.Count,
+                        PeriodicLoggingTimerSeconds,
+                        _countCreateSession,
+                        _countCreateSubscription,
+                        _countCreateMonitoredItems,
+                        _countPublish,
+                        _countRead,
+                        _countWrite,
+                        MetricsHelper.IsEnabled && !_disablePublishMetrics);
 
-                    _disablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
+                    _countCreateSession = 0;
+                    _countCreateSubscription = 0;
+                    _countCreateMonitoredItems = 0;
+                    _countPublish = 0;
+                    _countRead = 0;
+                    _countWrite = 0;
                 }
                 catch
                 {
                     // Ignore error during logging.
                 }
             },
-            state: null, dueTime: TimeSpan.FromSeconds(60), period: TimeSpan.FromSeconds(60));
+            state: null, dueTime: TimeSpan.FromSeconds(PeriodicLoggingTimerSeconds), period: TimeSpan.FromSeconds(PeriodicLoggingTimerSeconds));
 
         MetricsHelper.IsEnabled = Config.OtlpEndpointUri is not null;
     }
@@ -104,6 +126,8 @@ public partial class PlcServer : StandardServer
         out SignatureData serverSignature,
         out uint maxRequestMessageSize)
     {
+        _countCreateSession++;
+
         try
         {
             var responseHeader = base.CreateSession(requestHeader, clientDescription, serverUri, endpointUrl, sessionName, clientNonce, clientCertificate, requestedSessionTimeout, maxResponseMessageSize, out sessionId, out authenticationToken, out revisedSessionTimeout, out serverNonce, out serverCertificate, out serverEndpoints, out serverSoftwareCertificates, out serverSignature, out maxRequestMessageSize);
@@ -136,6 +160,8 @@ public partial class PlcServer : StandardServer
         out uint revisedLifetimeCount,
         out uint revisedMaxKeepAliveCount)
     {
+        _countCreateSubscription++;
+
         try
         {
             OperationContext context = ValidateRequest(requestHeader, RequestType.CreateSubscription);
@@ -168,6 +194,8 @@ public partial class PlcServer : StandardServer
         out MonitoredItemCreateResultCollection results,
         out DiagnosticInfoCollection diagnosticInfos)
     {
+        _countCreateMonitoredItems += (uint)itemsToCreate.Count;
+
         results = default;
         diagnosticInfos = default;
 
@@ -206,6 +234,8 @@ public partial class PlcServer : StandardServer
         out StatusCodeCollection results,
         out DiagnosticInfoCollection diagnosticInfos)
     {
+        _countPublish++;
+
         subscriptionId = default;
         availableSequenceNumbers = default;
         moreNotifications = default;
@@ -219,7 +249,7 @@ public partial class PlcServer : StandardServer
 
             var responseHeader = base.Publish(requestHeader, subscriptionAcknowledgements, out subscriptionId, out availableSequenceNumbers, out moreNotifications, out notificationMessage, out results, out diagnosticInfos);
 
-            if (!_disablePublishMetrics)
+            if (MetricsHelper.IsEnabled && !_disablePublishMetrics)
             {
                 MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), notificationMessage, _logger);
             }
@@ -281,6 +311,8 @@ public partial class PlcServer : StandardServer
         out DataValueCollection results,
         out DiagnosticInfoCollection diagnosticInfos)
     {
+        _countRead++;
+
         results = default;
         diagnosticInfos = default;
 
@@ -303,6 +335,8 @@ public partial class PlcServer : StandardServer
 
     public override ResponseHeader Write(RequestHeader requestHeader, WriteValueCollection nodesToWrite, out StatusCodeCollection results, out DiagnosticInfoCollection diagnosticInfos)
     {
+        _countWrite++;
+
         try
         {
             var responseHeader = base.Write(requestHeader, nodesToWrite, out results, out diagnosticInfos);
@@ -531,11 +565,36 @@ public partial class PlcServer : StandardServer
         Message = "\n\t# Open sessions: {Sessions}\n" +
                   "\t# Open subscriptions: {Subscriptions}\n" +
                   "\t# Monitored items: {MonitoredItems:N0}\n" +
+                  "\n" +
                   "\t# Working set: {WorkingSet:N0} MB\n" +
                   "\t# Available worker threads: {AvailWorkerThreads:N0}\n" +
                   "\t# Available completion port threads: {AvailCompletionPortThreads:N0}\n" +
-                  "\t# Thread count: {ThreadCount:N0}")]
-    partial void LogPeriodicInfo(int sessions, int subscriptions, int monitoredItems, long workingSet, int availWorkerThreads, int availCompletionPortThreads, int threadCount);
+                  "\t# Thread count: {ThreadCount:N0}\n" +
+                  "\n" +
+                  "\t# Statistics for the last {PeriodicLoggingTimerSeconds} s\n" +
+                  "\t# Sessions created: {CountCreateSession}\n" +
+                  "\t# Subscriptions created: {CountCreateSubscription}\n" +
+                  "\t# Monitored items created: {CountCreateMonitoredItems}\n" +
+                  "\t# Publish requests: {CountPublish}\n" +
+                  "\t# Read requests: {CountRead}\n" +
+                  "\t# Write requests: {CountWrite}\n" +
+                  "\t# Publish metrics enabled: {EnablePublishMetrics:N0}")]
+    partial void LogPeriodicInfo(
+        int sessions,
+        int subscriptions,
+        int monitoredItems,
+        long workingSet,
+        int availWorkerThreads,
+        int availCompletionPortThreads,
+        int threadCount,
+        int periodicLoggingTimerSeconds,
+        uint countCreateSession,
+        uint countCreateSubscription,
+        uint countCreateMonitoredItems,
+        uint countPublish,
+        uint countRead,
+        uint countWrite,
+        bool enablePublishMetrics);
 
     [LoggerMessage(
         Level = LogLevel.Debug,
