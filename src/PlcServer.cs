@@ -603,7 +603,7 @@ public partial class PlcServer : StandardServer
                   "\t# Available worker threads: {AvailWorkerThreads:N0}\n" +
                   "\t# Available completion port threads: {AvailCompletionPortThreads:N0}\n" +
                   "\t# Thread count: {ThreadCount:N0}\n" +
-                  "\t# Statistics for the last {PeriodicLoggingTimerSeconds} s:\n" +
+                  "\t# Statistics for the last {PeriodicLoggingTimerSeconds} s\n" +
                   "\t# Sessions created: {CountCreateSession}\n" +
                   "\t# Subscriptions created: {CountCreateSubscription}\n" +
                   "\t# Monitored items created: {CountCreateMonitoredItems}\n" +
