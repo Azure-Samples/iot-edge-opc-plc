@@ -153,31 +153,12 @@ public static class MetricsHelper
     /// <summary>
     /// Add a published count.
     /// </summary>
-    public static void AddPublishedCount(string sessionId, string subscriptionId, NotificationMessage notificationMessage, ILogger logger)
+    public static void AddPublishedCount(string sessionId, string subscriptionId, int dataChanges, int events)
     {
         if (!IsEnabled)
         {
             return;
         }
-
-        int events = 0;
-        int dataChanges = 0;
-        int diagnostics = 0;
-        notificationMessage.NotificationData.ForEach(x => {
-            if (x.Body is DataChangeNotification changeNotification)
-            {
-                dataChanges += changeNotification.MonitoredItems.Count;
-                diagnostics += changeNotification.DiagnosticInfos.Count;
-            }
-            else if (x.Body is EventNotificationList eventNotification)
-            {
-                events += eventNotification.Events.Count;
-            }
-            else
-            {
-                logger.LogDebug("Unknown notification type: {NotificationType}", x.Body.GetType().Name);
-            }
-        });
 
         if (dataChanges > 0)
         {

@@ -265,7 +265,27 @@ public partial class PlcServer : StandardServer
 
             if (PublishMetricsEnabled)
             {
-                MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), notificationMessage, _logger);
+                int events = 0;
+                int dataChanges = 0;
+                int diagnostics = 0;
+
+                notificationMessage.NotificationData.ForEach(x => {
+                    if (x.Body is DataChangeNotification changeNotification)
+                    {
+                        dataChanges += changeNotification.MonitoredItems.Count;
+                        diagnostics += changeNotification.DiagnosticInfos.Count;
+                    }
+                    else if (x.Body is EventNotificationList eventNotification)
+                    {
+                        events += eventNotification.Events.Count;
+                    }
+                    else
+                    {
+                        LogUnknownNotification(x.Body.GetType().Name);
+                    }
+                });
+
+                MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), dataChanges, events);
             }
 
             LogSuccessWithSessionIdAndSubscriptionId(
@@ -644,4 +664,9 @@ public partial class PlcServer : StandardServer
         Level = LogLevel.Error,
         Message = "{message}")]
     partial void LogErrorMessage(string message);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Unknown notification type: {NotificationType}")]
+    partial void LogUnknownNotification(string notificationType);
 }

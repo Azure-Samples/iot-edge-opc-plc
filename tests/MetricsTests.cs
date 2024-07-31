@@ -19,6 +19,7 @@ internal class MetricsTests
     {
         _metrics = new Dictionary<string, object>();
         _meterListener = new MeterListener();
+
         _meterListener.InstrumentPublished = (instrument, listener) => {
             if (instrument.Meter.Name == MetricsHelper.Meter.Name)
             {
@@ -76,6 +77,16 @@ internal class MetricsTests
     {
         MetricsHelper.AddMonitoredItemCount(1);
         _metrics.TryGetValue("opc_plc_monitored_item_count", out var counter).Should().BeTrue();
+        counter.Should().Be(1);
+    }
+
+    [Test]
+    public void TestAddPublishedCount()
+    {
+        var sessionId = Guid.NewGuid().ToString();
+        var subscriptionId = Guid.NewGuid().ToString();
+        MetricsHelper.AddPublishedCount(sessionId, subscriptionId, 1, 0);
+        _metrics.TryGetValue("opc_plc_published_count_with_type", out var counter).Should().BeTrue();
         counter.Should().Be(1);
     }
 
