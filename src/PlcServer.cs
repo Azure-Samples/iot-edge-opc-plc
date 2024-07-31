@@ -42,7 +42,7 @@ public partial class PlcServer : StandardServer
     private readonly ILogger _logger;
     private readonly Timer _periodicLoggingTimer;
 
-    private bool _disablePublishMetrics;
+    private bool _autoDisablePublishMetrics;
     private uint _countCreateSession;
     private uint _countCreateSubscription;
     private uint _countCreateMonitoredItems;
@@ -70,7 +70,7 @@ public partial class PlcServer : StandardServer
                     IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
                     int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
 
-                    _disablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
+                    _autoDisablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
 
                     LogPeriodicInfo(
                         sessionCount,
@@ -87,7 +87,7 @@ public partial class PlcServer : StandardServer
                         _countPublish,
                         _countRead,
                         _countWrite,
-                        MetricsHelper.IsEnabled && !_disablePublishMetrics);
+                        PublishMetricsEnabled);
 
                     _countCreateSession = 0;
                     _countCreateSubscription = 0;
@@ -105,6 +105,20 @@ public partial class PlcServer : StandardServer
 
         MetricsHelper.IsEnabled = Config.OtlpEndpointUri is not null;
     }
+
+    /// <summary>
+    /// Enable publish requests metrics only if the following apply:
+    /// 1) Metrics are enabled by specifying OtlpEndpointUri,
+    /// 2) OtlpPublishMetrics is "enable",
+    /// 3) OtlpPublishMetrics is not "disable",
+    /// 4) When OtlpPublishMetrics is "auto": sessions <= 40 and monitored items <= 500.
+    /// </summary>
+    private bool PublishMetricsEnabled =>
+        MetricsHelper.IsEnabled &&
+        (
+         (Config.OtlpPublishMetrics == "enable" && Config.OtlpPublishMetrics != "disable") ||
+         (Config.OtlpPublishMetrics == "auto" && !_autoDisablePublishMetrics)
+        );
 
     public override ResponseHeader CreateSession(
         RequestHeader requestHeader,
@@ -249,7 +263,7 @@ public partial class PlcServer : StandardServer
 
             var responseHeader = base.Publish(requestHeader, subscriptionAcknowledgements, out subscriptionId, out availableSequenceNumbers, out moreNotifications, out notificationMessage, out results, out diagnosticInfos);
 
-            if (MetricsHelper.IsEnabled && !_disablePublishMetrics)
+            if (PublishMetricsEnabled)
             {
                 MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), notificationMessage, _logger);
             }

@@ -52,6 +52,15 @@ public class OpcPlcConfiguration
     public string OtlpExportProtocol { get; set; } = "grpc";
 
     /// <summary>
+    /// Gets or sets how to handle metrics for publish requests.
+    /// Allowed values:
+    /// disable=Always disabled,
+    /// enable=Always enabled,
+    /// auto=Auto-disable when sessions > 40 or monitored items > 500.
+    /// </summary>
+    public string OtlpPublishMetrics { get; set; } = "auto";
+
+    /// <summary>
     /// Show OPC Publisher configuration file using IP address as EndpointUrl.
     /// </summary>
     public bool ShowPublisherConfigJsonIp { get; set; }
