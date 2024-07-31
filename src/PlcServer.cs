@@ -592,7 +592,7 @@ public partial class PlcServer : StandardServer
                   "\t# Publish requests: {CountPublish}\n" +
                   "\t# Read requests: {CountRead}\n" +
                   "\t# Write requests: {CountWrite}\n" +
-                  "\t# Publish metrics enabled: {EnablePublishMetrics:N0}")]
+                  "\t# Publish metrics enabled: {PublishMetricsEnabled:N0}")]
     partial void LogPeriodicInfo(
         int sessions,
         int subscriptions,
@@ -608,7 +608,7 @@ public partial class PlcServer : StandardServer
         uint countPublish,
         uint countRead,
         uint countWrite,
-        bool enablePublishMetrics);
+        bool publishMetricsEnabled);
 
     [LoggerMessage(
         Level = LogLevel.Debug,
