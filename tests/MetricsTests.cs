@@ -2,7 +2,6 @@ namespace OpcPlc.Tests;
 
 using FluentAssertions;
 using NUnit.Framework;
-using Opc.Ua;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
@@ -84,7 +83,7 @@ internal class MetricsTests
     public void TestRecordTotalErrors()
     {
         MetricsHelper.RecordTotalErrors("operation");
-        _metrics.TryGetValue("opc_plc_total_errors", out var counter).Should().BeTrue(); ;
+        _metrics.TryGetValue("opc_plc_total_errors", out var counter).Should().BeTrue();
         counter.Should().Be(1);
     }
 }
