@@ -2,7 +2,6 @@ namespace OpcPlc.Tests;
 
 using FluentAssertions;
 using NUnit.Framework;
-using Opc.Ua;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
@@ -20,6 +19,7 @@ internal class MetricsTests
     {
         _metrics = new Dictionary<string, object>();
         _meterListener = new MeterListener();
+
         _meterListener.InstrumentPublished = (instrument, listener) => {
             if (instrument.Meter.Name == MetricsHelper.Meter.Name)
             {
@@ -81,10 +81,20 @@ internal class MetricsTests
     }
 
     [Test]
+    public void TestAddPublishedCount()
+    {
+        var sessionId = Guid.NewGuid().ToString();
+        var subscriptionId = Guid.NewGuid().ToString();
+        MetricsHelper.AddPublishedCount(sessionId, subscriptionId, 1, 0);
+        _metrics.TryGetValue("opc_plc_published_count_with_type", out var counter).Should().BeTrue();
+        counter.Should().Be(1);
+    }
+
+    [Test]
     public void TestRecordTotalErrors()
     {
         MetricsHelper.RecordTotalErrors("operation");
-        _metrics.TryGetValue("opc_plc_total_errors", out var counter).Should().BeTrue(); ;
+        _metrics.TryGetValue("opc_plc_total_errors", out var counter).Should().BeTrue();
         counter.Should().Be(1);
     }
 }

@@ -77,6 +77,7 @@ public static class CliOptions
             { "otlpee|otlpendpoint=", $"the endpoint URI to which the OTLP exporter is going to send information.\nDefault: '{config.OtlpEndpointUri}'", (s) => config.OtlpEndpointUri = s },
             { "otlpei|otlpexportinterval=", $"the interval for exporting OTLP information in seconds.\nDefault: {config.OtlpExportInterval.TotalSeconds}", (uint i) => config.OtlpExportInterval = TimeSpan.FromSeconds(i) },
             { "otlpep|otlpexportprotocol=", $"the protocol for exporting OTLP information.\n(allowed values: grpc, protobuf).\nDefault: {config.OtlpExportProtocol}", (string s) => config.OtlpExportProtocol = s },
+            { "otlpub|otlpublishmetrics=", $"how to handle metrics for publish requests.\n(allowed values: disable=Always disabled, enable=Always enabled, auto=Auto-disable when sessions > 40 or monitored items > 500).\nDefault: {config.OtlpPublishMetrics}", (string s) => config.OtlpPublishMetrics = s },
 
             { "lr|ldsreginterval=", $"the LDS(-ME) registration interval in ms. If 0, then the registration is disabled.\nDefault: {config.OpcUa.LdsRegistrationInterval}", (int i) => {
                     if (i >= 0)
