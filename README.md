@@ -65,7 +65,7 @@ The following command shows how to use a configuration file on Windows:
 dotnet opcplc.dll --at X509Store --nodesfile nodesfile.json
 ~~~
 Here's a sample node configuration file:
-~~~
+~~~json
 {
   "Folder": "MyTelemetry",
   "FolderList": [
