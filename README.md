@@ -344,6 +344,12 @@ Options:
                              the protocol for exporting OTLP information.
                                (allowed values: grpc, protobuf).
                                Default: grpc
+      --otlpub, --otlpublishmetrics=VALUE
+                             how to handle metrics for publish requests.
+                               (allowed values: disable=Always disabled, enable=
+                               Always enabled, auto=Auto-disable when sessions >
+                                40 or monitored items > 500).
+                               Default: auto
       --lr, --ldsreginterval=VALUE
                              the LDS(-ME) registration interval in ms. If 0,
                                then the registration is disabled.
