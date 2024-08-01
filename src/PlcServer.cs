@@ -596,7 +596,7 @@ public partial class PlcServer : StandardServer
             }
         });
 
-        MetricsHelper.AddPublishedCount(sessionId, subscriptionId, dataChanges, events);
+        MetricsHelper.AddPublishedCount(dataChanges, events);
     }
 
     [LoggerMessage(

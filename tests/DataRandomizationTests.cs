@@ -13,7 +13,7 @@ using static System.TimeSpan;
 public class DataRandomizationTests : SubscriptionTestsBase
 {
     // Set any cmd params needed for the plc server explicitly
-    public DataRandomizationTests() : base(new[] { "--str=true" })
+    public DataRandomizationTests() : base(["--str=true"])
     {
     }
 

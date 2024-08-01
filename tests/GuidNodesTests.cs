@@ -10,7 +10,7 @@ using NUnit.Framework;
 public class GuidNodesTests : SubscriptionTestsBase
 {
     // Set any cmd params needed for the plc server explicitly
-    public GuidNodesTests() : base(new[] { "--gn=2" })
+    public GuidNodesTests() : base(["--gn=2"])
     {
     }
 

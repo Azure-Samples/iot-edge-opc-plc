@@ -140,7 +140,7 @@ public class SlowFastCommon
     {
         if (nodes == null || nodes.Length == 0)
         {
-            _logger.LogWarning("Invalid argument {argument} provided.", nodes);
+            _logger.LogWarning("Invalid argument {Argument} provided.", nodes);
             return;
         }
 

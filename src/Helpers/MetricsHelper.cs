@@ -153,7 +153,7 @@ public static class MetricsHelper
     /// <summary>
     /// Add a published count.
     /// </summary>
-    public static void AddPublishedCount(string sessionId, string subscriptionId, int dataChanges, int events)
+    public static void AddPublishedCount(int dataChanges, int events)
     {
         if (!IsEnabled)
         {

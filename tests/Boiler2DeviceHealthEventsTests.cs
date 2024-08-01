@@ -15,13 +15,13 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
 {
     private NodeId _eventType;
 
-    public Boiler2DeviceHealthEventsTests() : base(new[] {
+    public Boiler2DeviceHealthEventsTests() : base([
         "--b2ts=5",    // Temperature change speed.
         "--b2bt=1",    // Base temperature.
         "--b2tt=123",  // Target temperature.
         "--b2mi=567",  // Maintenance interval.
         "--b2oi=678",  // Overheat interval.
-    })
+    ])
     {
     }
 

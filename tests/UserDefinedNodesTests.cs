@@ -10,7 +10,7 @@ using NUnit.Framework;
 public class UserDefinedNodesTests : SubscriptionTestsBase
 {
     // Set any cmd params needed for the plc server explicitly
-    public UserDefinedNodesTests() : base(new[] { "--nodesfile=nodesfile.json" })
+    public UserDefinedNodesTests() : base(["--nodesfile=nodesfile.json"])
     {
     }
 

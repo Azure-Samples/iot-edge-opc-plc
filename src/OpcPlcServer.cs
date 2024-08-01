@@ -196,20 +196,20 @@ public class OpcPlcServer
 
             if (Config.ShowPublisherConfigJsonIp)
             {
-                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{GetIpAddress()}:{Config.WebServerPort}/{Config.PnJson}");
+                Logger.LogInformation("Web server started: {PnJsonUri}", $"http://{GetIpAddress()}:{Config.WebServerPort}/{Config.PnJson}");
             }
             else if (Config.ShowPublisherConfigJsonPh)
             {
-                Logger.LogInformation("Web server started: {pnJsonUri}", $"http://{Config.OpcUa.Hostname}:{Config.WebServerPort}/{Config.PnJson}");
+                Logger.LogInformation("Web server started: {PnJsonUri}", $"http://{Config.OpcUa.Hostname}:{Config.WebServerPort}/{Config.PnJson}");
             }
             else
             {
-                Logger.LogInformation("Web server started on port {webServerPort}", Config.WebServerPort);
+                Logger.LogInformation("Web server started on port {WebServerPort}", Config.WebServerPort);
             }
         }
         catch (Exception e)
         {
-            Logger.LogError("Could not start web server on port {webServerPort}: {message}",
+            Logger.LogError("Could not start web server on port {WebServerPort}: {Message}",
                 Config.WebServerPort,
                 e.Message);
         }
@@ -289,22 +289,22 @@ public class OpcPlcServer
         ApplicationConfiguration plcApplicationConfiguration = await opcUaAppConfigFactory.ConfigureAsync().ConfigureAwait(false);
 
         // start the server.
-        Logger.LogInformation("Starting server on endpoint {endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
+        Logger.LogInformation("Starting server on endpoint {Endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
         Logger.LogInformation("Simulation settings are:");
         Logger.LogInformation("One simulation phase consists of {SimulationCycleCount} cycles", PlcSimulationInstance.SimulationCycleCount);
         Logger.LogInformation("One cycle takes {SimulationCycleLength} ms", PlcSimulationInstance.SimulationCycleLength);
-        Logger.LogInformation("Reference test simulation: {addReferenceTestSimulation}",
+        Logger.LogInformation("Reference test simulation: {AddReferenceTestSimulation}",
             PlcSimulationInstance.AddReferenceTestSimulation ? "Enabled" : "Disabled");
-        Logger.LogInformation("Simple events: {addSimpleEventsSimulation}",
+        Logger.LogInformation("Simple events: {AddSimpleEventsSimulation}",
             PlcSimulationInstance.AddSimpleEventsSimulation ? "Enabled" : "Disabled");
-        Logger.LogInformation("Alarms: {addAlarmSimulation}", PlcSimulationInstance.AddAlarmSimulation ? "Enabled" : "Disabled");
-        Logger.LogInformation("Deterministic alarms: {deterministicAlarmSimulation}",
+        Logger.LogInformation("Alarms: {AddAlarmSimulation}", PlcSimulationInstance.AddAlarmSimulation ? "Enabled" : "Disabled");
+        Logger.LogInformation("Deterministic alarms: {DeterministicAlarmSimulation}",
             PlcSimulationInstance.DeterministicAlarmSimulationFile != null ? "Enabled" : "Disabled");
 
-        Logger.LogInformation("Anonymous authentication: {anonymousAuth}", Config.DisableAnonymousAuth ? "Disabled" : "Enabled");
-        Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {rejectValidationUnknownRevocStatus}", Config.OpcUa.DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
-        Logger.LogInformation("Username/Password authentication: {usernamePasswordAuth}", Config.DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
-        Logger.LogInformation("Certificate authentication: {certAuth}", Config.DisableCertAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Anonymous authentication: {AnonymousAuth}", Config.DisableAnonymousAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Reject chain validation with CA certs with unknown revocation status: {RejectValidationUnknownRevocStatus}", Config.OpcUa.DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
+        Logger.LogInformation("Username/Password authentication: {UsernamePasswordAuth}", Config.DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
+        Logger.LogInformation("Certificate authentication: {CertAuth}", Config.DisableCertAuth ? "Disabled" : "Enabled");
 
         // Add simple events, alarms, reference test simulation and deterministic alarms.
         PlcServer = new PlcServer(Config, PlcSimulationInstance, TimeService, _pluginNodes, Logger);

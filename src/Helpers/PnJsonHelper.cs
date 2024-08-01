@@ -52,7 +52,7 @@ public static class PnJsonHelper
         sb.AppendLine("]");
 
         string pnJson = sb.ToString();
-        logger.LogInformation("OPC Publisher configuration file: {pnJsonFile}", $"{pnJsonFileName}{pnJson}");
+        logger.LogInformation("OPC Publisher configuration file: {PnJsonFile}", $"{pnJsonFileName}{pnJson}");
 
         await File.WriteAllTextAsync(pnJsonFileName, pnJson.Trim()).ConfigureAwait(false);
     }
