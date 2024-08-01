@@ -44,12 +44,12 @@ public partial class OpcApplicationConfiguration
     /// <summary>
     /// Enables unsecure endpoint access to the application.
     /// </summary>
-    public bool EnableUnsecureTransport { get; set; } = false;
+    public bool EnableUnsecureTransport { get; set; }
 
     /// <summary>
     /// Sets the LDS registration interval in milliseconds.
     /// </summary>
-    public int LdsRegistrationInterval { get; set; } = 0;
+    public int LdsRegistrationInterval { get; set; }
 
     /// <summary>
     /// Set the max string length the OPC stack supports.

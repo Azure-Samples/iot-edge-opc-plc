@@ -84,7 +84,7 @@ public class OpcPlcServer
         // Validate and parse extra arguments.
         if (extraArgs.Count > 0)
         {
-            Logger.LogWarning($"Found one or more invalid command line arguments: {string.Join(" ", extraArgs)}");
+            Logger.LogWarning("Found one or more invalid command line arguments: {InvalidArgs}", string.Join(" ", extraArgs));
             Logger.LogInformation(CliOptions.GetUsageHelp(Config.ProgramName));
         }
 
@@ -209,7 +209,7 @@ public class OpcPlcServer
         }
         catch (Exception e)
         {
-            Logger.LogError("Could not start web server on port {WebServerPort}: {Message}",
+            Logger.LogError(e, "Could not start web server on port {WebServerPort}: {Message}",
                 Config.WebServerPort,
                 e.Message);
         }

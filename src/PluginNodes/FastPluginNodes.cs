@@ -18,14 +18,14 @@ public class FastPluginNodes(TimeService timeService, ILogger logger) : PluginNo
     private NodeType NodeType { get; set; } = NodeType.UInt;
     private string NodeMinValue { get; set; }
     private string NodeMaxValue { get; set; }
-    private bool NodeRandomization { get; set; } = false;
+    private bool NodeRandomization { get; set; }
     private string NodeStepSize { get; set; } = "1";
     private uint NodeSamplingInterval { get; set; } // ms.
 
     private PlcNodeManager _plcNodeManager;
     private SlowFastCommon _slowFastCommon;
-    protected BaseDataVariableState[] _nodes = null;
-    protected BaseDataVariableState[] _badNodes = null;
+    protected BaseDataVariableState[] _nodes;
+    protected BaseDataVariableState[] _badNodes;
     private ITimer _nodeGenerator;
     private bool _updateNodes = true;
 

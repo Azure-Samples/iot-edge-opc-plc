@@ -265,7 +265,7 @@ public partial class PlcServer : StandardServer
 
             if (PublishMetricsEnabled)
             {
-                AddPublishMetrics(notificationMessage, context.SessionId.ToString(), subscriptionId.ToString());
+                AddPublishMetrics(notificationMessage);
             }
 
             LogSuccessWithSessionIdAndSubscriptionId(
@@ -431,13 +431,13 @@ public partial class PlcServer : StandardServer
             {
                 string errorMessage = "The script file for deterministic testing is not set (deterministicalarms)";
                 LogErrorMessage(errorMessage);
-                throw new Exception(errorMessage);
+                throw new ArgumentNullException(errorMessage);
             }
             if (!File.Exists(scriptFileName))
             {
                 string errorMessage = $"The script file ({scriptFileName}) for deterministic testing does not exist";
                 LogErrorMessage(errorMessage);
-                throw new Exception(errorMessage);
+                throw new InvalidOperationException(errorMessage);
             }
 
             DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, scriptFileName, _logger);
@@ -574,7 +574,7 @@ public partial class PlcServer : StandardServer
         base.OnServerStopping();
     }
 
-    private void AddPublishMetrics(NotificationMessage notificationMessage, string sessionId, string subscriptionId)
+    private void AddPublishMetrics(NotificationMessage notificationMessage)
     {
         int events = 0;
         int dataChanges = 0;
