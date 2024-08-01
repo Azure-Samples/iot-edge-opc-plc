@@ -265,27 +265,7 @@ public partial class PlcServer : StandardServer
 
             if (PublishMetricsEnabled)
             {
-                int events = 0;
-                int dataChanges = 0;
-                int diagnostics = 0;
-
-                notificationMessage.NotificationData.ForEach(x => {
-                    if (x.Body is DataChangeNotification changeNotification)
-                    {
-                        dataChanges += changeNotification.MonitoredItems.Count;
-                        diagnostics += changeNotification.DiagnosticInfos.Count;
-                    }
-                    else if (x.Body is EventNotificationList eventNotification)
-                    {
-                        events += eventNotification.Events.Count;
-                    }
-                    else
-                    {
-                        LogUnknownNotification(x.Body.GetType().Name);
-                    }
-                });
-
-                MetricsHelper.AddPublishedCount(context.SessionId.ToString(), subscriptionId.ToString(), dataChanges, events);
+                AddPublishMetrics(notificationMessage, context.SessionId.ToString(), subscriptionId.ToString());
             }
 
             LogSuccessWithSessionIdAndSubscriptionId(
@@ -592,6 +572,31 @@ public partial class PlcServer : StandardServer
         }
 
         base.OnServerStopping();
+    }
+
+    private void AddPublishMetrics(NotificationMessage notificationMessage, string sessionId, string subscriptionId)
+    {
+        int events = 0;
+        int dataChanges = 0;
+        int diagnostics = 0;
+
+        notificationMessage.NotificationData.ForEach(x => {
+            if (x.Body is DataChangeNotification changeNotification)
+            {
+                dataChanges += changeNotification.MonitoredItems.Count;
+                diagnostics += changeNotification.DiagnosticInfos.Count;
+            }
+            else if (x.Body is EventNotificationList eventNotification)
+            {
+                events += eventNotification.Events.Count;
+            }
+            else
+            {
+                LogUnknownNotification(x.Body.GetType().Name);
+            }
+        });
+
+        MetricsHelper.AddPublishedCount(sessionId, subscriptionId, dataChanges, events);
     }
 
     [LoggerMessage(
