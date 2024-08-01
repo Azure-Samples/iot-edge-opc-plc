@@ -99,9 +99,7 @@ public interface ITimer : IDisposable
     void Close();
 }
 
-public class FastTimerElapsedEventArgs : EventArgs
-{
-}
+public class FastTimerElapsedEventArgs : EventArgs;
 
 public delegate void FastTimerElapsedEventHandler(object sender, FastTimerElapsedEventArgs e);
 
@@ -151,7 +149,7 @@ public class FastTimer : ITimer
     /// <summary>
     /// The current interval between triggering of this timer
     /// </summary>
-    public double Interval { get; set; } = 0.0;
+    public double Interval { get; set; }
 
     /// <summary>
     /// The event handler we call when the timer is triggered
@@ -268,6 +266,6 @@ public class FastTimer : ITimer
 
     private static readonly float _tickFrequency = 1000f / Stopwatch.Frequency;
 
-    private bool _isEnabled = false;
-    private int _isRunning = 0;
+    private bool _isEnabled;
+    private int _isRunning;
 }

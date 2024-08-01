@@ -40,7 +40,7 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
     private TimeSpan _maintenanceInterval = TimeSpan.FromSeconds(300); // 5 min.
     private TimeSpan _overheatInterval = TimeSpan.FromSeconds(120); // 2 min.
 
-    private bool _isOverheated = false;
+    private bool _isOverheated;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
     public void AddOptions(Mono.Options.OptionSet optionSet)

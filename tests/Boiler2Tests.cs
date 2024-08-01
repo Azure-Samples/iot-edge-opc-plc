@@ -13,13 +13,13 @@ using static System.TimeSpan;
 [TestFixture]
 public class Boiler2Tests : SimulatorTestsBase
 {
-    public Boiler2Tests() : base(new[] {
+    public Boiler2Tests() : base([
         "--b2ts=5",    // Temperature change speed.
         "--b2bt=1",    // Base temperature.
         "--b2tt=123",  // Target temperature.
         "--b2mi=567",  // Maintenance interval.
         "--b2oi=678",  // Overheat interval.
-    })
+    ])
     {
     }
 

@@ -14,7 +14,7 @@ public class VariableTests : SimulatorTestsBase
     private NodeId _scalarStaticNode;
 
     // Set any cmd params needed for the plc server explicitly.
-    public VariableTests() : base(new[] { "--ref" })
+    public VariableTests() : base(["--ref"])
     {
     }
 

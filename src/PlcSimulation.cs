@@ -32,7 +32,7 @@ public class PlcSimulation
     public bool AddReferenceTestSimulation { get; set; } = true;
     public string DeterministicAlarmSimulationFile { get; set; }
 
-    public uint EventInstanceCount { get; set; } = 0;
+    public uint EventInstanceCount { get; set; }
     public uint EventInstanceRate { get; set; } = 1000; // ms.
 
     /// <summary>
@@ -128,5 +128,5 @@ public class PlcSimulation
     private PlcServer _plcServer;
 
     private ITimer _eventInstanceGenerator;
-    private uint _eventInstanceCycle = 0;
+    private uint _eventInstanceCycle;
 }

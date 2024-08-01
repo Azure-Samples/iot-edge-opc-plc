@@ -16,10 +16,10 @@ public class DeterministicAlarmsTests2 : SubscriptionTestsBase
     private static readonly LocalizedText Disabled = English("Disabled");
     private static readonly LocalizedText Enabled = English("Enabled");
 
-    public DeterministicAlarmsTests2() : base(new[]
-        {
+    public DeterministicAlarmsTests2() : base(
+        [
             "--dalm=DeterministicAlarmsTests/dalm002.json",
-        })
+        ])
     {
     }
 

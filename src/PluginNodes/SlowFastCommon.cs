@@ -12,7 +12,7 @@ public class SlowFastCommon
 
     private readonly Random _random = new();
     private BaseDataVariableState _numberOfUpdates;
-    private uint _badNodesCycle = 0;
+    private uint _badNodesCycle;
     private const string NumberOfUpdates = "NumberOfUpdates";
 
     public SlowFastCommon(PlcNodeManager plcNodeManager, TimeService timeService, ILogger logger)
@@ -43,8 +43,8 @@ public class SlowFastCommon
 
         if (count > 0)
         {
-            _logger.LogInformation($"Creating {count} {name} nodes of type: {type}");
-            _logger.LogInformation($"Node values will change every {nodeRate} ms");
+            _logger.LogInformation("Creating {Count} {Name} nodes of type: {Type}", count, name, type);
+            _logger.LogInformation("Node values will change every {NodeRate} ms", nodeRate);
         }
 
         for (int i = 0; i < count; i++)
@@ -140,7 +140,7 @@ public class SlowFastCommon
     {
         if (nodes == null || nodes.Length == 0)
         {
-            _logger.LogWarning("Invalid argument {argument} provided.", nodes);
+            _logger.LogWarning("Invalid argument {Argument} provided.", nodes);
             return;
         }
 

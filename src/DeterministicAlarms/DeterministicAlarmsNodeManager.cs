@@ -9,12 +9,13 @@ using OpcPlc.DeterministicAlarms.SimBackend;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 public class DeterministicAlarmsNodeManager : CustomNodeManager2
 {
     private readonly SimBackendService _system;
     private readonly List<SimFolderState> _folders = new();
-    private uint _nodeIdCounter = 0;
+    private uint _nodeIdCounter;
     private List<NodeState> _rootNotifiers;
     private readonly IServerInternal _server;
     private readonly ServerSystemContext _defaultSystemContext;
@@ -119,11 +120,11 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         {
             VerifyScriptConfiguration(scriptConfiguration);
             _logger.LogInformation("Script starts executing");
-            var scriptEngine = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable, _timeService);
+            _ = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable, _timeService);
         }
         catch (ScriptException ex)
         {
-            _logger.LogError($"Script Engine Exception '{ex.Message}'\nSCRIPT WILL NOT START");
+            _logger.LogError(ex, $"Script Engine Exception '{ex.Message}'\nSCRIPT WILL NOT START");
             throw;
         }
     }
@@ -512,7 +513,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         OperationContext context,
         IList<IEventMonitoredItem> monitoredItems)
     {
-        foreach (MonitoredItem monitoredItem in monitoredItems)
+        foreach (var monitoredItem in monitoredItems.Cast<MonitoredItem>())
         {
             if (monitoredItem == null)
             {

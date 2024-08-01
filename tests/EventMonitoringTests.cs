@@ -13,7 +13,7 @@ public class EventMonitoringTests : SubscriptionTestsBase
 {
     private NodeId _eventType;
 
-    public EventMonitoringTests() : base(new[] { "--simpleevents" })
+    public EventMonitoringTests() : base(["--simpleevents"])
     {
     }
 

@@ -10,7 +10,7 @@ public class AlarmTests : SubscriptionTestsBase
 {
     private NodeId _eventType;
 
-    public AlarmTests() : base(new[] { "--alm" })
+    public AlarmTests() : base(["--alm"])
     {
     }
 
