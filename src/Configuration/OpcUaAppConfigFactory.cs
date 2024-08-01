@@ -69,7 +69,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             }
         }
 
-        _logger.LogInformation("Alternate base addresses (for server binding and certificate DNSNames and IPAddresses extensions): {alternateBaseAddresses}", alternateBaseAddresses);
+        _logger.LogInformation("Alternate base addresses (for server binding and certificate DNSNames and IPAddresses extensions): {AlternateBaseAddresses}", alternateBaseAddresses);
 
         string applicationUri = $"urn:{_config.ProgramName}:{_config.OpcUa.HostnameLabel}{(string.IsNullOrEmpty(_config.OpcUa.ServerPath)
              ? string.Empty
