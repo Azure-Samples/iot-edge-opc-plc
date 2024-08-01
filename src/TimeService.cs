@@ -99,9 +99,7 @@ public interface ITimer : IDisposable
     void Close();
 }
 
-public class FastTimerElapsedEventArgs : EventArgs
-{
-}
+public class FastTimerElapsedEventArgs : EventArgs;
 
 public delegate void FastTimerElapsedEventHandler(object sender, FastTimerElapsedEventArgs e);
 
