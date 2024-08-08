@@ -29,7 +29,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Reflection.Emit;
 using System.Threading;
 using Opc.Ua;
 using Opc.Ua.Server;

@@ -46,9 +46,9 @@ public partial class PlcServer : StandardServer
     private uint _countCreateSession;
     private uint _countCreateSubscription;
     private uint _countCreateMonitoredItems;
-    private uint _countPublish;
     private uint _countRead;
     private uint _countWrite;
+    private uint _countPublish;
 
     public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
@@ -64,9 +64,9 @@ public partial class PlcServer : StandardServer
                 {
                     var curProc = Process.GetCurrentProcess();
 
-                    ThreadPool.GetAvailableThreads(out int availWorkerThreads, out int availCompletionPortThreads);
+                    ThreadPool.GetAvailableThreads(out int availWorkerThreads, out _);
 
-                    int sessionCount = ServerInternal.SessionManager.GetSessions().Count;
+                    uint sessionCount = ServerInternal.ServerDiagnostics.CurrentSessionCount;
                     IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
                     int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
 
@@ -74,27 +74,28 @@ public partial class PlcServer : StandardServer
 
                     LogPeriodicInfo(
                         sessionCount,
-                        subscriptions.Count,
+                        ServerInternal.ServerDiagnostics.CurrentSubscriptionCount,
                         monitoredItemsCount,
+                        ServerInternal.ServerDiagnostics.CumulatedSessionCount,
+                        ServerInternal.ServerDiagnostics.CumulatedSubscriptionCount,
                         curProc.WorkingSet64 / 1024 / 1024,
                         availWorkerThreads,
-                        availCompletionPortThreads,
                         curProc.Threads.Count,
                         PeriodicLoggingTimerSeconds,
                         _countCreateSession,
                         _countCreateSubscription,
                         _countCreateMonitoredItems,
-                        _countPublish,
                         _countRead,
                         _countWrite,
+                        _countPublish,
                         PublishMetricsEnabled);
 
                     _countCreateSession = 0;
                     _countCreateSubscription = 0;
                     _countCreateMonitoredItems = 0;
-                    _countPublish = 0;
                     _countRead = 0;
                     _countWrite = 0;
+                    _countPublish = 0;
                 }
                 catch
                 {
@@ -178,15 +179,14 @@ public partial class PlcServer : StandardServer
 
         try
         {
-            OperationContext context = ValidateRequest(requestHeader, RequestType.CreateSubscription);
-
             var responseHeader = base.CreateSubscription(requestHeader, requestedPublishingInterval, requestedLifetimeCount, requestedMaxKeepAliveCount, maxNotificationsPerPublish, publishingEnabled, priority, out subscriptionId, out revisedPublishingInterval, out revisedLifetimeCount, out revisedMaxKeepAliveCount);
 
-            MetricsHelper.AddSubscriptionCount(context.SessionId.ToString(), subscriptionId.ToString());
+            NodeId sessionId = GetSessionId(requestHeader.AuthenticationToken);
+            MetricsHelper.AddSubscriptionCount(sessionId.ToString(), subscriptionId.ToString());
 
             LogSuccessWithSessionIdAndSubscriptionId(
                 nameof(CreateSubscription),
-                context.SessionId,
+                sessionId,
                 subscriptionId);
 
             return responseHeader;
@@ -215,17 +215,18 @@ public partial class PlcServer : StandardServer
 
         try
         {
-            OperationContext context = ValidateRequest(requestHeader, RequestType.CreateMonitoredItems);
-
             var responseHeader = base.CreateMonitoredItems(requestHeader, subscriptionId, timestampsToReturn, itemsToCreate, out results, out diagnosticInfos);
 
             MetricsHelper.AddMonitoredItemCount(itemsToCreate.Count);
 
-            LogSuccessWithSessionIdAndSubscriptionIdAndCount(
-                nameof(CreateMonitoredItems),
-                context.SessionId,
-                subscriptionId,
-                itemsToCreate.Count);
+            if(_logger.IsEnabled(LogLevel.Debug))
+            {
+                LogSuccessWithSessionIdAndSubscriptionIdAndCount(
+                    nameof(CreateMonitoredItems),
+                    GetSessionId(requestHeader.AuthenticationToken),
+                    subscriptionId,
+                    itemsToCreate.Count);
+            }
 
             return responseHeader;
         }
@@ -259,8 +260,6 @@ public partial class PlcServer : StandardServer
 
         try
         {
-            OperationContext context = ValidateRequest(requestHeader, RequestType.Publish);
-
             var responseHeader = base.Publish(requestHeader, subscriptionAcknowledgements, out subscriptionId, out availableSequenceNumbers, out moreNotifications, out notificationMessage, out results, out diagnosticInfos);
 
             if (PublishMetricsEnabled)
@@ -268,10 +267,13 @@ public partial class PlcServer : StandardServer
                 AddPublishMetrics(notificationMessage);
             }
 
-            LogSuccessWithSessionIdAndSubscriptionId(
-                nameof(Publish),
-                context.SessionId,
-                subscriptionId);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                LogSuccessWithSessionIdAndSubscriptionId(
+                    nameof(Publish),
+                    GetSessionId(requestHeader.AuthenticationToken),
+                    subscriptionId);
+            }
 
             return responseHeader;
         }
@@ -599,38 +601,39 @@ public partial class PlcServer : StandardServer
         MetricsHelper.AddPublishedCount(dataChanges, events);
     }
 
+    private NodeId GetSessionId(NodeId authenticationToken) => ServerInternal.SessionManager.GetSession(authenticationToken).Id;
+
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "\n\t# Open sessions: {Sessions}\n" +
-                  "\t# Open subscriptions: {Subscriptions}\n" +
+        Message = "\n\t# Open/total sessions: {Sessions}/{TotalSessions}\n" +
+                  "\t# Open/total subscriptions: {Subscriptions}/{TotalSubscriptions}\n" +
                   "\t# Monitored items: {MonitoredItems:N0}\n" +
                   "\t# Working set: {WorkingSet:N0} MB\n" +
-                  "\t# Available worker threads: {AvailWorkerThreads:N0}\n" +
-                  "\t# Available completion port threads: {AvailCompletionPortThreads:N0}\n" +
-                  "\t# Thread count: {ThreadCount:N0}\n" +
-                  "\t# Statistics for the last {PeriodicLoggingTimerSeconds} s\n" +
+                  "\t# Used/available worker threads: {ThreadCount:N0}/{AvailWorkerThreads:N0}\n" +
+                  "\t# Stats for the last {PeriodicLoggingTimerSeconds} s\n" +
                   "\t# Sessions created: {CountCreateSession}\n" +
                   "\t# Subscriptions created: {CountCreateSubscription}\n" +
                   "\t# Monitored items created: {CountCreateMonitoredItems}\n" +
-                  "\t# Publish requests: {CountPublish}\n" +
                   "\t# Read requests: {CountRead}\n" +
                   "\t# Write requests: {CountWrite}\n" +
+                  "\t# Publish requests: {CountPublish}\n" +
                   "\t# Publish metrics enabled: {PublishMetricsEnabled:N0}")]
     partial void LogPeriodicInfo(
-        int sessions,
-        int subscriptions,
+        uint sessions,
+        uint subscriptions,
         int monitoredItems,
+        uint totalSessions,
+        uint totalSubscriptions,
         long workingSet,
         int availWorkerThreads,
-        int availCompletionPortThreads,
         int threadCount,
         int periodicLoggingTimerSeconds,
         uint countCreateSession,
         uint countCreateSubscription,
         uint countCreateMonitoredItems,
-        uint countPublish,
         uint countRead,
         uint countWrite,
+        uint countPublish,
         bool publishMetricsEnabled);
 
     [LoggerMessage(
