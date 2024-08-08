@@ -38,19 +38,19 @@ The implementation is based on .NET Core so it is cross-platform. The recommende
 
 ### Quickstart
 A Docker container of the component is hosted in the Microsoft Container Registry (MCR) and can be pulled by:
-~~~
+~~~console
 docker pull mcr.microsoft.com/iotedge/opc-plc:<See version.json>
 ~~~
 
 The tags of the container match the tags of this repository and the containers are available for Windows and Linux.
 
 Sample start command for Docker:
-~~~
+~~~console
 docker run --rm -it -p 50000:50000 -p 8080:8080 --name opcplc mcr.microsoft.com/iotedge/opc-plc:latest --pn=50000 --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --gn=5
 ~~~
 
 Sample start command for Windows:
-~~~
+~~~console
 dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --sph --sn=5 --sr=10 --st=uint --fn=5 --fr=1 --ft=uint --gn=5
 ~~~
 
@@ -61,7 +61,7 @@ If the module (application) is started with the argument `--nodesfile` then the 
 Nodes defined in the JSON file will be published by the server. This enables another OPC-UA client application to set the state/value of the node. Please note that nodes specified in the JSON file are NOT part of the simulation. They remain visible in an unchanged state until an OPC UA client changes their status.
 
 The following command shows how to use a configuration file on Windows:
-~~~
+~~~console
 dotnet opcplc.dll --at X509Store --nodesfile nodesfile.json
 ~~~
 Here's a sample node configuration file:
@@ -262,7 +262,7 @@ The build scripts are for Azure DevOps and the container build is done in ACR. T
 - Set a variable called **BUILD_REGISTRY** with the name of your Azure Container Registry
 
 Using `<reporoot>/tools/scripts/build.ps1` you can also build with Docker Desktop locally. The sample below builds a debug container and is started at the root of the repository:
-~~~
+~~~powershell
 .\tools\scripts\build.ps1 -Path . -Debug
 ~~~
 
@@ -271,7 +271,7 @@ So first run the `build.ps1` script as above, then locate the dockerfile for you
 Next, make your modifications and publish the opc-plc project in Visual Studio. Ensure that you have chosen "Self-Contained" as "Deployment Mode" and the correct "Target runtime" in the Visual Studio Publish configuration. Finally, run the `docker build` command in the folder you published to using the dockerfile of your configuration and target runtime.
 
 Building with PowerShell is even simpler. Here's an example for a linux-x64 build:
-~~~
+~~~powershell
 .\tools\scripts\docker-source.ps1 .\src
 docker build -f .\src\bin\publish\Release\linux-x64\Dockerfile.linux-amd64 -t iotedge/opc-plc .\src\bin\publish\Release\linux-x64
 ~~~
