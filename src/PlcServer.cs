@@ -46,9 +46,9 @@ public partial class PlcServer : StandardServer
     private uint _countCreateSession;
     private uint _countCreateSubscription;
     private uint _countCreateMonitoredItems;
-    private uint _countPublish;
     private uint _countRead;
     private uint _countWrite;
+    private uint _countPublish;
 
     public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
@@ -66,7 +66,7 @@ public partial class PlcServer : StandardServer
 
                     ThreadPool.GetAvailableThreads(out int availWorkerThreads, out _);
 
-                    int sessionCount = ServerInternal.SessionManager.GetSessions().Count;
+                    uint sessionCount = ServerInternal.ServerDiagnostics.CurrentSessionCount;
                     IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
                     int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
 
@@ -74,8 +74,10 @@ public partial class PlcServer : StandardServer
 
                     LogPeriodicInfo(
                         sessionCount,
-                        subscriptions.Count,
+                        ServerInternal.ServerDiagnostics.CurrentSubscriptionCount,
                         monitoredItemsCount,
+                        ServerInternal.ServerDiagnostics.CumulatedSessionCount,
+                        ServerInternal.ServerDiagnostics.CumulatedSubscriptionCount,
                         curProc.WorkingSet64 / 1024 / 1024,
                         availWorkerThreads,
                         curProc.Threads.Count,
@@ -91,9 +93,9 @@ public partial class PlcServer : StandardServer
                     _countCreateSession = 0;
                     _countCreateSubscription = 0;
                     _countCreateMonitoredItems = 0;
-                    _countPublish = 0;
                     _countRead = 0;
                     _countWrite = 0;
+                    _countPublish = 0;
                 }
                 catch
                 {
@@ -603,12 +605,11 @@ public partial class PlcServer : StandardServer
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "\n\t# Open sessions: {Sessions}\n" +
-                  "\t# Open subscriptions: {Subscriptions}\n" +
+        Message = "\n\t# Open/total sessions: {Sessions}/{TotalSessions}\n" +
+                  "\t# Open/total subscriptions: {Subscriptions}/{TotalSubscriptions}\n" +
                   "\t# Monitored items: {MonitoredItems:N0}\n" +
                   "\t# Working set: {WorkingSet:N0} MB\n" +
-                  "\t# Available worker threads: {AvailWorkerThreads:N0}\n" +
-                  "\t# Thread count: {ThreadCount:N0}\n" +
+                  "\t# Used/available worker threads: {ThreadCount:N0}/{AvailWorkerThreads:N0}\n" +
                   "\t# Stats for the last {PeriodicLoggingTimerSeconds} s\n" +
                   "\t# Sessions created: {CountCreateSession}\n" +
                   "\t# Subscriptions created: {CountCreateSubscription}\n" +
@@ -618,9 +619,11 @@ public partial class PlcServer : StandardServer
                   "\t# Publish requests: {CountPublish}\n" +
                   "\t# Publish metrics enabled: {PublishMetricsEnabled:N0}")]
     partial void LogPeriodicInfo(
-        int sessions,
-        int subscriptions,
+        uint sessions,
+        uint subscriptions,
         int monitoredItems,
+        uint totalSessions,
+        uint totalSubscriptions,
         long workingSet,
         int availWorkerThreads,
         int threadCount,
