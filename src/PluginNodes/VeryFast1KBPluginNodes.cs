@@ -59,7 +59,7 @@ public class VeryFast1KBPluginNodes(TimeService timeService, ILogger logger) : P
         // Only use the fast timers when we need to go really fast,
         // since they consume more resources and create an own thread.
         _nodeGenerator = NodeRate >= 50 || !Stopwatch.IsHighResolution
-            ? _timeService.NewTimer((s, e) => UpdateNodes(), NodeRate)
+            ? _timeService.NewTimer((s, e) => UpdateNodes(), intervalInMilliseconds: NodeRate)
             : _timeService.NewFastTimer((s, e) => UpdateNodes(), intervalInMilliseconds: NodeRate);
     }
 
