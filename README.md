@@ -233,6 +233,7 @@ More information about this feature can be found [here](deterministic-alarms.md)
 - Nodes with 1 kB (ByteString) values: `--vf1k`. The first byte cycles from 0 to 255 in a configurable rate in ms: `--vf1kr`. The values are deterministic but scrambled to ensure that they are not efficiently compressed.
 - Load binary *.PredefinedNodes.uanodes file(s) compiled from an XML NodeSet: `--unf=<PredefinedNodes_uanodes>`
 - Load *.NodeSet2.xml file(s): `--ns2=<NodeSet2_xml>`
+- Node that shows working set memory consumption in MB: Root/Objects/OpcPlc/Telemetry/Special/WorkingSetMB
 
 ## OPC UA Methods
 | Name                 | Description                                    | Prerequisite                                   |
