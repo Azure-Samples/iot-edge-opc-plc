@@ -178,15 +178,14 @@ public partial class PlcServer : StandardServer
 
         try
         {
-            OperationContext context = ValidateRequest(requestHeader, RequestType.CreateSubscription);
-
             var responseHeader = base.CreateSubscription(requestHeader, requestedPublishingInterval, requestedLifetimeCount, requestedMaxKeepAliveCount, maxNotificationsPerPublish, publishingEnabled, priority, out subscriptionId, out revisedPublishingInterval, out revisedLifetimeCount, out revisedMaxKeepAliveCount);
 
-            MetricsHelper.AddSubscriptionCount(context.SessionId.ToString(), subscriptionId.ToString());
+            NodeId sessionId = ServerInternal.SessionManager.GetSession(requestHeader.AuthenticationToken).Id;
+            MetricsHelper.AddSubscriptionCount(sessionId.ToString(), subscriptionId.ToString());
 
             LogSuccessWithSessionIdAndSubscriptionId(
                 nameof(CreateSubscription),
-                context.SessionId,
+                sessionId,
                 subscriptionId);
 
             return responseHeader;
@@ -215,17 +214,18 @@ public partial class PlcServer : StandardServer
 
         try
         {
-            OperationContext context = ValidateRequest(requestHeader, RequestType.CreateMonitoredItems);
-
             var responseHeader = base.CreateMonitoredItems(requestHeader, subscriptionId, timestampsToReturn, itemsToCreate, out results, out diagnosticInfos);
 
             MetricsHelper.AddMonitoredItemCount(itemsToCreate.Count);
 
-            LogSuccessWithSessionIdAndSubscriptionIdAndCount(
-                nameof(CreateMonitoredItems),
-                context.SessionId,
-                subscriptionId,
-                itemsToCreate.Count);
+            if(_logger.IsEnabled(LogLevel.Debug))
+            {
+                LogSuccessWithSessionIdAndSubscriptionIdAndCount(
+                    nameof(CreateMonitoredItems),
+                    ServerInternal.SessionManager.GetSession(requestHeader.AuthenticationToken).Id,
+                    subscriptionId,
+                    itemsToCreate.Count);
+            }
 
             return responseHeader;
         }
@@ -259,8 +259,6 @@ public partial class PlcServer : StandardServer
 
         try
         {
-            OperationContext context = ValidateRequest(requestHeader, RequestType.Publish);
-
             var responseHeader = base.Publish(requestHeader, subscriptionAcknowledgements, out subscriptionId, out availableSequenceNumbers, out moreNotifications, out notificationMessage, out results, out diagnosticInfos);
 
             if (PublishMetricsEnabled)
@@ -268,10 +266,13 @@ public partial class PlcServer : StandardServer
                 AddPublishMetrics(notificationMessage);
             }
 
-            LogSuccessWithSessionIdAndSubscriptionId(
-                nameof(Publish),
-                context.SessionId,
-                subscriptionId);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                LogSuccessWithSessionIdAndSubscriptionId(
+                    nameof(Publish),
+                    ServerInternal.SessionManager.GetSession(requestHeader.AuthenticationToken).Id,
+                    subscriptionId);
+            }
 
             return responseHeader;
         }
