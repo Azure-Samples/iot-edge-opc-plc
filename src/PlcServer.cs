@@ -64,7 +64,7 @@ public partial class PlcServer : StandardServer
                 {
                     var curProc = Process.GetCurrentProcess();
 
-                    ThreadPool.GetAvailableThreads(out int availWorkerThreads, out int availCompletionPortThreads);
+                    ThreadPool.GetAvailableThreads(out int availWorkerThreads, out _);
 
                     int sessionCount = ServerInternal.SessionManager.GetSessions().Count;
                     IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
@@ -78,15 +78,14 @@ public partial class PlcServer : StandardServer
                         monitoredItemsCount,
                         curProc.WorkingSet64 / 1024 / 1024,
                         availWorkerThreads,
-                        availCompletionPortThreads,
                         curProc.Threads.Count,
                         PeriodicLoggingTimerSeconds,
                         _countCreateSession,
                         _countCreateSubscription,
                         _countCreateMonitoredItems,
-                        _countPublish,
                         _countRead,
                         _countWrite,
+                        _countPublish,
                         PublishMetricsEnabled);
 
                     _countCreateSession = 0;
@@ -180,7 +179,7 @@ public partial class PlcServer : StandardServer
         {
             var responseHeader = base.CreateSubscription(requestHeader, requestedPublishingInterval, requestedLifetimeCount, requestedMaxKeepAliveCount, maxNotificationsPerPublish, publishingEnabled, priority, out subscriptionId, out revisedPublishingInterval, out revisedLifetimeCount, out revisedMaxKeepAliveCount);
 
-            NodeId sessionId = ServerInternal.SessionManager.GetSession(requestHeader.AuthenticationToken).Id;
+            NodeId sessionId = GetSessionId(requestHeader.AuthenticationToken);
             MetricsHelper.AddSubscriptionCount(sessionId.ToString(), subscriptionId.ToString());
 
             LogSuccessWithSessionIdAndSubscriptionId(
@@ -222,7 +221,7 @@ public partial class PlcServer : StandardServer
             {
                 LogSuccessWithSessionIdAndSubscriptionIdAndCount(
                     nameof(CreateMonitoredItems),
-                    ServerInternal.SessionManager.GetSession(requestHeader.AuthenticationToken).Id,
+                    GetSessionId(requestHeader.AuthenticationToken),
                     subscriptionId,
                     itemsToCreate.Count);
             }
@@ -270,7 +269,7 @@ public partial class PlcServer : StandardServer
             {
                 LogSuccessWithSessionIdAndSubscriptionId(
                     nameof(Publish),
-                    ServerInternal.SessionManager.GetSession(requestHeader.AuthenticationToken).Id,
+                    GetSessionId(requestHeader.AuthenticationToken),
                     subscriptionId);
             }
 
@@ -600,6 +599,8 @@ public partial class PlcServer : StandardServer
         MetricsHelper.AddPublishedCount(dataChanges, events);
     }
 
+    private NodeId GetSessionId(NodeId authenticationToken) => ServerInternal.SessionManager.GetSession(authenticationToken).Id;
+
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "\n\t# Open sessions: {Sessions}\n" +
@@ -607,15 +608,14 @@ public partial class PlcServer : StandardServer
                   "\t# Monitored items: {MonitoredItems:N0}\n" +
                   "\t# Working set: {WorkingSet:N0} MB\n" +
                   "\t# Available worker threads: {AvailWorkerThreads:N0}\n" +
-                  "\t# Available completion port threads: {AvailCompletionPortThreads:N0}\n" +
                   "\t# Thread count: {ThreadCount:N0}\n" +
-                  "\t# Statistics for the last {PeriodicLoggingTimerSeconds} s\n" +
+                  "\t# Stats for the last {PeriodicLoggingTimerSeconds} s\n" +
                   "\t# Sessions created: {CountCreateSession}\n" +
                   "\t# Subscriptions created: {CountCreateSubscription}\n" +
                   "\t# Monitored items created: {CountCreateMonitoredItems}\n" +
-                  "\t# Publish requests: {CountPublish}\n" +
                   "\t# Read requests: {CountRead}\n" +
                   "\t# Write requests: {CountWrite}\n" +
+                  "\t# Publish requests: {CountPublish}\n" +
                   "\t# Publish metrics enabled: {PublishMetricsEnabled:N0}")]
     partial void LogPeriodicInfo(
         int sessions,
@@ -623,15 +623,14 @@ public partial class PlcServer : StandardServer
         int monitoredItems,
         long workingSet,
         int availWorkerThreads,
-        int availCompletionPortThreads,
         int threadCount,
         int periodicLoggingTimerSeconds,
         uint countCreateSession,
         uint countCreateSubscription,
         uint countCreateMonitoredItems,
-        uint countPublish,
         uint countRead,
         uint countWrite,
+        uint countPublish,
         bool publishMetricsEnabled);
 
     [LoggerMessage(
