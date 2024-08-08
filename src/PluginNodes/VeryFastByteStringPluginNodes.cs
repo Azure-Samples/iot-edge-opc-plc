@@ -22,6 +22,7 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
     private readonly DeterministicGuid _deterministicGuid = new();
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState[] _veryFastByteStringNodes;
+    private byte[] _byteString;
     private ITimer _nodeGenerator;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
@@ -65,7 +66,7 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
         // Only use the fast timers when we need to go really fast,
         // since they consume more resources and create an own thread.
         _nodeGenerator = NodeRate >= 50 || !Stopwatch.IsHighResolution
-            ? _timeService.NewTimer((s, e) => UpdateNodes(), NodeRate)
+            ? _timeService.NewTimer((s, e) => UpdateNodes(), intervalInMilliseconds: NodeRate)
             : _timeService.NewFastTimer((s, e) => UpdateNodes(), intervalInMilliseconds: NodeRate);
     }
 
@@ -82,15 +83,16 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
         var nodes = new List<NodeWithIntervals>();
         _veryFastByteStringNodes = new BaseDataVariableState[NodeCount];
 
+        // Use min. node size of 1 byte.
         int nodeSize = NodeSize < 1
             ? 1
             : (int)NodeSize;
 
+        string nodeSizeGuid = GetLongDeterministicGuid(nodeSize);
+        _byteString = Encoding.UTF8.GetBytes(nodeSizeGuid);
+
         for (int i = 0; i < NodeCount; i++)
         {
-            string nodeSizeGuid = GetLongDeterministicGuid(nodeSize);
-            var initialByteArray = Encoding.UTF8.GetBytes(nodeSizeGuid);
-
             string name = $"VeryFastByteString{(i + 1)}";
 
             _veryFastByteStringNodes[i] = _plcNodeManager.CreateBaseVariable(
@@ -102,7 +104,7 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
                 AccessLevels.CurrentReadOrWrite,
                 "Very fast changing ByteString node",
                 NamespaceType.OpcPlcApplications,
-                initialByteArray);
+                _byteString);
 
             // Update pn.json output.
             nodes.Add(new NodeWithIntervals {
@@ -117,22 +119,19 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
 
     private void UpdateNodes()
     {
+        // Update first byte in the range 0 to 255.
+        _byteString[0] = _byteString[0] == 255
+            ? (byte)0
+            : (byte)(_byteString[0] + 1);
+
         for (int i = 0; i < _veryFastByteStringNodes.Length; i++)
         {
-            byte[] arrayValue = (byte[])_veryFastByteStringNodes[i].Value;
-
-            // Update first byte in the range 0 to 255.
-            arrayValue[0] = arrayValue[0] == 255
-                ? (byte)0
-                : (byte)(arrayValue[0] + 1);
-
-            SetValue(_veryFastByteStringNodes[i], arrayValue);
+            UpdateValue(_veryFastByteStringNodes[i]);
         }
     }
 
-    private void SetValue<T>(BaseVariableState variable, T value)
+    private void UpdateValue(BaseVariableState variable)
     {
-        variable.Value = value;
         variable.Timestamp = _timeService.Now();
         variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
