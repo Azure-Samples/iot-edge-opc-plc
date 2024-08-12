@@ -310,6 +310,17 @@ public partial class PlcServer : StandardServer
 
             return new ResponseHeader { ServiceResult = StatusCodes.BadSecureChannelIdInvalid };
         }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadSessionClosed)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Publish));
+
+            LogErrorWithStatusCode(
+                nameof(Publish),
+                nameof(StatusCodes.BadSessionClosed),
+                ex);
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadSessionClosed };
+        }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
