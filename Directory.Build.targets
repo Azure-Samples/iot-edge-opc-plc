@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
     <!-- Uncomment the following to test against a local OPC UA SDK and avoid error CS0433 -->
-    <DefineConstants>UseLocalOpcUaSdk</DefineConstants>
+    <!-- <DefineConstants>UseLocalOpcUaSdk</DefineConstants> -->
   </PropertyGroup>
 </Project>

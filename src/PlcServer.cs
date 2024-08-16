@@ -260,7 +260,6 @@ public partial class PlcServer : StandardServer
 
         try
         {
-            ////var watch = Stopwatch.StartNew();
             var responseHeader = base.Publish(requestHeader, subscriptionAcknowledgements, out subscriptionId, out availableSequenceNumbers, out moreNotifications, out notificationMessage, out results, out diagnosticInfos);
 
             if (PublishMetricsEnabled)
@@ -275,9 +274,6 @@ public partial class PlcServer : StandardServer
                     GetSessionId(requestHeader.AuthenticationToken),
                     subscriptionId);
             }
-
-            ////watch.Stop();
-            ////Console.WriteLine($"Publish took {watch.ElapsedMilliseconds} ms");
 
             return responseHeader;
         }

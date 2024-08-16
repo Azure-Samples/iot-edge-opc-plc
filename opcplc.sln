@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
@@ -42,10 +42,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "opc-plc-tests", "tests\opc-
 EndProject
 # Uncomment the following to include local OPC UA SDK files, e.g. for debugging.
 # You will also need to define the constant UseLocalOpcUaSdk in the file Directory.Build.targets.
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Opc.Ua.Configuration", "..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj", "{19796333-27CA-461A-A3B3-96F7DB378F23}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Opc.Ua.Server", "..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj", "{6D71B6B9-2A80-44A7-A5BE-E1012C2419E0}"
-EndProject
++Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Opc.Ua.Configuration", "..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj", "{19796333-27CA-461A-A3B3-96F7DB378F23}"
++EndProject
++Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Opc.Ua.Server", "..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj", "{6D71B6B9-2A80-44A7-A5BE-E1012C2419E0}"
++EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,14 +60,6 @@ Global
 		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{19796333-27CA-461A-A3B3-96F7DB378F23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{19796333-27CA-461A-A3B3-96F7DB378F23}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{19796333-27CA-461A-A3B3-96F7DB378F23}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{19796333-27CA-461A-A3B3-96F7DB378F23}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6D71B6B9-2A80-44A7-A5BE-E1012C2419E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6D71B6B9-2A80-44A7-A5BE-E1012C2419E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6D71B6B9-2A80-44A7-A5BE-E1012C2419E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6D71B6B9-2A80-44A7-A5BE-E1012C2419E0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
