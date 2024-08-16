@@ -620,11 +620,11 @@ public partial class PlcServer : StandardServer
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "\n\t# Open/total sessions: {Sessions}/{TotalSessions}\n" +
-                  "\t# Open/total subscriptions: {Subscriptions}/{TotalSubscriptions}\n" +
+        Message = "\n\t# Open/total sessions: {Sessions} | {TotalSessions}\n" +
+                  "\t# Open/total subscriptions: {Subscriptions} | {TotalSubscriptions}\n" +
                   "\t# Monitored items: {MonitoredItems:N0}\n" +
                   "\t# Working set: {WorkingSet:N0} MB\n" +
-                  "\t# Used/available worker threads: {ThreadCount:N0}/{AvailWorkerThreads:N0}\n" +
+                  "\t# Used/available worker threads: {ThreadCount:N0} | {AvailWorkerThreads:N0}\n" +
                   "\t# Stats for the last {PeriodicLoggingTimerSeconds} s\n" +
                   "\t# Sessions created: {CountCreateSession}\n" +
                   "\t# Subscriptions created: {CountCreateSubscription}\n" +
