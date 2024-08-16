@@ -29,7 +29,6 @@
 /_tmpout/**
 /TestResults/**
 /**/TestResults/**
-/**/packages/**
 /**/appsettings.*.json
 .env
 *.crt
