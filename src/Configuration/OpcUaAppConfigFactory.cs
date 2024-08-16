@@ -106,7 +106,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             .SetMaxRegistrationInterval(_config.OpcUa.LdsRegistrationInterval)
             // Enable auditing events and diagnostics.
             .SetDiagnosticsEnabled(true)
-            .SetAuditingEnabled(true)
+            .SetAuditingEnabled(false)
             // Set the server capabilities.
             .SetMaxSessionCount(_config.OpcUa.MaxSessionCount)
             .SetMaxSessionTimeout(_config.OpcUa.MaxSessionTimeout)
