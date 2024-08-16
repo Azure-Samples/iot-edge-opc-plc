@@ -219,7 +219,7 @@ public partial class PlcServer : StandardServer
 
             MetricsHelper.AddMonitoredItemCount(itemsToCreate.Count);
 
-            if(_logger.IsEnabled(LogLevel.Debug))
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
                 LogSuccessWithSessionIdAndSubscriptionIdAndCount(
                     nameof(CreateMonitoredItems),
