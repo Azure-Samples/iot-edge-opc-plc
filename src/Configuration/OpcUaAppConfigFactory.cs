@@ -36,6 +36,9 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             MaxMessageSize = 4 * 1024 * 1024, // 4 MB.
             MaxByteStringLength = 4 * 1024 * 1024, // 4 MB.
             ChannelLifetime = 60_000, // 60 s.
+            MaxArrayLength = UInt16.MaxValue,
+            MaxBufferSize = UInt16.MaxValue,
+            MaxDecoderRecoveries = 0,
         };
 
         var operationLimits = new OperationLimits() {
@@ -106,7 +109,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             .SetMaxRegistrationInterval(_config.OpcUa.LdsRegistrationInterval)
             // Enable auditing events and diagnostics.
             .SetDiagnosticsEnabled(true)
-            .SetAuditingEnabled(true)
+            .SetAuditingEnabled(false)
             // Set the server capabilities.
             .SetMaxSessionCount(_config.OpcUa.MaxSessionCount)
             .SetMaxSessionTimeout(_config.OpcUa.MaxSessionTimeout)
@@ -114,7 +117,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             .SetMaxQueuedRequestCount(_config.OpcUa.MaxQueuedRequestCount)
             .SetOperationLimits(operationLimits)
             // Ignore max channel count.
-            // TODO: Remove this when the OPC UA stack supports more than 100 channels.
+            .SetMaxChannelCount(_config.OpcUa.MaxSessionCount * 2);
             .SetMaxChannelCount(0);
 
         // Security configuration.

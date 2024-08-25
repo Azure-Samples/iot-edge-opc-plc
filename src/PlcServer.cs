@@ -62,22 +62,25 @@ public partial class PlcServer : StandardServer
             (state) => {
                 try
                 {
+                    var serverDiagnostics = ServerInternal.ServerDiagnostics;
+                    if (serverDiagnostics == null) return;
+
                     var curProc = Process.GetCurrentProcess();
 
                     ThreadPool.GetAvailableThreads(out int availWorkerThreads, out _);
 
-                    uint sessionCount = ServerInternal.ServerDiagnostics.CurrentSessionCount;
-                    IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
-                    int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
+                    uint sessionCount = serverDiagnostics.CurrentSessionCount;
+                    IList<Subscription> subscriptions = ServerInternal.SubscriptionManager?.GetSubscriptions();
+                    int monitoredItemsCount = subscriptions?.Sum(s => s.MonitoredItemCount) ?? 0;
 
                     _autoDisablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
 
                     LogPeriodicInfo(
                         sessionCount,
-                        ServerInternal.ServerDiagnostics.CurrentSubscriptionCount,
+                        serverDiagnostics.CurrentSubscriptionCount,
                         monitoredItemsCount,
-                        ServerInternal.ServerDiagnostics.CumulatedSessionCount,
-                        ServerInternal.ServerDiagnostics.CumulatedSubscriptionCount,
+                        serverDiagnostics.CumulatedSessionCount,
+                        serverDiagnostics.CumulatedSubscriptionCount,
                         curProc.WorkingSet64 / 1024 / 1024,
                         availWorkerThreads,
                         curProc.Threads.Count,
@@ -114,12 +117,7 @@ public partial class PlcServer : StandardServer
     /// 3) OtlpPublishMetrics is not "disable",
     /// 4) When OtlpPublishMetrics is "auto": sessions <= 40 and monitored items <= 500.
     /// </summary>
-    private bool PublishMetricsEnabled =>
-        MetricsHelper.IsEnabled &&
-        (
-         (Config.OtlpPublishMetrics == "enable" && Config.OtlpPublishMetrics != "disable") ||
-         (Config.OtlpPublishMetrics == "auto" && !_autoDisablePublishMetrics)
-        );
+    private bool PublishMetricsEnabled => false;
 
     public override ResponseHeader CreateSession(
         RequestHeader requestHeader,
