@@ -2,6 +2,8 @@
 
 using Opc.Ua;
 using Opc.Ua.Server;
+using System;
+using System.IO;
 using System.Reflection;
 
 /// <summary>
@@ -29,9 +31,16 @@ public sealed class DiNodeManager : CustomNodeManager2
     /// </summary>
     protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
+        var uanodesPath = "CompanionSpecs/DI/Opc.Ua.DI.PredefinedNodes.uanodes";
+        var snapLocation = Environment.GetEnvironmentVariable("SNAP");
+        if (!string.IsNullOrWhiteSpace(snapLocation))
+        {
+            // Aplication running as a snap
+            uanodesPath = Path.Join(snapLocation, uanodesPath);
+        }
         var predefinedNodes = new NodeStateCollection();
         predefinedNodes.LoadFromBinaryResource(context,
-            "CompanionSpecs/DI/Opc.Ua.DI.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
+            uanodesPath, // CopyToOutputDirectory -> PreserveNewest.
             typeof(DiNodeManager).GetTypeInfo().Assembly,
             updateTables: true);
 

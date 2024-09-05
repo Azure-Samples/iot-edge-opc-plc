@@ -1,3 +1,8 @@
 #!/bin/sh -e
 
-$SNAP/opcplc --pn=50000 --sn=10 --sr=10 --st=uint --fn=10 --fr=1 --ft=uint --gn=10 --appcertstorepath="$SNAP_USER_DATA/pki/own" --trustedcertstorepath="$SNAP_USER_DATA/pki/trusted" --rejectedcertstorepath="$SNAP_USER_DATA/pki/rejected" --issuercertstorepath="$SNAP_USER_DATA/pki/issuer" --logfile="$SNAP_USER_DATA/hostname-port-plc.log" --uanodesfile="$SNAP/CompanionSpecs/DI/Opc.Ua.DI.PredefinedNodes.uanodes"
+"$SNAP"/opcplc --pn=50000 --sn=10 --sr=10 --st=uint --fn=10 --fr=1 --ft=uint --gn=10 \
+    --appcertstorepath="$SNAP_USER_DATA/pki/own" \
+    --trustedcertstorepath="$SNAP_USER_DATA/pki/trusted" \
+    --rejectedcertstorepath="$SNAP_USER_DATA/pki/rejected" \
+    --issuercertstorepath="$SNAP_USER_DATA/pki/issuer" \
+    --logfile="$SNAP_USER_DATA/hostname-port-plc.log"
