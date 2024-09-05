@@ -22,6 +22,11 @@ parts:
     source: scripts/
     organize:
       '*' : scripts/
+  appsettings:
+    plugin: dump
+    source: src/
+    prime:
+      - appsettings.json
 
 apps:
   opc-plc:
