@@ -576,7 +576,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         try
         {
             _logger.LogInformation("Starting to remove certificate(s) from trusted peer and trusted issuer store");
-            using ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath);
+            using ICertificateStore trustedStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore();
             foreach (var thumbprint in thumbprintsToRemove)
             {
                 var certToRemove = await trustedStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
@@ -602,7 +602,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         // search the trusted issuer store and remove certificates with a specified thumbprint
         try
         {
-            using ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath);
+            using ICertificateStore issuerStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore();
             foreach (var thumbprint in thumbprintsToRemove)
             {
                 var certToRemove = await issuerStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
@@ -685,7 +685,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         {
             try
             {
-                using ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath);
+                using ICertificateStore issuerStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore();
                 foreach (var certificateToAdd in certificatesToAdd)
                 {
                     try
@@ -710,7 +710,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         {
             try
             {
-                using ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath);
+                using ICertificateStore trustedStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore();
                 foreach (var certificateToAdd in certificatesToAdd)
                 {
                     try
@@ -777,7 +777,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         }
 
         // check if CRL was signed by a trusted peer cert
-        using (ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath))
+        using (ICertificateStore trustedStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore())
         {
             bool trustedCrlIssuer = false;
             var trustedCertificates = await trustedStore.Enumerate().ConfigureAwait(false);
@@ -834,7 +834,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         }
 
         // check if CRL was signed by a trusted issuer cert
-        using (ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath))
+        using (ICertificateStore issuerStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore())
         {
             bool trustedCrlIssuer = false;
             var issuerCertificates = await issuerStore.Enumerate().ConfigureAwait(false);
@@ -993,7 +993,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 var certValidator = new CertificateValidator();
                 var verificationTrustList = new CertificateTrustList();
                 var verificationCollection = new CertificateIdentifierCollection();
-                using (ICertificateStore issuerStore = CertificateStoreIdentifier.OpenStore(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.StorePath))
+                using (ICertificateStore issuerStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore())
                 {
                     var certs = await issuerStore.Enumerate().ConfigureAwait(false);
                     foreach (var cert in certs)
@@ -1001,7 +1001,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                         verificationCollection.Add(new CertificateIdentifier(cert));
                     }
                 }
-                using (ICertificateStore trustedStore = CertificateStoreIdentifier.OpenStore(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath))
+                using (ICertificateStore trustedStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore())
                 {
                     var certs = await trustedStore.Enumerate().ConfigureAwait(false);
                     foreach (var cert in certs)
@@ -1094,7 +1094,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         }
 
         // remove the existing and add the new application cert
-        using (ICertificateStore appStore = CertificateStoreIdentifier.OpenStore(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.StorePath))
+        using (ICertificateStore appStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore())
         {
             _logger.LogInformation("Remove the existing application certificate");
             try
