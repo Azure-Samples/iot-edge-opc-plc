@@ -1,0 +1,36 @@
+name: iot-edge-opc-plc
+base: core22
+version: '0.1'
+summary: Sample OPC UA server
+description: |
+  Sample OPC UA server with nodes that generate random
+  and increasing data, anomalies and much more.
+
+grade: stable
+confinement: strict # use 'strict' once you have the right plugs and slots
+
+parts:
+  opc-plc:
+    plugin: dotnet
+    dotnet-build-configuration: Release
+    dotnet-self-contained-runtime-identifier: linux-x64
+    source: .
+    build-packages:
+      - dotnet-sdk-8.0
+  scripts:
+    plugin: dump
+    source: scripts/
+    organize:
+      '*' : scripts/
+  appsettings:
+    plugin: dump
+    source: src/
+    prime:
+      - appsettings.json
+
+apps:
+  opc-plc:
+    command: scripts/run
+    plugs:
+      - network
+      - network-bind
