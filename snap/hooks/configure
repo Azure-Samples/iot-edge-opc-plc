@@ -1,0 +1,15 @@
+#!/bin/sh -e
+
+# Supported keys:
+# - trustedcertbase64 (string)
+#   Certificate in base64 string format to be trusted by the server.
+
+handle_trustedcertbase64()
+{
+  trustedcertbase64="$(snapctl get trustedcertbase64)"
+  if [ -n "$trustedcertbase64" ]; then
+    echo "$trustedcertbase64" > "$SNAP_DATA/config/pki/trusted/certs/cert_1.crt"
+  fi
+}
+
+handle_trustedcertbase64

@@ -7,6 +7,7 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -154,10 +155,18 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
     /// </summary>
     private NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
+        var uanodesPath = "Boilers/Boiler2/BoilerModel2.PredefinedNodes.uanodes";
+        var snapLocation = Environment.GetEnvironmentVariable("SNAP");
+        if (!string.IsNullOrWhiteSpace(snapLocation))
+        {
+            // Application running as a snap
+            uanodesPath = Path.Join(snapLocation, uanodesPath);
+        }
+
         var predefinedNodes = new NodeStateCollection();
 
         predefinedNodes.LoadFromBinaryResource(context,
-            "Boilers/Boiler2/BoilerModel2.PredefinedNodes.uanodes", // CopyToOutputDirectory -> PreserveNewest.
+            uanodesPath, // CopyToOutputDirectory -> PreserveNewest.
             typeof(PlcNodeManager).GetTypeInfo().Assembly,
             updateTables: true);
 

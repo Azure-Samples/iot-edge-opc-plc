@@ -374,9 +374,17 @@ public class OpcPlcServer
     /// </summary>
     public IHost CreateHostBuilder(string[] args)
     {
+        var contentRoot = Directory.GetCurrentDirectory();
+        var snapLocation = Environment.GetEnvironmentVariable("SNAP");
+        if (!string.IsNullOrWhiteSpace(snapLocation))
+        {
+            // The application is running as a snap
+            contentRoot = snapLocation;
+        }
+
         var host = Host.CreateDefaultBuilder(args)
             .ConfigureWebHostDefaults(webBuilder => {
-                webBuilder.UseContentRoot(Directory.GetCurrentDirectory()); // Avoid System.InvalidOperationException.
+                webBuilder.UseContentRoot(contentRoot); // Avoid System.InvalidOperationException.
                 webBuilder.UseUrls($"http://*:{Config.WebServerPort}");
                 webBuilder.UseStartup<Startup>();
             }).Build();

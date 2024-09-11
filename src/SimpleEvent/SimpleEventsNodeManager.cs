@@ -34,6 +34,7 @@ using Opc.Ua.Server;
 using OpcPlc.SimpleEvent;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Threading;
 
@@ -88,9 +89,17 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
     /// </summary>
     protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
+        var uanodesPath = "SimpleEvent/SimpleEvents.PredefinedNodes.uanodes";
+        var snapLocation = Environment.GetEnvironmentVariable("SNAP");
+        if (!string.IsNullOrWhiteSpace(snapLocation))
+        {
+            // Application running as a snap
+            uanodesPath = Path.Join(snapLocation, uanodesPath);
+        }
+
         var predefinedNodes = new NodeStateCollection();
         predefinedNodes.LoadFromBinaryResource(context,
-            "SimpleEvent/SimpleEvents.PredefinedNodes.uanodes",
+            uanodesPath,
             typeof(SimpleEventsNodeManager).GetTypeInfo().Assembly,
             updateTables: true);
         return predefinedNodes;
