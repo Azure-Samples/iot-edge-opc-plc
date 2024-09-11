@@ -95,7 +95,7 @@ public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger
         var snapLocation = Environment.GetEnvironmentVariable("SNAP");
         if (!string.IsNullOrWhiteSpace(snapLocation))
         {
-            // Aplication running as a snap
+            // Application running as a snap
             uanodesPath = Path.Join(snapLocation, uanodesPath);
         }
 

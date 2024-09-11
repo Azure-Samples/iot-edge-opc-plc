@@ -35,7 +35,7 @@ public sealed class DiNodeManager : CustomNodeManager2
         var snapLocation = Environment.GetEnvironmentVariable("SNAP");
         if (!string.IsNullOrWhiteSpace(snapLocation))
         {
-            // Aplication running as a snap
+            // Application running as a snap
             uanodesPath = Path.Join(snapLocation, uanodesPath);
         }
         var predefinedNodes = new NodeStateCollection();
