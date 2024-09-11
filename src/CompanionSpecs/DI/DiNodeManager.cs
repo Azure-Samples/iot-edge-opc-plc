@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.CompanionSpecs.DI;
+namespace OpcPlc.CompanionSpecs.DI;
 
 using Opc.Ua;
 using Opc.Ua.Server;
@@ -38,6 +38,7 @@ public sealed class DiNodeManager : CustomNodeManager2
             // Application running as a snap
             uanodesPath = Path.Join(snapLocation, uanodesPath);
         }
+
         var predefinedNodes = new NodeStateCollection();
         predefinedNodes.LoadFromBinaryResource(context,
             uanodesPath, // CopyToOutputDirectory -> PreserveNewest.
