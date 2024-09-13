@@ -49,6 +49,8 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
     /// <inheritdoc/>
     public bool SupportsCRLs => _innerStore.SupportsCRLs;
 
+    public bool NoPrivateKeys => _innerStore.NoPrivateKeys;
+
     /// <inheritdoc/>
     public void Dispose()
     {
@@ -79,6 +81,12 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
     public Task Add(X509Certificate2 certificate, string password = null)
     {
         return _innerStore.Add(certificate, password);
+    }
+
+    /// <inheritdoc/>
+    public Task AddRejected(X509Certificate2Collection certificates, int maxCertificates)
+    {
+        return _innerStore.AddRejected(certificates, maxCertificates);
     }
 
     /// <inheritdoc/>
