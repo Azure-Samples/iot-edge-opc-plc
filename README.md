@@ -17,6 +17,9 @@ Implements an OPC-UA server with different nodes generating random data, anomali
 * After deployment, the OPC PLC server will be available at `opc.tcp://<NAME>.<REGION>.azurecontainer.io:50000`
 * See [region limits](https://docs.microsoft.com/en-us/azure/container-instances/container-instances-region-availability#availability---general)
 
+## Disclaimer
+The OPC PLC is a sample server. Although it undergoes regular vulnerability scans and prompt patching, we do not recommend deploying it in a production environment due to potential security risks.
+
 ## Features
 The following nodes are part of the PLC simulation:
 - Alternating boolean
