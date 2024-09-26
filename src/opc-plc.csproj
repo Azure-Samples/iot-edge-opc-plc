@@ -43,8 +43,8 @@
   <Choose>
     <When Condition="'$(Configuration)'=='Debug'">
       <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.5.374.118" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.5.374.118" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="[1.5.374.124]" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="[1.5.374.124]" NoWarn="NU5104" />
       </ItemGroup>
       <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
         <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
@@ -53,8 +53,8 @@
     </When>
     <When Condition="'$(Configuration)'=='Release'">
       <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.5.374.118" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.5.374.118" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="[1.5.374.124]" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="[1.5.374.124]" NoWarn="NU5104" />
       </ItemGroup>
       <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
         <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
