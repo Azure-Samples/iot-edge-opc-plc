@@ -31,6 +31,7 @@ using Opc.Ua;
 using Opc.Ua.Server;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace AlarmCondition
@@ -84,27 +85,27 @@ namespace AlarmCondition
             // the strategy used by a NodeManager depends on what kind of information it provides.
             SystemContext.NodeIdFactory = this;
 
-            // create the table of namespaces that are used by the NodeManager.
-            m_namespaceUris = namespaceUris;
-
             // add the uris to the server's namespace table and cache the indexes.
+            ushort[] namespaceIndexes = Array.Empty<ushort>();
             if (namespaceUris != null)
             {
-                NamespaceIndexes = new ushort[m_namespaceUris.Length];
+                namespaceIndexes = new ushort[namespaceUris.Length];
 
-                for (int ii = 0; ii < m_namespaceUris.Length; ii++)
+                for (int ii = 0; ii < namespaceUris.Length; ii++)
                 {
-                    NamespaceIndexes[ii] = Server.NamespaceUris.GetIndexOrAppend(m_namespaceUris[ii]);
+                    namespaceIndexes[ii] = Server.NamespaceUris.GetIndexOrAppend(namespaceUris[ii]);
                 }
             }
 
-            // create the table of monitored items.
-            // these are items created by clients when they subscribe to data or events.
-            MonitoredItems = new Dictionary<uint, IDataChangeMonitoredItem>();
+            // add the table of namespaces that are used by the NodeManager.
+            m_namespaceUris = namespaceUris;
+            NamespaceIndexes = namespaceIndexes;
+
 
             // create the table of monitored nodes.
             // these are created by the node manager whenever a client subscribe to an attribute of the node.
-            MonitoredNodes = new Dictionary<NodeId, MonitoredNode>();
+            MonitoredNodes = new NodeIdDictionary<MonitoredNode>();
+            m_componentCache = new NodeIdDictionary<CacheEntry>();
         }
         #endregion
 
@@ -115,10 +116,11 @@ namespace AlarmCondition
         public void Dispose()
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
-        /// An overridable version of the Dispose.
+        /// An overrideable version of the Dispose.
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
@@ -128,9 +130,9 @@ namespace AlarmCondition
                 {
                     if (PredefinedNodes != null)
                     {
-                        foreach (NodeState node in PredefinedNodes.Values)
+                        foreach (var keyValuePair in PredefinedNodes.ToArray())
                         {
-                            Utils.SilentDispose(node);
+                            Utils.SilentDispose(keyValuePair.Value);
                         }
 
                         PredefinedNodes.Clear();
@@ -181,7 +183,7 @@ namespace AlarmCondition
         /// Gets the namespace indexes owned by the node manager.
         /// </summary>
         /// <value>The namespace indexes.</value>
-        public ushort[] NamespaceIndexes { get; private set; }
+        public IReadOnlyList<ushort> NamespaceIndexes { get; private set; }
 
         /// <summary>
         /// Gets or sets the maximum size of a monitored item queue.
@@ -214,7 +216,7 @@ namespace AlarmCondition
         /// <summary>
         /// Gets the table of nodes being monitored.
         /// </summary>
-        protected Dictionary<NodeId, MonitoredNode> MonitoredNodes { get; }
+        protected NodeIdDictionary<MonitoredNode> MonitoredNodes { get; }
 
         /// <summary>
         /// Sets the namespaces supported by the NodeManager.
@@ -222,16 +224,17 @@ namespace AlarmCondition
         /// <param name="namespaceUris">The namespace uris.</param>
         protected void SetNamespaces(params string[] namespaceUris)
         {
-            // create the table of namespaces that are used by the NodeManager.
-            m_namespaceUris = namespaceUris;
-
             // add the uris to the server's namespace table and cache the indexes.
-            NamespaceIndexes = new ushort[m_namespaceUris.Length];
+            var namespaceIndexes = new ushort[namespaceUris.Length];
 
-            for (int ii = 0; ii < m_namespaceUris.Length; ii++)
+            for (int ii = 0; ii < namespaceUris.Length; ii++)
             {
-                NamespaceIndexes[ii] = Server.NamespaceUris.GetIndexOrAppend(m_namespaceUris[ii]);
+                namespaceIndexes[ii] = Server.NamespaceUris.GetIndexOrAppend(namespaceUris[ii]);
             }
+
+            // create the immutable table of namespaces that are used by the NodeManager.
+            m_namespaceUris = namespaceUris;
+            NamespaceIndexes = namespaceIndexes;
         }
 
         /// <summary>
@@ -239,18 +242,24 @@ namespace AlarmCondition
         /// </summary>
         protected void SetNamespaceIndexes(ushort[] namespaceIndexes)
         {
-            NamespaceIndexes = namespaceIndexes;
-            m_namespaceUris = new string[namespaceIndexes.Length];
+            var namespaceUris = new string[namespaceIndexes.Length];
 
             for (int ii = 0; ii < namespaceIndexes.Length; ii++)
             {
-                m_namespaceUris[ii] = Server.NamespaceUris.GetString(namespaceIndexes[ii]);
+                namespaceUris[ii] = Server.NamespaceUris.GetString(namespaceIndexes[ii]);
             }
+
+            // create the immutable table of namespaces that are used by the NodeManager.
+            m_namespaceUris = namespaceUris;
+            NamespaceIndexes = namespaceIndexes;
         }
 
         /// <summary>
         /// Returns true if the namespace for the node id is one of the namespaces managed by the node manager.
         /// </summary>
+        /// <remarks>
+        /// It is thread safe to call this method outside the node manager lock.
+        /// </remarks>
         /// <param name="nodeId">The node id to check.</param>
         /// <returns>True if the namespace is one of the nodes.</returns>
         protected virtual bool IsNodeIdInNamespace(NodeId nodeId)
@@ -261,21 +270,16 @@ namespace AlarmCondition
                 return false;
             }
 
-            // quickly exclude nodes that not in the namespace.
-            for (int ii = 0; ii < NamespaceIndexes.Length; ii++)
-            {
-                if (nodeId.NamespaceIndex == NamespaceIndexes[ii])
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            // quickly exclude nodes that are not in the namespace.
+            return NamespaceIndexes.Contains(nodeId.NamespaceIndex);
         }
 
         /// <summary>
         /// Returns the node if the handle refers to a node managed by this manager.
         /// </summary>
+        /// <remarks>
+        /// It is thread safe to call this method outside the node manager lock.
+        /// </remarks>
         /// <param name="managerHandle">The handle to check.</param>
         /// <returns>Non-null if the handle belongs to the node manager.</returns>
         protected virtual NodeHandle IsHandleInNamespace(object managerHandle)
@@ -413,13 +417,6 @@ namespace AlarmCondition
             get
             {
                 return m_namespaceUris;
-            }
-
-            protected set
-            {
-                ArgumentNullException.ThrowIfNull(value);
-                List<string> namespaceUris = new(value);
-                SetNamespaces(namespaceUris.ToArray());
             }
         }
 
@@ -703,8 +700,7 @@ namespace AlarmCondition
             }
 
             // add reserve reference from external node.
-            var referenceToAdd = new ReferenceNode
-            {
+            var referenceToAdd = new ReferenceNode {
                 ReferenceTypeId = referenceTypeId,
                 IsInverse = isInverse,
                 TargetId = targetId
@@ -806,21 +802,24 @@ namespace AlarmCondition
         /// Returns a unique handle for the node.
         /// </summary>
         /// <remarks>
+        /// It is thread safe to call this method.
+        /// </remarks>
+        /// <remarks>
         /// This must efficiently determine whether the node belongs to the node manager. If it does belong to
         /// NodeManager it should return a handle that does not require the NodeId to be validated again when
         /// the handle is passed into other methods such as 'Read' or 'Write'.
         /// </remarks>
         public virtual object GetManagerHandle(NodeId nodeId)
         {
-            lock (Lock)
-            {
-                return GetManagerHandle(SystemContext, nodeId, null);
-            }
+            return GetManagerHandle(SystemContext, nodeId, null);
         }
 
         /// <summary>
         /// Returns a unique handle for the node.
         /// </summary>
+        /// <remarks>
+        /// It is thread safe to call this method.
+        /// </remarks>
         protected virtual NodeHandle GetManagerHandle(ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache)
         {
             if (!IsNodeIdInNamespace(nodeId))
@@ -832,8 +831,7 @@ namespace AlarmCondition
             {
                 if (PredefinedNodes.TryGetValue(nodeId, out NodeState node))
                 {
-                    var handle = new NodeHandle
-                    {
+                    var handle = new NodeHandle {
                         NodeId = nodeId,
                         Node = node,
                         Validated = true,
@@ -889,16 +887,16 @@ namespace AlarmCondition
             ExpandedNodeId targetId,
             bool deleteBidirectional)
         {
+            // get the handle.
+            NodeHandle source = IsHandleInNamespace(sourceHandle);
+
+            if (source == null)
+            {
+                return StatusCodes.BadNodeIdUnknown;
+            }
+
             lock (Lock)
             {
-                // get the handle.
-                NodeHandle source = IsHandleInNamespace(sourceHandle);
-
-                if (source == null)
-                {
-                    return StatusCodes.BadNodeIdUnknown;
-                }
-
                 // only support external references to nodes that are stored in memory.
                 if (!source.Validated || source.Node == null)
                 {
@@ -937,18 +935,18 @@ namespace AlarmCondition
             object targetHandle,
             BrowseResultMask resultMask)
         {
+            // check for valid handle.
+            NodeHandle handle = IsHandleInNamespace(targetHandle);
+
+            if (handle == null)
+            {
+                return null;
+            }
+
             ServerSystemContext systemContext = SystemContext.Copy(context);
 
             lock (Lock)
             {
-                // check for valid handle.
-                NodeHandle handle = IsHandleInNamespace(targetHandle);
-
-                if (handle == null)
-                {
-                    return null;
-                }
-
                 // validate node.
                 NodeState target = ValidateNode(systemContext, handle, null);
 
@@ -972,8 +970,7 @@ namespace AlarmCondition
                     Attributes.UserExecutable);
 
                 // construct the metadata object.
-                var metadata = new NodeMetadata(target, target.NodeId)
-                {
+                var metadata = new NodeMetadata(target, target.NodeId) {
                     NodeClass = target.NodeClass,
                     BrowseName = target.BrowseName,
                     DisplayName = target.DisplayName
@@ -1043,11 +1040,11 @@ namespace AlarmCondition
 
             INodeBrowser browser = null;
 
+            // check for valid handle.
+            NodeHandle handle = IsHandleInNamespace(continuationPoint.NodeToBrowse) ?? throw new ServiceResultException(StatusCodes.BadNodeIdUnknown);
+
             lock (Lock)
             {
-                // check for valid handle.
-                NodeHandle handle = IsHandleInNamespace(continuationPoint.NodeToBrowse) ?? throw new ServiceResultException(StatusCodes.BadNodeIdUnknown);
-
                 // validate node.
                 NodeState source = ValidateNode(systemContext, handle, null) ?? throw new ServiceResultException(StatusCodes.BadNodeIdUnknown);
 
@@ -1148,8 +1145,7 @@ namespace AlarmCondition
             _ = SystemContext.Copy(context);
 
             // create the type definition reference.
-            ReferenceDescription description = new()
-            {
+            ReferenceDescription description = new() {
                 NodeId = reference.TargetId
             };
             description.SetReferenceType(continuationPoint.ResultMask, reference.ReferenceTypeId, !reference.IsInverse);
@@ -1250,16 +1246,16 @@ namespace AlarmCondition
             ServerSystemContext systemContext = SystemContext.Copy(context);
             IDictionary<NodeId, NodeState> operationCache = new NodeIdDictionary<NodeState>();
 
+            // check for valid handle.
+            NodeHandle handle = IsHandleInNamespace(sourceHandle);
+
+            if (handle == null)
+            {
+                return;
+            }
+
             lock (Lock)
             {
-                // check for valid handle.
-                NodeHandle handle = IsHandleInNamespace(sourceHandle);
-
-                if (handle == null)
-                {
-                    return;
-                }
-
                 // validate node.
                 NodeState source = ValidateNode(systemContext, handle, operationCache);
 
@@ -2679,18 +2675,18 @@ namespace AlarmCondition
             IEventMonitoredItem monitoredItem,
             bool unsubscribe)
         {
+            // check for valid handle.
+            NodeHandle handle = IsHandleInNamespace(sourceId);
+
+            if (handle == null)
+            {
+                return StatusCodes.BadNodeIdInvalid;
+            }
+
             ServerSystemContext systemContext = SystemContext.Copy(context);
 
             lock (Lock)
             {
-                // check for valid handle.
-                NodeHandle handle = IsHandleInNamespace(sourceId);
-
-                if (handle == null)
-                {
-                    return StatusCodes.BadNodeIdInvalid;
-                }
-
                 // check for valid node.
                 NodeState source = ValidateNode(systemContext, handle, null);
 
@@ -3238,8 +3234,7 @@ namespace AlarmCondition
             NodeHandle handle,
             IDataChangeMonitoredItem2 monitoredItem)
         {
-            DataValue initialValue = new()
-            {
+            DataValue initialValue = new() {
                 Value = null,
                 ServerTimestamp = DateTime.UtcNow,
                 SourceTimestamp = DateTime.MinValue,
@@ -3310,8 +3305,7 @@ namespace AlarmCondition
                     return StatusCodes.BadAggregateNotSupported;
                 }
 
-                ServerAggregateFilter revisedFilter = new()
-                {
+                ServerAggregateFilter revisedFilter = new() {
                     AggregateType = aggregateFilter.AggregateType,
                     StartTime = aggregateFilter.StartTime,
                     ProcessingInterval = aggregateFilter.ProcessingInterval,
@@ -3326,8 +3320,7 @@ namespace AlarmCondition
                     return error;
                 }
 
-                AggregateFilterResult aggregateFilterResult = new()
-                {
+                AggregateFilterResult aggregateFilterResult = new() {
                     RevisedProcessingInterval = aggregateFilter.ProcessingInterval,
                     RevisedStartTime = aggregateFilter.StartTime,
                     RevisedAggregateConfiguration = aggregateFilter.AggregateConfiguration
@@ -3991,15 +3984,13 @@ namespace AlarmCondition
         /// </summary>
         protected NodeState AddNodeToComponentCache(ISystemContext context, NodeHandle handle, NodeState node)
         {
+            if (handle == null)
+            {
+                return node;
+            }
+
             lock (Lock)
             {
-                if (handle == null)
-                {
-                    return node;
-                }
-
-                m_componentCache ??= new Dictionary<NodeId, CacheEntry>();
-
                 // check if a component is actually specified.
                 if (!string.IsNullOrEmpty(handle.ComponentPath))
                 {
@@ -4020,8 +4011,7 @@ namespace AlarmCondition
 
                     if (root != null)
                     {
-                        entry = new CacheEntry
-                        {
+                        entry = new CacheEntry {
                             RefCount = 1,
                             Entry = root
                         };
@@ -4038,8 +4028,7 @@ namespace AlarmCondition
                         return entry.Entry;
                     }
 
-                    entry = new CacheEntry
-                    {
+                    entry = new CacheEntry {
                         RefCount = 1,
                         Entry = node
                     };
@@ -4052,8 +4041,8 @@ namespace AlarmCondition
         #endregion
 
         #region Private Fields
-        private string[] m_namespaceUris;
-        private Dictionary<NodeId, CacheEntry> m_componentCache;
+        private IReadOnlyList<string> m_namespaceUris;
+        private NodeIdDictionary<CacheEntry> m_componentCache;
         #endregion
     }
 }

@@ -34,7 +34,7 @@ public class WorkingSetPluginNode(TimeService timeService, ILogger logger) : Plu
 
     public void StartSimulation()
     {
-        _node.Start(value => GetWorkingSetMB(), periodMs: 1000);
+        _node.Start(value => GetWorkingSetMB(), periodMs: 10000);
     }
 
     public void StopSimulation()

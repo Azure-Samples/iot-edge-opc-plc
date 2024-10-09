@@ -70,7 +70,7 @@ public partial class PlcServer : StandardServer
                     ThreadPool.GetAvailableThreads(out int availWorkerThreads, out _);
 
                     uint sessionCount = serverDiagnostics.CurrentSessionCount;
-                    IList<Subscription> subscriptions = ServerInternal.SubscriptionManager?.GetSubscriptions();
+                    var subscriptions = ServerInternal.SubscriptionManager?.GetSubscriptions();
                     int monitoredItemsCount = subscriptions?.Sum(s => s.MonitoredItemCount) ?? 0;
 
                     _autoDisablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
@@ -556,7 +556,7 @@ public partial class PlcServer : StandardServer
         try
         {
             // check for connected clients
-            IList<Session> currentSessions = ServerInternal.SessionManager.GetSessions();
+            var currentSessions = ServerInternal.SessionManager.GetSessions();
 
             if (currentSessions.Count > 0)
             {
@@ -610,7 +610,11 @@ public partial class PlcServer : StandardServer
         MetricsHelper.AddPublishedCount(dataChanges, events);
     }
 
-    private NodeId GetSessionId(NodeId authenticationToken) => ServerInternal.SessionManager.GetSession(authenticationToken).Id;
+    private NodeId GetSessionId(NodeId authenticationToken)
+    {
+        var session = ServerInternal.SessionManager.GetSession(authenticationToken);
+        return session?.Id ?? NodeId.Null;
+    }
 
     [LoggerMessage(
         Level = LogLevel.Information,

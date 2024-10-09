@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 
 /// <summary>
@@ -30,9 +31,9 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
     private DeviceHealthDiagnosticAlarmTypeState _checkFunctionEv;
     private DeviceHealthDiagnosticAlarmTypeState _offSpecEv;
     private DeviceHealthDiagnosticAlarmTypeState _maintenanceRequiredEv;
-    private OpcPlc.ITimer _nodeGenerator;
-    private OpcPlc.ITimer _maintenanceGenerator;
-    private OpcPlc.ITimer _overheatGenerator;
+    private PeriodicTimer _nodeGenerator;
+    private PeriodicTimer _maintenanceGenerator;
+    private PeriodicTimer _overheatGenerator;
 
     private float _tempSpeedDegreesPerSec = 1.0f;
     private float _baseTempDegrees = 10.0f;
@@ -84,7 +85,6 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
 
     public void StartSimulation()
     {
-        _nodeGenerator = _timeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
         StartTimers();
     }
 
@@ -92,17 +92,20 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
     {
         if (_nodeGenerator is not null)
         {
-            _nodeGenerator.Enabled = false;
+            _nodeGenerator.Dispose();
+            _nodeGenerator = null;
         }
 
         if (_maintenanceGenerator is not null)
         {
-            _maintenanceGenerator.Enabled = false;
+            _maintenanceGenerator.Dispose();
+            _maintenanceGenerator = null;
         }
 
         if (_overheatGenerator is not null)
         {
-            _overheatGenerator.Enabled = false;
+            _overheatGenerator.Dispose();
+            _overheatGenerator = null;
         }
     }
 
@@ -167,54 +170,62 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
     private void SetValue<T>(BaseVariableState variable, T value)
     {
         variable.Value = value;
-        variable.Timestamp = _timeService.Now();
+        variable.Timestamp = _timeService.UtcNow();
         variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
 
-    public void UpdateBoiler2(object state, ElapsedEventArgs elapsedEventArgs)
+    public async Task UpdateBoiler2Async(PeriodicTimer periodicTimer)
     {
-        _lock.Wait();
-
-        float currentTemperatureDegrees = (float)_currentTempDegreesNode.Value;
-        float newTemperature;
-        float tempSpeedDegreesPerSec = (float)_tempSpeedDegreesPerSecNode.Value;
-        float baseTempDegrees = (float)_baseTempDegreesNode.Value;
-        float targetTempDegrees = (float)_targetTempDegreesNode.Value;
-        float overheatThresholdDegrees = (float)_overheatThresholdDegreesNode.Value;
-
-        if ((bool)_heaterStateNode.Value)
+        while (await periodicTimer.WaitForNextTickAsync().ConfigureAwait(false))
         {
-            // Heater on, increase by specified speed, but the step should not be bigger than targetTemp.
-            newTemperature = currentTemperatureDegrees + Math.Min(tempSpeedDegreesPerSec, Math.Abs(targetTempDegrees - currentTemperatureDegrees));
+            await _lock.WaitAsync().ConfigureAwait(false);
 
-            // Target temp reached, turn off heater.
-            if (newTemperature >= targetTempDegrees)
+            try
             {
-                SetValue(_heaterStateNode, false);
+                float currentTemperatureDegrees = (float)_currentTempDegreesNode.Value;
+                float newTemperature;
+                float tempSpeedDegreesPerSec = (float)_tempSpeedDegreesPerSecNode.Value;
+                float baseTempDegrees = (float)_baseTempDegreesNode.Value;
+                float targetTempDegrees = (float)_targetTempDegreesNode.Value;
+                float overheatThresholdDegrees = (float)_overheatThresholdDegreesNode.Value;
+
+                if ((bool)_heaterStateNode.Value)
+                {
+                    // Heater on, increase by specified speed, but the step should not be bigger than targetTemp.
+                    newTemperature = currentTemperatureDegrees + Math.Min(tempSpeedDegreesPerSec, Math.Abs(targetTempDegrees - currentTemperatureDegrees));
+
+                    // Target temp reached, turn off heater.
+                    if (newTemperature >= targetTempDegrees)
+                    {
+                        SetValue(_heaterStateNode, false);
+                    }
+                }
+                else
+                {
+                    // Heater off, decrease by specified speed, but the step should not be bigger than baseTemp.
+                    newTemperature = currentTemperatureDegrees - Math.Min(tempSpeedDegreesPerSec, Math.Abs(currentTemperatureDegrees - baseTempDegrees));
+
+                    // Base temp reached, turn on heater.
+                    if (newTemperature <= baseTempDegrees)
+                    {
+                        SetValue(_heaterStateNode, true);
+                    }
+                }
+
+                // Change other values.
+                SetValue(_currentTempDegreesNode, newTemperature);
+                SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
+
+                // Update DeviceHealth status.
+                SetDeviceHealth(newTemperature, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
+
+                EmitEvents();
+            }
+            finally
+            {
+                _lock.Release();
             }
         }
-        else
-        {
-            // Heater off, decrease by specified speed, but the step should not be bigger than baseTemp.
-            newTemperature = currentTemperatureDegrees - Math.Min(tempSpeedDegreesPerSec, Math.Abs(currentTemperatureDegrees - baseTempDegrees));
-
-            // Base temp reached, turn on heater.
-            if (newTemperature <= baseTempDegrees)
-            {
-                SetValue(_heaterStateNode, true);
-            }
-        }
-
-        // Change other values.
-        SetValue(_currentTempDegreesNode, newTemperature);
-        SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
-
-        // Update DeviceHealth status.
-        SetDeviceHealth(newTemperature, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
-
-        EmitEvents();
-
-        _lock.Release();
     }
 
     private void AddMethods()
@@ -269,8 +280,7 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
 
     private void SetDeviceHealth(float currentTemp, float baseTemp, float targetTemp, float overheatedTemp)
     {
-        DeviceHealthEnumeration deviceHealth = currentTemp switch
-        {
+        DeviceHealthEnumeration deviceHealth = currentTemp switch {
             _ when currentTemp >= baseTemp && currentTemp <= targetTemp => DeviceHealthEnumeration.NORMAL,
             _ when currentTemp > targetTemp && currentTemp < overheatedTemp => DeviceHealthEnumeration.CHECK_FUNCTION,
             _ when currentTemp >= overheatedTemp => DeviceHealthEnumeration.FAILURE,
@@ -283,36 +293,59 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
 
     private void StartTimers()
     {
-        _maintenanceGenerator = _timeService.NewTimer(UpdateMaintenance, intervalInMilliseconds: (uint)_maintenanceInterval.TotalMilliseconds);
-        _overheatGenerator = _timeService.NewTimer(UpdateOverheat, intervalInMilliseconds: (uint)_overheatInterval.TotalMilliseconds);
+        var nodeGenerator = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        var maintenanceGenerator = new PeriodicTimer(TimeSpan.FromMilliseconds((uint)_maintenanceInterval.TotalMilliseconds));
+        var overheatGenerator = new PeriodicTimer(TimeSpan.FromMilliseconds((uint)_overheatInterval.TotalMilliseconds));
+
+        _ = Task.Run(() => UpdateBoiler2Async(nodeGenerator));
+        _ = Task.Run(() => UpdateMaintenanceAsync(maintenanceGenerator));
+        _ = Task.Run(() => UpdateOverheatAsync(overheatGenerator));
+
+        _nodeGenerator = nodeGenerator;
+        _maintenanceGenerator = maintenanceGenerator;
+        _overheatGenerator = overheatGenerator;
     }
 
-    private void UpdateMaintenance(object state, ElapsedEventArgs elapsedEventArgs)
+    private async Task UpdateMaintenanceAsync(PeriodicTimer periodicTimer)
     {
-        _lock.Wait();
+        while (await periodicTimer.WaitForNextTickAsync().ConfigureAwait(false))
+        {
+            await _lock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
 
-        SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
-
-        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
-        _plcNodeManager.Server.ReportEvent(_maintenanceRequiredEv);
-
-        _lock.Release();
+                _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.UtcNow, copy: false);
+                _plcNodeManager.Server.ReportEvent(_maintenanceRequiredEv);
+            }
+            finally
+            {
+                _lock.Release();
+            }
+        }
     }
 
-    private void UpdateOverheat(object state, ElapsedEventArgs elapsedEventArgs)
+    private async Task UpdateOverheatAsync(PeriodicTimer periodicTimer)
     {
-        _lock.Wait();
+        while (await periodicTimer.WaitForNextTickAsync().ConfigureAwait(false))
+        {
+            await _lock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                SetValue(_currentTempDegreesNode, (float)_overheatThresholdDegreesNode.Value + 10.0f);
+                SetValue(_heaterStateNode, false);
+                SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
 
-        SetValue(_currentTempDegreesNode, (float)_overheatThresholdDegreesNode.Value + 10.0f);
-        SetValue(_heaterStateNode, false);
-        SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
+                _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.UtcNow, copy: false);
+                _plcNodeManager.Server.ReportEvent(_offSpecEv);
 
-        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
-        _plcNodeManager.Server.ReportEvent(_offSpecEv);
-
-        _isOverheated = true;
-
-        _lock.Release();
+                _isOverheated = true;
+            }
+            finally
+            {
+                _lock.Release();
+            }
+        }
     }
 
     private void EmitEvents()
@@ -325,11 +358,11 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
                     _isOverheated = false;
                     break;
                 case DeviceHealthEnumeration.CHECK_FUNCTION:
-                    _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+                    _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.UtcNow, copy: false);
                     _plcNodeManager.Server.ReportEvent(_checkFunctionEv);
                     break;
                 case DeviceHealthEnumeration.FAILURE:
-                    _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+                    _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.UtcNow, copy: false);
                     _plcNodeManager.Server.ReportEvent(_failureEv);
                     break;
             }
@@ -337,7 +370,7 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
 
         if ((DeviceHealthEnumeration)_deviceHealth.Value == DeviceHealthEnumeration.OFF_SPEC)
         {
-            _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+            _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.UtcNow, copy: false);
             _plcNodeManager.Server.ReportEvent(_offSpecEv);
         }
     }

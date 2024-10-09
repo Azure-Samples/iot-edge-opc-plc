@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
@@ -250,6 +251,16 @@ public class PlcSimulatorFixture
 
         // Auto-accept server certificate
         config.CertificateValidator.CertificateValidation += CertificateValidator_AutoAccept;
+
+        try
+        {
+            // validate unknown certificate to prepopulate the certificate stores
+            X509Certificate2 invalidCert = CertificateFactory.CreateCertificate("CN=Test").CreateForRSA();
+            await config.CertificateValidator.ValidateAsync(invalidCert, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch
+        {
+        }
 
         return config;
     }
