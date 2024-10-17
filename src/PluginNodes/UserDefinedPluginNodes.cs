@@ -2,6 +2,7 @@ namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
@@ -53,7 +54,6 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
             string json = File.ReadAllText(_nodesFileName);
 
             var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings {
-            {
                 TypeNameHandling = TypeNameHandling.All,
             });
 
@@ -103,6 +103,11 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
                     ? $"g={node.NodeId.ToString()}"
                     : $"s={node.NodeId.ToString()}";
 
+            if (node.ValueRank == 1 && node.Value is JArray jArrayValue)
+            {
+                node.Value = UpdateArrayValue(node, jArrayValue);
+            }
+
             if (string.IsNullOrEmpty(node.Name))
             {
                 node.Name = typedNodeId;
@@ -132,6 +137,38 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
         {
             yield return childNode;
         }
+    }
+
+    private static object UpdateArrayValue(ConfigNode node, JArray jArrayValue)
+    {
+        object arrayValue = jArrayValue;
+
+        if (node.DataType == "String")
+        {
+            arrayValue = jArrayValue.ToObject<string[]>();
+        }
+
+        if (node.DataType == "Boolean")
+        {
+            arrayValue = jArrayValue.ToObject<bool[]>();
+        }
+
+        if (node.DataType == "Float")
+        {
+            arrayValue = jArrayValue.ToObject<float[]>();
+        }
+
+        if (node.DataType == "UInt32")
+        {
+            arrayValue = jArrayValue.ToObject<uint[]>();
+        }
+
+        if (node.DataType == "Int32")
+        {
+            arrayValue = jArrayValue.ToObject<int[]>();
+        }
+
+        return arrayValue;
     }
 
     private IEnumerable<NodeWithIntervals> AddFolders(FolderState folder, ConfigFolder cfgFolder)
