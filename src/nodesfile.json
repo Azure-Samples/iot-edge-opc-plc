@@ -81,6 +81,16 @@
       "Name": "SampleBooleanNode",
       "DataType": "Boolean",
       "Value": true
+    },
+    {
+      "NodeId": "1048",
+      "Name": "Int32 array",
+      "DataType": "Int32",
+      "ValueRank": 1,
+      "ArrayDimensions": [ 5 ],
+      "AccessLevel": "CurrentReadOrWrite",
+      "Description": "Test array of 5 Int32 elements",
+      "Value": [ 1, 2, 3, 4, 5 ]
     }
   ]
 }
