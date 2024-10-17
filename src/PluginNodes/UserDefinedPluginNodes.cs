@@ -52,7 +52,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
         {
             string json = File.ReadAllText(_nodesFileName);
 
-            var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings
+            var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings {
             {
                 TypeNameHandling = TypeNameHandling.All,
             });
@@ -86,7 +86,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
 
             if (!isDecimal && !isString)
             {
-                _logger.LogError($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal, string, and guid are supported. Defaulting to string.");
+                _logger.LogError($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal, string, and GUID are supported. Defaulting to string.");
                 node.NodeId = node.NodeId.ToString();
             }
 
@@ -157,7 +157,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
     {
         if (!Enum.TryParse(node.DataType, out BuiltInType nodeDataType))
         {
-            _logger.LogError($"Value '{node.DataType}' of node '{node.NodeId}' cannot be parsed. Defaulting to 'Int32'");
+            _logger.LogError($"Value {node.DataType} of node {node.NodeId} cannot be parsed. Defaulting to Int32");
             node.DataType = "Int32";
         }
 
@@ -169,7 +169,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
         }
         catch
         {
-            _logger.LogError($"AccessLevel '{node.AccessLevel}' of node '{node.Name}' is not supported. Defaulting to 'CurrentReadOrWrite'");
+            _logger.LogError($"AccessLevel {node.AccessLevel} of node {node.Name} is not supported. Defaulting to CurrentReadOrWrite");
             node.AccessLevel = "CurrentRead";
             accessLevel = AccessLevels.CurrentReadOrWrite;
         }
