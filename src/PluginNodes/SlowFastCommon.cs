@@ -86,6 +86,7 @@ public class SlowFastCommon
         variable.BrowseName = name;
         variable.DisplayName = name;
         variable.Description = new LocalizedText("The number of times to update the {name} nodes. Set to -1 to update indefinitely.");
+        variable.TypeDefinitionId = VariableTypeIds.BaseDataVariableType;
         simulatorFolder.AddChild(variable);
 
         return variable;
