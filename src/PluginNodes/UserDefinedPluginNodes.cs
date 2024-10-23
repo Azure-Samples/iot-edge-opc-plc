@@ -139,38 +139,6 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
         }
     }
 
-    private static object UpdateArrayValue(ConfigNode node, JArray jArrayValue)
-    {
-        object arrayValue = jArrayValue;
-
-        if (node.DataType == "String")
-        {
-            arrayValue = jArrayValue.ToObject<string[]>();
-        }
-
-        if (node.DataType == "Boolean")
-        {
-            arrayValue = jArrayValue.ToObject<bool[]>();
-        }
-
-        if (node.DataType == "Float")
-        {
-            arrayValue = jArrayValue.ToObject<float[]>();
-        }
-
-        if (node.DataType == "UInt32")
-        {
-            arrayValue = jArrayValue.ToObject<uint[]>();
-        }
-
-        if (node.DataType == "Int32")
-        {
-            arrayValue = jArrayValue.ToObject<int[]>();
-        }
-
-        return arrayValue;
-    }
-
     private IEnumerable<NodeWithIntervals> AddFolders(FolderState folder, ConfigFolder cfgFolder)
     {
         if (cfgFolder.FolderList is null)
@@ -212,5 +180,37 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
         }
 
         _plcNodeManager.CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications, node?.Value);
+    }
+
+    private static object UpdateArrayValue(ConfigNode node, JArray jArrayValue)
+    {
+        object arrayValue = jArrayValue;
+
+        if (node.DataType == "String")
+        {
+            arrayValue = jArrayValue.ToObject<string[]>();
+        }
+
+        if (node.DataType == "Boolean")
+        {
+            arrayValue = jArrayValue.ToObject<bool[]>();
+        }
+
+        if (node.DataType == "Float")
+        {
+            arrayValue = jArrayValue.ToObject<float[]>();
+        }
+
+        if (node.DataType == "UInt32")
+        {
+            arrayValue = jArrayValue.ToObject<uint[]>();
+        }
+
+        if (node.DataType == "Int32")
+        {
+            arrayValue = jArrayValue.ToObject<int[]>();
+        }
+
+        return arrayValue;
     }
 }
