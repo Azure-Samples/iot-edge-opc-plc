@@ -48,22 +48,22 @@ public class FastPluginNodes(TimeService timeService, ILogger logger) : PluginNo
 
         optionSet.Add(
             "ftl|fasttypelowerbound=",
-            $"lower bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: min value of node type.",
+            $"lower bound of data type of fast nodes.\nDefault: min value of node type.",
             (string s) => NodeMinValue = s);
 
         optionSet.Add(
             "ftu|fasttypeupperbound=",
-            $"upper bound of data type of fast nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: max value of node type.",
+            $"upper bound of data type of fast nodes.\nDefault: max value of node type.",
             (string s) => NodeMaxValue = s);
 
         optionSet.Add(
             "ftr|fasttyperandomization=",
-            $"randomization of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: {NodeRandomization}",
+            $"randomization of fast nodes value.\nDefault: {NodeRandomization}",
             (string s) => NodeRandomization = bool.Parse(s));
 
         optionSet.Add(
             "fts|fasttypestepsize=",
-            $"step or increment size of fast nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: {NodeStepSize}",
+            $"step or increment size of fast nodes value.\nDefault: {NodeStepSize}",
             (string s) => NodeStepSize = SlowFastCommon.ParseStepSize(s));
 
         optionSet.Add(

@@ -537,20 +537,16 @@ Options:
                                UIntArray).
                                Default: UInt
       --ftl, --fasttypelowerbound=VALUE
-                             lower bound of data type of fast nodes (UInt|
-                               Double|Bool|UIntArray).
+                             lower bound of data type of fast nodes.
                                Default: min value of node type.
       --ftu, --fasttypeupperbound=VALUE
-                             upper bound of data type of fast nodes (UInt|
-                               Double|Bool|UIntArray).
+                             upper bound of data type of fast nodes.
                                Default: max value of node type.
       --ftr, --fasttyperandomization=VALUE
-                             randomization of fast nodes value (UInt|Double|
-                               Bool|UIntArray).
+                             randomization of fast nodes value.
                                Default: False
       --fts, --fasttypestepsize=VALUE
-                             step or increment size of fast nodes value (UInt|
-                               Double|Bool|UIntArray).
+                             step or increment size of fast nodes value.
                                Default: 1
       --fsi, --fastnodesamplinginterval=VALUE
                              rate in milliseconds for pn.json client to sample
@@ -576,20 +572,16 @@ Options:
                                UIntArray).
                                Default: UInt
       --stl, --slowtypelowerbound=VALUE
-                             lower bound of data type of slow nodes (UInt|
-                               Double|Bool|UIntArray).
+                             lower bound of data type of slow nodes.
                                Default: min value of node type.
       --stu, --slowtypeupperbound=VALUE
-                             upper bound of data type of slow nodes (UInt|
-                               Double|Bool|UIntArray).
+                             upper bound of data type of slow nodes.
                                Default: max value of node type.
       --str, --slowtyperandomization=VALUE
-                             randomization of slow nodes value (UInt|Double|
-                               Bool|UIntArray).
+                             randomization of slow nodes value.
                                Default: False
       --sts, --slowtypestepsize=VALUE
-                             step or increment size of slow nodes value (UInt|
-                               Double|Bool|UIntArray).
+                             step or increment size of slow nodes value.
                                Default: 1
       --ssi, --slownodesamplinginterval=VALUE
                              rate in milliseconds for pn.json client to sample

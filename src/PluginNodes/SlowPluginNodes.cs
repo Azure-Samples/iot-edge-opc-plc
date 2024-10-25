@@ -47,22 +47,22 @@ public class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNo
 
         optionSet.Add(
             "stl|slowtypelowerbound=",
-            $"lower bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: min value of node type.",
+            $"lower bound of data type of slow nodes.\nDefault: min value of node type.",
             (string s) => NodeMinValue = s);
 
         optionSet.Add(
             "stu|slowtypeupperbound=",
-            $"upper bound of data type of slow nodes ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: max value of node type.",
+            $"upper bound of data type of slow nodes.\nDefault: max value of node type.",
             (string s) => NodeMaxValue = s);
 
         optionSet.Add(
             "str|slowtyperandomization=",
-            $"randomization of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: {NodeRandomization}",
+            $"randomization of slow nodes value.\nDefault: {NodeRandomization}",
             (string s) => NodeRandomization = bool.Parse(s));
 
         optionSet.Add(
             "sts|slowtypestepsize=",
-            $"step or increment size of slow nodes value ({string.Join("|", Enum.GetNames(typeof(NodeType)))}).\nDefault: {NodeStepSize}",
+            $"step or increment size of slow nodes value.\nDefault: {NodeStepSize}",
             (string s) => NodeStepSize = SlowFastCommon.ParseStepSize(s));
 
         optionSet.Add(
