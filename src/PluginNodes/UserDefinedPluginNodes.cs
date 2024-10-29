@@ -184,33 +184,13 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
 
     private static object UpdateArrayValue(ConfigNode node, JArray jArrayValue)
     {
-        object arrayValue = jArrayValue;
-
-        if (node.DataType == "String")
-        {
-            arrayValue = jArrayValue.ToObject<string[]>();
-        }
-
-        if (node.DataType == "Boolean")
-        {
-            arrayValue = jArrayValue.ToObject<bool[]>();
-        }
-
-        if (node.DataType == "Float")
-        {
-            arrayValue = jArrayValue.ToObject<float[]>();
-        }
-
-        if (node.DataType == "UInt32")
-        {
-            arrayValue = jArrayValue.ToObject<uint[]>();
-        }
-
-        if (node.DataType == "Int32")
-        {
-            arrayValue = jArrayValue.ToObject<int[]>();
-        }
-
-        return arrayValue;
+        return node.DataType switch {
+            "String" => jArrayValue.ToObject<string[]>(),
+            "Boolean" => jArrayValue.ToObject<bool[]>(),
+            "Float" => jArrayValue.ToObject<float[]>(),
+            "UInt32" => jArrayValue.ToObject<uint[]>(),
+            "Int32" => jArrayValue.ToObject<int[]>(),
+            _ => throw new NotImplementedException($"Node type not implemented: {node.DataType}."),
+        };
     }
 }
