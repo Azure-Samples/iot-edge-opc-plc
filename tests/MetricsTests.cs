@@ -10,7 +10,7 @@ using System.Diagnostics.Metrics;
 /// Tests for Metrics.
 /// </summary>
 [NonParallelizable]
-internal class MetricsTests
+internal class MetricsTests : SimulatorTestsBase
 {
     private readonly MeterListener _meterListener;
     private readonly Dictionary<string, object> _metrics;
@@ -83,8 +83,6 @@ internal class MetricsTests
     [Test]
     public void TestAddPublishedCount()
     {
-        var sessionId = Guid.NewGuid().ToString();
-        var subscriptionId = Guid.NewGuid().ToString();
         MetricsHelper.AddPublishedCount(1, 0);
         _metrics.TryGetValue("opc_plc_published_count_with_type", out var counter).Should().BeTrue();
         counter.Should().Be(1);
