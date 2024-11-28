@@ -652,7 +652,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             {
                 foreach (var certificateFileName in certificateFileNames)
                 {
-                    var certificate = new X509Certificate2(certificateFileName);
+                    var certificate = X509CertificateLoader.LoadCertificateFromFile(certificateFileName);
                     certificatesToAdd.Add(certificate);
                 }
             }
@@ -663,7 +663,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                     byte[] buffer = new byte[certificateBase64String.Length * 3 / 4];
                     if (Convert.TryFromBase64String(certificateBase64String, buffer, out int written))
                     {
-                        var certificate = new X509Certificate2(buffer);
+                        var certificate = X509CertificateLoader.LoadCertificate(buffer);
                         certificatesToAdd.Add(certificate);
                     }
                     else
@@ -917,7 +917,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 byte[] buffer = new byte[newCertificateBase64String.Length * 3 / 4];
                 if (Convert.TryFromBase64String(newCertificateBase64String, buffer, out int written))
                 {
-                    newCertificate = new X509Certificate2(buffer);
+                    newCertificate = X509CertificateLoader.LoadCertificate(buffer);
                 }
                 else
                 {
@@ -927,7 +927,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             }
             else
             {
-                newCertificate = new X509Certificate2(newCertificateFileName);
+                newCertificate = X509CertificateLoader.LoadCertificateFromFile(newCertificateFileName);
             }
         }
         catch (Exception e)
