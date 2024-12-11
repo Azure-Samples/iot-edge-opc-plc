@@ -54,7 +54,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
             string json = File.ReadAllText(_nodesFileName);
 
             var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings {
-                TypeNameHandling = TypeNameHandling.All,
+                TypeNameHandling = TypeNameHandling.None,
             });
 
             _logger.LogInformation($"Processing node information configured in {_nodesFileName}");
