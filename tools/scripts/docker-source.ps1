@@ -70,6 +70,7 @@ if ($projFile) {
 
     $installLinuxDebugger = @"
 RUN apt-get update && apt-get install -y --no-install-recommends unzip curl procps \
+    && apt-get install -y openssl=3.0.15-1~deb12u1 libssl3=3.0.15-1~deb12u1 \
     && rm -rf /var/lib/apt/lists/* \
     && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
 ENV PATH="${PATH}:/root/vsdbg/vsdbg"
