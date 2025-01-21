@@ -204,7 +204,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
                 var keyFile = new FileInfo(file.FullName.Replace(CrtExtension, KeyExtension, StringComparison.OrdinalIgnoreCase));
                 if (keyFile.Exists)
                 {
-                    using var certificate = new X509Certificate2(file.FullName);
+                    using var certificate = X509CertificateLoader.LoadCertificateFromFile(file.FullName);
                     if (!MatchCertificate(certificate, thumbprint, subjectName))
                     {
                         continue;

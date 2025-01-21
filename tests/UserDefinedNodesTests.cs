@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.Tests;
+namespace OpcPlc.Tests;
 
 using FluentAssertions;
 using NUnit.Framework;
@@ -58,5 +58,9 @@ public class UserDefinedNodesTests : SubscriptionTestsBase
 
         FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1033")
         .Should().NotBeNull();
+
+        var arrayNodeId = FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "1048");
+        arrayNodeId.Should().NotBeNull();
+        Session.ReadValue(arrayNodeId).Value.Should().BeEquivalentTo(new int[] { 1, 2, 3, 4, 5 });
     }
 }
