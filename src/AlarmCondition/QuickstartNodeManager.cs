@@ -703,8 +703,7 @@ namespace AlarmCondition
             }
 
             // add reserve reference from external node.
-            var referenceToAdd = new ReferenceNode
-            {
+            var referenceToAdd = new ReferenceNode {
                 ReferenceTypeId = referenceTypeId,
                 IsInverse = isInverse,
                 TargetId = targetId
@@ -812,10 +811,7 @@ namespace AlarmCondition
         /// </remarks>
         public virtual object GetManagerHandle(NodeId nodeId)
         {
-            lock (Lock)
-            {
-                return GetManagerHandle(SystemContext, nodeId, null);
-            }
+            return GetManagerHandle(SystemContext, nodeId, null);
         }
 
         /// <summary>
@@ -832,8 +828,7 @@ namespace AlarmCondition
             {
                 if (PredefinedNodes.TryGetValue(nodeId, out NodeState node))
                 {
-                    var handle = new NodeHandle
-                    {
+                    var handle = new NodeHandle {
                         NodeId = nodeId,
                         Node = node,
                         Validated = true,
@@ -939,16 +934,16 @@ namespace AlarmCondition
         {
             ServerSystemContext systemContext = SystemContext.Copy(context);
 
+            // check for valid handle.
+            NodeHandle handle = IsHandleInNamespace(targetHandle);
+
+            if (handle == null)
+            {
+                return null;
+            }
+
             lock (Lock)
             {
-                // check for valid handle.
-                NodeHandle handle = IsHandleInNamespace(targetHandle);
-
-                if (handle == null)
-                {
-                    return null;
-                }
-
                 // validate node.
                 NodeState target = ValidateNode(systemContext, handle, null);
 
@@ -972,8 +967,7 @@ namespace AlarmCondition
                     Attributes.UserExecutable);
 
                 // construct the metadata object.
-                var metadata = new NodeMetadata(target, target.NodeId)
-                {
+                var metadata = new NodeMetadata(target, target.NodeId) {
                     NodeClass = target.NodeClass,
                     BrowseName = target.BrowseName,
                     DisplayName = target.DisplayName
@@ -1148,8 +1142,7 @@ namespace AlarmCondition
             _ = SystemContext.Copy(context);
 
             // create the type definition reference.
-            ReferenceDescription description = new()
-            {
+            ReferenceDescription description = new() {
                 NodeId = reference.TargetId
             };
             description.SetReferenceType(continuationPoint.ResultMask, reference.ReferenceTypeId, !reference.IsInverse);
@@ -3238,8 +3231,7 @@ namespace AlarmCondition
             NodeHandle handle,
             IDataChangeMonitoredItem2 monitoredItem)
         {
-            DataValue initialValue = new()
-            {
+            DataValue initialValue = new() {
                 Value = null,
                 ServerTimestamp = DateTime.UtcNow,
                 SourceTimestamp = DateTime.MinValue,
@@ -3310,8 +3302,7 @@ namespace AlarmCondition
                     return StatusCodes.BadAggregateNotSupported;
                 }
 
-                ServerAggregateFilter revisedFilter = new()
-                {
+                ServerAggregateFilter revisedFilter = new() {
                     AggregateType = aggregateFilter.AggregateType,
                     StartTime = aggregateFilter.StartTime,
                     ProcessingInterval = aggregateFilter.ProcessingInterval,
@@ -3326,8 +3317,7 @@ namespace AlarmCondition
                     return error;
                 }
 
-                AggregateFilterResult aggregateFilterResult = new()
-                {
+                AggregateFilterResult aggregateFilterResult = new() {
                     RevisedProcessingInterval = aggregateFilter.ProcessingInterval,
                     RevisedStartTime = aggregateFilter.StartTime,
                     RevisedAggregateConfiguration = aggregateFilter.AggregateConfiguration
@@ -4020,8 +4010,7 @@ namespace AlarmCondition
 
                     if (root != null)
                     {
-                        entry = new CacheEntry
-                        {
+                        entry = new CacheEntry {
                             RefCount = 1,
                             Entry = root
                         };
@@ -4038,8 +4027,7 @@ namespace AlarmCondition
                         return entry.Entry;
                     }
 
-                    entry = new CacheEntry
-                    {
+                    entry = new CacheEntry {
                         RefCount = 1,
                         Entry = node
                     };

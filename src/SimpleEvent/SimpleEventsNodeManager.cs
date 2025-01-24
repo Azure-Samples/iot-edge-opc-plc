@@ -142,29 +142,25 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
     /// </summary>
     protected override NodeHandle GetManagerHandle(ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache)
     {
-        lock (Lock)
+        // quickly exclude nodes that are not in the namespace.
+        if (!IsNodeIdInNamespace(nodeId))
         {
-            // quickly exclude nodes that are not in the namespace.
-            if (!IsNodeIdInNamespace(nodeId))
-            {
-                return null;
-            }
-
-            // check for predefined nodes.
-            if (PredefinedNodes != null && PredefinedNodes.TryGetValue(nodeId, out NodeState node))
-            {
-                var handle = new NodeHandle
-                {
-                    NodeId = nodeId,
-                    Validated = true,
-                    Node = node,
-                };
-
-                return handle;
-            }
-
             return null;
         }
+
+        // check for predefined nodes.
+        if (PredefinedNodes != null && PredefinedNodes.TryGetValue(nodeId, out NodeState node))
+        {
+            var handle = new NodeHandle {
+                NodeId = nodeId,
+                Validated = true,
+                Node = node,
+            };
+
+            return handle;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -217,8 +213,7 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
                 e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, copy: false);
                 e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.CycleId, NamespaceIndex), m_cycleId.ToString(), copy: false);
 
-                var step = new CycleStepDataType
-                {
+                var step = new CycleStepDataType {
                     Name = "Step 1",
                     Duration = 1000,
                 };
