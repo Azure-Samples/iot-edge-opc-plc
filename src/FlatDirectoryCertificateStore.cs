@@ -243,11 +243,6 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
         }
 
         // skip if not RSA certificate
-        if (X509Utils.GetRSAPublicKeySize(certificate) < 0)
-        {
-            return false;
-        }
-
-        return true;
+        return X509Utils.GetRSAPublicKeySize(certificate) >= 0;
     }
 }
