@@ -133,14 +133,14 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
         SetValue(_overheatIntervalInSecondsNode, (uint)_overheatInterval.TotalSeconds);
         SetValue(_overheatThresholdDegreesNode, _targetTempDegrees + 10.0f);
 
-        _maintenanceIntervalInSecondsNode.OnSimpleWriteValue = (context, node, ref value) => {
+        _maintenanceIntervalInSecondsNode.OnSimpleWriteValue += (context, node, ref value) => {
             _maintenanceInterval = TimeSpan.FromSeconds((uint)value);
             _maintenanceGenerator?.Dispose();
             _maintenanceGenerator = _timeService.NewTimer(UpdateMaintenance, intervalInMilliseconds: (uint)_maintenanceInterval.TotalMilliseconds);
             return ServiceResult.Good;
         };
 
-        _overheatIntervalInSecondsNode.OnSimpleWriteValue = (context, node, ref value) => {
+        _overheatIntervalInSecondsNode.OnSimpleWriteValue += (context, node, ref value) => {
             _overheatInterval = TimeSpan.FromSeconds((uint)value);
             _overheatGenerator?.Dispose();
             _overheatGenerator = _timeService.NewTimer(UpdateOverheat, intervalInMilliseconds: (uint)_overheatInterval.TotalMilliseconds);
