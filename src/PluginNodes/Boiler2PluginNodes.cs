@@ -133,8 +133,19 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
         SetValue(_overheatIntervalInSecondsNode, (uint)_overheatInterval.TotalSeconds);
         SetValue(_overheatThresholdDegreesNode, _targetTempDegrees + 10.0f);
 
-        _maintenanceIntervalInSecondsNode.OnSimpleWriteValue = OnWriteMaintenanceIntervalInSeconds;
-        _overheatIntervalInSecondsNode.OnSimpleWriteValue = OnWriteOverheatIntervalInSeconds;
+        _maintenanceIntervalInSecondsNode.OnSimpleWriteValue = (context, node, ref value) => {
+            _maintenanceInterval = TimeSpan.FromSeconds((uint)value);
+            _maintenanceGenerator?.Dispose();
+            _maintenanceGenerator = _timeService.NewTimer(UpdateMaintenance, intervalInMilliseconds: (uint)_maintenanceInterval.TotalMilliseconds);
+            return ServiceResult.Good;
+        };
+
+        _overheatIntervalInSecondsNode.OnSimpleWriteValue = (context, node, ref value) => {
+            _overheatInterval = TimeSpan.FromSeconds((uint)value);
+            _overheatGenerator?.Dispose();
+            _overheatGenerator = _timeService.NewTimer(UpdateOverheat, intervalInMilliseconds: (uint)_overheatInterval.TotalMilliseconds);
+            return ServiceResult.Good;
+        };
 
         // Find the Boiler2 data nodes.
         _currentTempDegreesNode = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseDataVariableState));
@@ -195,22 +206,6 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
         variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
         variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
         variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
-    }
-
-    private ServiceResult OnWriteMaintenanceIntervalInSeconds(ISystemContext context, NodeState node, ref object value)
-    {
-        _maintenanceInterval = TimeSpan.FromSeconds((uint)value);
-        _maintenanceGenerator?.Dispose();
-        _maintenanceGenerator = _timeService.NewTimer(UpdateMaintenance, intervalInMilliseconds: (uint)_maintenanceInterval.TotalMilliseconds);
-        return ServiceResult.Good;
-    }
-
-    private ServiceResult OnWriteOverheatIntervalInSeconds(ISystemContext context, NodeState node, ref object value)
-    {
-        _overheatInterval = TimeSpan.FromSeconds((uint)value);
-        _overheatGenerator?.Dispose();
-        _overheatGenerator = _timeService.NewTimer(UpdateOverheat, intervalInMilliseconds: (uint)_overheatInterval.TotalMilliseconds);
-        return ServiceResult.Good;
     }
 
     public void UpdateBoiler2(object state, ElapsedEventArgs elapsedEventArgs)
