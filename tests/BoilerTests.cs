@@ -118,7 +118,7 @@ public class BoilerTests : SimulatorTestsBase
     }
 
     [TestCase]
-    public void SetHeater()
+    public void Heater_CanbeWritten()
     {
         var newValue = GetBoilerModel();
         newValue.Pressure = 42_000;
