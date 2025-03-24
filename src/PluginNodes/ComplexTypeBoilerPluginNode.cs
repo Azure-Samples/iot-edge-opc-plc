@@ -196,10 +196,7 @@ public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger
         return ServiceResult.Good;
     }
     private void AllowReadAndWrite(BaseDataVariableState variable)
-    
     {
-        ////@object.UserWriteMask = AttributeWriteMask.UserWriteMask;
-        ////@object.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
         variable.Timestamp = _timeService.Now();
         variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
         variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
