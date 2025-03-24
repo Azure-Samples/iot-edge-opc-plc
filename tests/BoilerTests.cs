@@ -117,6 +117,18 @@ public class BoilerTests : SimulatorTestsBase
         }
     }
 
+    [TestCase]
+    public void Heater_CanbeWritten()
+    {
+        var newValue = GetBoilerModel();
+        newValue.Pressure = 42_000;
+        var nodeId = NodeId.Create(BoilerModel1.Variables.Boiler1_BoilerStatus, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var statusCode = WriteValue(nodeId, newValue);
+        statusCode.Should().Be(StatusCodes.Good);
+        var currentValue = GetBoilerModel();
+        currentValue.Pressure.Should().Be(newValue.Pressure);
+    }
+
     private void TurnHeaterOn()
     {
         var methodNode = NodeId.Create("HeaterOn", OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);

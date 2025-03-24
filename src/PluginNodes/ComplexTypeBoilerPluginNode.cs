@@ -57,6 +57,9 @@ public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger
         var boilersNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
         var boiler2Node = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(5017, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
 
+        var boilerStatus = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(ExpandedNodeId.ToNodeId(BoilerModel1.VariableIds.Boiler1_BoilerStatus, _plcNodeManager.Server.NamespaceUris), typeof(BaseDataVariableState));
+        AllowReadAndWrite(boilerStatus);
+
         // Convert to node that can be manipulated within the server.
         _node = new Boiler1State(null);
         _node.Create(_plcNodeManager.SystemContext, passiveBoiler1Node);
@@ -191,5 +194,12 @@ public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger
         _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.Off;
         _logger.LogDebug("OnHeaterOffCall method called");
         return ServiceResult.Good;
+    }
+    private void AllowReadAndWrite(BaseDataVariableState variable)
+    {
+        variable.Timestamp = _timeService.Now();
+        variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
+        variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
+        variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
 }
