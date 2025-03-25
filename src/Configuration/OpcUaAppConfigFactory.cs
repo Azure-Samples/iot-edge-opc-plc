@@ -209,8 +209,6 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         }
     }
 
-    /// OpcApplicationConfigurationSecurity
-
     /// <summary>
     /// Configures OPC stack security.
     /// </summary>
