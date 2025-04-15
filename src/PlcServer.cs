@@ -958,7 +958,7 @@ public partial class PlcServer : StandardServer
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "===================\nCHAOS MONKEY TIME\n===================")]
+        Message = "=================== CHAOS MONKEY TIME ===================")]
     partial void LogChaosMonkeyTime();
 
     [LoggerMessage(
