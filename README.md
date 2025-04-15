@@ -207,8 +207,7 @@ The alarms are of different types:
 - Silver - [NonExclusiveLevelAlarmType](https://reference.opcfoundation.org/v104/Core/ObjectTypes/NonExclusiveLevelAlarmType/)
 - OnlineState - [DialogConditionType](https://reference.opcfoundation.org/v104/Core/ObjectTypes/DialogConditionType/)
 
-All these alarms will update on a regular interval. It is also possible to _Acknowledge_, _Confirm_ and add _Comment_ 
-to them.
+All these alarms will update on a regular interval. It is also possible to _Acknowledge_, _Confirm_ and add _Comment_ to them.
 
 This simulation also emits two types of system events: [_SystemEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/SystemEventType/)
  and [_AuditEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/AuditEventType/), every 1000 ms.
@@ -219,7 +218,7 @@ The option `--dalm=<file>` enables deterministic testing of Alarms and Condition
 More information about this feature can be found [here](deterministic-alarms.md).
 
 ## Chaos mode
-The server can also be started in `chaos mode` which randomly injects errors, closes subscriptions or sessions, expires subscriptions and more. You can use it to test the resiliency of OPC UA clients. To enable chaos mode, start the server with the `--chaos=True` option.
+Randomly injects errors, closes subscriptions or sessions, expires subscriptions and more. You can use it to test the resiliency of OPC UA clients. To enable start the server with the option `--chaos=True`.
 
 ## Other features
 - Node with special characters in name and NodeId
