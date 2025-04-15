@@ -603,7 +603,7 @@ public partial class PlcServer : StandardServer
     }
 
     /// <summary>
-    /// Run in choas mode and randomly delete sessions, subscriptions
+    /// Run in chaos mode and randomly delete sessions, subscriptions
     /// inject errors and so on.
     /// </summary>
     public bool Chaos
@@ -811,7 +811,7 @@ public partial class PlcServer : StandardServer
     /// <summary>
     /// Errors to inject, tilt the scale towards the most common errors.
     /// </summary>
-    private static readonly StatusCode[] kStatusCodes =
+    private static readonly StatusCode[] BadStatusCodes =
     {
         StatusCodes.BadCertificateInvalid,
         StatusCodes.BadAlreadyExists,
@@ -832,17 +832,17 @@ public partial class PlcServer : StandardServer
         StatusCodes.BadNoCommunication,
         StatusCodes.BadRequestInterrupted,
         StatusCodes.BadRequestInterrupted,
-        StatusCodes.BadRequestInterrupted
+        StatusCodes.BadRequestInterrupted,
     };
 
     protected override OperationContext ValidateRequest(RequestHeader requestHeader, RequestType requestType)
     {
         if (InjectErrorResponseRate != 0)
         {
-            var dice = Random.Shared.Next(0, kStatusCodes.Length * InjectErrorResponseRate);
-            if (dice < kStatusCodes.Length)
+            var dice = Random.Shared.Next(0, BadStatusCodes.Length * InjectErrorResponseRate);
+            if (dice < BadStatusCodes.Length)
             {
-                var error = kStatusCodes[dice];
+                var error = BadStatusCodes[dice];
                 LogInjectingError(error);
                 throw new ServiceResultException(error);
             }
