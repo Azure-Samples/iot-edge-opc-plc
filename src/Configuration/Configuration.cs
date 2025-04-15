@@ -92,4 +92,9 @@ public class OpcPlcConfiguration
     public TimeSpan LogFileFlushTimeSpanSec { get; set; } = TimeSpan.FromSeconds(30);
 
     public OpcApplicationConfiguration OpcUa { get; set; } = new OpcApplicationConfiguration();
+
+    /// <summary>
+    /// Configure chaos mode
+    /// </summary>
+    public bool RunInChaosMode { get; set; }
 }
