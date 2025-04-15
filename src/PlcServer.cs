@@ -19,6 +19,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 
 public partial class PlcServer : StandardServer
 {
@@ -41,6 +42,8 @@ public partial class PlcServer : StandardServer
     private readonly ImmutableList<IPluginNodes> _pluginNodes;
     private readonly ILogger _logger;
     private readonly Timer _periodicLoggingTimer;
+    private CancellationTokenSource _chaosCts;
+    private Task _chaosMode;
 
     private bool _autoDisablePublishMetrics;
     private uint _countCreateSession;
@@ -529,6 +532,12 @@ public partial class PlcServer : StandardServer
 
         // request notifications when the user identity is changed, all valid users are accepted by default.
         server.SessionManager.ImpersonateUser += new ImpersonateEventHandler(SessionManager_ImpersonateUser);
+
+        if (Config.RunInChaosMode)
+        {
+            LogStartChaos();
+            Chaos = true;
+        }
     }
 
     /// <inheritdoc/>
@@ -585,7 +594,262 @@ public partial class PlcServer : StandardServer
         }
 
         base.OnServerStopping();
+
+        if (Config.RunInChaosMode)
+        {
+            Chaos = false;
+            LogChaosModeStopped();
+        }
     }
+
+    /// <summary>
+    /// Run in choas mode and randomly delete sessions, subscriptions
+    /// inject errors and so on.
+    /// </summary>
+    public bool Chaos
+    {
+        get
+        {
+            return _chaosMode != null;
+        }
+        set
+        {
+            if (value)
+            {
+                if (_chaosMode == null)
+                {
+                    _chaosCts = new CancellationTokenSource();
+                    _chaosMode = ChaosAsync(_chaosCts.Token);
+                }
+            }
+            else if (_chaosMode != null)
+            {
+                _chaosCts.Cancel();
+                _chaosMode.GetAwaiter().GetResult();
+                _chaosCts.Dispose();
+                _chaosMode = null;
+                _chaosCts = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Inject errors responding to incoming requests. The error
+    /// rate is the probability of injection, e.g. 3 means 1 out
+    /// of 3 requests will be injected with a random error.
+    /// </summary>
+    public int InjectErrorResponseRate { get; set; }
+
+    private NodeId[] Sessions => CurrentInstance.SessionManager
+        .GetSessions()
+        .Select(s => s.Id)
+        .ToArray();
+
+    /// <summary>
+    /// Close all sessions
+    /// </summary>
+    /// <param name="deleteSubscriptions"></param>
+    public void CloseSessions(bool deleteSubscriptions = false)
+    {
+        if (deleteSubscriptions)
+        {
+            LogClosingAllSessionsAndSubscriptions();
+        }
+        else
+        {
+            LogClosingAllSessions();
+        }
+        foreach (var session in Sessions)
+        {
+            CurrentInstance.CloseSession(null, session, deleteSubscriptions);
+        }
+    }
+
+    private uint[] Subscriptions => CurrentInstance.SubscriptionManager
+        .GetSubscriptions()
+        .Select(s => s.Id)
+        .ToArray();
+
+    /// <summary>
+    /// Close all subscriptions. Notify expiration (timeout) of the
+    /// subscription before closing (status message) if notifyExpiration
+    /// is set to true.
+    /// </summary>
+    /// <param name="notifyExpiration"></param>
+    public void CloseSubscriptions(bool notifyExpiration = false)
+    {
+        if (notifyExpiration)
+        {
+            LogNotifyingExpirationAndClosingAllSubscriptions();
+        }
+        else
+        {
+            LogClosingAllSubscriptions();
+        }
+        foreach (var subscription in Subscriptions)
+        {
+            CloseSubscription(subscription, notifyExpiration);
+        }
+    }
+
+    /// <summary>
+    /// Close subscription. Notify expiration (timeout) of the
+    /// subscription before closing (status message) if notifyExpiration
+    /// is set to true.
+    /// </summary>
+    /// <param name="subscriptionId"></param>
+    /// <param name="notifyExpiration"></param>
+    public void CloseSubscription(uint subscriptionId, bool notifyExpiration)
+    {
+        if (notifyExpiration)
+        {
+            NotifySubscriptionExpiration(subscriptionId);
+        }
+        CurrentInstance.DeleteSubscription(subscriptionId);
+    }
+
+    private void NotifySubscriptionExpiration(uint subscriptionId)
+    {
+        try
+        {
+            var subscription = CurrentInstance.SubscriptionManager
+                .GetSubscriptions()
+                .FirstOrDefault(s => s.Id == subscriptionId);
+            if (subscription != null)
+            {
+                var expireMethod = typeof(SubscriptionManager).GetMethod("SubscriptionExpired",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                expireMethod?.Invoke(
+                    CurrentInstance.SubscriptionManager, new object[] { subscription });
+            }
+        }
+        catch
+        {
+            // Nothing to do
+        }
+    }
+
+    /// <summary>
+    /// Chaos monkey mode
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+#pragma warning disable CA5394 // Do not use insecure randomness
+    private async Task ChaosAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(Random.Shared.Next(10, 60)), ct).ConfigureAwait(false);
+                LogChaosMonkeyTime();
+                LogSubscriptionsAndSessions(Subscriptions.Length, Sessions.Length);
+                switch (Random.Shared.Next(0, 16))
+                {
+                    case 0:
+                        CloseSessions(true);
+                        break;
+                    case 1:
+                        CloseSessions(false);
+                        break;
+                    case 2:
+                        CloseSubscriptions(true);
+                        break;
+                    case 3:
+                        CloseSubscriptions(false);
+                        break;
+                    case > 3 and < 8:
+                        var sessions = Sessions;
+                        if (sessions.Length == 0)
+                        {
+                            break;
+                        }
+
+                        var session = sessions[Random.Shared.Next(0, sessions.Length)];
+                        var delete = Random.Shared.Next() % 2 == 0;
+                        LogClosingSession(session, delete);
+                        CurrentInstance.CloseSession(null, session, delete);
+                        break;
+                    case > 10 and < 13:
+                        if (InjectErrorResponseRate != 0)
+                        {
+                            break;
+                        }
+                        InjectErrorResponseRate = Random.Shared.Next(1, 20);
+                        var duration = TimeSpan.FromSeconds(Random.Shared.Next(10, 150));
+                        LogInjectingRandomErrors(InjectErrorResponseRate, duration.TotalMilliseconds);
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await Task.Delay(duration, ct).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException) { }
+                            InjectErrorResponseRate = 0;
+                        }, ct);
+                        break;
+                    default:
+                        var subscriptions = Subscriptions;
+                        if (subscriptions.Length == 0)
+                        {
+                            break;
+                        }
+
+                        var subscription = subscriptions[Random.Shared.Next(0, subscriptions.Length)];
+                        var notify = Random.Shared.Next() % 2 == 0;
+                        CloseSubscription(subscription, notify);
+                        break;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Nothing to do
+        }
+    }
+
+    /// <summary>
+    /// Errors to inject, tilt the scale towards the most common errors.
+    /// </summary>
+    private static readonly StatusCode[] kStatusCodes =
+    {
+        StatusCodes.BadCertificateInvalid,
+        StatusCodes.BadAlreadyExists,
+        StatusCodes.BadNoSubscription,
+        StatusCodes.BadSecureChannelClosed,
+        StatusCodes.BadSessionClosed,
+        StatusCodes.BadSessionIdInvalid,
+        StatusCodes.BadSessionIdInvalid,
+        StatusCodes.BadSessionIdInvalid,
+        StatusCodes.BadSessionIdInvalid,
+        StatusCodes.BadSessionIdInvalid,
+        StatusCodes.BadSessionIdInvalid,
+        StatusCodes.BadSessionIdInvalid,
+        StatusCodes.BadSessionIdInvalid,
+        StatusCodes.BadConnectionClosed,
+        StatusCodes.BadServerHalted,
+        StatusCodes.BadNotConnected,
+        StatusCodes.BadNoCommunication,
+        StatusCodes.BadRequestInterrupted,
+        StatusCodes.BadRequestInterrupted,
+        StatusCodes.BadRequestInterrupted
+    };
+
+    protected override OperationContext ValidateRequest(RequestHeader requestHeader, RequestType requestType)
+    {
+        if (InjectErrorResponseRate != 0)
+        {
+            var dice = Random.Shared.Next(0, kStatusCodes.Length * InjectErrorResponseRate);
+            if (dice < kStatusCodes.Length)
+            {
+                var error = kStatusCodes[dice];
+                LogInjectingError(error);
+                throw new ServiceResultException(error);
+            }
+        }
+        return base.ValidateRequest(requestHeader, requestType);
+    }
+#pragma warning restore CA5394 // Do not use insecure randomness
 
     private void AddPublishMetrics(NotificationMessage notificationMessage)
     {
@@ -686,4 +950,64 @@ public partial class PlcServer : StandardServer
         Level = LogLevel.Debug,
         Message = "Unknown notification type: {NotificationType}")]
     partial void LogUnknownNotification(string notificationType);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Starting chaos mode...")]
+    partial void LogStartChaos();
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "=================== CHAOS MONKEY TIME ===================")]
+    partial void LogChaosMonkeyTime();
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "--------> Injecting error: {StatusCode}")]
+    partial void LogInjectingError(StatusCode statusCode);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "{Subscriptions} subscriptions in {Sessions} sessions!")]
+    partial void LogSubscriptionsAndSessions(int subscriptions, int sessions);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "!!!!! Closing all sessions and associated subscriptions. !!!!!!")]
+    partial void LogClosingAllSessionsAndSubscriptions();
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "!!!!! Closing all sessions. !!!!!")]
+    partial void LogClosingAllSessions();
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "!!!!! Notifying expiration and closing all subscriptions. !!!!!")]
+    partial void LogNotifyingExpirationAndClosingAllSubscriptions();
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "!!!!! Closing all subscriptions. !!!!!")]
+    partial void LogClosingAllSubscriptions();
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "!!!!! Closing session {Session} (delete subscriptions: {Delete}). !!!!!")]
+    partial void LogClosingSession(NodeId session, bool delete);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "!!!!! Injecting random errors every {Rate} responses for {Duration} ms. !!!!!")]
+    partial void LogInjectingRandomErrors(int rate, double duration);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "!!!!! Closing subscription {Subscription} (notify: {Notify}). !!!!!")]
+    partial void LogClosingSubscription(uint subscription, bool notify);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Chaos mode stopped!")]
+    partial void LogChaosModeStopped();
 }

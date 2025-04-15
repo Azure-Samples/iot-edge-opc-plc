@@ -218,6 +218,9 @@ The option `--dalm=<file>` enables deterministic testing of Alarms and Condition
 
 More information about this feature can be found [here](deterministic-alarms.md).
 
+## Chaos mode
+The server can also be started in `chaos mode` which randomly injects errors, closes subscriptions or sessions, expires subscriptions and more. You can use it to test the resiliency of OPC UA clients. To enable chaos mode, start the server with the `--chaos=True` option.
+
 ## Other features
 - Node with special characters in name and NodeId
 - Node with long ID (3950 bytes)

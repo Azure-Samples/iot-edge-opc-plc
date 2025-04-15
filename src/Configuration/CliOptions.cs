@@ -216,6 +216,8 @@ public static class CliOptions
             { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {config.WebServerPort}", (uint i) => config.WebServerPort = i },
             { "cdn|certdnsnames=", "add additional DNS names or IP addresses to this application's certificate (comma separated values; no spaces allowed).\nDefault: DNS hostname", (s) => config.OpcUa.DnsNames = ParseListOfStrings(s) },
 
+            { "chaos", $"flag to run the server in Chaos mode. Injects errors, closes sessions and subscriptions, etc. randomly.\nDefault: not set", (s) => config.RunInChaosMode = s != null },
+
             { "h|help", "show this message and exit", (s) => config.ShowHelp = s != null },
         };
 
