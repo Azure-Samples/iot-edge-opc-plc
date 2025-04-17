@@ -503,6 +503,9 @@ Options:
                                application's certificate (comma separated
                                values; no spaces allowed).
                                Default: DNS hostname
+      --chaos                run the server in Chaos mode. Randomly injects
+                               errors, closes sessions and subscriptions etc.
+                               Default: False
   -h, --help                 show this message and exit
       --b2ts, --boiler2tempspeed=VALUE
                              Boiler #2 temperature change speed in degrees per
