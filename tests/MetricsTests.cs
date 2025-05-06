@@ -10,7 +10,6 @@ using System.Diagnostics.Metrics;
 /// Tests for Metrics.
 /// </summary>
 [NonParallelizable]
-[Ignore("Failing since .NET 9 and also with new telemetry nugets")]
 internal class MetricsTests : SimulatorTestsBase
 {
     private readonly MeterListener _meterListener;
