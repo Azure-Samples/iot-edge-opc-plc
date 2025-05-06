@@ -47,12 +47,6 @@ internal class MetricsTests : SimulatorTestsBase
         MetricsHelper.IsEnabled = true;
     }
 
-    [TearDown]
-    public void TearDown()
-    {
-        _meterListener.Dispose();
-    }
-
     [Test]
     public void TestAddSessionCount()
     {
