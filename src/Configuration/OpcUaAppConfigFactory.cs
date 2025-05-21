@@ -157,7 +157,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         }
 
         // Check the certificate, create new self-signed certificate if necessary.
-        bool isCertValid = await application.CheckApplicationInstanceCertificate(silent: true, CertificateFactory.DefaultKeySize, lifeTimeInMonths: CertificateFactory.DefaultLifeTime).ConfigureAwait(false);
+        bool isCertValid = await application.CheckApplicationInstanceCertificates(silent: true, lifeTimeInMonths: CertificateFactory.DefaultLifeTime).ConfigureAwait(false);
         if (!isCertValid)
         {
             throw new Exception("Application certificate invalid.");
@@ -227,8 +227,16 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                     new FlatDirectoryCertificateStoreType());
             }
         }
-
-        var options = securityBuilder.AddSecurityConfiguration(_config.ProgramName, _config.OpcUa.OpcOwnPKIRootDefault)
+        var applicationCerts = new CertificateIdentifierCollection
+        {
+            new CertificateIdentifier
+            {
+                StoreType = _config.OpcUa.OpcOwnCertStoreType,
+                SubjectName = _config.ProgramName,
+                CertificateType = ObjectTypeIds.RsaSha256ApplicationCertificateType
+            }
+        };
+        var options = securityBuilder.AddSecurityConfiguration(applicationCerts, _config.OpcUa.OpcOwnPKIRootDefault, null)
             .SetAutoAcceptUntrustedCertificates(_config.OpcUa.AutoAcceptCerts)
             .SetRejectUnknownRevocationStatus(!_config.OpcUa.DontRejectUnknownRevocationStatus)
             .SetRejectSHA1SignedCertificates(false)
@@ -1123,7 +1131,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         {
             _logger.LogInformation($"Activating the new application certificate with thumbprint '{newCertificateWithPrivateKey.Thumbprint}'");
             _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = newCertificate;
-            await _config.OpcUa.ApplicationConfiguration.CertificateValidator.UpdateCertificate(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
+            await _config.OpcUa.ApplicationConfiguration.CertificateValidator.UpdateCertificateAsync(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
         }
         catch (Exception e)
         {

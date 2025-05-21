@@ -233,6 +233,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         IList<ServiceResult> errors,
         IList<MonitoringFilterResult> filterErrors,
         IList<IMonitoredItem> monitoredItems,
+        bool createDurable,
         ref long globalIdCounter)
     {
         ServerSystemContext systemContext = _defaultSystemContext.Copy(context);
@@ -308,6 +309,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
                     context.DiagnosticsMask,
                     timestampsToReturn,
                     itemToCreate,
+                    createDurable,
                     ref globalIdCounter,
                     out filterResult,
                     out monitoredItem);
