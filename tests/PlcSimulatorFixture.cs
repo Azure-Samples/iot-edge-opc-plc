@@ -240,7 +240,7 @@ public class PlcSimulatorFixture
         var config = await application.LoadApplicationConfiguration(silent: false).ConfigureAwait(false);
 
         // check the application certificate.
-        bool haveAppCertificate = await application.CheckApplicationInstanceCertificate(silent: false, minimumKeySize: 0).ConfigureAwait(false);
+        bool haveAppCertificate = await application.CheckApplicationInstanceCertificates(silent: false).ConfigureAwait(false);
         if (!haveAppCertificate)
         {
             throw new Exception("Application instance certificate invalid!");
@@ -279,7 +279,7 @@ public class PlcSimulatorFixture
         {
             try
             {
-                var endpoint = CoreClientUtils.SelectEndpoint(endpointUrl, useSecurity: false, discoverTimeout: 15000);
+                var endpoint = CoreClientUtils.SelectEndpoint(_config, endpointUrl, useSecurity: false, discoverTimeout: 15000);
                 var endpointConfiguration = EndpointConfiguration.Create(_config);
                 return new ConfiguredEndpoint(collection: null, endpoint, endpointConfiguration);
             }

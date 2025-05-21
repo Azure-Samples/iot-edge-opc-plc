@@ -5,6 +5,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
+#nullable enable
 
 /// <summary>
 /// Tests for Metrics.

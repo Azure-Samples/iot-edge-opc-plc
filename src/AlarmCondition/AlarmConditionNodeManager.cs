@@ -45,7 +45,7 @@ namespace AlarmCondition
     /// identified by a fully qualified path. The underlying system knows how to access the source
     /// configuration when it is provided the fully qualified path.
     /// </remarks>
-    public class AlarmConditionServerNodeManager : QuickstartNodeManager
+    public class AlarmConditionServerNodeManager : CustomNodeManager2
     {
         #region Constructors
         /// <summary>
@@ -317,7 +317,7 @@ namespace AlarmCondition
 
                 // check for check for nodes that are being currently monitored.
 
-                if (MonitoredNodes.TryGetValue(nodeId, out MonitoredNode monitoredNode))
+                if (MonitoredNodes.TryGetValue(nodeId, out var monitoredNode))
                 {
                     NodeHandle handle = new()
                     {
@@ -393,7 +393,7 @@ namespace AlarmCondition
             try
             {
                 // check if the node id has been parsed.
-                if (handle.ParsedNodeId == null)
+                if (handle.ParsedNodeId is not ParsedNodeId parsedNodeId)
                 {
                     return null;
                 }
@@ -401,10 +401,10 @@ namespace AlarmCondition
                 NodeState root = null;
 
                 // validate area.
-                if (handle.ParsedNodeId.RootType == ModelUtils.Area)
+                if (parsedNodeId.RootType == ModelUtils.Area)
                 {
 
-                    if (!m_areas.TryGetValue(handle.ParsedNodeId.RootId, out AreaState area))
+                    if (!m_areas.TryGetValue(parsedNodeId.RootId, out AreaState area))
                     {
                         return null;
                     }
@@ -413,10 +413,10 @@ namespace AlarmCondition
                 }
 
                 // validate source.
-                else if (handle.ParsedNodeId.RootType == ModelUtils.Source)
+                else if (parsedNodeId.RootType == ModelUtils.Source)
                 {
 
-                    if (!m_sources.TryGetValue(handle.ParsedNodeId.RootId, out SourceState source))
+                    if (!m_sources.TryGetValue(parsedNodeId.RootId, out SourceState source))
                     {
                         return null;
                     }
@@ -431,7 +431,7 @@ namespace AlarmCondition
                 }
 
                 // all done if no components to validate.
-                if (String.IsNullOrEmpty(handle.ParsedNodeId.ComponentPath))
+                if (String.IsNullOrEmpty(parsedNodeId.ComponentPath))
                 {
                     handle.Validated = true;
                     handle.Node = target = root;
@@ -439,7 +439,7 @@ namespace AlarmCondition
                 }
 
                 // validate component.
-                NodeState component = root.FindChildBySymbolicName(context, handle.ParsedNodeId.ComponentPath);
+                NodeState component = root.FindChildBySymbolicName(context, parsedNodeId.ComponentPath);
 
                 // component does not exist.
                 if (component == null)

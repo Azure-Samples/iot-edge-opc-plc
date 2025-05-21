@@ -190,11 +190,17 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
     }
 
     /// <inheritdoc/>
-    public async Task<X509Certificate2> LoadPrivateKey(string thumbprint, string subjectName, string password)
+    public Task<X509Certificate2> LoadPrivateKey(string thumbprint, string subjectName, string password)
+    {
+        return LoadPrivateKey(thumbprint, subjectName, null, null, password);
+    }
+
+    /// <inheritdoc/>
+    public async Task<X509Certificate2> LoadPrivateKey(string thumbprint, string subjectName, string applicationUri, NodeId certificateType, string password)
     {
         if (!_innerStore.Directory.Exists)
         {
-            return await _innerStore.LoadPrivateKey(thumbprint, subjectName, password).ConfigureAwait(false);
+            return await _innerStore.LoadPrivateKey(thumbprint, subjectName, applicationUri, certificateType, password).ConfigureAwait(false);
         }
 
         foreach (FileInfo file in _innerStore.Directory.GetFiles('*' + CrtExtension))
@@ -205,7 +211,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
                 if (keyFile.Exists)
                 {
                     using var certificate = X509CertificateLoader.LoadCertificateFromFile(file.FullName);
-                    if (!MatchCertificate(certificate, thumbprint, subjectName))
+                    if (!MatchCertificate(certificate, thumbprint, subjectName, applicationUri, certificateType))
                     {
                         continue;
                     }
@@ -222,27 +228,34 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
             }
         }
 
-        return await _innerStore.LoadPrivateKey(thumbprint, subjectName, password).ConfigureAwait(false);
+        return await _innerStore.LoadPrivateKey(thumbprint, subjectName, applicationUri, certificateType, password).ConfigureAwait(false);
     }
 
-    private bool MatchCertificate(X509Certificate2 certificate, string thumbprint, string subjectName)
+    private bool MatchCertificate(X509Certificate2 certificate, string thumbprint, string subjectName, string applicationUri, NodeId certificateType)
     {
-        if (!string.IsNullOrEmpty(thumbprint) &&
-            !string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
+        if (certificateType == null ||
+            certificateType == ObjectTypeIds.RsaSha256ApplicationCertificateType ||
+            certificateType == ObjectTypeIds.RsaMinApplicationCertificateType ||
+            certificateType == ObjectTypeIds.ApplicationCertificateType)
         {
-            return false;
-        }
+            if (!string.IsNullOrEmpty(thumbprint) &&
+                !string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
 
-        if (!string.IsNullOrEmpty(subjectName) &&
-            !X509Utils.CompareDistinguishedName(subjectName, certificate.Subject) &&
-            (
-                subjectName.Contains('=', StringComparison.OrdinalIgnoreCase) ||
-                !X509Utils.ParseDistinguishedName(certificate.Subject).Any(s => s.Equals("CN=" + subjectName, StringComparison.Ordinal))))
-        {
-            return false;
-        }
+            if (!string.IsNullOrEmpty(subjectName) &&
+                !X509Utils.CompareDistinguishedName(subjectName, certificate.Subject) &&
+                (
+                    subjectName.Contains('=', StringComparison.OrdinalIgnoreCase) ||
+                    !X509Utils.ParseDistinguishedName(certificate.Subject).Any(s => s.Equals("CN=" + subjectName, StringComparison.Ordinal))))
+            {
+                return false;
+            }
 
-        // skip if not RSA certificate
-        return X509Utils.GetRSAPublicKeySize(certificate) >= 0;
+            // skip if not RSA certificate
+            return X509Utils.GetRSAPublicKeySize(certificate) >= 0;
+        }
+        return false;
     }
 }
