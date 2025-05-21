@@ -233,10 +233,10 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             {
                 StoreType = _config.OpcUa.OpcOwnCertStoreType,
                 SubjectName = _config.ProgramName,
-                CertificateType = ObjectTypeIds.RsaSha256ApplicationCertificateType
+                CertificateType = ObjectTypeIds.RsaSha256ApplicationCertificateType,
             }
         };
-        var options = securityBuilder.AddSecurityConfiguration(applicationCerts, _config.OpcUa.OpcOwnPKIRootDefault, null)
+        var options = securityBuilder.AddSecurityConfiguration(applicationCerts, _config.OpcUa.OpcOwnPKIRootDefault, rejectedRoot: null)
             .SetAutoAcceptUntrustedCertificates(_config.OpcUa.AutoAcceptCerts)
             .SetRejectUnknownRevocationStatus(!_config.OpcUa.DontRejectUnknownRevocationStatus)
             .SetRejectSHA1SignedCertificates(false)

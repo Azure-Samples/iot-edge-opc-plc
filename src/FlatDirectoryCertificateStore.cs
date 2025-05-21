@@ -192,7 +192,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
     /// <inheritdoc/>
     public Task<X509Certificate2> LoadPrivateKey(string thumbprint, string subjectName, string password)
     {
-        return LoadPrivateKey(thumbprint, subjectName, null, null, password);
+        return LoadPrivateKey(thumbprint, subjectName, applicationUri: null, certificateType: null, password);
     }
 
     /// <inheritdoc/>
