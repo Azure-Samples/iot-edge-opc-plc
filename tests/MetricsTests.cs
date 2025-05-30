@@ -5,12 +5,12 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
+#nullable enable
 
 /// <summary>
 /// Tests for Metrics.
 /// </summary>
 [NonParallelizable]
-[Ignore("Failing since .NET 9 and also with new telemetry nugets")]
 internal class MetricsTests : SimulatorTestsBase
 {
     private readonly MeterListener _meterListener;
@@ -46,12 +46,6 @@ internal class MetricsTests : SimulatorTestsBase
         _metrics.Clear();
 
         MetricsHelper.IsEnabled = true;
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _meterListener.Dispose();
     }
 
     [Test]

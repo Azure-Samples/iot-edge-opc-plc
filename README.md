@@ -207,8 +207,7 @@ The alarms are of different types:
 - Silver - [NonExclusiveLevelAlarmType](https://reference.opcfoundation.org/v104/Core/ObjectTypes/NonExclusiveLevelAlarmType/)
 - OnlineState - [DialogConditionType](https://reference.opcfoundation.org/v104/Core/ObjectTypes/DialogConditionType/)
 
-All these alarms will update on a regular interval. It is also possible to _Acknowledge_, _Confirm_ and add _Comment_ 
-to them.
+All these alarms will update on a regular interval. It is also possible to _Acknowledge_, _Confirm_ and add _Comment_ to them.
 
 This simulation also emits two types of system events: [_SystemEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/SystemEventType/)
  and [_AuditEventType_](https://reference.opcfoundation.org/v104/Core/ObjectTypes/AuditEventType/), every 1000 ms.
@@ -217,6 +216,9 @@ This simulation also emits two types of system events: [_SystemEventType_](https
 The option `--dalm=<file>` enables deterministic testing of Alarms and Conditions.
 
 More information about this feature can be found [here](deterministic-alarms.md).
+
+## Chaos mode
+Randomly injects errors, closes subscriptions or sessions, expires subscriptions and more. You can use it to test the resiliency of OPC UA clients. To enable start the server with the option `--chaos=True`.
 
 ## Other features
 - Node with special characters in name and NodeId
@@ -501,6 +503,9 @@ Options:
                                application's certificate (comma separated
                                values; no spaces allowed).
                                Default: DNS hostname
+      --chaos                run the server in Chaos mode. Randomly injects
+                               errors, closes sessions and subscriptions etc.
+                               Default: False
   -h, --help                 show this message and exit
       --b2ts, --boiler2tempspeed=VALUE
                              Boiler #2 temperature change speed in degrees per
