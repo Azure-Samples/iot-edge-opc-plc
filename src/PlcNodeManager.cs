@@ -24,6 +24,7 @@ public class PlcNodeManager : CustomNodeManager2
         _pluginNodes = pluginNodes;
         _logger = logger;
         SystemContext.NodeIdFactory = this;
+        SystemContext.EncodeableFactory = Server.Factory;
     }
 
     public PlcSimulation PlcSimulationInstance { get; }
