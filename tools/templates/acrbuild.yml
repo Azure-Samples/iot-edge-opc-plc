@@ -5,7 +5,7 @@ jobs:
 - job: imagesprep
   displayName: Prepare Image Jobs
   pool:
-    name: Hosted Windows 2019 with VS2019
+    vmImage: 'windows-2022'
   variables:
     skipComponentGovernanceDetection: true
   steps:
@@ -18,7 +18,7 @@ jobs:
 - job: imagesall
   displayName: Build Images for
   pool:
-    name: Hosted Windows 2019 with VS2019
+    vmImage: 'windows-2022'
   dependsOn: imagesprep
   strategy:
     matrix: $[ dependencies.imagesprep.outputs['acrmatrix.acrMatrix'] ]
