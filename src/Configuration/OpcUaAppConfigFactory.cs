@@ -391,26 +391,26 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 int serverNum = 0;
                 foreach (var endpoint in _config.OpcUa.ApplicationConfiguration.ServerConfiguration.BaseAddresses)
                 {
-                    _logger.LogInformation($"DiscoveryUrl[{serverNum++}]: {endpoint}");
+                    _logger.LogInformation("DiscoveryUrl[{ServerNumber}]: {Endpoint}", serverNum++, endpoint);
                 }
 
                 foreach (var endpoint in _config.OpcUa.ApplicationConfiguration.ServerConfiguration.AlternateBaseAddresses)
                 {
-                    _logger.LogInformation($"DiscoveryUrl[{serverNum++}]: {endpoint}");
+                    _logger.LogInformation("DiscoveryUrl[{ServerNumber}]: {Endpoint}", serverNum++, endpoint);
                 }
 
                 string[] serverCapabilities = _config.OpcUa.ApplicationConfiguration.ServerConfiguration.ServerCapabilities.ToArray();
-                _logger.LogInformation($"ServerCapabilities: {string.Join(", ", serverCapabilities)}");
+                _logger.LogInformation("ServerCapabilities: {ServerCapabilities}", string.Join(", ", serverCapabilities));
             }
 
             _logger.LogInformation("CSR (base64 encoded):");
-            Console.WriteLine($"{Convert.ToBase64String(certificateSigningRequest)}");
+            Console.WriteLine(Convert.ToBase64String(certificateSigningRequest));
             _logger.LogInformation("---------------------------------------------------------------------------");
 
             try
             {
                 await File.WriteAllBytesAsync($"{_config.OpcUa.ApplicationConfiguration.ApplicationName}.csr", certificateSigningRequest).ConfigureAwait(false);
-                _logger.LogInformation($"Binary CSR written to '{_config.OpcUa.ApplicationConfiguration.ApplicationName}.csr'");
+                _logger.LogInformation("Binary CSR written to '{CsrFileName}'", $"{_config.OpcUa.ApplicationConfiguration.ApplicationName}.csr");
             }
             catch (Exception e)
             {
@@ -590,11 +590,11 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 {
                     if (!await trustedStore.Delete(thumbprint).ConfigureAwait(false))
                     {
-                        _logger.LogWarning($"Failed to remove certificate with thumbprint '{thumbprint}' from the trusted peer store");
+                        _logger.LogWarning("Failed to remove certificate with thumbprint '{Thumbprint}' from the trusted peer store", thumbprint);
                     }
                     else
                     {
-                        _logger.LogInformation($"Removed certificate with thumbprint '{thumbprint}' from the trusted peer store");
+                        _logger.LogInformation("Removed certificate with thumbprint '{Thumbprint}' from the trusted peer store", thumbprint);
                     }
                 }
             }
@@ -616,11 +616,11 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 {
                     if (!await issuerStore.Delete(thumbprint).ConfigureAwait(false))
                     {
-                        _logger.LogWarning($"Failed to delete certificate with thumbprint '{thumbprint}' from the trusted issuer store");
+                        _logger.LogWarning("Failed to delete certificate with thumbprint '{Thumbprint}' from the trusted issuer store", thumbprint);
                     }
                     else
                     {
-                        _logger.LogInformation($"Removed certificate with thumbprint '{thumbprint}' from the trusted issuer store");
+                        _logger.LogInformation("Removed certificate with thumbprint '{Thumbprint}' from the trusted issuer store", thumbprint);
                     }
                 }
             }
@@ -649,7 +649,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             return false;
         }
 
-        _logger.LogInformation($"Starting to add certificate(s) to the {(issuerCertificate ? "trusted issuer" : "trusted peer")} store");
+        _logger.LogInformation("Starting to add certificate(s) to the {StoreType} store", issuerCertificate ? "trusted issuer" : "trusted peer");
         var certificatesToAdd = new X509Certificate2Collection();
         try
         {
@@ -667,14 +667,14 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 foreach (var certificateBase64String in certificateBase64Strings)
                 {
                     byte[] buffer = new byte[certificateBase64String.Length * 3 / 4];
-                    if (Convert.TryFromBase64String(certificateBase64String, buffer, out int written))
+                    if (Convert.TryFromBase64String(certificateBase64String, buffer, out _))
                     {
                         var certificate = X509CertificateLoader.LoadCertificate(buffer);
                         certificatesToAdd.Add(certificate);
                     }
                     else
                     {
-                        _logger.LogError($"The provided string '{certificateBase64String.Substring(0, 10)}...' is not a valid base64 string");
+                        _logger.LogError("The provided string '{PartialString}...' is not a valid base64 string", certificateBase64String.Substring(0, 10));
                         return false;
                     }
                 }
@@ -697,12 +697,12 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                     try
                     {
                         await issuerStore.Add(certificateToAdd).ConfigureAwait(false);
-                        _logger.LogInformation($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted issuer store");
+                        _logger.LogInformation("Certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the trusted issuer store", certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint);
                     }
-                    catch (ArgumentException)
+                    catch (ArgumentException ex)
                     {
                         // ignore error if cert already exists in store
-                        _logger.LogInformation($"Certificate '{certificateToAdd.SubjectName.Name}' already exists in trusted issuer store");
+                        _logger.LogInformation(ex, "Certificate '{SubjectName}' already exists in trusted issuer store", certificateToAdd.SubjectName.Name);
                     }
                 }
             }
@@ -722,12 +722,12 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                     try
                     {
                         await trustedStore.Add(certificateToAdd).ConfigureAwait(false);
-                        _logger.LogInformation($"Certificate '{certificateToAdd.SubjectName.Name}' and thumbprint '{certificateToAdd.Thumbprint}' was added to the trusted peer store");
+                        _logger.LogInformation("Certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the trusted peer store", certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint);
                     }
-                    catch (ArgumentException)
+                    catch (ArgumentException ex)
                     {
                         // ignore error if cert already exists in store
-                        _logger.LogInformation($"Certificate '{certificateToAdd.SubjectName.Name}' already exists in trusted peer store");
+                        _logger.LogInformation(ex, "Certificate '{SubjectName}' already exists in trusted peer store", certificateToAdd.SubjectName.Name);
                     }
                 }
             }
@@ -761,13 +761,13 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             if (!string.IsNullOrEmpty(newCrlBase64String) && string.IsNullOrEmpty(newCrlFileName))
             {
                 byte[] buffer = new byte[newCrlBase64String.Length * 3 / 4];
-                if (Convert.TryFromBase64String(newCrlBase64String, buffer, out int written))
+                if (Convert.TryFromBase64String(newCrlBase64String, buffer, out _))
                 {
                     newCrl = new X509CRL(buffer);
                 }
                 else
                 {
-                    _logger.LogError($"The provided string '{newCrlBase64String.Substring(0, 10)}...' is not a valid base64 string");
+                    _logger.LogError("The provided string '{PartialString}...' is not a valid base64 string", newCrlBase64String.Substring(0, 10));
                     return false;
                 }
             }
@@ -805,12 +805,12 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                             {
                                 if (!await trustedStore.DeleteCRL(crlToRemove).ConfigureAwait(false))
                                 {
-                                    _logger.LogWarning($"Failed to remove CRL issued by '{crlToRemove.Issuer}' from the trusted peer store");
+                                    _logger.LogWarning("Failed to remove CRL issued by '{Issuer}' from the trusted peer store", crlToRemove.Issuer);
                                 }
                             }
                             catch (Exception e)
                             {
-                                _logger.LogError(e, $"Error while removing the current CRL issued by '{crlToRemove.Issuer}' from the trusted peer store");
+                                _logger.LogError(e, "Error while removing the current CRL issued by '{Issuer}' from the trusted peer store", crlToRemove.Issuer);
                                 result = false;
                             }
                         }
@@ -829,7 +829,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 try
                 {
                     await trustedStore.AddCRL(newCrl).ConfigureAwait(false);
-                    _logger.LogInformation($"The new CRL issued by '{newCrl.Issuer}' was added to the trusted peer store");
+                    _logger.LogInformation("The new CRL issued by '{Issuer}' was added to the trusted peer store", newCrl.Issuer);
                 }
                 catch (Exception e)
                 {
@@ -862,12 +862,12 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                             {
                                 if (!await issuerStore.DeleteCRL(crlToRemove).ConfigureAwait(false))
                                 {
-                                    _logger.LogWarning($"Failed to remove the current CRL issued by '{crlToRemove.Issuer}' from the trusted issuer store");
+                                    _logger.LogWarning("Failed to remove the current CRL issued by '{Issuer}' from the trusted issuer store", crlToRemove.Issuer);
                                 }
                             }
                             catch (Exception e)
                             {
-                                _logger.LogError(e, $"Error while removing the current CRL issued by '{crlToRemove.Issuer}' from the trusted issuer store");
+                                _logger.LogError(e, "Error while removing the current CRL issued by '{Issuer}' from the trusted issuer store", crlToRemove.Issuer);
                                 result = false;
                             }
                         }
@@ -886,11 +886,11 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 try
                 {
                     await issuerStore.AddCRL(newCrl).ConfigureAwait(false);
-                    _logger.LogInformation($"The new CRL issued by '{newCrl.Issuer}' was added to the trusted issuer store");
+                    _logger.LogInformation("The new CRL issued by '{Issuer}' was added to the trusted issuer store", newCrl.Issuer);
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, $"Error while adding the new CRL issued by '{newCrl.Issuer}' to the trusted issuer store");
+                    _logger.LogError(e, "Error while adding the new CRL issued by '{Issuer}' to the trusted issuer store", newCrl.Issuer);
                     result = false;
                 }
             }
@@ -921,13 +921,13 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             if (string.IsNullOrEmpty(newCertificateFileName))
             {
                 byte[] buffer = new byte[newCertificateBase64String.Length * 3 / 4];
-                if (Convert.TryFromBase64String(newCertificateBase64String, buffer, out int written))
+                if (Convert.TryFromBase64String(newCertificateBase64String, buffer, out _))
                 {
                     newCertificate = X509CertificateLoader.LoadCertificate(buffer);
                 }
                 else
                 {
-                    _logger.LogError($"The provided string '{newCertificateBase64String.Substring(0, 10)}...' is not a valid base64 string");
+                    _logger.LogError("The provided string '{PartialString}...' is not a valid base64 string", newCertificateBase64String.Substring(0, 10));
                     return false;
                 }
             }
@@ -950,9 +950,9 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             if (!string.IsNullOrEmpty(privateKeyBase64String))
             {
                 privateKey = new byte[privateKeyBase64String.Length * 3 / 4];
-                if (!Convert.TryFromBase64String(privateKeyBase64String, privateKey, out int written))
+                if (!Convert.TryFromBase64String(privateKeyBase64String, privateKey, out _))
                 {
-                    _logger.LogError($"The provided string '{privateKeyBase64String.Substring(0, 10)}...' is not a valid base64 string");
+                    _logger.LogError("The provided string '{PartialString}...' is not a valid base64 string", privateKeyBase64String.Substring(0, 10));
                     return false;
                 }
             }
@@ -976,7 +976,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             hasApplicationCertificate = true;
             currentApplicationCertificate = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
             currentSubjectName = currentApplicationCertificate.SubjectName.Name;
-            _logger.LogInformation($"The current application certificate has SubjectName '{currentSubjectName}' and thumbprint '{currentApplicationCertificate.Thumbprint}'");
+            _logger.LogInformation("The current application certificate has SubjectName '{CurrentSubjectName}' and thumbprint '{CurrentThumbprint}'", currentSubjectName, currentApplicationCertificate.Thumbprint);
         }
         else
         {
@@ -986,7 +986,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         // for a cert update subject names of current and new certificate must match
         if (hasApplicationCertificate && !X509Utils.CompareDistinguishedName(currentSubjectName, newCertificate.SubjectName.Name))
         {
-            _logger.LogError($"The SubjectName '{newCertificate.SubjectName.Name}' of the new certificate doesn't match the current certificates SubjectName '{currentSubjectName}'");
+            _logger.LogError("The SubjectName '{NewSubjectName}' of the new certificate doesn't match the current certificates SubjectName '{CurrentSubjectName}'", newCertificate.SubjectName.Name, currentSubjectName);
             return false;
         }
 
@@ -1039,9 +1039,9 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 newCertFormat = "PFX";
                 _logger.LogInformation("The private key for the new certificate was passed in using PFX format");
             }
-            catch
+            catch (Exception ex)
             {
-                _logger.LogDebug("Certificate file is not PFX");
+                _logger.LogDebug(ex, "Certificate file is not PFX");
             }
         }
         // check if new cert is PEM
@@ -1053,9 +1053,9 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 newCertFormat = "PEM";
                 _logger.LogInformation("The private key for the new certificate was passed in using PEM format");
             }
-            catch
+            catch (Exception ex)
             {
-                _logger.LogDebug("Certificate file is not PEM");
+                _logger.LogDebug(ex, "Certificate file is not PEM");
             }
         }
 
@@ -1075,9 +1075,9 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                     _logger.LogError("There is no existing application certificate we can use to extract the private key. You need to pass in a private key using PFX or PEM format");
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                _logger.LogDebug("Application certificate format is not DER");
+                _logger.LogDebug(ex, "Application certificate format is not DER");
             }
         }
 
@@ -1107,17 +1107,17 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             {
                 if (hasApplicationCertificate && !await appStore.Delete(currentApplicationCertificate.Thumbprint).ConfigureAwait(false))
                 {
-                    _logger.LogWarning($"Removing the existing application certificate with thumbprint '{currentApplicationCertificate.Thumbprint}' failed");
+                    _logger.LogWarning("Removing the existing application certificate with thumbprint '{CurrentThumbprint}' failed", currentApplicationCertificate.Thumbprint);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                _logger.LogWarning("Failed to remove the existing application certificate from the ApplicationCertificate store");
+                _logger.LogWarning(ex, "Failed to remove the existing application certificate from the ApplicationCertificate store");
             }
             try
             {
                 await appStore.Add(newCertificateWithPrivateKey).ConfigureAwait(false);
-                _logger.LogInformation($"The new application certificate '{newCertificateWithPrivateKey.SubjectName.Name}' and thumbprint '{newCertificateWithPrivateKey.Thumbprint}' was added to the application certificate store");
+                _logger.LogInformation("The new application certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the application certificate store", newCertificateWithPrivateKey.SubjectName.Name, newCertificateWithPrivateKey.Thumbprint);
             }
             catch (Exception e)
             {
@@ -1129,7 +1129,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         // update the application certificate
         try
         {
-            _logger.LogInformation($"Activating the new application certificate with thumbprint '{newCertificateWithPrivateKey.Thumbprint}'");
+            _logger.LogInformation("Activating the new application certificate with thumbprint '{NewThumbprint}'", newCertificateWithPrivateKey.Thumbprint);
             _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = newCertificate;
             await _config.OpcUa.ApplicationConfiguration.CertificateValidator.UpdateCertificateAsync(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
         }
