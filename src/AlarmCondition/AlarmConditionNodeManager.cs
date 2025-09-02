@@ -33,6 +33,7 @@ using System.Threading;
 using Opc.Ua;
 using Opc.Ua.Server;
 using Opc.Ua.Test;
+using OpcPlc.AlarmCondition;
 
 namespace AlarmCondition
 {
@@ -461,7 +462,7 @@ namespace AlarmCondition
 
         private void ResetRandomGenerator(int seed, int boundaryValueFrequency = 0)
         {
-            m_generator = new DataGenerator(new RandomSource(seed));
+            m_generator = new DataGenerator(new RoundRobinSource(seed));
             m_generator.BoundaryValueFrequency = boundaryValueFrequency;
         }
 

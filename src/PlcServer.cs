@@ -1,6 +1,6 @@
 namespace OpcPlc;
 
-using AlarmCondition;
+using global::AlarmCondition;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Bindings;
