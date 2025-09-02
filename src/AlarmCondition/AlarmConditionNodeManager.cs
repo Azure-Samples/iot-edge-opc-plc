@@ -461,8 +461,7 @@ namespace AlarmCondition
 
         private void ResetRandomGenerator(int seed, int boundaryValueFrequency = 0)
         {
-            m_randomSource = new RandomSource(seed);
-            m_generator = new DataGenerator(m_randomSource);
+            m_generator = new DataGenerator(new RandomSource(seed));
             m_generator.BoundaryValueFrequency = boundaryValueFrequency;
         }
 
@@ -473,7 +472,6 @@ namespace AlarmCondition
         private readonly Dictionary<string, AreaState> m_areas;
         private readonly Dictionary<string, SourceState> m_sources;
         private Timer m_simulationTimer;
-        private RandomSource m_randomSource;
         private DataGenerator m_generator;
         #endregion
     }
