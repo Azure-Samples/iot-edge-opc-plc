@@ -213,6 +213,10 @@ public partial class PlcServer : StandardServer
     {
         _countCreateMonitoredItems += (uint)itemsToCreate.Count;
 
+        LogCreatingMonitoredItems(
+            GetSessionName(requestHeader.AuthenticationToken),
+            string.Join(", ", itemsToCreate.Select(item => item.ItemToMonitor.NodeId)));
+
         results = default;
         diagnosticInfos = default;
 
@@ -878,6 +882,8 @@ public partial class PlcServer : StandardServer
 
     private NodeId GetSessionId(NodeId authenticationToken) => ServerInternal.SessionManager.GetSession(authenticationToken).Id;
 
+    private string GetSessionName(NodeId authenticationToken) => ServerInternal.SessionManager.GetSession(authenticationToken).SessionDiagnostics.SessionName;
+
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "\n\t# Open/total sessions: {Sessions} | {TotalSessions}\n" +
@@ -1005,6 +1011,11 @@ public partial class PlcServer : StandardServer
         Level = LogLevel.Information,
         Message = "!!!!! Closing subscription {Subscription} (notify: {Notify}). !!!!!")]
     partial void LogClosingSubscription(uint subscription, bool notify);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Creating monitored item(s) for {SessionName}: {NodeIds}")]
+    partial void LogCreatingMonitoredItems(string sessionName, string nodeIds);
 
     [LoggerMessage(
         Level = LogLevel.Information,
