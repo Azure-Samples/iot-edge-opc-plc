@@ -213,10 +213,6 @@ public partial class PlcServer : StandardServer
     {
         _countCreateMonitoredItems += (uint)itemsToCreate.Count;
 
-        LogCreatingMonitoredItems(
-            GetSessionName(requestHeader.AuthenticationToken),
-            string.Join(", ", itemsToCreate.Select(item => item.ItemToMonitor.NodeId)));
-
         results = default;
         diagnosticInfos = default;
 
@@ -225,6 +221,20 @@ public partial class PlcServer : StandardServer
             var responseHeader = base.CreateMonitoredItems(requestHeader, subscriptionId, timestampsToReturn, itemsToCreate, out results, out diagnosticInfos);
 
             MetricsHelper.AddMonitoredItemCount(itemsToCreate.Count);
+
+            // Only log items with good status codes.
+            var successfulItems = itemsToCreate
+                .Zip(results, (request, result) => new { Request = request, Result = result })
+                .Where(item => StatusCode.IsGood(item.Result.StatusCode))
+                .Select(item => item.Request.ItemToMonitor.NodeId)
+                .ToList();
+
+            if (successfulItems.Any())
+            {
+                LogCreatedMonitoredItems(
+                    GetSessionName(requestHeader.AuthenticationToken),
+                    string.Join(", ", successfulItems));
+            }
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
@@ -1014,8 +1024,8 @@ public partial class PlcServer : StandardServer
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Creating monitored item(s) for {SessionName}: {NodeIds}")]
-    partial void LogCreatingMonitoredItems(string sessionName, string nodeIds);
+        Message = "Session {SessionName} subscribed to {NodeIds}")]
+    partial void LogCreatedMonitoredItems(string sessionName, string nodeIds);
 
     [LoggerMessage(
         Level = LogLevel.Information,
