@@ -1014,7 +1014,7 @@ public partial class PlcServer : StandardServer
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Creating monitored item(s) for {SessionName}: {NodeIds}")]
+        Message = "Session {SessionName} subscribing to: {NodeIds}")]
     partial void LogCreatingMonitoredItems(string sessionName, string nodeIds);
 
     [LoggerMessage(
