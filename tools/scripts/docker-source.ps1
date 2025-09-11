@@ -172,6 +172,12 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
         if ([string]::IsNullOrEmpty($workdir)) {
             $workdir = "WORKDIR /app"
         }
+        # Add user switch for linux platforms only. Use literal $APP_UID in the Dockerfile.
+        $userSwitch = ""
+        if ($runtimeId.StartsWith("linux")) {
+            # Escape $ so the generated Dockerfile contains the literal $APP_UID
+            $userSwitch = "# Switch to non-root user.`nUSER `$APP_UID"
+        }
         $dockerFileContent = @"
 FROM $($baseImage)
 
@@ -185,6 +191,7 @@ $($debugger)
 
 $($environmentVars | Out-String)
 
+$($userSwitch)
 ENTRYPOINT $($entryPoint)
 
 "@
