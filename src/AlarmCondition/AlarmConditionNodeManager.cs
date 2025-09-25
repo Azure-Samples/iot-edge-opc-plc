@@ -138,7 +138,8 @@ namespace AlarmCondition
                 }
 
                 // start the simulation.
-                m_system.StartSimulation();
+                // Deterministic alarm simulation: ensure each source simulated within 5s.
+                m_system.StartSimulation(deterministic: true, maxIntervalSeconds: 5);
                 m_simulationTimer = new Timer(OnRaiseSystemEvents, state: null, dueTime: 1000, period: 1000);
             }
         }

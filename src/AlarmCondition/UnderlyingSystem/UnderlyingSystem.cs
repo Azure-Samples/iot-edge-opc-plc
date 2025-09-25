@@ -164,17 +164,44 @@ namespace AlarmCondition
         /// Once an alarm is confirmed it go to the inactive state.
         /// If the alarm stays active the severity will be gradually increased.
         /// </remarks>
-        public void StartSimulation()
+        public void StartSimulation(bool deterministic = false, int maxIntervalSeconds = 5)
         {
             lock (m_lock)
             {
                 if (m_simulationTimer != null)
                 {
-                    m_simulationTimer.Dispose();
-                    m_simulationTimer = null;
+                    return;
                 }
 
-                m_simulationTimer = new Timer(DoSimulation, null, 1000, 1000);
+                m_deterministicMode = deterministic;
+                m_maxIntervalSeconds = maxIntervalSeconds <= 0 ? 5 : maxIntervalSeconds;
+
+                m_simulationCounter = 0;
+                m_nextSourceIndex = 0;
+
+                // Cache a stable ordering of sources for round robin (e.g. by SourcePath)
+                m_sourceList = new List<UnderlyingSystemSource>(m_sources.Values);
+                m_sourceList.Sort(static (a, b) => string.CompareOrdinal(a.SourcePath, b.SourcePath));
+
+                int periodMs;
+
+                if (m_deterministicMode && m_sourceList.Count > 0)
+                {
+                    // Guarantee each source simulated within maxIntervalSeconds
+                    periodMs = (int)Math.Floor((m_maxIntervalSeconds * 1000.0) / m_sourceList.Count);
+                    if (periodMs < 50) periodMs = 50; // avoid overly tight loops
+                }
+                else
+                {
+                    // Original behavior (assume 1000ms if that was the default)
+                    periodMs = 1000;
+                }
+
+                m_simulationTimer = new Timer(
+                    deterministic ? DoDeterministicSimulation : DoSimulation,
+                    state: null,
+                    dueTime: periodMs,
+                    period: periodMs);
             }
         }
 
@@ -227,6 +254,40 @@ namespace AlarmCondition
                 Utils.Trace(e, "Unexpected error running simulation for system");
             }
         }
+
+        private void DoDeterministicSimulation(object state)
+        {
+            try
+            {
+                UnderlyingSystemSource[] sourcesSnapshot;
+                long counter;
+
+                lock (m_lock)
+                {
+                    if (m_sourceList == null || m_sourceList.Count == 0)
+                    {
+                        return;
+                    }
+
+                    sourcesSnapshot = m_sourceList.ToArray();
+                    counter = ++m_simulationCounter;
+
+                    // Select exactly one source per tick in round-robin order
+                    var index = m_nextSourceIndex % sourcesSnapshot.Length;
+                    var source = sourcesSnapshot[index];
+
+                    // Advance for next tick
+                    m_nextSourceIndex++;
+
+                    // Call existing per-source simulation
+                    source.DoSimulation(counter, index);
+                }
+            }
+            catch (Exception ex)
+            {
+                Utils.Trace(ex, "Deterministic simulation error");
+            }
+        }
         #endregion
 
         #region Private Fields
@@ -234,6 +295,10 @@ namespace AlarmCondition
         private Dictionary<string, UnderlyingSystemSource> m_sources;
         private Timer m_simulationTimer;
         private long m_simulationCounter;
+        private bool m_deterministicMode;
+        private int m_maxIntervalSeconds = 5;
+        private int m_nextSourceIndex;
+        private List<UnderlyingSystemSource> m_sourceList; // cached ordered list
         #endregion
     }
 }
