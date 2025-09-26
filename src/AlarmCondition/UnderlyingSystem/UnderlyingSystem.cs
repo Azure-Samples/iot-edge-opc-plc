@@ -173,28 +173,37 @@ namespace AlarmCondition
                     return;
                 }
 
-                m_deterministicMode = deterministic;
-                m_maxIntervalSeconds = maxIntervalSeconds <= 0 ? 5 : maxIntervalSeconds;
-
                 m_simulationCounter = 0;
                 m_nextSourceIndex = 0;
 
-                // Cache a stable ordering of sources for round robin (e.g. by SourcePath)
                 m_sourceList = new List<UnderlyingSystemSource>(m_sources.Values);
                 m_sourceList.Sort(static (a, b) => string.CompareOrdinal(a.SourcePath, b.SourcePath));
 
                 int periodMs;
-
-                if (m_deterministicMode && m_sourceList.Count > 0)
+                if (deterministic && m_sourceList.Count > 0)
                 {
-                    // Guarantee each source simulated within maxIntervalSeconds
-                    periodMs = (int)Math.Floor((m_maxIntervalSeconds * 1000.0) / m_sourceList.Count);
-                    if (periodMs < 50) periodMs = 50; // avoid overly tight loops
+                    // Original calculation ensured one visit per source within max interval.
+                    periodMs = (int)Math.Floor((maxIntervalSeconds * 1000.0) / m_sourceList.Count);
+                    if (periodMs < 50) periodMs = 50;
                 }
                 else
                 {
-                    // Original behavior (assume 1000ms if that was the default)
                     periodMs = 1000;
+                }
+
+                if (deterministic && m_sourceList.Count > 0)
+                {
+                    // Minimum required to guarantee each source within the window
+                    int minPerTick = (int)Math.Ceiling(m_sourceList.Count * (double)periodMs / (maxIntervalSeconds * 1000.0));
+
+                    if (minPerTick < 1) minPerTick = 1;
+
+                    // Apply multiplier to increase likelihood of visible alarm transitions
+                    m_sourcesPerTick = Math.Min(m_sourceList.Count, minPerTick * m_processingMultiplier);
+                }
+                else
+                {
+                    m_sourcesPerTick = m_sourceList.Count; // random mode: process all
                 }
 
                 m_simulationTimer = new Timer(
@@ -218,6 +227,29 @@ namespace AlarmCondition
                     m_simulationTimer = null;
                 }
             }
+        }
+
+        /// <summary>
+        /// Tries the get source.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="source">The source.</param>
+        /// <returns>Whether the source was found.</returns>
+        public bool TryGetSource(string name, out UnderlyingSystemSource source)
+        {
+            lock (m_lock)
+            {
+                foreach (var kvp in m_sources)
+                {
+                    if (kvp.Value.Name == name)
+                    {
+                        source = kvp.Value;
+                        return true;
+                    }
+                }
+            }
+            source = null;
+            return false;
         }
         #endregion
 
@@ -260,7 +292,8 @@ namespace AlarmCondition
             try
             {
                 UnderlyingSystemSource[] sourcesSnapshot;
-                long counter;
+                int sourcesPerTick;
+                long counterStart;
 
                 lock (m_lock)
                 {
@@ -270,17 +303,34 @@ namespace AlarmCondition
                     }
 
                     sourcesSnapshot = m_sourceList.ToArray();
-                    counter = ++m_simulationCounter;
+                    sourcesPerTick = m_sourcesPerTick;
+                    counterStart = ++m_simulationCounter;
+                }
 
-                    // Select exactly one source per tick in round-robin order
-                    var index = m_nextSourceIndex % sourcesSnapshot.Length;
-                    var source = sourcesSnapshot[index];
+                // Process the batch outside the lock to reduce contention
+                for (int i = 0; i < sourcesPerTick; i++)
+                {
+                    UnderlyingSystemSource source;
+                    long counter;
 
-                    // Advance for next tick
-                    m_nextSourceIndex++;
+                    lock (m_lock)
+                    {
+                        if (sourcesSnapshot.Length == 0)
+                        {
+                            return;
+                        }
 
-                    // Call existing per-source simulation
-                    source.DoSimulation(counter, index);
+                        int index = m_nextSourceIndex % sourcesSnapshot.Length;
+                        source = sourcesSnapshot[index];
+                        m_nextSourceIndex++;
+
+                        // Use a monotonically increasing counter per processed source for better progression
+                        counter = counterStart + i;
+                    }
+
+                    // Existing per-source simulation method
+                    // (Assuming UpdateAlarm/DoSimulation logic inside UnderlyingSystemSource uses counter + index)
+                    source.DoSimulation(counter, i);
                 }
             }
             catch (Exception ex)
@@ -291,12 +341,12 @@ namespace AlarmCondition
         #endregion
 
         #region Private Fields
-        private object m_lock = new object();
-        private Dictionary<string, UnderlyingSystemSource> m_sources;
+        private readonly object m_lock = new object();
+        private readonly Dictionary<string, UnderlyingSystemSource> m_sources;
         private Timer m_simulationTimer;
         private long m_simulationCounter;
-        private bool m_deterministicMode;
-        private int m_maxIntervalSeconds = 5;
+        private int m_sourcesPerTick;
+        private readonly int m_processingMultiplier = 2; // Increase density; make configurable if desired.
         private int m_nextSourceIndex;
         private List<UnderlyingSystemSource> m_sourceList; // cached ordered list
         #endregion

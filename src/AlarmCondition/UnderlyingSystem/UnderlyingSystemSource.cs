@@ -391,6 +391,32 @@ namespace AlarmCondition
                 Utils.Trace(e, "Unexpected error running simulation for source {0}", SourcePath);
             }
         }
+
+        /// <summary>
+        /// Creates and reports a snapshot from the first alarm as a deterministic heartbeat.
+        /// Returns true if a snapshot was produced.
+        /// </summary>
+        internal bool TriggerSnapshot(string reason)
+        {
+            UnderlyingSystemAlarm snapshot = null;
+            lock (m_alarms)
+            {
+                if (m_alarms.Count == 0)
+                {
+                    return false;
+                }
+                var alarm = m_alarms[0];
+                alarm.Time = DateTime.UtcNow;
+                alarm.Reason = reason;
+                snapshot = alarm.CreateSnapshot();
+            }
+            if (snapshot != null)
+            {
+                ReportAlarmChange(snapshot);
+                return true;
+            }
+            return false;
+        }
         #endregion
 
         #region Private Methods

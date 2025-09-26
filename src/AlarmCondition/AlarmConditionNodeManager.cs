@@ -137,10 +137,37 @@ namespace AlarmCondition
                     }
                 }
 
-                // start the simulation.
-                // Deterministic alarm simulation: ensure each source simulated within 5s.
-                m_system.StartSimulation(deterministic: true, maxIntervalSeconds: 5);
+                // Deterministic round-robin event emission (one per second) over a fixed ordered list of sources.
+                // Required order: WestTank, EastTank, NorthMotor, SouthMotor ->
+                //   Metals/WestTank, Colours/EastTank, Colours/NorthMotor, Metals/SouthMotor
+                var deterministicSourcePaths = new[]
+                {
+                    "Metals/WestTank",
+                    "Colours/EastTank",
+                    "Colours/NorthMotor",
+                    "Metals/SouthMotor"
+                };
+
+                var ordered = new List<SourceState>(deterministicSourcePaths.Length);
+                foreach (var sp in deterministicSourcePaths)
+                {
+                    if (m_sources.TryGetValue(sp, out var src))
+                    {
+                        ordered.Add(src);
+                    }
+                }
+                _deterministicEventSources = ordered.ToArray();
+                _deterministicEventIndex = 0;
+
+                // Start deterministic event timer (1 second period).
+                _deterministicEventTimer = new Timer(OnDeterministicEvent, state: null, dueTime: 1000, period: 1000);
+
+                // Optional: retain existing generic system/audit events every second if still desired.
                 m_simulationTimer = new Timer(OnRaiseSystemEvents, state: null, dueTime: 1000, period: 1000);
+
+                // NOTE: Intentionally not calling m_system.StartSimulation() to avoid random alarm/event noise.
+                // If alarm state simulation is still required in parallel, re-enable the call below.
+                // m_system.StartSimulation(deterministic: true, maxIntervalSeconds: 5);
             }
         }
 
@@ -234,6 +261,35 @@ namespace AlarmCondition
             catch (Exception e)
             {
                 Utils.Trace(e, "Unexpected error in OnRaiseSystemEvents");
+            }
+        }
+
+        private void OnDeterministicEvent(object state)
+        {
+            try
+            {
+                SourceState source;
+                lock (Lock)
+                {
+                    if (_deterministicEventSources == null || _deterministicEventSources.Length == 0)
+                    {
+                        return;
+                    }
+                    source = _deterministicEventSources[_deterministicEventIndex];
+                    _deterministicEventIndex = (_deterministicEventIndex + 1) % _deterministicEventSources.Length;
+                }
+
+                // Access underlying system source to emit a deterministic alarm snapshot.
+                if (source.SymbolicName != null &&
+                    ((UnderlyingSystem)SystemContext.SystemHandle) is UnderlyingSystem sys &&
+                    sys.TryGetSource(source.SymbolicName, out var underlying))
+                {
+                    underlying.TriggerSnapshot($"Deterministic heartbeat for {source.SymbolicName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Utils.Trace(ex, "Unexpected error in OnDeterministicEvent");
             }
         }
 
@@ -475,6 +531,10 @@ namespace AlarmCondition
         private readonly Dictionary<string, SourceState> m_sources;
         private Timer m_simulationTimer;
         private DataGenerator m_generator;
+
+        private Timer _deterministicEventTimer;
+        private SourceState[] _deterministicEventSources;
+        private int _deterministicEventIndex;
         #endregion
     }
 }
