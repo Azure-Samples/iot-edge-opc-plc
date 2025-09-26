@@ -80,8 +80,7 @@ namespace AlarmCondition
         /// <param name="alarmType">Type of the alarm.</param>
         public void CreateAlarm(string alarmName, string alarmType)
         {
-            UnderlyingSystemAlarm alarm = new()
-            {
+            UnderlyingSystemAlarm alarm = new() {
                 Source = this,
                 Name = alarmName,
                 AlarmType = alarmType,
@@ -99,18 +98,18 @@ namespace AlarmCondition
             switch (alarmType)
             {
                 case "HighAlarm":
-                {
-                    alarm.Limits = [80];
-                    alarm.State |= UnderlyingSystemAlarmStates.High;
-                    break;
-                }
+                    {
+                        alarm.Limits = [80];
+                        alarm.State |= UnderlyingSystemAlarmStates.High;
+                        break;
+                    }
 
                 case "HighLowAlarm":
-                {
-                    alarm.Limits = [90, 70, 30, 10];
-                    alarm.State |= UnderlyingSystemAlarmStates.High;
-                    break;
-                }
+                    {
+                        alarm.Limits = [90, 70, 30, 10];
+                        alarm.State |= UnderlyingSystemAlarmStates.High;
+                        break;
+                    }
             }
 
             lock (m_alarms)
@@ -138,7 +137,7 @@ namespace AlarmCondition
                     if (alarm.SetStateBits(UnderlyingSystemAlarmStates.Enabled, enabling))
                     {
                         alarm.Time = alarm.EnableTime = DateTime.UtcNow;
-                        alarm.Reason = "The alarm was " + ((enabling)?"enabled.":"disabled.");
+                        alarm.Reason = "The alarm was " + ((enabling) ? "enabled." : "disabled.");
                         snapshots.Add(alarm.CreateSnapshot());
                     }
 
@@ -153,7 +152,7 @@ namespace AlarmCondition
                         if (record.SetStateBits(UnderlyingSystemAlarmStates.Enabled, enabling))
                         {
                             record.Time = alarm.EnableTime = DateTime.UtcNow;
-                            record.Reason = "The alarm was " + ((enabling)?"enabled.":"disabled.");
+                            record.Reason = "The alarm was " + ((enabling) ? "enabled." : "disabled.");
                             snapshots.Add(alarm.CreateSnapshot());
                         }
                     }
@@ -331,7 +330,7 @@ namespace AlarmCondition
                     if (alarm.SetStateBits(UnderlyingSystemAlarmStates.Suppressed, offline))
                     {
                         alarm.Time = alarm.EnableTime = DateTime.UtcNow;
-                        alarm.Reason = "The alarm was " + ((offline)?"suppressed.":"unsuppressed.");
+                        alarm.Reason = "The alarm was " + ((offline) ? "suppressed." : "unsuppressed.");
 
                         // check if the alarm change should be reported.
                         if ((alarm.State & UnderlyingSystemAlarmStates.Enabled) != 0)
@@ -376,7 +375,7 @@ namespace AlarmCondition
                 {
                     for (int ii = 0; ii < m_alarms.Count; ii++)
                     {
-                        UpdateAlarm(m_alarms[ii], counter, ii+index, snapshots);
+                        UpdateAlarm(m_alarms[ii], counter, ii + index, snapshots);
                     }
                 }
 
@@ -390,32 +389,6 @@ namespace AlarmCondition
             {
                 Utils.Trace(e, "Unexpected error running simulation for source {0}", SourcePath);
             }
-        }
-
-        /// <summary>
-        /// Creates and reports a snapshot from the first alarm as a deterministic heartbeat.
-        /// Returns true if a snapshot was produced.
-        /// </summary>
-        internal bool TriggerSnapshot(string reason)
-        {
-            UnderlyingSystemAlarm snapshot = null;
-            lock (m_alarms)
-            {
-                if (m_alarms.Count == 0)
-                {
-                    return false;
-                }
-                var alarm = m_alarms[0];
-                alarm.Time = DateTime.UtcNow;
-                alarm.Reason = reason;
-                snapshot = alarm.CreateSnapshot();
-            }
-            if (snapshot != null)
-            {
-                ReportAlarmChange(snapshot);
-                return true;
-            }
-            return false;
         }
         #endregion
 
@@ -489,7 +462,7 @@ namespace AlarmCondition
             }
 
             // check if the alarm needs to be updated this cycle.
-            if (counter % (8 + (index%4)) == 0)
+            if (counter % (8 + (index % 4)) == 0)
             {
                 // check if it is time to activate.
                 if ((alarm.State & UnderlyingSystemAlarmStates.Active) == 0)
@@ -504,18 +477,18 @@ namespace AlarmCondition
                     switch (alarm.AlarmType)
                     {
                         case "HighAlarm":
-                        {
-                            alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
-                            alarm.SetStateBits(UnderlyingSystemAlarmStates.High, true);
-                            break;
-                        }
+                            {
+                                alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
+                                alarm.SetStateBits(UnderlyingSystemAlarmStates.High, true);
+                                break;
+                            }
 
                         case "HighLowAlarm":
-                        {
-                            alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
-                            alarm.SetStateBits(UnderlyingSystemAlarmStates.Low, true);
-                            break;
-                        }
+                            {
+                                alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
+                                alarm.SetStateBits(UnderlyingSystemAlarmStates.Low, true);
+                                break;
+                            }
                     }
                 }
 
@@ -544,11 +517,11 @@ namespace AlarmCondition
                             switch (alarm.AlarmType)
                             {
                                 case "HighLowAlarm":
-                                {
-                                    alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
-                                    alarm.SetStateBits(UnderlyingSystemAlarmStates.LowLow, true);
-                                    break;
-                                }
+                                    {
+                                        alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
+                                        alarm.SetStateBits(UnderlyingSystemAlarmStates.LowLow, true);
+                                        break;
+                                    }
                             }
                         }
                     }
@@ -601,11 +574,37 @@ namespace AlarmCondition
 
             // no change so nothing to report.
         }
+
+        /// <summary>
+        /// Creates and reports a snapshot from the first alarm as a deterministic heartbeat.
+        /// Returns true if a snapshot was produced.
+        /// </summary>
+        internal bool TriggerSnapshot(string reason)
+        {
+            UnderlyingSystemAlarm snapshot = null;
+            lock (m_alarms)
+            {
+                if (m_alarms.Count == 0)
+                {
+                    return false;
+                }
+                var alarm = m_alarms[0];
+                alarm.Time = DateTime.UtcNow;
+                alarm.Reason = reason;
+                snapshot = alarm.CreateSnapshot();
+            }
+            if (snapshot != null)
+            {
+                ReportAlarmChange(snapshot);
+                return true;
+            }
+            return false;
+        }
         #endregion
 
         #region Private Fields
         private readonly List<UnderlyingSystemAlarm> m_alarms;
-        private readonly Dictionary<uint,UnderlyingSystemAlarm> m_archive;
+        private readonly Dictionary<uint, UnderlyingSystemAlarm> m_archive;
         private uint m_nextRecordNumber;
         #endregion
     }

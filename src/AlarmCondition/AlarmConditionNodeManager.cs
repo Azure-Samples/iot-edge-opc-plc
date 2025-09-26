@@ -166,7 +166,7 @@ namespace AlarmCondition
                 m_simulationTimer = new Timer(OnRaiseSystemEvents, state: null, dueTime: 1000, period: 1000);
 
                 // Alarm state simulation runs in parallel.
-                m_system.StartSimulation(deterministic: true, maxIntervalSeconds: 5);
+                m_system.StartSimulation();
             }
         }
 

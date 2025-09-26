@@ -164,53 +164,17 @@ namespace AlarmCondition
         /// Once an alarm is confirmed it go to the inactive state.
         /// If the alarm stays active the severity will be gradually increased.
         /// </remarks>
-        public void StartSimulation(bool deterministic = false, int maxIntervalSeconds = 5)
+        public void StartSimulation()
         {
             lock (m_lock)
             {
                 if (m_simulationTimer != null)
                 {
-                    return;
+                    m_simulationTimer.Dispose();
+                    m_simulationTimer = null;
                 }
 
-                m_simulationCounter = 0;
-                m_nextSourceIndex = 0;
-
-                m_sourceList = new List<UnderlyingSystemSource>(m_sources.Values);
-                m_sourceList.Sort(static (a, b) => string.CompareOrdinal(a.SourcePath, b.SourcePath));
-
-                int periodMs;
-                if (deterministic && m_sourceList.Count > 0)
-                {
-                    // Original calculation ensured one visit per source within max interval.
-                    periodMs = (int)Math.Floor((maxIntervalSeconds * 1000.0) / m_sourceList.Count);
-                    if (periodMs < 50) periodMs = 50;
-                }
-                else
-                {
-                    periodMs = 1000;
-                }
-
-                if (deterministic && m_sourceList.Count > 0)
-                {
-                    // Minimum required to guarantee each source within the window
-                    int minPerTick = (int)Math.Ceiling(m_sourceList.Count * (double)periodMs / (maxIntervalSeconds * 1000.0));
-
-                    if (minPerTick < 1) minPerTick = 1;
-
-                    // Apply multiplier to increase likelihood of visible alarm transitions
-                    m_sourcesPerTick = Math.Min(m_sourceList.Count, minPerTick * m_processingMultiplier);
-                }
-                else
-                {
-                    m_sourcesPerTick = m_sourceList.Count; // random mode: process all
-                }
-
-                m_simulationTimer = new Timer(
-                    deterministic ? DoDeterministicSimulation : DoSimulation,
-                    state: null,
-                    dueTime: periodMs,
-                    period: periodMs);
+                m_simulationTimer = new Timer(DoSimulation, null, 1000, 1000);
             }
         }
 
@@ -227,29 +191,6 @@ namespace AlarmCondition
                     m_simulationTimer = null;
                 }
             }
-        }
-
-        /// <summary>
-        /// Tries the get source.
-        /// </summary>
-        /// <param name="name">The name.</param>
-        /// <param name="source">The source.</param>
-        /// <returns>Whether the source was found.</returns>
-        public bool TryGetSource(string name, out UnderlyingSystemSource source)
-        {
-            lock (m_lock)
-            {
-                foreach (var kvp in m_sources)
-                {
-                    if (kvp.Value.Name == name)
-                    {
-                        source = kvp.Value;
-                        return true;
-                    }
-                }
-            }
-            source = null;
-            return false;
         }
         #endregion
 
@@ -287,56 +228,27 @@ namespace AlarmCondition
             }
         }
 
-        private void DoDeterministicSimulation(object state)
+        /// <summary>
+        /// Tries the get source.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="source">The source.</param>
+        /// <returns>Whether the source was found.</returns>
+        public bool TryGetSource(string name, out UnderlyingSystemSource source)
         {
-            try
+            lock (m_lock)
             {
-                UnderlyingSystemSource[] sourcesSnapshot;
-                int sourcesPerTick;
-                long counterStart;
-
-                lock (m_lock)
+                foreach (var kvp in m_sources)
                 {
-                    if (m_sourceList == null || m_sourceList.Count == 0)
+                    if (kvp.Value.Name == name)
                     {
-                        return;
+                        source = kvp.Value;
+                        return true;
                     }
-
-                    sourcesSnapshot = m_sourceList.ToArray();
-                    sourcesPerTick = m_sourcesPerTick;
-                    counterStart = ++m_simulationCounter;
-                }
-
-                // Process the batch outside the lock to reduce contention
-                for (int i = 0; i < sourcesPerTick; i++)
-                {
-                    UnderlyingSystemSource source;
-                    long counter;
-
-                    lock (m_lock)
-                    {
-                        if (sourcesSnapshot.Length == 0)
-                        {
-                            return;
-                        }
-
-                        int index = m_nextSourceIndex % sourcesSnapshot.Length;
-                        source = sourcesSnapshot[index];
-                        m_nextSourceIndex++;
-
-                        // Use a monotonically increasing counter per processed source for better progression
-                        counter = counterStart + i;
-                    }
-
-                    // Existing per-source simulation method
-                    // (Assuming UpdateAlarm/DoSimulation logic inside UnderlyingSystemSource uses counter + index)
-                    source.DoSimulation(counter, i);
                 }
             }
-            catch (Exception ex)
-            {
-                Utils.Trace(ex, "Deterministic simulation error");
-            }
+            source = null;
+            return false;
         }
         #endregion
 
@@ -345,10 +257,6 @@ namespace AlarmCondition
         private readonly Dictionary<string, UnderlyingSystemSource> m_sources;
         private Timer m_simulationTimer;
         private long m_simulationCounter;
-        private int m_sourcesPerTick;
-        private readonly int m_processingMultiplier = 2; // Increase density; make configurable if desired.
-        private int m_nextSourceIndex;
-        private List<UnderlyingSystemSource> m_sourceList; // cached ordered list
         #endregion
     }
 }
