@@ -51,7 +51,7 @@ namespace AlarmCondition
 
         #region IDisposable Members
         /// <summary>
-        /// The finializer implementation.
+        /// The finalizer implementation.
         /// </summary>
         ~UnderlyingSystem()
         {
