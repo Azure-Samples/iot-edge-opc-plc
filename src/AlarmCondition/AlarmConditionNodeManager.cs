@@ -165,9 +165,8 @@ namespace AlarmCondition
                 // Optional: retain existing generic system/audit events every second if still desired.
                 m_simulationTimer = new Timer(OnRaiseSystemEvents, state: null, dueTime: 1000, period: 1000);
 
-                // NOTE: Intentionally not calling m_system.StartSimulation() to avoid random alarm/event noise.
-                // If alarm state simulation is still required in parallel, re-enable the call below.
-                // m_system.StartSimulation(deterministic: true, maxIntervalSeconds: 5);
+                // Alarm state simulation runs in parallel.
+                m_system.StartSimulation(deterministic: true, maxIntervalSeconds: 5);
             }
         }
 
