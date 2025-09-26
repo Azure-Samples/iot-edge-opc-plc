@@ -27,13 +27,13 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
 using Opc.Ua;
 using Opc.Ua.Server;
 using Opc.Ua.Test;
 using OpcPlc.AlarmCondition;
+using System;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace AlarmCondition
 {
@@ -137,9 +137,36 @@ namespace AlarmCondition
                     }
                 }
 
-                // start the simulation.
-                m_system.StartSimulation();
+                // Deterministic round-robin event emission (one per second) over a fixed ordered list of sources.
+                // Required order: WestTank, EastTank, NorthMotor, SouthMotor ->
+                //   Metals/WestTank, Colours/EastTank, Colours/NorthMotor, Metals/SouthMotor
+                var deterministicSourcePaths = new[]
+                {
+                    "Metals/WestTank",
+                    "Colours/EastTank",
+                    "Colours/NorthMotor",
+                    "Metals/SouthMotor"
+                };
+
+                var ordered = new List<SourceState>(deterministicSourcePaths.Length);
+                foreach (var sp in deterministicSourcePaths)
+                {
+                    if (m_sources.TryGetValue(sp, out var src))
+                    {
+                        ordered.Add(src);
+                    }
+                }
+                _deterministicEventSources = ordered.ToArray();
+                _deterministicEventIndex = 0;
+
+                // Start deterministic event timer (1 second period).
+                _deterministicEventTimer = new Timer(OnDeterministicEvent, state: null, dueTime: 1000, period: 1000);
+
+                // Optional: retain existing generic system/audit events every second if still desired.
                 m_simulationTimer = new Timer(OnRaiseSystemEvents, state: null, dueTime: 1000, period: 1000);
+
+                // Alarm state simulation runs in parallel.
+                m_system.StartSimulation();
             }
         }
 
@@ -236,6 +263,35 @@ namespace AlarmCondition
             }
         }
 
+        private void OnDeterministicEvent(object state)
+        {
+            try
+            {
+                SourceState source;
+                lock (Lock)
+                {
+                    if (_deterministicEventSources == null || _deterministicEventSources.Length == 0)
+                    {
+                        return;
+                    }
+                    source = _deterministicEventSources[_deterministicEventIndex];
+                    _deterministicEventIndex = (_deterministicEventIndex + 1) % _deterministicEventSources.Length;
+                }
+
+                // Access underlying system source to emit a deterministic alarm snapshot.
+                if (source.SymbolicName != null &&
+                    ((UnderlyingSystem)SystemContext.SystemHandle) is UnderlyingSystem sys &&
+                    sys.TryGetSource(source.SymbolicName, out var underlying))
+                {
+                    underlying.TriggerSnapshot($"Deterministic heartbeat for {source.SymbolicName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Utils.Trace(ex, "Unexpected error in OnDeterministicEvent");
+            }
+        }
+
         #region CreateAddressSpace Support Functions
         /// <summary>
         /// Creates and indexes an area defined for the server.
@@ -320,8 +376,7 @@ namespace AlarmCondition
 
                 if (MonitoredNodes.TryGetValue(nodeId, out var monitoredNode))
                 {
-                    NodeHandle handle = new()
-                    {
+                    NodeHandle handle = new() {
                         NodeId = nodeId,
                         Validated = true,
                         Node = monitoredNode.Node,
@@ -335,8 +390,7 @@ namespace AlarmCondition
 
                 if (parsedNodeId != null)
                 {
-                    var handle = new NodeHandle
-                    {
+                    var handle = new NodeHandle {
                         NodeId = nodeId,
                         Validated = false,
                         Node = null,
@@ -474,6 +528,10 @@ namespace AlarmCondition
         private readonly Dictionary<string, SourceState> m_sources;
         private Timer m_simulationTimer;
         private DataGenerator m_generator;
+
+        private Timer _deterministicEventTimer;
+        private SourceState[] _deterministicEventSources;
+        private int _deterministicEventIndex;
         #endregion
     }
 }

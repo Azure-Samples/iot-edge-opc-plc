@@ -51,7 +51,7 @@ namespace AlarmCondition
 
         #region IDisposable Members
         /// <summary>
-        /// The finializer implementation.
+        /// The finalizer implementation.
         /// </summary>
         ~UnderlyingSystem()
         {
@@ -227,11 +227,34 @@ namespace AlarmCondition
                 Utils.Trace(e, "Unexpected error running simulation for system");
             }
         }
+
+        /// <summary>
+        /// Tries the get source.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="source">The source.</param>
+        /// <returns>Whether the source was found.</returns>
+        public bool TryGetSource(string name, out UnderlyingSystemSource source)
+        {
+            lock (m_lock)
+            {
+                foreach (var kvp in m_sources)
+                {
+                    if (kvp.Value.Name == name)
+                    {
+                        source = kvp.Value;
+                        return true;
+                    }
+                }
+            }
+            source = null;
+            return false;
+        }
         #endregion
 
         #region Private Fields
-        private object m_lock = new object();
-        private Dictionary<string, UnderlyingSystemSource> m_sources;
+        private readonly object m_lock = new object();
+        private readonly Dictionary<string, UnderlyingSystemSource> m_sources;
         private Timer m_simulationTimer;
         private long m_simulationCounter;
         #endregion
