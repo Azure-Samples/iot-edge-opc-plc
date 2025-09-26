@@ -98,18 +98,14 @@ namespace AlarmCondition
             switch (alarmType)
             {
                 case "HighAlarm":
-                    {
-                        alarm.Limits = [80];
-                        alarm.State |= UnderlyingSystemAlarmStates.High;
-                        break;
-                    }
+                    alarm.Limits = [80];
+                    alarm.State |= UnderlyingSystemAlarmStates.High;
+                    break;
 
                 case "HighLowAlarm":
-                    {
-                        alarm.Limits = [90, 70, 30, 10];
-                        alarm.State |= UnderlyingSystemAlarmStates.High;
-                        break;
-                    }
+                    alarm.Limits = [90, 70, 30, 10];
+                    alarm.State |= UnderlyingSystemAlarmStates.High;
+                    break;
             }
 
             lock (m_alarms)
@@ -477,18 +473,14 @@ namespace AlarmCondition
                     switch (alarm.AlarmType)
                     {
                         case "HighAlarm":
-                            {
-                                alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
-                                alarm.SetStateBits(UnderlyingSystemAlarmStates.High, true);
-                                break;
-                            }
+                            alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
+                            alarm.SetStateBits(UnderlyingSystemAlarmStates.High, true);
+                            break;
 
                         case "HighLowAlarm":
-                            {
-                                alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
-                                alarm.SetStateBits(UnderlyingSystemAlarmStates.Low, true);
-                                break;
-                            }
+                            alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
+                            alarm.SetStateBits(UnderlyingSystemAlarmStates.Low, true);
+                            break;
                     }
                 }
 
@@ -517,11 +509,9 @@ namespace AlarmCondition
                             switch (alarm.AlarmType)
                             {
                                 case "HighLowAlarm":
-                                    {
-                                        alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
-                                        alarm.SetStateBits(UnderlyingSystemAlarmStates.LowLow, true);
-                                        break;
-                                    }
+                                    alarm.SetStateBits(UnderlyingSystemAlarmStates.Limits, false);
+                                    alarm.SetStateBits(UnderlyingSystemAlarmStates.LowLow, true);
+                                    break;
                             }
                         }
                     }
