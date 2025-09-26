@@ -27,13 +27,13 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
 using Opc.Ua;
 using Opc.Ua.Server;
 using Opc.Ua.Test;
 using OpcPlc.AlarmCondition;
+using System;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace AlarmCondition
 {
@@ -376,8 +376,7 @@ namespace AlarmCondition
 
                 if (MonitoredNodes.TryGetValue(nodeId, out var monitoredNode))
                 {
-                    NodeHandle handle = new()
-                    {
+                    NodeHandle handle = new() {
                         NodeId = nodeId,
                         Validated = true,
                         Node = monitoredNode.Node,
@@ -391,8 +390,7 @@ namespace AlarmCondition
 
                 if (parsedNodeId != null)
                 {
-                    var handle = new NodeHandle
-                    {
+                    var handle = new NodeHandle {
                         NodeId = nodeId,
                         Validated = false,
                         Node = null,
