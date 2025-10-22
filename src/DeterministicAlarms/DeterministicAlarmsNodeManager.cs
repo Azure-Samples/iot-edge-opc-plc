@@ -39,9 +39,9 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
 
         // set one namespace for the type model and one names for dynamically created nodes.
         string[] namespaceUrls =
-            [
-                OpcPlc.Namespaces.OpcPlcDeterministicAlarmsInstance,
-            ];
+        [
+            OpcPlc.Namespaces.OpcPlcDeterministicAlarmsInstance,
+        ];
 
         SetNamespaces(namespaceUrls);
 
@@ -362,7 +362,7 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
     /// manager must start/stop reporting events for all objects that it manages.
     /// </remarks>
     public override ServiceResult SubscribeToAllEvents(
-        Opc.Ua.Server.OperationContext context,
+        OperationContext context,
         uint subscriptionId,
         IEventMonitoredItem monitoredItem,
         bool unsubscribe)
@@ -578,7 +578,7 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
 
         for (int ii = 0; ii < _rootNotifiers.Count; ii++)
         {
-            if (Object.ReferenceEquals(notifier, _rootNotifiers[ii]))
+            if (ReferenceEquals(notifier, _rootNotifiers[ii]))
             {
                 return;
             }
