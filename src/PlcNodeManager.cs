@@ -178,6 +178,14 @@ public class PlcNodeManager : CustomNodeManager2
         return method;
     }
 
+    /// <summary>
+    /// Registers a node as a root notifier for event subscriptions.
+    /// </summary>
+    public void RegisterRootNotifier(NodeState notifier)
+    {
+        AddRootNotifier(notifier);
+    }
+
     private BaseDataVariableState CreateBaseVariable(BaseDataVariableState baseDataVariableState, NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
     {
         ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];

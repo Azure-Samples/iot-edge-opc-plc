@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.Tests;
+namespace OpcPlc.Tests;
 
 using FluentAssertions;
 using NUnit.Framework;
@@ -92,12 +92,13 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
                 value.Should().Contain(new Dictionary<string, object>
                 {
                     ["/EventType"] = _eventType,
-                    ["/SourceName"] = "CurrentTemperature",
+                    ["/SourceName"] = "Boiler #2",
                 });
                 value.Should().ContainKey("/Message")
                     .WhoseValue.Should().BeOfType<LocalizedText>()
                     .Which.Text.Should().Be("Temperature is above or equal to the overheat threshold!");
             }
+            i++;
         }
     }
 
@@ -125,7 +126,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
                 value.Should().Contain(new Dictionary<string, object>
                 {
                     ["/EventType"] = _eventType,
-                    ["/SourceName"] = "CurrentTemperature",
+                    ["/SourceName"] = "Boiler #2",
                 });
                 value.Should().ContainKey("/Message")
                     .WhoseValue.Should().BeOfType<LocalizedText>()
@@ -163,7 +164,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
             value.Should().Contain(new Dictionary<string, object>
             {
                 ["/EventType"] = _eventType,
-                ["/SourceName"] = "CurrentTemperature",
+                ["/SourceName"] = "Boiler #2",
             });
             value.Should().ContainKey("/Message")
                 .WhoseValue.Should().BeOfType<LocalizedText>()
@@ -191,7 +192,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
             value.Should().Contain(new Dictionary<string, object>
             {
                 ["/EventType"] = _eventType,
-                ["/SourceName"] = "CurrentTemperature",
+                ["/SourceName"] = "Boiler #2",
             });
             value.Should().ContainKey("/Message")
                 .WhoseValue.Should().BeOfType<LocalizedText>()

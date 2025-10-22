@@ -138,37 +138,41 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
                 }
             }
 
-            // Deterministic round-robin event emission (one per second) over a fixed ordered list of sources.
-            // Required order: WestTank, EastTank, NorthMotor, SouthMotor ->
-            //   Metals/WestTank, Colours/EastTank, Colours/NorthMotor, Metals/SouthMotor
-            var deterministicSourcePaths = new[]
-            {
-                "Metals/WestTank",
-                "Colours/EastTank",
-                "Colours/NorthMotor",
-                "Metals/SouthMotor"
-            };
+            StartDeterministicEvents();
 
-            var ordered = new List<SourceState>(deterministicSourcePaths.Length);
-            foreach (var sp in deterministicSourcePaths)
-            {
-                if (m_sources.TryGetValue(sp, out var src))
-                {
-                    ordered.Add(src);
-                }
-            }
-            _deterministicEventSources = ordered.ToArray();
-            _deterministicEventIndex = 0;
-
-            // Start deterministic event timer (1 second period).
-            _deterministicEventTimer = new Timer(OnDeterministicEvent, state: null, dueTime: 1000, period: 1000);
-
-            // Optional: retain existing generic system/audit events every second if still desired.
+            // Existing generic system/audit events every second.
             m_simulationTimer = new Timer(OnRaiseSystemEvents, state: null, dueTime: 1000, period: 1000);
 
             // Alarm state simulation runs in parallel.
             m_system.StartSimulation();
         }
+    }
+
+    private void StartDeterministicEvents()
+    {
+        // Deterministic round-robin event emission (one per second) over a fixed ordered list of sources.
+        // Order: WestTank, EastTank, NorthMotor, SouthMotor.
+        string[] deterministicSourcePaths =
+        [
+                "Metals/WestTank",
+                "Colours/EastTank",
+                "Colours/NorthMotor",
+                "Metals/SouthMotor"
+        ];
+
+        var ordered = new List<SourceState>(deterministicSourcePaths.Length);
+        foreach (var sp in deterministicSourcePaths)
+        {
+            if (m_sources.TryGetValue(sp, out var src))
+            {
+                ordered.Add(src);
+            }
+        }
+        _deterministicEventSources = ordered.ToArray();
+        _deterministicEventIndex = 0;
+
+        // Start deterministic event timer (1 second period).
+        _deterministicEventTimer = new Timer(OnDeterministicEvent, state: null, dueTime: 1000, period: 1000);
     }
 
     private AreaConfigurationCollection CreateAreaConfigurationCollection()
