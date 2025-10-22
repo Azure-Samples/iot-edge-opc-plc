@@ -49,24 +49,23 @@ public partial class SlowFastCommon
 
         for (int i = 0; i < count; i++)
         {
-            var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) =
-            GetNodeType(type, stepSize, minValue, maxValue);
+            var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) = GetNodeType(type, stepSize, minValue, maxValue);
 
             string id = (i + 1).ToString();
             nodes[i] = _plcNodeManager.CreateBaseVariable(
-            folder,
-            path: $"{name}{type}{id}",
-            name: $"{name}{type}{id}",
-            dataType,
-            valueRank,
-            AccessLevels.CurrentReadOrWrite,
-            "Constantly increasing value(s)",
-            NamespaceType.OpcPlcApplications,
-            randomize,
-            stepTypeSize,
-            minTypeValue,
-            maxTypeValue,
-            defaultValue);
+                folder,
+                path: $"{name}{type}{id}",
+                name: $"{name}{type}{id}",
+                dataType,
+                valueRank,
+                AccessLevels.CurrentReadOrWrite,
+                "Constantly increasing value(s)",
+                NamespaceType.OpcPlcApplications,
+                randomize,
+                stepTypeSize,
+                minTypeValue,
+                maxTypeValue,
+                defaultValue);
         }
 
         return nodes;
@@ -94,27 +93,26 @@ public partial class SlowFastCommon
 
     private static (NodeId dataType, int valueRank, object defaultValue, object stepSize, object minValue, object maxValue) GetNodeType(NodeType nodeType, string stepSize, string minValue, string maxValue)
     {
-        return nodeType switch
-        {
+        return nodeType switch {
             NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, true, null, null, null),
 
             NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, 0.0, double.Parse(stepSize),
-            minValue == null
-            ? 0.0
-            : double.Parse(minValue),
-            maxValue == null
-            ? double.MaxValue
-            : double.Parse(maxValue)),
+                minValue == null
+                    ? 0.0
+                    : double.Parse(minValue),
+                maxValue == null
+                    ? double.MaxValue
+                    : double.Parse(maxValue)),
 
             NodeType.UIntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32], null, null, null),
 
             _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, (uint)0, uint.Parse(stepSize),
-            minValue == null
-            ? uint.MinValue
-            : uint.Parse(minValue),
-            maxValue == null
-            ? uint.MaxValue
-            : uint.Parse(maxValue)),
+                minValue == null
+                    ? uint.MinValue
+                    : uint.Parse(minValue),
+                maxValue == null
+                    ? uint.MaxValue
+                    : uint.Parse(maxValue)),
         };
     }
 
@@ -197,18 +195,18 @@ public partial class SlowFastCommon
                             if (minDoubleValue >= 0 && maxDoubleValue > 0)
                             {
                                 value = (extendedDoubleNodeValue % maxDoubleValue) < minDoubleValue
-                                ? minDoubleValue
-                                : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize) > maxDoubleValue
                                     ? minDoubleValue
-                                    : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
+                                    : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize) > maxDoubleValue
+                                        ? minDoubleValue
+                                        : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
                             }
                             else if (maxDoubleValue <= 0 && minDoubleValue < 0) // Negative-only range cases (e.g. 0 to -9.5).
                             {
                                 value = (extendedDoubleNodeValue % minDoubleValue) > maxDoubleValue
-                                ? maxDoubleValue
-                                : ((extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize) < minDoubleValue
                                     ? maxDoubleValue
-                                    : (extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize;
+                                    : ((extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize) < minDoubleValue
+                                        ? maxDoubleValue
+                                        : (extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize;
                             }
                             else
                             {
@@ -264,10 +262,10 @@ public partial class SlowFastCommon
                         else
                         {
                             value = (extendedUIntNodeValue % maxUIntValue) < minUIntValue
-                            ? minUIntValue
-                            : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize) > maxUIntValue
                                 ? minUIntValue
-                                : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize);
+                                : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize) > maxUIntValue
+                                    ? minUIntValue
+                                    : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize);
                         }
 
                         break;
@@ -318,8 +316,8 @@ public partial class SlowFastCommon
     public static NodeType ParseNodeType(string type)
     {
         return Enum.TryParse(type, ignoreCase: true, out NodeType nodeType)
-        ? nodeType
-        : NodeType.UInt;
+            ? nodeType
+            : NodeType.UInt;
     }
 
     /// <summary>
@@ -344,16 +342,16 @@ public partial class SlowFastCommon
 
     private readonly (StatusCode, bool)[] BadStatusSequence =
     [
-    ( StatusCodes.Good, true ),
- ( StatusCodes.Good, true ),
- ( StatusCodes.Good, true ),
- ( StatusCodes.UncertainLastUsableValue, true),
- ( StatusCodes.Good, true ),
- ( StatusCodes.Good, true ),
- ( StatusCodes.Good, true ),
- ( StatusCodes.UncertainLastUsableValue, true),
- ( StatusCodes.BadDataLost, true),
- ( StatusCodes.BadNoCommunication, false)
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.UncertainLastUsableValue, true),
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.UncertainLastUsableValue, true),
+        ( StatusCodes.BadDataLost, true),
+        ( StatusCodes.BadNoCommunication, false)
     ];
 
     [LoggerMessage(
