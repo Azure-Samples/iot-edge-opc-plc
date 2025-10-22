@@ -329,16 +329,12 @@ namespace AlarmCondition
                     }
 
                 case "TripAlarm":
-                    {
-                        node = new TripAlarmState(this);
-                        break;
-                    }
+                    node = new TripAlarmState(this);
+                    break;
 
                 default:
-                    {
-                        node = new AlarmConditionState(this);
-                        break;
-                    }
+                    node = new AlarmConditionState(this);
+                    break;
             }
 
             node.SymbolicName = alarm.Name;
