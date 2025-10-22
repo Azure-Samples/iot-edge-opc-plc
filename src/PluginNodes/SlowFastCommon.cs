@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using System;
 
-public class SlowFastCommon
+public partial class SlowFastCommon
 {
     private readonly PlcNodeManager _plcNodeManager;
     protected readonly TimeService _timeService;
@@ -43,30 +43,30 @@ public class SlowFastCommon
 
         if (count > 0)
         {
-            _logger.LogInformation("Creating {Count} {Name} nodes of type: {Type}", count, name, type);
-            _logger.LogInformation("Node values will change every {NodeRate} ms", nodeRate);
+            LogCreatingNodes(count, name, type);
+            LogNodeValuesChangeRate(nodeRate);
         }
 
         for (int i = 0; i < count; i++)
         {
             var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) =
-                GetNodeType(type, stepSize, minValue, maxValue);
+            GetNodeType(type, stepSize, minValue, maxValue);
 
             string id = (i + 1).ToString();
             nodes[i] = _plcNodeManager.CreateBaseVariable(
-                folder,
-                path: $"{name}{type}{id}",
-                name: $"{name}{type}{id}",
-                dataType,
-                valueRank,
-                AccessLevels.CurrentReadOrWrite,
-                "Constantly increasing value(s)",
-                NamespaceType.OpcPlcApplications,
-                randomize,
-                stepTypeSize,
-                minTypeValue,
-                maxTypeValue,
-                defaultValue);
+            folder,
+            path: $"{name}{type}{id}",
+            name: $"{name}{type}{id}",
+            dataType,
+            valueRank,
+            AccessLevels.CurrentReadOrWrite,
+            "Constantly increasing value(s)",
+            NamespaceType.OpcPlcApplications,
+            randomize,
+            stepTypeSize,
+            minTypeValue,
+            maxTypeValue,
+            defaultValue);
         }
 
         return nodes;
@@ -99,22 +99,22 @@ public class SlowFastCommon
             NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, true, null, null, null),
 
             NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, 0.0, double.Parse(stepSize),
-                minValue == null
-                    ? 0.0
-                    : double.Parse(minValue),
-                maxValue == null
-                    ? double.MaxValue
-                    : double.Parse(maxValue)),
+            minValue == null
+            ? 0.0
+            : double.Parse(minValue),
+            maxValue == null
+            ? double.MaxValue
+            : double.Parse(maxValue)),
 
             NodeType.UIntArray => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.OneDimension, new uint[32], null, null, null),
 
             _ => (new NodeId((uint)BuiltInType.UInt32), ValueRanks.Scalar, (uint)0, uint.Parse(stepSize),
-                minValue == null
-                    ? uint.MinValue
-                    : uint.Parse(minValue),
-                maxValue == null
-                    ? uint.MaxValue
-                    : uint.Parse(maxValue)),
+            minValue == null
+            ? uint.MinValue
+            : uint.Parse(minValue),
+            maxValue == null
+            ? uint.MaxValue
+            : uint.Parse(maxValue)),
         };
     }
 
@@ -141,7 +141,7 @@ public class SlowFastCommon
     {
         if (nodes == null || nodes.Length == 0)
         {
-            _logger.LogWarning("Invalid argument {Argument} provided.", nodes);
+            LogInvalidArgument(nodes);
             return;
         }
 
@@ -197,18 +197,18 @@ public class SlowFastCommon
                             if (minDoubleValue >= 0 && maxDoubleValue > 0)
                             {
                                 value = (extendedDoubleNodeValue % maxDoubleValue) < minDoubleValue
+                                ? minDoubleValue
+                                : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize) > maxDoubleValue
                                     ? minDoubleValue
-                                    : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize) > maxDoubleValue
-                                        ? minDoubleValue
-                                        : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
+                                    : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
                             }
                             else if (maxDoubleValue <= 0 && minDoubleValue < 0) // Negative-only range cases (e.g. 0 to -9.5).
                             {
                                 value = (extendedDoubleNodeValue % minDoubleValue) > maxDoubleValue
+                                ? maxDoubleValue
+                                : ((extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize) < minDoubleValue
                                     ? maxDoubleValue
-                                    : ((extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize) < minDoubleValue
-                                        ? maxDoubleValue
-                                        : (extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize;
+                                    : (extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize;
                             }
                             else
                             {
@@ -264,10 +264,10 @@ public class SlowFastCommon
                         else
                         {
                             value = (extendedUIntNodeValue % maxUIntValue) < minUIntValue
+                            ? minUIntValue
+                            : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize) > maxUIntValue
                                 ? minUIntValue
-                                : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize) > maxUIntValue
-                                    ? minUIntValue
-                                    : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize);
+                                : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize);
                         }
 
                         break;
@@ -318,8 +318,8 @@ public class SlowFastCommon
     public static NodeType ParseNodeType(string type)
     {
         return Enum.TryParse(type, ignoreCase: true, out NodeType nodeType)
-            ? nodeType
-            : NodeType.UInt;
+        ? nodeType
+        : NodeType.UInt;
     }
 
     /// <summary>
@@ -344,15 +344,30 @@ public class SlowFastCommon
 
     private readonly (StatusCode, bool)[] BadStatusSequence =
     [
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.UncertainLastUsableValue, true),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.UncertainLastUsableValue, true),
-            ( StatusCodes.BadDataLost, true),
-            ( StatusCodes.BadNoCommunication, false)
+    ( StatusCodes.Good, true ),
+ ( StatusCodes.Good, true ),
+ ( StatusCodes.Good, true ),
+ ( StatusCodes.UncertainLastUsableValue, true),
+ ( StatusCodes.Good, true ),
+ ( StatusCodes.Good, true ),
+ ( StatusCodes.Good, true ),
+ ( StatusCodes.UncertainLastUsableValue, true),
+ ( StatusCodes.BadDataLost, true),
+ ( StatusCodes.BadNoCommunication, false)
     ];
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Creating {Count} {Name} nodes of type: {Type}")]
+    partial void LogCreatingNodes(uint count, string name, NodeType type);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Node values will change every {NodeRate} ms")]
+    partial void LogNodeValuesChangeRate(uint nodeRate);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Invalid argument {Argument} provided.")]
+    partial void LogInvalidArgument(object argument);
 }
