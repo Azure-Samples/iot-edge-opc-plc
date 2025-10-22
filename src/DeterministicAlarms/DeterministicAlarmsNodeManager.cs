@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-public class DeterministicAlarmsNodeManager : CustomNodeManager2
+public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
 {
     private readonly SimBackendService _system;
     private readonly List<SimFolderState> _folders = new();
@@ -39,9 +39,9 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
 
         // set one namespace for the type model and one names for dynamically created nodes.
         string[] namespaceUrls =
-            [
-                OpcPlc.Namespaces.OpcPlcDeterministicAlarmsInstance,
-            ];
+        [
+            OpcPlc.Namespaces.OpcPlcDeterministicAlarmsInstance,
+        ];
 
         SetNamespaces(namespaceUrls);
 
@@ -53,7 +53,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Cannot read or decode deterministic alarm script file");
+            LogCannotReadOrDecodeScriptFile(ex);
         }
     }
 
@@ -119,12 +119,12 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         try
         {
             VerifyScriptConfiguration(scriptConfiguration);
-            _logger.LogInformation("Script starts executing");
+            LogScriptStartsExecuting();
             _ = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable, _timeService);
         }
         catch (ScriptException ex)
         {
-            _logger.LogError(ex, $"Script Engine Exception '{ex.Message}'\nSCRIPT WILL NOT START");
+            LogScriptEngineException(ex.Message, ex);
             throw;
         }
     }
@@ -138,7 +138,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
     {
         if (step == null)
         {
-            _logger.LogInformation("SCRIPT ENDED");
+            LogScriptEnded();
         }
         else
         {
@@ -203,16 +203,16 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
     {
         if (step.Event != null)
         {
-            _logger.LogInformation($"({loopNumber}) -\t{step.Event.AlarmId}\t{step.Event.Reason}");
+            LogScriptStepEvent(loopNumber, step.Event.AlarmId, step.Event.Reason);
             foreach (var sc in step.Event.StateChanges)
             {
-                _logger.LogInformation($"\t\t{sc.StateType} - {sc.State}");
+                LogStateChange(sc.StateType.ToString(), sc.State);
             }
         }
 
         if (step.SleepInSeconds > 0)
         {
-            _logger.LogInformation($"({loopNumber}) -\tSleep: {step.SleepInSeconds}");
+            LogScriptSleep(loopNumber, step.SleepInSeconds);
         }
     }
 
@@ -362,7 +362,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
     /// manager must start/stop reporting events for all objects that it manages.
     /// </remarks>
     public override ServiceResult SubscribeToAllEvents(
-        Opc.Ua.Server.OperationContext context,
+        OperationContext context,
         uint subscriptionId,
         IEventMonitoredItem monitoredItem,
         bool unsubscribe)
@@ -578,7 +578,7 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
 
         for (int ii = 0; ii < _rootNotifiers.Count; ii++)
         {
-            if (Object.ReferenceEquals(notifier, _rootNotifiers[ii]))
+            if (ReferenceEquals(notifier, _rootNotifiers[ii]))
             {
                 return;
             }
@@ -644,4 +644,39 @@ public class DeterministicAlarmsNodeManager : CustomNodeManager2
         return predefinedNodes;
     }
     #endregion
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Cannot read or decode deterministic alarm script file")]
+    partial void LogCannotReadOrDecodeScriptFile(Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Script starts executing")]
+    partial void LogScriptStartsExecuting();
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Script Engine Exception {Message}\nSCRIPT WILL NOT START")]
+    partial void LogScriptEngineException(string message, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "SCRIPT ENDED")]
+    partial void LogScriptEnded();
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "({LoopNumber}) -\t{AlarmId}\t{Reason}")]
+    partial void LogScriptStepEvent(long loopNumber, string alarmId, string reason);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "\t\t{StateType} - {State}")]
+    partial void LogStateChange(string stateType, bool state);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "({LoopNumber}) -\tSleep: {SleepInSeconds}")]
+    partial void LogScriptSleep(long loopNumber, int SleepInSeconds);
 }
