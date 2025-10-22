@@ -156,6 +156,23 @@ public partial class PlcServer : StandardServer
 
             return responseHeader;
         }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadServerHalted)
+        {
+            // Handle when a client attempts to reconnect while the server is still starting up or halting.
+            LogCreateSessionWhileHalted();
+
+            sessionId = null;
+            authenticationToken = null;
+            revisedSessionTimeout = 0;
+            serverNonce = Array.Empty<byte>();
+            serverCertificate = Array.Empty<byte>();
+            serverEndpoints = new EndpointDescriptionCollection();
+            serverSoftwareCertificates = new SignedSoftwareCertificateCollection();
+            serverSignature = new SignatureData();
+            maxRequestMessageSize = 0;
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadServerHalted };
+        }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(CreateSession));
@@ -731,10 +748,8 @@ public partial class PlcServer : StandardServer
                 .FirstOrDefault(s => s.Id == subscriptionId);
             if (subscription != null)
             {
-                var expireMethod = typeof(SubscriptionManager).GetMethod("SubscriptionExpired",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-                expireMethod?.Invoke(
-                    CurrentInstance.SubscriptionManager, new object[] { subscription });
+                var expireMethod = typeof(SubscriptionManager).GetMethod("SubscriptionExpired", BindingFlags.NonPublic | BindingFlags.Instance);
+                expireMethod?.Invoke(CurrentInstance.SubscriptionManager, new object[] { subscription });
             }
         }
         catch
@@ -792,8 +807,7 @@ public partial class PlcServer : StandardServer
                         InjectErrorResponseRate = Random.Shared.Next(1, 20);
                         var duration = TimeSpan.FromSeconds(Random.Shared.Next(10, 150));
                         LogInjectingRandomErrors(InjectErrorResponseRate, duration.TotalMilliseconds);
-                        _ = Task.Run(async () =>
-                        {
+                        _ = Task.Run(async () => {
                             try
                             {
                                 await Task.Delay(duration, ct).ConfigureAwait(false);
@@ -1031,4 +1045,9 @@ public partial class PlcServer : StandardServer
         Level = LogLevel.Information,
         Message = "Chaos mode stopped!")]
     partial void LogChaosModeStopped();
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "CreateSession attempted while server halted (client reconnect during startup/shutdown)")]
+    partial void LogCreateSessionWhileHalted();
 }
