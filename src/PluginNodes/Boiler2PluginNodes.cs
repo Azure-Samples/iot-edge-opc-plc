@@ -171,7 +171,7 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
         {
-        PluginNodesHelper.GetNodeWithIntervals(_currentTempDegreesNode.NodeId, _plcNodeManager),
+            PluginNodesHelper.GetNodeWithIntervals(_currentTempDegreesNode.NodeId, _plcNodeManager),
         };
     }
 
@@ -332,8 +332,7 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
 
     private void SetDeviceHealth(float currentTemp, float baseTemp, float targetTemp, float overheatedTemp)
     {
-        DeviceHealthEnumeration deviceHealth = currentTemp switch
-        {
+        DeviceHealthEnumeration deviceHealth = currentTemp switch {
             _ when currentTemp >= baseTemp && currentTemp <= targetTemp => DeviceHealthEnumeration.NORMAL,
             _ when currentTemp > targetTemp && currentTemp < overheatedTemp => DeviceHealthEnumeration.CHECK_FUNCTION,
             _ when currentTemp >= overheatedTemp => DeviceHealthEnumeration.FAILURE,
