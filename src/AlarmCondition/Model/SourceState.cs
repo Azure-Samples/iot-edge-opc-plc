@@ -343,6 +343,7 @@ namespace AlarmCondition
             node.Comment = new ConditionVariableState<LocalizedText>(node);
             node.ClientUserId = new PropertyState<string>(node);
             node.AddComment = new AddCommentMethodState(node);
+            node.Acknowledge = new AddCommentMethodState(node);
             node.ConfirmedState = new TwoStateVariableState(node);
             node.Confirm = new AddCommentMethodState(node);
 
