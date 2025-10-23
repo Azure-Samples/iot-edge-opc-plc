@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using System.Collections.Generic;
+using System.Linq;
 
 [TestFixture]
 public class AlarmTests : SubscriptionTestsBase
@@ -59,4 +60,5 @@ public class AlarmTests : SubscriptionTestsBase
             });
         }
     }
+
 }
