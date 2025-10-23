@@ -29,14 +29,12 @@ public class AlarmTests : SubscriptionTestsBase
         var whereClause = filter.WhereClause;
         var element1 = whereClause.Push(FilterOperator.OfType, _eventType);
         var element2 = whereClause.Push(FilterOperator.InList,
-            new SimpleAttributeOperand
-            {
+            new SimpleAttributeOperand {
                 AttributeId = Attributes.Value,
                 TypeDefinitionId = ObjectTypeIds.BaseEventType,
                 BrowsePath = new QualifiedName[] { BrowseNames.SourceNode },
             },
-            new LiteralOperand
-            {
+            new LiteralOperand {
                 Value = new Variant(southMotor)
             });
 
@@ -52,8 +50,7 @@ public class AlarmTests : SubscriptionTestsBase
         var events = ReceiveEventsAsDictionary(1);
         foreach (var value in events)
         {
-            value.Should().Contain(new Dictionary<string, object>
-            {
+            value.Should().Contain(new Dictionary<string, object> {
                 ["/EventType"] = _eventType,
                 ["/SourceName"] = "SouthMotor",
             });
