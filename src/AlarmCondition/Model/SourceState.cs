@@ -703,7 +703,7 @@ namespace AlarmCondition
         /// </summary>
         /// <param name="alarm">The alarm.</param>
         /// <returns>The record number; 0 if the alarm is not an archived alarm.</returns>
-        private uint GetRecordNumber(AlarmConditionState alarm)
+        private static uint GetRecordNumber(AlarmConditionState alarm)
         {
             if (alarm == null)
             {
@@ -728,7 +728,7 @@ namespace AlarmCondition
         /// <summary>
         /// Gets the user name associated with the context.
         /// </summary>
-        private string GetUserName(ISystemContext context)
+        private static string GetUserName(ISystemContext context)
         {
             if (context.UserIdentity != null)
             {
@@ -746,7 +746,7 @@ namespace AlarmCondition
         private readonly Dictionary<string, AlarmConditionState> m_events;
         private readonly Dictionary<NodeId, AlarmConditionState> m_branches;
         private readonly DialogConditionState m_dialog;
-        private DataGenerator m_generator;
+        private readonly DataGenerator m_generator;
         #endregion
     }
 }

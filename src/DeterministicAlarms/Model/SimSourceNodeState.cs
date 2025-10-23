@@ -1,4 +1,4 @@
-﻿namespace OpcPlc.DeterministicAlarms.Model;
+namespace OpcPlc.DeterministicAlarms.Model;
 
 using Opc.Ua;
 using OpcPlc.DeterministicAlarms.Configuration;
@@ -96,8 +96,7 @@ public class SimSourceNodeState : BaseObjectState
         // All alarms inherent from AlarmConditionState
         else
         {
-            node = alarm.AlarmType switch
-            {
+            node = alarm.AlarmType switch {
                 AlarmObjectStates.TripAlarmType => new TripAlarmState(this),
                 AlarmObjectStates.LimitAlarmType => new LimitAlarmState(this),
                 AlarmObjectStates.OffNormalAlarmType => new OffNormalAlarmState(this),
@@ -142,7 +141,7 @@ public class SimSourceNodeState : BaseObjectState
         return node;
     }
 
-    private void CreateAlarmSpecificElements(ISystemContext context, AlarmConditionState node, NodeId branchId)
+    private static void CreateAlarmSpecificElements(ISystemContext context, AlarmConditionState node, NodeId branchId)
     {
         node.ConfirmedState = new TwoStateVariableState(node);
         node.Confirm = new AddCommentMethodState(node);
@@ -159,7 +158,7 @@ public class SimSourceNodeState : BaseObjectState
         node.ActiveState.Create(context, null, BrowseNames.ActiveState, null, false);
     }
 
-    private void CreateCommonFieldsForAlarmAndCondition(ISystemContext context, ConditionState node, SimAlarmStateBackend alarm)
+    private static void CreateCommonFieldsForAlarmAndCondition(ISystemContext context, ConditionState node, SimAlarmStateBackend alarm)
     {
         node.SymbolicName = alarm.Name;
 
