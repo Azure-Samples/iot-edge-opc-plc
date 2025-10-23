@@ -182,6 +182,30 @@ public partial class PlcNodeManager : CustomNodeManager2
         AddRootNotifier(notifier);
     }
 
+    /// <summary>
+    /// Gets the namespace index for a given namespace URI.
+    /// If the namespace is not registered, it will be registered dynamically.
+    /// </summary>
+    /// <param name="namespaceUri">The namespace URI to get or register.</param>
+    /// <returns>The namespace index.</returns>
+    public ushort GetNamespaceIndex(string namespaceUri)
+    {
+        if (string.IsNullOrEmpty(namespaceUri))
+        {
+            return NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+        }
+
+        // Check if namespace already exists
+        int index = SystemContext.NamespaceUris.GetIndex(namespaceUri);
+        if (index >= 0)
+        {
+            return (ushort)index;
+        }
+
+        // Register new namespace
+        return SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
+    }
+
     private BaseDataVariableState CreateBaseVariable(BaseDataVariableState baseDataVariableState, NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
     {
         ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];

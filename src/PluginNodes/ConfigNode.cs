@@ -14,6 +14,12 @@ public class ConfigFolder
     public List<ConfigFolder> FolderList { get; set; }
 
     public List<ConfigNode> NodeList { get; set; }
+
+    /// <summary>
+    /// Optional namespace URI for nodes in this folder.
+    /// If not specified, defaults to OpcPlcApplications namespace.
+    /// </summary>
+    public string NamespaceUri { get; set; }
 }
 
 /// <summary>
@@ -41,4 +47,10 @@ public class ConfigNode
     public string Description { get; set; }
 
     public object Value { get; set; }
+
+    /// <summary>
+    /// Optional namespace URI for this specific node.
+    /// If not specified, uses the folder's namespace or defaults to OpcPlcApplications namespace.
+    /// </summary>
+    public string NamespaceUri { get; set; }
 }
