@@ -15,6 +15,8 @@ public partial class OpcApplicationConfiguration
         OpcTrustedCertStorePath = OpcTrustedCertDirectoryStorePathDefault;
         OpcRejectedCertStorePath = OpcRejectedCertDirectoryStorePathDefault;
         OpcIssuerCertStorePath = OpcIssuerCertDirectoryStorePathDefault;
+        OpcTrustedUserCertStorePath = OpcTrustedUserCertDirectoryStorePathDefault;
+        OpcUserIssuerCertStorePath = OpcUserIssuerCertDirectoryStorePathDefault;
     }
 
     /// <summary>
@@ -38,6 +40,12 @@ public partial class OpcApplicationConfiguration
 
     public string OpcIssuerCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "issuer");
     public string OpcIssuerCertStorePath { get; set; }
+
+    public string OpcTrustedUserCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "trustedUser");
+    public string OpcTrustedUserCertStorePath { get; set; }
+
+    public string OpcUserIssuerCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "issuerUser");
+    public string OpcUserIssuerCertStorePath { get; set; }
 
     /// <summary>
     /// Accept certs of the clients automatically.
@@ -80,6 +88,18 @@ public partial class OpcApplicationConfiguration
     /// </summary>
     public List<string> TrustedCertificateBase64Strings { get; set; }
     public List<string> TrustedCertificateFileNames { get; set; }
+
+    /// <summary>
+    /// Trusted user certificates to add for user authentication.
+    /// </summary>
+    public List<string> TrustedUserCertificateBase64Strings { get; set; }
+    public List<string> TrustedUserCertificateFileNames { get; set; }
+
+    /// <summary>
+    /// User issuer certificates to add for user authentication.
+    /// </summary>
+    public List<string> UserIssuerCertificateBase64Strings { get; set; }
+    public List<string> UserIssuerCertificateFileNames { get; set; }
 
     /// <summary>
     /// CRL to update/install.

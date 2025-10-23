@@ -281,6 +281,54 @@ Building with PowerShell is even simpler. Here's an example for a linux-x64 buil
 docker build -f .\src\bin\publish\Release\linux-x64\Dockerfile.linux-amd64 -t iotedge/opc-plc .\src\bin\publish\Release\linux-x64
 ~~~
 
+## Certificate-Based Authentication
+The OPC PLC server supports certificate-based user authentication in addition to anonymous and username/password authentication.
+
+### Setting Up Certificate-Based Authentication
+
+1. **Enable Certificate Authentication**: Certificate authentication is enabled by default. To disable it, use `--dca` command-line option.
+
+2. **Add Trusted User Certificates**: Before a client can authenticate with a certificate, you must add the client's certificate to the server's trusted user certificate store:
+
+   Using a certificate file:
+   ```bash
+   dotnet opcplc.dll --tuf /path/to/client-cert.der
+   ```
+
+   Using base64-encoded certificate:
+   ```bash
+   dotnet opcplc.dll --tub <base64-encoded-certificate>
+   ```
+
+   Multiple certificates can be added by separating them with commas.
+
+3. **Add User Issuer Certificates** (Optional): If your user certificates are signed by a CA, add the CA certificate to the user issuer store:
+
+   ```bash
+   dotnet opcplc.dll --uif /path/to/ca-cert.der
+   ```
+
+4. **Certificate Store Locations**: By default, user certificates are stored in:
+   - Trusted user certificates: `pki/trustedUser/certs/`
+   - User issuer certificates: `pki/issuerUser/certs/`
+
+### Using Certificate Authentication with OPC UA Clients
+
+When connecting with an OPC UA client (like UAExpert):
+
+1. Configure your client to use a certificate for user authentication
+2. Ensure the client certificate (`.der` or `.pfx` file) is properly configured
+3. Connect to the server using security policy `Basic256Sha256` and message security mode `Sign & Encrypt`
+4. The server will validate the client's user certificate against the trusted user certificate store
+
+### Troubleshooting
+
+If you receive a `BadIdentityTokenRejected` error:
+- Verify that the client's certificate has been added to the server's trusted user certificate store using `--tuf`
+- Check the server logs for detailed certificate validation errors
+- Ensure the certificate is valid and not expired
+- If using CA-signed certificates, ensure the CA certificate is in the user issuer store using `--uif`
+
 ## Notes
 X.509 certificates:
 
@@ -443,6 +491,22 @@ Options:
       --if, --addissuercertfile=VALUE
                              adds the specified issuer certificate file(s) to
                                the application's trusted issuer cert store (
+                               multiple comma separated filenames supported).
+      --tub, --addtrustedusercertbase64=VALUE
+                             adds the specified user certificate to the
+                               application's trusted user cert store passed in
+                               as base64 string (comma separated values).
+      --tuf, --addtrustedusercertfile=VALUE
+                             adds the specified user certificate file(s) to the
+                               application's trusted user cert store (multiple
+                               comma separated filenames supported).
+      --uib, --adduserissuercertbase64=VALUE
+                             adds the specified user issuer certificate to the
+                               application's user issuer cert store passed in as
+                               base64 string (comma separated values).
+      --uif, --adduserissuercertfile=VALUE
+                             adds the specified user issuer certificate file(s)
+                               to the application's user issuer cert store (
                                multiple comma separated filenames supported).
       --rb, --updatecrlbase64=VALUE
                              update the CRL passed in as base64 string to the

@@ -261,6 +261,18 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             // configure rejected certificates store
             securityConfiguration.RejectedCertificateStore.StoreType = FlatDirectoryCertificateStore.StoreTypeName;
             securityConfiguration.RejectedCertificateStore.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcRejectedCertStorePath;
+
+            // configure trusted user certificates store
+            securityConfiguration.TrustedUserCertificates = new CertificateTrustList {
+                StoreType = FlatDirectoryCertificateStore.StoreTypeName,
+                StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcTrustedUserCertStorePath
+            };
+
+            // configure user issuer certificates store
+            securityConfiguration.UserIssuerCertificates = new CertificateTrustList {
+                StoreType = FlatDirectoryCertificateStore.StoreTypeName,
+                StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcUserIssuerCertStorePath
+            };
         }
         else
         {
@@ -279,6 +291,17 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             securityConfiguration.RejectedCertificateStore.StoreType = CertificateStoreType.Directory;
             securityConfiguration.RejectedCertificateStore.StorePath = _config.OpcUa.OpcRejectedCertStorePath;
 
+            // configure trusted user certificates store
+            securityConfiguration.TrustedUserCertificates = new CertificateTrustList {
+                StoreType = CertificateStoreType.Directory,
+                StorePath = _config.OpcUa.OpcTrustedUserCertStorePath
+            };
+
+            // configure user issuer certificates store
+            securityConfiguration.UserIssuerCertificates = new CertificateTrustList {
+                StoreType = CertificateStoreType.Directory,
+                StorePath = _config.OpcUa.OpcUserIssuerCertStorePath
+            };
         }
 
         _config.OpcUa.ApplicationConfiguration = await options.Create().ConfigureAwait(false);
@@ -300,6 +323,12 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
 
         _logger.LogInformation("Rejected certificate store type is: {StoreType}", securityConfiguration.RejectedCertificateStore.StoreType);
         _logger.LogInformation("Rejected Certificate store path is: {StorePath}", securityConfiguration.RejectedCertificateStore.StorePath);
+
+        _logger.LogInformation("Trusted User Certificate store type is: {StoreType}", securityConfiguration.TrustedUserCertificates.StoreType);
+        _logger.LogInformation("Trusted User Certificate store path is: {StorePath}", securityConfiguration.TrustedUserCertificates.StorePath);
+
+        _logger.LogInformation("User Issuer Certificate store type is: {StoreType}", securityConfiguration.UserIssuerCertificates.StoreType);
+        _logger.LogInformation("User Issuer Certificate store path is: {StorePath}", securityConfiguration.UserIssuerCertificates.StorePath);
 
         // handle cert validation
         if (_config.OpcUa.AutoAcceptCerts)
@@ -328,6 +357,20 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             !await AddCertificatesAsync(_config.OpcUa.TrustedCertificateBase64Strings, _config.OpcUa.TrustedCertificateFileNames, false).ConfigureAwait(false))
         {
             throw new Exception("Adding trusted peer certificate(s) failed.");
+        }
+
+        // add trusted user certificates
+        if ((_config.OpcUa.TrustedUserCertificateBase64Strings?.Count > 0 || _config.OpcUa.TrustedUserCertificateFileNames?.Count > 0) &&
+            !await AddUserCertificatesAsync(_config.OpcUa.TrustedUserCertificateBase64Strings, _config.OpcUa.TrustedUserCertificateFileNames, false).ConfigureAwait(false))
+        {
+            throw new Exception("Adding trusted user certificate(s) failed.");
+        }
+
+        // add user issuer certificates
+        if ((_config.OpcUa.UserIssuerCertificateBase64Strings?.Count > 0 || _config.OpcUa.UserIssuerCertificateFileNames?.Count > 0) &&
+            !await AddUserCertificatesAsync(_config.OpcUa.UserIssuerCertificateBase64Strings, _config.OpcUa.UserIssuerCertificateFileNames, true).ConfigureAwait(false))
+        {
+            throw new Exception("Adding user issuer certificate(s) failed.");
         }
 
         // update CRL if requested
@@ -539,6 +582,48 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         catch (Exception e)
         {
             _logger.LogError(e, "Error while trying to read information from rejected certificate store");
+        }
+
+        // show trusted user certs
+        try
+        {
+            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedUserCertificates.OpenStore();
+            var certs = await certStore.Enumerate().ConfigureAwait(false);
+            int certNum = 1;
+            _logger.LogInformation("Trusted user certificate store contains {Count} certs", certs.Count);
+
+            foreach (var cert in certs)
+            {
+                _logger.LogInformation("{Index}: Subject {Subject} (thumbprint: {Thumbprint})",
+                    $"{certNum++:D2}",
+                    cert.Subject,
+                    cert.GetCertHashString());
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error while trying to read information from trusted user certificate store");
+        }
+
+        // show user issuer certs
+        try
+        {
+            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.UserIssuerCertificates.OpenStore();
+            var certs = await certStore.Enumerate().ConfigureAwait(false);
+            int certNum = 1;
+            _logger.LogInformation("User issuer certificate store contains {Count} certs", certs.Count);
+
+            foreach (var cert in certs)
+            {
+                _logger.LogInformation("{Index}: Subject {Subject} (thumbprint: {Thumbprint})",
+                    $"{certNum++:D2}",
+                    cert.Subject,
+                    cert.GetCertHashString());
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error while trying to read information from user issuer certificate store");
         }
     }
 
@@ -1140,5 +1225,112 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Validate and add user certificates to the trusted user or user issuer store.
+    /// </summary>
+    private async Task<bool> AddUserCertificatesAsync(
+        List<string> certificateBase64Strings,
+        List<string> certificateFileNames,
+        bool issuerCertificate = true)
+    {
+        bool result = true;
+
+        if (certificateBase64Strings?.Count == 0 && certificateFileNames?.Count == 0)
+        {
+            _logger.LogError("There is no user certificate provided. Please check your command line options.");
+            return false;
+        }
+
+        _logger.LogInformation("Starting to add user certificate(s) to the {StoreType} store", issuerCertificate ? "user issuer" : "trusted user");
+        var certificatesToAdd = new X509Certificate2Collection();
+        try
+        {
+            // validate the input and build user cert collection
+            if (certificateFileNames?.Count > 0)
+            {
+                foreach (var certificateFileName in certificateFileNames)
+                {
+                    var certificate = X509CertificateLoader.LoadCertificateFromFile(certificateFileName);
+                    certificatesToAdd.Add(certificate);
+                }
+            }
+            if (certificateBase64Strings?.Count > 0)
+            {
+                foreach (var certificateBase64String in certificateBase64Strings)
+                {
+                    byte[] buffer = new byte[certificateBase64String.Length * 3 / 4];
+                    if (Convert.TryFromBase64String(certificateBase64String, buffer, out _))
+                    {
+                        var certificate = X509CertificateLoader.LoadCertificate(buffer);
+                        certificatesToAdd.Add(certificate);
+                    }
+                    else
+                    {
+                        _logger.LogError("The provided string '{PartialString}...' is not a valid base64 string", certificateBase64String.Substring(0, 10));
+                        return false;
+                    }
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "The user certificate data is invalid. Please check your command line options");
+            return false;
+        }
+
+        // add the certificate to the right store
+        if (issuerCertificate)
+        {
+            try
+            {
+                using ICertificateStore userIssuerStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.UserIssuerCertificates.OpenStore();
+                foreach (var certificateToAdd in certificatesToAdd)
+                {
+                    try
+                    {
+                        await userIssuerStore.Add(certificateToAdd).ConfigureAwait(false);
+                        _logger.LogInformation("User certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the user issuer store", certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        // ignore error if cert already exists in store
+                        _logger.LogInformation(ex, "User certificate '{SubjectName}' already exists in user issuer store", certificateToAdd.SubjectName.Name);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while adding a user certificate to the user issuer store");
+                result = false;
+            }
+        }
+        else
+        {
+            try
+            {
+                using ICertificateStore trustedUserStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedUserCertificates.OpenStore();
+                foreach (var certificateToAdd in certificatesToAdd)
+                {
+                    try
+                    {
+                        await trustedUserStore.Add(certificateToAdd).ConfigureAwait(false);
+                        _logger.LogInformation("User certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the trusted user store", certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint);
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        // ignore error if cert already exists in store
+                        _logger.LogInformation(ex, "User certificate '{SubjectName}' already exists in trusted user store", certificateToAdd.SubjectName.Name);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while adding a user certificate to the trusted user store");
+                result = false;
+            }
+        }
+        return result;
     }
 }

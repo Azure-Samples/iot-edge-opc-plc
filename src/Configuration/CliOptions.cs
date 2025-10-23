@@ -177,6 +177,12 @@ public static class CliOptions
             { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (comma separated values).", (s) => config.OpcUa.IssuerCertificateBase64Strings = ParseListOfStrings(s) },
             { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the application's trusted issuer cert store (multiple comma separated filenames supported).", (s) => config.OpcUa.IssuerCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addissuercertfile") },
 
+            { "tub|addtrustedusercertbase64=", "adds the specified user certificate to the application's trusted user cert store passed in as base64 string (comma separated values).", (s) => config.OpcUa.TrustedUserCertificateBase64Strings = ParseListOfStrings(s) },
+            { "tuf|addtrustedusercertfile=", "adds the specified user certificate file(s) to the application's trusted user cert store (multiple comma separated filenames supported).", (s) => config.OpcUa.TrustedUserCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addtrustedusercertfile") },
+
+            { "uib|adduserissuercertbase64=", "adds the specified user issuer certificate to the application's user issuer cert store passed in as base64 string (comma separated values).", (s) => config.OpcUa.UserIssuerCertificateBase64Strings = ParseListOfStrings(s) },
+            { "uif|adduserissuercertfile=", "adds the specified user issuer certificate file(s) to the application's user issuer cert store (multiple comma separated filenames supported).", (s) => config.OpcUa.UserIssuerCertificateFileNames = CliHelper.ParseListOfFileNames(s, "adduserissuercertfile") },
+
             { "rb|updatecrlbase64=", "update the CRL passed in as base64 string to the corresponding cert store (trusted or trusted issuer).", (s) => config.OpcUa.CrlBase64String = s },
             { "uc|updatecrlfile=", "update the CRL passed in as file to the corresponding cert store (trusted or trusted issuer).", (s) =>
                 {
