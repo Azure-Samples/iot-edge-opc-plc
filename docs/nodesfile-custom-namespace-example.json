@@ -1,0 +1,61 @@
+{
+  "_comment": "Example nodesfile demonstrating custom namespace support",
+  "_comment2": "You can specify a custom namespace URI at the folder or node level",
+  "_comment3": "If not specified, nodes default to http://microsoft.com/Opc/OpcPlc/",
+  
+  "Folder": "CustomNamespaceExample",
+  "NamespaceUri": "http://example.com/my-custom-namespace",
+  "NodeList": [
+    {
+      "NodeId": 1001,
+      "Name": "TemperatureSensor",
+      "Description": "Temperature sensor in custom namespace",
+      "DataType": "Float",
+      "Value": 25.5
+    },
+    {
+      "NodeId": "PressureSensor",
+      "Name": "PressureSensor",
+      "Description": "Pressure sensor in custom namespace",
+      "DataType": "Float",
+      "Value": 101.325
+    },
+    {
+      "NodeId": "StatusFlag",
+      "Name": "StatusFlag",
+      "Description": "Node with overridden namespace",
+      "NamespaceUri": "http://example.com/status-namespace",
+      "DataType": "Boolean",
+      "Value": true
+    }
+  ],
+  "FolderList": [
+    {
+      "Folder": "NestedSensors",
+      "_comment": "Child folders inherit parent's namespace if not specified",
+      "NodeList": [
+        {
+          "NodeId": 2001,
+          "Name": "HumiditySensor",
+          "Description": "Inherits parent folder's custom namespace",
+          "DataType": "Float",
+          "Value": 60.0
+        }
+      ]
+    },
+    {
+      "Folder": "SpecialSensors",
+      "NamespaceUri": "http://example.com/special-namespace",
+      "_comment": "This folder and its nodes use a different namespace",
+      "NodeList": [
+        {
+          "NodeId": 3001,
+          "Name": "SpecialSensor",
+          "Description": "Node in special namespace",
+          "DataType": "Int32",
+          "Value": 42
+        }
+      ]
+    }
+  ]
+}

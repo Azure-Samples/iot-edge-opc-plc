@@ -70,10 +70,11 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
         _logger.LogInformation("Completed processing user defined node file");
     }
 
-    private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder)
+    private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder, string parentNamespaceUri = null)
     {
-        // Get namespace index for this folder (or default if not specified)
-        ushort folderNamespaceIndex = _plcNodeManager.GetNamespaceIndex(cfgFolder.NamespaceUri);
+        // Get namespace index for this folder (or use parent's if not specified)
+        string effectiveNamespaceUri = cfgFolder.NamespaceUri ?? parentNamespaceUri;
+        ushort folderNamespaceIndex = _plcNodeManager.GetNamespaceIndex(effectiveNamespaceUri);
 
         _logger.LogDebug($"Create folder {cfgFolder.Folder}");
         FolderState userNodesFolder = _plcNodeManager.CreateFolder(
@@ -151,13 +152,13 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
             yield return PluginNodesHelper.GetNodeWithIntervals(nodeId, _plcNodeManager);
         }
 
-        foreach (var childNode in AddFolders(userNodesFolder, cfgFolder))
+        foreach (var childNode in AddFolders(userNodesFolder, cfgFolder, effectiveNamespaceUri))
         {
             yield return childNode;
         }
     }
 
-    private IEnumerable<NodeWithIntervals> AddFolders(FolderState folder, ConfigFolder cfgFolder)
+    private IEnumerable<NodeWithIntervals> AddFolders(FolderState folder, ConfigFolder cfgFolder, string parentNamespaceUri)
     {
         if (cfgFolder.FolderList is null)
         {
@@ -166,7 +167,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
 
         foreach (var childFolder in cfgFolder.FolderList)
         {
-            foreach (var node in AddNodes(folder, childFolder))
+            foreach (var node in AddNodes(folder, childFolder, parentNamespaceUri))
             {
                 yield return node;
             }
