@@ -70,12 +70,8 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
         _logger.LogInformation("Completed processing user defined node file");
     }
 
-    private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder, string parentNamespaceUri = null)
+    private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder)
     {
-        // Get namespace index for this folder (or use parent's if not specified)
-        string effectiveNamespaceUri = cfgFolder.NamespaceUri ?? parentNamespaceUri;
-        ushort folderNamespaceIndex = _plcNodeManager.GetNamespaceIndex(effectiveNamespaceUri);
-
         _logger.LogDebug($"Create folder {cfgFolder.Folder}");
         FolderState userNodesFolder = _plcNodeManager.CreateFolder(
             folder,
@@ -83,12 +79,11 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
             name: cfgFolder.Folder,
             NamespaceType.OpcPlcApplications);
 
+        // Get the namespace index for all nodes in this folder
+        ushort nodeNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+
         foreach (var node in cfgFolder.NodeList)
         {
-            // Get namespace index for this node (node-level overrides folder-level)
-            ushort nodeNamespaceIndex = string.IsNullOrEmpty(node.NamespaceUri)
-                ? folderNamespaceIndex
-                : _plcNodeManager.GetNamespaceIndex(node.NamespaceUri);
 
             bool isDecimal = node.NodeId is long;
             bool isString = node.NodeId is string;
@@ -152,13 +147,13 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
             yield return PluginNodesHelper.GetNodeWithIntervals(nodeId, _plcNodeManager);
         }
 
-        foreach (var childNode in AddFolders(userNodesFolder, cfgFolder, effectiveNamespaceUri))
+        foreach (var childNode in AddFolders(userNodesFolder, cfgFolder))
         {
             yield return childNode;
         }
     }
 
-    private IEnumerable<NodeWithIntervals> AddFolders(FolderState folder, ConfigFolder cfgFolder, string parentNamespaceUri)
+    private IEnumerable<NodeWithIntervals> AddFolders(FolderState folder, ConfigFolder cfgFolder)
     {
         if (cfgFolder.FolderList is null)
         {
@@ -167,7 +162,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
 
         foreach (var childFolder in cfgFolder.FolderList)
         {
-            foreach (var node in AddNodes(folder, childFolder, parentNamespaceUri))
+            foreach (var node in AddNodes(folder, childFolder))
             {
                 yield return node;
             }
@@ -198,66 +193,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
             accessLevel = AccessLevels.CurrentReadOrWrite;
         }
 
-        CreateBaseVariableWithNamespace(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, namespaceIndex, node?.Value);
-    }
-
-    /// <summary>
-    /// Creates a new variable with a specific namespace index.
-    /// </summary>
-    private void CreateBaseVariableWithNamespace(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, ushort namespaceIndex, object defaultValue = null)
-    {
-        var baseDataVariableState = new BaseDataVariableState(parent)
-        {
-            SymbolicName = name,
-            ReferenceTypeId = ReferenceTypes.Organizes,
-            TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
-        };
-
-        if (path is uint or long)
-        {
-            baseDataVariableState.NodeId = new NodeId((uint)path, namespaceIndex);
-            baseDataVariableState.BrowseName = new QualifiedName(((uint)path).ToString(), namespaceIndex);
-        }
-        else if (path is string)
-        {
-            baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
-            baseDataVariableState.BrowseName = new QualifiedName(path, namespaceIndex);
-        }
-        else if (path is Guid)
-        {
-            baseDataVariableState.NodeId = new NodeId((Guid)path, namespaceIndex);
-            baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
-        }
-        else
-        {
-            _logger.LogDebug($"NodeId type is {path.GetType()}");
-            baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
-            baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
-        }
-
-        baseDataVariableState.DisplayName = new LocalizedText("en", name);
-        baseDataVariableState.WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
-        baseDataVariableState.UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description;
-        baseDataVariableState.DataType = dataType;
-        baseDataVariableState.ValueRank = valueRank;
-        baseDataVariableState.AccessLevel = accessLevel;
-        baseDataVariableState.UserAccessLevel = accessLevel;
-        baseDataVariableState.Historizing = false;
-        baseDataVariableState.Value = defaultValue ?? TypeInfo.GetDefaultValue(dataType, valueRank, _plcNodeManager.Server.TypeTree);
-        baseDataVariableState.StatusCode = StatusCodes.Good;
-        baseDataVariableState.Timestamp = _timeService.UtcNow();
-        baseDataVariableState.Description = new LocalizedText(description);
-
-        if (valueRank == ValueRanks.OneDimension)
-        {
-            baseDataVariableState.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
-        }
-        else if (valueRank == ValueRanks.TwoDimensions)
-        {
-            baseDataVariableState.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
-        }
-
-        parent?.AddChild(baseDataVariableState);
+        _plcNodeManager.CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, namespaceIndex, node?.Value);
     }
 
     private static object UpdateArrayValue(ConfigNode node, JArray jArrayValue)

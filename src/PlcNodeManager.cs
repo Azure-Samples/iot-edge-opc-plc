@@ -150,6 +150,20 @@ public partial class PlcNodeManager : CustomNodeManager2
     }
 
     /// <summary>
+    /// Creates a new variable with a specific namespace index.
+    /// </summary>
+    public BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, ushort namespaceIndex, object defaultValue = null)
+    {
+        var baseDataVariableState = new BaseDataVariableState(parent) {
+            SymbolicName = name,
+            ReferenceTypeId = ReferenceTypes.Organizes,
+            TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+        };
+
+        return CreateBaseVariable(baseDataVariableState, parent, path, name, dataType, valueRank, accessLevel, description, namespaceIndex, defaultValue);
+    }
+
+    /// <summary>
     /// Creates a new method.
     /// </summary>
     public MethodState CreateMethod(NodeState parent, string path, string name, string description, NamespaceType namespaceType)
@@ -182,34 +196,14 @@ public partial class PlcNodeManager : CustomNodeManager2
         AddRootNotifier(notifier);
     }
 
-    /// <summary>
-    /// Gets the namespace index for a given namespace URI.
-    /// If the namespace is not registered, it will be registered dynamically.
-    /// </summary>
-    /// <param name="namespaceUri">The namespace URI to get or register.</param>
-    /// <returns>The namespace index.</returns>
-    public ushort GetNamespaceIndex(string namespaceUri)
-    {
-        if (string.IsNullOrEmpty(namespaceUri))
-        {
-            return NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
-        }
-
-        // Check if namespace already exists
-        int index = SystemContext.NamespaceUris.GetIndex(namespaceUri);
-        if (index >= 0)
-        {
-            return (ushort)index;
-        }
-
-        // Register new namespace
-        return SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
-    }
-
     private BaseDataVariableState CreateBaseVariable(BaseDataVariableState baseDataVariableState, NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
     {
         ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
+        return CreateBaseVariable(baseDataVariableState, parent, path, name, dataType, valueRank, accessLevel, description, namespaceIndex, defaultValue);
+    }
 
+    private BaseDataVariableState CreateBaseVariable(BaseDataVariableState baseDataVariableState, NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, ushort namespaceIndex, object defaultValue = null)
+    {
         if (path is uint or long)
         {
             baseDataVariableState.NodeId = new NodeId((uint)path, namespaceIndex);
@@ -219,6 +213,11 @@ public partial class PlcNodeManager : CustomNodeManager2
         {
             baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(path, namespaceIndex);
+        }
+        else if (path is Guid)
+        {
+            baseDataVariableState.NodeId = new NodeId((Guid)path, namespaceIndex);
+            baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
         }
         else
         {
