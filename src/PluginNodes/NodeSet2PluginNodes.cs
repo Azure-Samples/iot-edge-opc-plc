@@ -70,7 +70,6 @@ public class NodeSet2PluginNodes(TimeService timeService, ILogger logger) : Plug
     private NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
         var predefinedNodes = new NodeStateCollection();
-        var namespaces = new Dictionary<string, string>();
 
         using (_nodes2File)
         {
@@ -80,7 +79,7 @@ public class NodeSet2PluginNodes(TimeService timeService, ILogger logger) : Plug
             {
                 foreach (var namespaceUri in importedNodeSet.NamespaceUris)
                 {
-                    namespaces[namespaceUri] = namespaceUri;
+                    _plcNodeManager.SystemContext.NamespaceUris.GetIndexOrAppend(namespaceUri);
                 }
             }
             importedNodeSet.Import(_plcNodeManager.SystemContext, predefinedNodes);
@@ -88,7 +87,10 @@ public class NodeSet2PluginNodes(TimeService timeService, ILogger logger) : Plug
 
         // Add to node list for creation of pn.json.
         Nodes ??= new List<NodeWithIntervals>();
-        Nodes = Nodes.Append(PluginNodesHelper.GetNodeWithIntervals(predefinedNodes[0].NodeId, _plcNodeManager)).ToList();
+        if (predefinedNodes.Count > 0)
+        {
+            Nodes = Nodes.Append(PluginNodesHelper.GetNodeWithIntervals(predefinedNodes[0].NodeId, _plcNodeManager)).ToList();
+        }
 
         return predefinedNodes;
     }
