@@ -527,7 +527,7 @@ public partial class PlcServer : StandardServer
     /// </summary>
     protected override ResourceManager CreateResourceManager(IServerInternal server, ApplicationConfiguration configuration)
     {
-        var resourceManager = new ResourceManager(server, configuration);
+        var resourceManager = new ResourceManager(configuration);
 
         FieldInfo[] fields = typeof(StatusCodes).GetFields(BindingFlags.Public | BindingFlags.Static);
 
@@ -553,7 +553,7 @@ public partial class PlcServer : StandardServer
 
         // it is up to the application to decide how to validate user identity tokens.
         // this function creates validator for X509 identity tokens.
-        CreateUserIdentityValidators(configuration);
+        CreateUserIdentityValidators(configuration).GetAwaiter().GetResult();
     }
 
     protected override void OnServerStarted(IServerInternal server)
@@ -598,23 +598,21 @@ public partial class PlcServer : StandardServer
         try
         {
             // check for connected clients
-            IList<Session> currentSessions = ServerInternal.SessionManager.GetSessions();
+            IList<ISession> currentSessions = ServerInternal.SessionManager.GetSessions();
 
             if (currentSessions.Count > 0)
             {
                 // provide some time for the connected clients to detect the shutdown state.
-                ServerInternal.Status.Value.ShutdownReason = new LocalizedText(string.Empty, "Application closed."); // Invariant.
-                ServerInternal.Status.Variable.ShutdownReason.Value = new LocalizedText(string.Empty, "Application closed."); // Invariant.
-                ServerInternal.Status.Value.State = ServerState.Shutdown;
-                ServerInternal.Status.Variable.State.Value = ServerState.Shutdown;
-                ServerInternal.Status.Variable.ClearChangeMasks(ServerInternal.DefaultSystemContext, true);
+                var shutdownReason = new LocalizedText(string.Empty, "Application closed."); // Invariant.
 
                 for (uint secondsUntilShutdown = PlcShutdownWaitSeconds; secondsUntilShutdown > 0; secondsUntilShutdown--)
                 {
-                    ServerInternal.Status.Value.SecondsTillShutdown = secondsUntilShutdown;
-                    ServerInternal.Status.Variable.SecondsTillShutdown.Value = secondsUntilShutdown;
-                    ServerInternal.Status.Variable.ClearChangeMasks(ServerInternal.DefaultSystemContext, includeChildren: true);
-
+                    ServerInternal.UpdateServerStatus(status =>
+                    {
+                        status.Value.State = ServerState.Shutdown;
+                        status.Value.ShutdownReason = shutdownReason;
+                        status.Value.SecondsTillShutdown = secondsUntilShutdown;
+                    });
                     Thread.Sleep(TimeSpan.FromSeconds(1));
                 }
             }
