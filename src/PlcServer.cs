@@ -432,8 +432,14 @@ public partial class PlcServer : StandardServer
         // API to set the encodable factory and it is not possible to provide an own implementation, because other classes
         // require the StandardServer or ServerInternalData as objects, so we need to use reflection to set it.
         var serverInternalDataField = typeof(StandardServer).GetField("m_serverInternal", BindingFlags.Instance | BindingFlags.NonPublic);
-        var encodableFactoryField = serverInternalDataField.FieldType.GetField("m_factory", BindingFlags.Instance | BindingFlags.NonPublic);
-        encodableFactoryField.SetValue(server, new EncodeableFactory(false));
+        if (serverInternalDataField != null)
+        {
+            var encodableFactoryField = serverInternalDataField.FieldType.GetField("m_factory", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (encodableFactoryField != null)
+            {
+                encodableFactoryField.SetValue(server, new EncodeableFactory(false));
+            }
+        }
 
         // Add encodable complex types.
         server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
@@ -607,8 +613,7 @@ public partial class PlcServer : StandardServer
 
                 for (uint secondsUntilShutdown = PlcShutdownWaitSeconds; secondsUntilShutdown > 0; secondsUntilShutdown--)
                 {
-                    ServerInternal.UpdateServerStatus(status =>
-                    {
+                    ServerInternal.UpdateServerStatus(status => {
                         status.Value.State = ServerState.Shutdown;
                         status.Value.ShutdownReason = shutdownReason;
                         status.Value.SecondsTillShutdown = secondsUntilShutdown;
