@@ -25,11 +25,11 @@ public class DeterministicAlarmsTests2 : SubscriptionTestsBase
     }
 
     [SetUp]
-    public void CreateMonitoredItem()
+    public async Task CreateMonitoredItem()
     {
         SetUpMonitoredItem(AlarmNodeId("VendingMachines"), NodeClass.Object, Attributes.EventNotifier);
 
-        AddMonitoredItem();
+        await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
     [Test]

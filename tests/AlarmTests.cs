@@ -41,7 +41,7 @@ public class AlarmTests : SubscriptionTestsBase
 
         whereClause.Push(FilterOperator.And, element1, element2);
 
-        AddMonitoredItem();
+        await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
     [Test]

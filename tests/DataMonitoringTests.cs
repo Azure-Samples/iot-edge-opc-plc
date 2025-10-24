@@ -2,6 +2,7 @@ namespace OpcPlc.Tests;
 
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
@@ -19,14 +20,14 @@ public class DataMonitoringTests : SubscriptionTestsBase
     }
 
     [SetUp]
-    public void CreateMonitoredItem()
+    public async Task CreateMonitoredItem()
     {
         var nodeId = GetOpcPlcNodeId("FastUInt1");
         nodeId.Should().NotBeNull();
 
         SetUpMonitoredItem(nodeId, NodeClass.Variable, Attributes.Value);
 
-        AddMonitoredItem();
+        await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
     [Test]

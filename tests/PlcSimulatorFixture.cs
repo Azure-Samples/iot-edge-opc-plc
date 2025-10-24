@@ -151,7 +151,7 @@ public class PlcSimulatorFixture
         }
 
         _config = await GetConfigurationAsync().ConfigureAwait(false);
-        _serverEndpoint = GetServerEndpoint(endpointUrl);
+        _serverEndpoint = await GetServerEndpointAsync(endpointUrl).ConfigureAwait(false);
     }
 
     public Task StopAsync()
@@ -166,14 +166,14 @@ public class PlcSimulatorFixture
     /// </summary>
     /// <param name="sessionName">The name to assign to the session.</param>
     /// <returns>The created session.</returns>
-    public Task<Session> CreateSessionAsync(string sessionName)
+    public async Task<Session> CreateSessionAsync(string sessionName)
     {
-        _log.WriteLine("Create a session with OPC UA server ...");
+     await _log.WriteLineAsync("Create a session with OPC UA server ...").ConfigureAwait(false);
         var userIdentity = new UserIdentity(new AnonymousIdentityToken());
 
         // When unit test certificate expires,
         // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
-        return Session.Create(_config, _serverEndpoint, updateBeforeConnect: false, sessionName, sessionTimeout: 60000, userIdentity, preferredLocales: null);
+        return await Session.CreateAsync(_config, _serverEndpoint, updateBeforeConnect: false, sessionName, sessionTimeout: 60000, userIdentity, preferredLocales: null).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -237,10 +237,10 @@ public class PlcSimulatorFixture
         };
 
         // load the application configuration.
-        var config = await application.LoadApplicationConfiguration(silent: false).ConfigureAwait(false);
+        var config = await application.LoadApplicationConfigurationAsync(silent: false).ConfigureAwait(false);
 
         // check the application certificate.
-        bool haveAppCertificate = await application.CheckApplicationInstanceCertificates(silent: false).ConfigureAwait(false);
+        bool haveAppCertificate = await application.CheckApplicationInstanceCertificatesAsync(silent: false).ConfigureAwait(false);
         if (!haveAppCertificate)
         {
             throw new Exception("Application instance certificate invalid!");
@@ -269,9 +269,8 @@ public class PlcSimulatorFixture
     /// Therefore, the method retries for up to 10 seconds in case of failure.
     /// </summary>
     /// <param name="endpointUrl"></param>
-    /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    private ConfiguredEndpoint GetServerEndpoint(string endpointUrl)
+    private async Task<ConfiguredEndpoint> GetServerEndpointAsync(string endpointUrl)
     {
         var sw = Stopwatch.StartNew();
 
@@ -279,14 +278,14 @@ public class PlcSimulatorFixture
         {
             try
             {
-                var endpoint = CoreClientUtils.SelectEndpoint(_config, endpointUrl, useSecurity: false, discoverTimeout: 15000);
+                var endpoint = await CoreClientUtils.SelectEndpointAsync(_config, endpointUrl, useSecurity: false, discoverTimeout: 15000).ConfigureAwait(false);
                 var endpointConfiguration = EndpointConfiguration.Create(_config);
                 return new ConfiguredEndpoint(collection: null, endpoint, endpointConfiguration);
             }
             catch (ServiceResultException) when (sw.Elapsed < TimeSpan.FromSeconds(10))
             {
-                _log.Write("Retrying to access endpoint...");
-                Thread.Sleep(100);
+                await _log.WriteLineAsync("Retrying to access endpoint...").ConfigureAwait(false);
+                await Task.Delay(100).ConfigureAwait(false);
             }
         }
     }
@@ -307,7 +306,7 @@ public class PlcSimulatorFixture
 
             if (!_opcPlcServer.Ready)
             {
-                _log.WriteLine("Waiting for server to start ...");
+                await _log.WriteLineAsync("Waiting for server to start ...").ConfigureAwait(false);
                 await Task.Delay(1000).ConfigureAwait(false);
                 continue;
             }
