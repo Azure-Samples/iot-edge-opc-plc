@@ -124,7 +124,7 @@ public class BoilerTests : SimulatorTestsBase
         var newValue = await GetBoilerModelAsync().ConfigureAwait(false);
         newValue.Pressure = 42_000;
         var nodeId = NodeId.Create(BoilerModel1.Variables.Boiler1_BoilerStatus, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var statusCode = WriteValueAsync(nodeId, newValue);
+        var statusCode = await WriteValueAsync(nodeId, newValue).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
         var currentValue = await GetBoilerModelAsync().ConfigureAwait(false);
         currentValue.Pressure.Should().Be(newValue.Pressure);

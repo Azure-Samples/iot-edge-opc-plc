@@ -168,12 +168,21 @@ public class PlcSimulatorFixture
     /// <returns>The created session.</returns>
     public async Task<Session> CreateSessionAsync(string sessionName)
     {
-     await _log.WriteLineAsync("Create a session with OPC UA server ...").ConfigureAwait(false);
+        await _log.WriteLineAsync("Create a session with OPC UA server ...").ConfigureAwait(false);
         var userIdentity = new UserIdentity(new AnonymousIdentityToken());
 
         // When unit test certificate expires,
         // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
-        return await Session.CreateAsync(_config, _serverEndpoint, updateBeforeConnect: false, sessionName, sessionTimeout: 60000, userIdentity, preferredLocales: null).ConfigureAwait(false);
+        return await Session.CreateAsync(
+            _config,
+            reverseConnectManager: null,
+            _serverEndpoint,
+            updateBeforeConnect: false,
+            checkDomain: false,
+            sessionName,
+            sessionTimeout: 60000,
+            userIdentity,
+            preferredLocales: null).ConfigureAwait(false);
     }
 
     /// <summary>
