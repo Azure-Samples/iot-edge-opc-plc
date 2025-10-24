@@ -70,7 +70,7 @@ public partial class PlcServer : StandardServer
                     ThreadPool.GetAvailableThreads(out int availWorkerThreads, out _);
 
                     uint sessionCount = ServerInternal.ServerDiagnostics.CurrentSessionCount;
-                    IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
+                    IList<ISubscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
                     int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
 
                     _autoDisablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;

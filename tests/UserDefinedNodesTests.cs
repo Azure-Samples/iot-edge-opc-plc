@@ -17,7 +17,7 @@ public class UserDefinedNodesTests : SubscriptionTestsBase
     [Test]
     public void TestUserDefinedNodes()
     {
-        var myTelemetryNode = FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry");
+        var myTelemetryNode = FindNodeAsync(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "MyTelemetry");
         myTelemetryNode.Should().NotBeNull();
 
         var childNode = FindNode(myTelemetryNode, Namespaces.OpcPlcApplications, "Child");

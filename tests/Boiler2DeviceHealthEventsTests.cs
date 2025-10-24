@@ -148,7 +148,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         var currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
 
         var baseTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var statusCode = WriteValue(baseTemperatureNodeId, currentTemperatureDegrees + 10f);
+        var statusCode = WriteValueAsync(baseTemperatureNodeId, currentTemperatureDegrees + 10f);
         statusCode.Should().Be(StatusCodes.Good);
 
         // Fast forward 1 s to update the DeviceHealth.

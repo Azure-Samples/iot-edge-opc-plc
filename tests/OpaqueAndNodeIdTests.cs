@@ -12,7 +12,7 @@ public class OpaqueAndNodeIdTests : SubscriptionTestsBase
     [Test]
     public void TestNodeIdNodes()
     {
-        var specialFolder = FindNode(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "Telemetry", "Special");
+        var specialFolder = FindNodeAsync(ObjectsFolder, Namespaces.OpcPlcApplications, "OpcPlc", "Telemetry", "Special");
         specialFolder.Should().NotBeNull();
 
         var stringNodeId = FindNode(specialFolder, Namespaces.OpcPlcApplications, "ScalarStaticNodeIdString");
