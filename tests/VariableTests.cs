@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using System.Collections;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Tests for interacting with OPC-UA Variable nodes.
@@ -19,9 +20,9 @@ public class VariableTests : SimulatorTestsBase
     }
 
     [SetUp]
-    public void SetUp()
+    public async Task SetUp()
     {
-        _scalarStaticNode = FindNode(ObjectsFolder, OpcPlc.Namespaces.OpcPlcReferenceTest, "ReferenceTest", "Scalar", "Scalar_Static");
+        _scalarStaticNode = await FindNodeAsync(ObjectsFolder, OpcPlc.Namespaces.OpcPlcReferenceTest, "ReferenceTest", "Scalar", "Scalar_Static").ConfigureAwait(false);
     }
 
     public static IEnumerable NodeWriteTestCases
@@ -35,15 +36,15 @@ public class VariableTests : SimulatorTestsBase
 
     [Test]
     [TestCaseSource(nameof(NodeWriteTestCases))]
-    public void WriteValue_UpdatesValue(string[] pathParts, object newValue)
+    public async Task WriteValue_UpdatesValue(string[] pathParts, object newValue)
     {
-        var nodeId = FindNode(_scalarStaticNode, OpcPlc.Namespaces.OpcPlcReferenceTest, pathParts);
+        var nodeId = await FindNodeAsync(_scalarStaticNode, OpcPlc.Namespaces.OpcPlcReferenceTest, pathParts).ConfigureAwait(false);
 
-        var results = WriteValue(nodeId, newValue);
+        var results = await WriteValueAsync(nodeId, newValue).ConfigureAwait(false);
 
         results.Should().Be(StatusCodes.Good);
 
-        Session.ReadValue(nodeId)
+        (await Session.ReadValueAsync(nodeId).ConfigureAwait(false))
             .Value
             .Should().BeEquivalentTo(newValue);
     }

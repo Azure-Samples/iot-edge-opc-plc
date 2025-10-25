@@ -63,7 +63,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error loading user defined node file {file}: {error}", _nodesFileName, e.Message);
+            _logger.LogError(e, "Error loading user defined node file {File}: {Error}", _nodesFileName, e.Message);
         }
 
 
@@ -118,7 +118,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
                 node.Description = node.Name;
             }
 
-            _logger.LogDebug("Create node with Id {typedNodeId}, BrowseName {name} and type {type} in namespace with index {namespaceIndex}",
+            _logger.LogDebug("Create node with Id {TypedNodeId}, BrowseName {Name} and type {Type} in namespace with index {NamespaceIndex}",
                 typedNodeId,
                 node.Name,
                 (string)node.NodeId.GetType().Name,

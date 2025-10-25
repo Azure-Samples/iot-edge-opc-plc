@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 [TestFixture]
 public class AlarmTests : SubscriptionTestsBase
@@ -15,12 +16,12 @@ public class AlarmTests : SubscriptionTestsBase
     }
 
     [SetUp]
-    public void CreateMonitoredItem()
+    public async Task CreateMonitoredItem()
     {
         _eventType = ToNodeId(ObjectTypes.TripAlarmType);
 
-        var areaNode = FindNode(Server, OpcPlc.Namespaces.OpcPlcAlarmsInstance, "Green", "East", "Blue");
-        var southMotor = FindNode(areaNode, OpcPlc.Namespaces.OpcPlcAlarmsInstance, "SouthMotor");
+        var areaNode = await FindNodeAsync(Server, OpcPlc.Namespaces.OpcPlcAlarmsInstance, "Green", "East", "Blue").ConfigureAwait(false);
+        var southMotor = await FindNodeAsync(areaNode, OpcPlc.Namespaces.OpcPlcAlarmsInstance, "SouthMotor").ConfigureAwait(false);
 
         SetUpMonitoredItem(areaNode, NodeClass.Object, Attributes.EventNotifier);
 
@@ -40,7 +41,7 @@ public class AlarmTests : SubscriptionTestsBase
 
         whereClause.Push(FilterOperator.And, element1, element2);
 
-        AddMonitoredItem();
+        await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
     [Test]

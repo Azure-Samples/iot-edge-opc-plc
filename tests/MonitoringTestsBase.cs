@@ -12,6 +12,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Abstract base class for tests using OPC-UA Subscriptions.
@@ -36,24 +37,24 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     /// Creates the subscription.
     /// </summary>
     [SetUp]
-    public void CreateSubscription()
+    public async Task CreateSubscription()
     {
         Utils.SetLogger(new TestLogger<SubscriptionTestsBase>(TestContext.Out, new SyslogFormatter(new SyslogFormatterOptions())));
         _subscription = Session.DefaultSubscription;
         Session.AddSubscription(_subscription);
-        _subscription.Create();
+        await _subscription.CreateAsync().ConfigureAwait(false);
     }
 
     /// <summary>
     /// Deletes the subscription.
     /// </summary>
     [TearDown]
-    public void DeleteSubscription()
+    public async Task DeleteSubscription()
     {
         if (_subscription != null)
         {
-            _subscription.Delete(true);
-            Session.RemoveSubscription(_subscription);
+            await _subscription.DeleteAsync(true).ConfigureAwait(false);
+            await Session.RemoveSubscriptionAsync(_subscription).ConfigureAwait(false);
             _subscription = null;
         }
     }
@@ -62,7 +63,7 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     /// Create a <see cref="MonitoredItem"/> object configured to receive
     /// events that can be retrieved by the test class using <see cref="ReceiveEvents"/>.
     /// The object is not sent to the server at this point.
-    /// Call <see cref="AddMonitoredItem"/> to add the object to the subscription.
+    /// Call <see cref="AddMonitoredItemAsync"/> to add the object to the subscription.
     /// </summary>
     /// <param name="startNodeId">The start node for the browse path that identifies the node to monitor..</param>
     /// <param name="nodeClass">The node class of the node being monitored (affects the type of filter available).</param>
@@ -87,10 +88,10 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     /// Derived tests should call this method after having configured the
     /// <see cref="MonitoredItem"/> definition, e.g. with filters.
     /// </summary>
-    protected void AddMonitoredItem()
+    protected async Task AddMonitoredItemAsync()
     {
         _subscription.AddItem(MonitoredItem);
-        _subscription.ApplyChanges();
+        await _subscription.ApplyChangesAsync().ConfigureAwait(false);
     }
 
     /// <summary>

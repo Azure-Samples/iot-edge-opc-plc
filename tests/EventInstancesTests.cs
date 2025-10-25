@@ -1,10 +1,11 @@
-﻿namespace OpcPlc.Tests;
+namespace OpcPlc.Tests;
 
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using static System.TimeSpan;
 
 /// <summary>
@@ -21,7 +22,7 @@ public class EventInstancesTests : SubscriptionTestsBase
     }
 
     [SetUp]
-    public void CreateMonitoredItem()
+    public async Task CreateMonitoredItem()
     {
         _eventType = ToNodeId(ObjectTypeIds.BaseEventType);
 
@@ -32,7 +33,7 @@ public class EventInstancesTests : SubscriptionTestsBase
         var whereClause = filter.WhereClause;
         whereClause.Push(FilterOperator.OfType, _eventType);
 
-        AddMonitoredItem();
+        await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
     [Test]

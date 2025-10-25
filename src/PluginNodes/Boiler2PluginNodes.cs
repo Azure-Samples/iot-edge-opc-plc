@@ -178,7 +178,7 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
     /// <summary>
     /// Loads a node set from a file or resource and adds them to the set of predefined nodes.
     /// </summary>
-    private NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    private static NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
         var uanodesPath = "Boilers/Boiler2/BoilerModel2.PredefinedNodes.uanodes";
         var snapLocation = Environment.GetEnvironmentVariable("SNAP");
