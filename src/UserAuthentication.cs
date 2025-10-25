@@ -96,7 +96,7 @@ public partial class PlcServer
         if (args.NewIdentity is UserNameIdentityToken userNameToken)
         {
             args.Identity = VerifyPassword(userNameToken);
-            _logger.LogInformation("UserName Token Accepted: {displayName}", args.Identity.DisplayName);
+            _logger.LogInformation("UserName Token Accepted: {DisplayName}", args.Identity.DisplayName);
             return;
         }
 
@@ -105,7 +105,7 @@ public partial class PlcServer
         {
             VerifyCertificate(x509Token.Certificate);
             args.Identity = new UserIdentity(x509Token);
-            _logger.LogInformation("X509 Token Accepted: {displayName}", args.Identity.DisplayName);
+            _logger.LogInformation("X509 Token Accepted: {DisplayName}", args.Identity.DisplayName);
         }
     }
 
