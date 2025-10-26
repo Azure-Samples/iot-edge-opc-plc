@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Opc.Ua;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using static System.TimeSpan;
 
 [TestFixture]
@@ -24,28 +25,28 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
     }
 
     [SetUp]
-    public void CreateMonitoredItem()
+    public async Task CreateMonitoredItem()
     {
         SetUpMonitoredItem(AlarmNodeId("VendingMachines"), NodeClass.Object, Attributes.EventNotifier);
 
-        AddMonitoredItem();
+        await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
     [Test]
-    public void FiresEventSequence()
+    public async Task FiresEventSequence()
     {
         var machine1 = AlarmNodeId("VendingMachine1");
         var machine2 = AlarmNodeId("VendingMachine2");
 
-        var doorOpen1 = FindNode(machine1, Alarms, "VendingMachine1_DoorOpen");
-        var tempHigh1 = FindNode(machine1, Alarms, "VendingMachine1_TemperatureHigh");
-        var doorOpen2 = FindNode(machine2, Alarms, "VendingMachine2_DoorOpen");
-        var lightOff2 = FindNode(machine2, Alarms, "VendingMachine2_LightOff");
+        var doorOpen1 = await FindNodeAsync(machine1, Alarms, "VendingMachine1_DoorOpen").ConfigureAwait(false);
+        var tempHigh1 = await FindNodeAsync(machine1, Alarms, "VendingMachine1_TemperatureHigh").ConfigureAwait(false);
+        var doorOpen2 = await FindNodeAsync(machine2, Alarms, "VendingMachine2_DoorOpen").ConfigureAwait(false);
+        var lightOff2 = await FindNodeAsync(machine2, Alarms, "VendingMachine2_LightOff").ConfigureAwait(false);
 
-        NodeShouldHaveStates(doorOpen1, Inactive, Disabled);
-        NodeShouldHaveStates(tempHigh1, Inactive, Disabled);
-        NodeShouldHaveStates(doorOpen2, Inactive, Disabled);
-        NodeShouldHaveStates(lightOff2, Inactive, Disabled);
+        await NodeShouldHaveStatesAsync(doorOpen1, Inactive, Disabled).ConfigureAwait(false);
+        await NodeShouldHaveStatesAsync(tempHigh1, Inactive, Disabled).ConfigureAwait(false);
+        await NodeShouldHaveStatesAsync(doorOpen2, Inactive, Disabled).ConfigureAwait(false);
+        await NodeShouldHaveStatesAsync(lightOff2, Inactive, Disabled).ConfigureAwait(false);
 
         var waitUntilStartInSeconds = FromSeconds(9); // value in dalm001.json file
         FireTimersWithPeriodAndReceiveEvents(waitUntilStartInSeconds, expectedCount: 1)
@@ -60,10 +61,10 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
                 ["/Severity"] = EventSeverity.High,
             });
 
-        NodeShouldHaveStates(doorOpen1, Active, Enabled);
-        NodeShouldHaveStates(tempHigh1, Inactive, Disabled);
-        NodeShouldHaveStates(doorOpen2, Inactive, Disabled);
-        NodeShouldHaveStates(lightOff2, Inactive, Disabled);
+        await NodeShouldHaveStatesAsync(doorOpen1, Active, Enabled).ConfigureAwait(false);
+        await NodeShouldHaveStatesAsync(tempHigh1, Inactive, Disabled).ConfigureAwait(false);
+        await NodeShouldHaveStatesAsync(doorOpen2, Inactive, Disabled).ConfigureAwait(false);
+        await NodeShouldHaveStatesAsync(lightOff2, Inactive, Disabled).ConfigureAwait(false);
 
         AdvanceToNextStep();
 
@@ -79,7 +80,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
                 ["/Severity"] = EventSeverity.Medium,
             });
 
-        NodeShouldHaveStates(lightOff2, Active, Enabled);
+        await NodeShouldHaveStatesAsync(lightOff2, Active, Enabled).ConfigureAwait(false);
 
         AdvanceToNextStep();
 
@@ -95,7 +96,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
                 ["/Severity"] = EventSeverity.Medium,
             });
 
-        NodeShouldHaveStates(doorOpen1, Inactive, Enabled);
+        await NodeShouldHaveStatesAsync(doorOpen1, Inactive, Enabled).ConfigureAwait(false);
 
         AdvanceToNextStep();
 
@@ -111,7 +112,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
                 ["/Severity"] = EventSeverity.High,
             });
 
-        NodeShouldHaveStates(tempHigh1, Active, Enabled);
+        await NodeShouldHaveStatesAsync(tempHigh1, Active, Enabled).ConfigureAwait(false);
 
         FireTimersWithPeriodAndReceiveEvents(FromMilliseconds(1), expectedCount: 1)
             .First()
@@ -121,7 +122,7 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
                 ["/Message"] = new LocalizedText("Door Open"),
             });
 
-        NodeShouldHaveStates(doorOpen1, Active, Enabled);
+        await NodeShouldHaveStatesAsync(doorOpen1, Active, Enabled).ConfigureAwait(false);
 
         AdvanceToNextStep();
 
@@ -133,17 +134,17 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
                 ["/Message"] = new LocalizedText("Light Off in machine"),
             });
 
-        NodeShouldHaveStates(lightOff2, Active, Enabled);
+        await NodeShouldHaveStatesAsync(lightOff2, Active, Enabled).ConfigureAwait(false);
 
         AdvanceToNextStep();
 
         // At this point, the *runningForSeconds* limit in the JSON file causes execution to stop
         FireTimersWithPeriodAndReceiveEvents(FromSeconds(1), expectedCount: 0);
 
-        NodeShouldHaveStates(doorOpen1, Active, Enabled);
-        NodeShouldHaveStates(tempHigh1, Active, Enabled);
-        NodeShouldHaveStates(doorOpen2, Inactive, Disabled);
-        NodeShouldHaveStates(lightOff2, Active, Enabled);
+        await NodeShouldHaveStatesAsync(doorOpen1, Active, Enabled).ConfigureAwait(false);
+        await NodeShouldHaveStatesAsync(tempHigh1, Active, Enabled).ConfigureAwait(false);
+        await NodeShouldHaveStatesAsync(doorOpen2, Inactive, Disabled).ConfigureAwait(false);
+        await NodeShouldHaveStatesAsync(lightOff2, Active, Enabled).ConfigureAwait(false);
     }
 
     private void AdvanceToNextStep()
@@ -151,16 +152,16 @@ public class DeterministicAlarmsTests : SubscriptionTestsBase
         FireTimersWithPeriodAndReceiveEvents(FromMilliseconds(1), 0);
     }
 
-    private void NodeShouldHaveStates(NodeId node, LocalizedText activeState, LocalizedText enabledState)
+    private async Task NodeShouldHaveStatesAsync(NodeId node, LocalizedText activeState, LocalizedText enabledState)
     {
-        NodeShouldHaveState(node, "ActiveState", activeState);
-        NodeShouldHaveState(node, "EnabledState", enabledState);
+        await NodeShouldHaveStateAsync(node, "ActiveState", activeState).ConfigureAwait(false);
+        await NodeShouldHaveStateAsync(node, "EnabledState", enabledState).ConfigureAwait(false);
     }
 
-    private void NodeShouldHaveState(NodeId node, string state, LocalizedText expectedValue)
+    private async Task NodeShouldHaveStateAsync(NodeId node, string state, LocalizedText expectedValue)
     {
-        var nodeId = FindNode(node, Namespaces.OpcUa, state);
-        var value = ReadValue<LocalizedText>(nodeId);
+        var nodeId = await FindNodeAsync(node, Namespaces.OpcUa, state).ConfigureAwait(false);
+        var value = await ReadValueAsync<LocalizedText>(nodeId).ConfigureAwait(false);
         value.Should().Be(expectedValue, "{0} should be {1}", state, expectedValue);
     }
 

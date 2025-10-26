@@ -4,9 +4,10 @@ using BoilerModel1;
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
+using Opc.Ua.Client;
 using Opc.Ua.Client.ComplexTypes;
-using System.Dynamic;
 using System.Text.Json;
+using System.Threading.Tasks;
 using static System.TimeSpan;
 
 /// <summary>
@@ -29,17 +30,17 @@ public class BoilerTests : SimulatorTestsBase
     }
 
     [TearDown]
-    public new virtual void TearDown()
+    public new virtual async Task TearDown()
     {
-        TurnHeaterOn();
+        await TurnHeaterOnAsync().ConfigureAwait(false);
     }
 
     [TestCase]
-    public void Heater_AtStartUp_IsTurnedOn()
+    public async Task Heater_AtStartUp_IsTurnedOn()
     {
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
 
-        BoilerDataType model = GetBoilerModel();
+        BoilerDataType model = await GetBoilerModelAsync().ConfigureAwait(false);
 
         BoilerHeaterStateType state = model.HeaterState;
         BoilerTemperatureType temperature = model.Temperature;
@@ -53,16 +54,16 @@ public class BoilerTests : SimulatorTestsBase
     }
 
     [TestCase]
-    public void Heater_CanBeTurnedOff()
+    public async Task Heater_CanBeTurnedOff()
     {
         // let heater run for a few seconds to make temperature rise
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
 
-        TurnHeaterOff();
+        await TurnHeaterOffAsync().ConfigureAwait(false);
 
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
 
-        BoilerDataType model = GetBoilerModel();
+        BoilerDataType model = await GetBoilerModelAsync().ConfigureAwait(false);
 
         BoilerHeaterStateType state = model.HeaterState;
         BoilerTemperatureType temperature = model.Temperature;
@@ -76,13 +77,13 @@ public class BoilerTests : SimulatorTestsBase
     }
 
     [TestCase]
-    public void Heater_WhenRunning_HasRisingPressure()
+    public async Task Heater_WhenRunning_HasRisingPressure()
     {
         int previousPressure = 0;
         for (int i = 0; i < 5; i++)
         {
             FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
-            BoilerDataType model = GetBoilerModel();
+            BoilerDataType model = await GetBoilerModelAsync().ConfigureAwait(false);
             int pressure = model.Pressure;
 
             pressure.Should().BeGreaterThan(previousPressure, "pressure should build when heater is on");
@@ -91,25 +92,25 @@ public class BoilerTests : SimulatorTestsBase
     }
 
     [TestCase]
-    public void Heater_WhenStopped_HasFallingPressure()
+    public async Task Heater_WhenStopped_HasFallingPressure()
     {
         int previousPressure = 0;
         for (int i = 0; i < 10; i++)
         {
             FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
-            BoilerDataType model = GetBoilerModel();
+            BoilerDataType model = await GetBoilerModelAsync().ConfigureAwait(false);
             int pressure = model.Pressure;
 
             pressure.Should().BeGreaterThan(previousPressure, "pressure should build when heater is on");
             previousPressure = pressure;
         }
 
-        TurnHeaterOff();
+        await TurnHeaterOffAsync().ConfigureAwait(false);
 
         for (int i = 0; i < 5; i++)
         {
             FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1000);
-            BoilerDataType model = GetBoilerModel();
+            BoilerDataType model = await GetBoilerModelAsync().ConfigureAwait(false);
             int pressure = model.Pressure;
 
             pressure.Should().BeLessThan(previousPressure, "pressure should drop when heater is off");
@@ -118,37 +119,37 @@ public class BoilerTests : SimulatorTestsBase
     }
 
     [TestCase]
-    public void Heater_CanbeWritten()
+    public async Task Heater_CanbeWritten()
     {
-        var newValue = GetBoilerModel();
+        var newValue = await GetBoilerModelAsync().ConfigureAwait(false);
         newValue.Pressure = 42_000;
         var nodeId = NodeId.Create(BoilerModel1.Variables.Boiler1_BoilerStatus, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var statusCode = WriteValue(nodeId, newValue);
+        var statusCode = await WriteValueAsync(nodeId, newValue).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
-        var currentValue = GetBoilerModel();
+        var currentValue = await GetBoilerModelAsync().ConfigureAwait(false);
         currentValue.Pressure.Should().Be(newValue.Pressure);
     }
 
-    private void TurnHeaterOn()
+    private async Task TurnHeaterOnAsync()
     {
         var methodNode = NodeId.Create("HeaterOn", OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        Session.Call(GetOpcPlcNodeId("Methods"), methodNode);
+        await Session.CallAsync(GetOpcPlcNodeId("Methods"), methodNode).ConfigureAwait(false);
     }
 
-    private void TurnHeaterOff()
+    private async Task TurnHeaterOffAsync()
     {
         var methodNode = NodeId.Create("HeaterOff", OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        Session.Call(GetOpcPlcNodeId("Methods"), methodNode);
+        await Session.CallAsync(GetOpcPlcNodeId("Methods"), methodNode).ConfigureAwait(false);
     }
 
-    private BoilerDataType GetBoilerModel()
+    private async Task<BoilerDataType> GetBoilerModelAsync()
     {
         var nodeId = NodeId.Create(BoilerModel1.Variables.Boiler1_BoilerStatus, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var value = Session.ReadValue(nodeId).Value;
+        var value = (await Session.ReadValueAsync(nodeId).ConfigureAwait(false)).Value;
 
         // change dynamic in-memory created Boiler type to expected BoilerDataType by serializing and deserializing it.
-        var inmemoryBoilerDataType = (value as ExtensionObject).Body;
-        var json = JsonSerializer.Serialize(inmemoryBoilerDataType);
+        var inMemoryBoilerDataType = (value as ExtensionObject).Body;
+        var json = JsonSerializer.Serialize(inMemoryBoilerDataType);
 
         var boilerDataTypeFromGeneratedSourceCode = JsonSerializer.Deserialize<BoilerDataType>(json);
         return boilerDataTypeFromGeneratedSourceCode;
