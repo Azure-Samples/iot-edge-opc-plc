@@ -92,7 +92,7 @@ public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger
     /// <summary>
     /// Loads a node set from a file or resource and adds them to the set of predefined nodes.
     /// </summary>
-    private NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    private static NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
         var uanodesPath = "Boilers/Boiler1/BoilerModel1.PredefinedNodes.uanodes";
         var snapLocation = Environment.GetEnvironmentVariable("SNAP");
