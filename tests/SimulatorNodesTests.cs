@@ -1,12 +1,12 @@
 namespace OpcPlc.Tests;
 
+using FluentAssertions;
+using NUnit.Framework;
+using Opc.Ua;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using NUnit.Framework;
-using Opc.Ua;
 using static System.TimeSpan;
 
 /// <summary>
