@@ -85,7 +85,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
             }
             catch (Exception e)
             {
-                Utils.LogError(e, "Could not load certificate from file: {fileName}", filePath);
+                Utils.LogError(e, "Could not load certificate from file: {FileName}", filePath);
             }
         }
         return certificatesCollection;
@@ -112,7 +112,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
             }
             catch (Exception e)
             {
-                Utils.LogError(e, "Could not load certificate from file: {fileName}", filePath);
+                Utils.LogError(e, "Could not load certificate from file: {FileName}", filePath);
             }
         }
         return certificatesCollection;
@@ -139,7 +139,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
             }
             catch (Exception e)
             {
-                Utils.LogError(e, "Could not load private key for certificate file: {fileName}", filePath);
+                Utils.LogError(e, "Could not load private key for certificate file: {FileName}", filePath);
             }
         }
 
