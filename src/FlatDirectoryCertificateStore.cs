@@ -9,48 +9,62 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
+/// <summary>
+/// Flat directory certificate store that does not have internal
+/// hierarchy with certs/crl/private subdirectories.
+/// </summary>
 public sealed class FlatDirectoryCertificateStore : ICertificateStore
 {
     private const string CrtExtension = ".crt";
     private const string KeyExtension = ".key";
+
     private readonly DirectoryCertificateStore _innerStore;
+
+    /// <summary>
+    /// Identifier for flat directory certificate store.
+    /// </summary>
     public const string StoreTypeName = "FlatDirectory";
+
+    /// <summary>
+    /// Prefix for flat directory certificate store.
+    /// </summary>
     public const string StoreTypePrefix = $"{StoreTypeName}:";
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FlatDirectoryCertificateStore"/> class.
+    /// </summary>
     public FlatDirectoryCertificateStore() => _innerStore = new DirectoryCertificateStore(noSubDirs: true);
 
+    /// <inheritdoc/>
     public string StoreType => StoreTypeName;
+
+    /// <inheritdoc/>
     public string StorePath => _innerStore.StorePath;
+
+    /// <inheritdoc/>
     public bool SupportsLoadPrivateKey => _innerStore.SupportsLoadPrivateKey;
+
+    /// <inheritdoc/>
     public bool SupportsCRLs => _innerStore.SupportsCRLs;
+
+    /// <inheritdoc/>
     public bool NoPrivateKeys => _innerStore.NoPrivateKeys;
 
     public void Dispose() => _innerStore.Dispose();
 
     public void Open(string location, bool noPrivateKeys = true)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(location);
+        ArgumentException.ThrowIfNullOrEmpty(location);
         if (!location.StartsWith(StoreTypePrefix, StringComparison.Ordinal))
         {
-            throw new ArgumentException($"Expected argument {nameof(location)} starting with {StoreTypePrefix}", nameof(location));
+            throw new ArgumentException(
+                $"Expected argument {nameof(location)} starting with {StoreTypePrefix}",
+                nameof(location));
         }
         _innerStore.Open(location.Substring(StoreTypePrefix.Length), noPrivateKeys);
     }
 
     public void Close() => _innerStore.Close();
-
-    // Legacy convenience methods delegate to async versions.
-    public Task Add(X509Certificate2 certificate, string password = null) => AddAsync(certificate, password, CancellationToken.None);
-    public Task AddRejected(X509Certificate2Collection certificates, int maxCertificates) => AddRejectedAsync(certificates, maxCertificates, CancellationToken.None);
-    public Task<bool> Delete(string thumbprint) => DeleteAsync(thumbprint, CancellationToken.None);
-    public Task<X509Certificate2Collection> Enumerate() => EnumerateAsync(CancellationToken.None);
-    public Task AddCRL(X509CRL crl) => AddCRLAsync(crl, CancellationToken.None);
-    public Task<bool> DeleteCRL(X509CRL crl) => DeleteCRLAsync(crl, CancellationToken.None);
-    public Task<X509CRLCollection> EnumerateCRLs() => EnumerateCRLsAsync(CancellationToken.None);
-    public Task<X509CRLCollection> EnumerateCRLs(X509Certificate2 issuer, bool validateUpdateTime = true) => EnumerateCRLsAsync(issuer, validateUpdateTime, CancellationToken.None);
-    public Task<X509Certificate2Collection> FindByThumbprint(string thumbprint) => FindByThumbprintAsync(thumbprint, CancellationToken.None);
-    public Task<StatusCode> IsRevoked(X509Certificate2 issuer, X509Certificate2 certificate) => IsRevokedAsync(issuer, certificate, CancellationToken.None);
-    public Task<X509Certificate2> LoadPrivateKey(string thumbprint, string subjectName, string password) => LoadPrivateKeyAsync(thumbprint, subjectName, null, null, password, CancellationToken.None);
 
     // Async interface members (add default parameter values to match interface definition).
     public Task AddAsync(X509Certificate2 certificate, string password = null, CancellationToken ct = default) => _innerStore.AddAsync(certificate, password, ct);
@@ -128,6 +142,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
                 Utils.LogError(e, "Could not load private key for certificate file: {fileName}", filePath);
             }
         }
+
         return await _innerStore.LoadPrivateKeyAsync(thumbprint, subjectName, applicationUri, certificateType, password, ct).ConfigureAwait(false);
     }
 
@@ -139,6 +154,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
             if (!string.IsNullOrEmpty(subjectName) && !X509Utils.CompareDistinguishedName(subjectName, certificate.Subject) && (subjectName.Contains('=', StringComparison.OrdinalIgnoreCase) || !X509Utils.ParseDistinguishedName(certificate.Subject).Any(s => s.Equals("CN=" + subjectName, StringComparison.Ordinal)))) return false;
             return X509Utils.GetRSAPublicKeySize(certificate) >= 0;
         }
+
         return false;
     }
 }
