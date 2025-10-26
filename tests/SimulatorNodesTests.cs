@@ -233,7 +233,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         // NumberOfUpdates variable should now be 0. The Fast node value should not change anymore.
         for (var i = 0; i < 10; i++)
         {
-            (await ReadValueAsync<uint>(numberOfUpdatesNode).ConfigureAwait(false)).Should().Be(0);
+            (await ReadValueAsync<int>(numberOfUpdatesNode).ConfigureAwait(false)).Should().Be(0);
             FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: 1);
             var value3 = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
             value3.Should().Be(value1 + 6);
