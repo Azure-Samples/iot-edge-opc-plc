@@ -5,6 +5,7 @@ using NUnit.Framework;
 using Opc.Ua;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using static System.TimeSpan;
 
 [TestFixture]
@@ -24,34 +25,34 @@ public class DeterministicAlarmsTests2 : SubscriptionTestsBase
     }
 
     [SetUp]
-    public void CreateMonitoredItem()
+    public async Task CreateMonitoredItem()
     {
         SetUpMonitoredItem(AlarmNodeId("VendingMachines"), NodeClass.Object, Attributes.EventNotifier);
 
-        AddMonitoredItem();
+        await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
     [Test]
-    public void VerifyThatTimeForEventsChanges()
+    public async Task VerifyThatTimeForEventsChanges()
     {
         var machine1 = AlarmNodeId("VendingMachine1");
 
-        var doorOpen1 = FindNode(machine1, Alarms, "VendingMachine1_DoorOpen");
+        var doorOpen1 = await FindNodeAsync(machine1, Alarms, "VendingMachine1_DoorOpen").ConfigureAwait(false);
 
-        NodeShouldHaveStates(doorOpen1, Inactive, Disabled);
+        await NodeShouldHaveStatesAsync(doorOpen1, Inactive, Disabled).ConfigureAwait(false);
 
         var waitUntilStartInSeconds = FromSeconds(5); // value in dalm002.json file
         var opcEvent1 = FireTimersWithPeriodAndReceiveEvents(waitUntilStartInSeconds, expectedCount: 1).First();
         var timeForFirstEvent = DateTime.Parse(opcEvent1["/Time"].ToString());
 
-        NodeShouldHaveStates(doorOpen1, Active, Enabled);
+        await NodeShouldHaveStatesAsync(doorOpen1, Active, Enabled).ConfigureAwait(false);
 
         AdvanceToNextStep();
 
         var opcEvent2 = FireTimersWithPeriodAndReceiveEvents(waitUntilStartInSeconds, expectedCount: 1).First();
         var timeForNextEvent = DateTime.Parse(opcEvent2["/Time"].ToString());
 
-        NodeShouldHaveStates(doorOpen1, Inactive, Disabled);
+        await NodeShouldHaveStatesAsync(doorOpen1, Inactive, Disabled).ConfigureAwait(false);
 
         timeForFirstEvent.Should().NotBe(timeForNextEvent);
     }
@@ -61,16 +62,16 @@ public class DeterministicAlarmsTests2 : SubscriptionTestsBase
         FireTimersWithPeriodAndReceiveEvents(FromMilliseconds(1), 0);
     }
 
-    private void NodeShouldHaveStates(NodeId node, LocalizedText activeState, LocalizedText enabledState)
+    private async Task NodeShouldHaveStatesAsync(NodeId node, LocalizedText activeState, LocalizedText enabledState)
     {
-        NodeShouldHaveState(node, "ActiveState", activeState);
-        NodeShouldHaveState(node, "EnabledState", enabledState);
+        await NodeShouldHaveStateAsync(node, "ActiveState", activeState).ConfigureAwait(false);
+        await NodeShouldHaveStateAsync(node, "EnabledState", enabledState).ConfigureAwait(false);
     }
 
-    private void NodeShouldHaveState(NodeId node, string state, LocalizedText expectedValue)
+    private async Task NodeShouldHaveStateAsync(NodeId node, string state, LocalizedText expectedValue)
     {
-        var nodeId = FindNode(node, Namespaces.OpcUa, state);
-        var value = ReadValue<LocalizedText>(nodeId);
+        var nodeId = await FindNodeAsync(node, Namespaces.OpcUa, state).ConfigureAwait(false);
+        var value = await ReadValueAsync<LocalizedText>(nodeId).ConfigureAwait(false);
         value.Should().Be(expectedValue, "{0} should be {1}", state, expectedValue);
     }
 
