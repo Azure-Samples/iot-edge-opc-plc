@@ -119,9 +119,9 @@ public abstract class SimulatorTestsBase
         return ToNodeId(nodeId);
     }
 
-    protected async Task<T> ReadValueAsync<T>(NodeId nodeId)
+    protected Task<T> ReadValueAsync<T>(NodeId nodeId)
     {
-        return (T)(await Session.ReadValueAsync(nodeId).ConfigureAwait(false)).Value;
+        return Session.ReadValueAsync<T>(nodeId);
     }
 
     protected async Task<StatusCode> WriteValueAsync(NodeId nodeId, object newValue)

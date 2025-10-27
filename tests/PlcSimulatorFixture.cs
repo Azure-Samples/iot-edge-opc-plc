@@ -173,10 +173,12 @@ public class PlcSimulatorFixture
 
         // When unit test certificate expires,
         // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
-        return await Session.Create(
+        return await Session.CreateAsync(
             _config,
+            reverseConnectManager: null,
             _serverEndpoint,
             updateBeforeConnect: false,
+            checkDomain: false,
             sessionName,
             sessionTimeout: 60000,
             userIdentity,
@@ -244,10 +246,10 @@ public class PlcSimulatorFixture
         };
 
         // load the application configuration.
-        var config = await application.LoadApplicationConfiguration(silent: false).ConfigureAwait(false);
+        var config = await application.LoadApplicationConfigurationAsync(silent: false).ConfigureAwait(false);
 
         // check the application certificate.
-        bool haveAppCertificate = await application.CheckApplicationInstanceCertificates(silent: false).ConfigureAwait(false);
+        bool haveAppCertificate = await application.CheckApplicationInstanceCertificatesAsync(silent: false).ConfigureAwait(false);
         if (!haveAppCertificate)
         {
             throw new Exception("Application instance certificate invalid!");
@@ -276,7 +278,6 @@ public class PlcSimulatorFixture
     /// Therefore, the method retries for up to 10 seconds in case of failure.
     /// </summary>
     /// <param name="endpointUrl"></param>
-    /// <returns></returns>
     /// <exception cref="Exception"></exception>
     private async Task<ConfiguredEndpoint> GetServerEndpointAsync(string endpointUrl)
     {
@@ -286,13 +287,13 @@ public class PlcSimulatorFixture
         {
             try
             {
-                var endpoint = CoreClientUtils.SelectEndpoint(_config, endpointUrl, useSecurity: false, discoverTimeout: 15000);
+                var endpoint = await CoreClientUtils.SelectEndpointAsync(_config, endpointUrl, useSecurity: false, discoverTimeout: 15000).ConfigureAwait(false);
                 var endpointConfiguration = EndpointConfiguration.Create(_config);
                 return new ConfiguredEndpoint(collection: null, endpoint, endpointConfiguration);
             }
             catch (ServiceResultException) when (sw.Elapsed < TimeSpan.FromSeconds(10))
             {
-                await _log.WriteAsync("Retrying to access endpoint...").ConfigureAwait(false);
+                await _log.WriteLineAsync("Retrying to access endpoint...").ConfigureAwait(false);
                 await Task.Delay(100).ConfigureAwait(false);
             }
         }

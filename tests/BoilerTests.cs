@@ -25,7 +25,7 @@ public class BoilerTests : SimulatorTestsBase
     public void OneTimeSetUp()
     {
         _complexTypeSystem = new ComplexTypeSystem(Session);
-        var loaded =  _complexTypeSystem.LoadNamespace(OpcPlc.Namespaces.OpcPlcBoiler).ConfigureAwait(false).GetAwaiter().GetResult();
+        var loaded =  _complexTypeSystem.LoadNamespaceAsync(OpcPlc.Namespaces.OpcPlcBoiler).ConfigureAwait(false).GetAwaiter().GetResult();
         loaded.Should().BeTrue("BoilerDataType should be loaded");
     }
 
