@@ -361,11 +361,11 @@ public partial class SlowFastCommon
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Node values will change every {NodeRate} ms")]
+        Message = "Node values will change every {NodeRate:N0} ms")]
     partial void LogNodeValuesChangeRate(uint nodeRate);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
-        Message = "Invalid argument {Argument} provided.")]
+        Message = "Invalid argument {Argument} provided")]
     partial void LogInvalidArgument(object argument);
 }

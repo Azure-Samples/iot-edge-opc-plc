@@ -65,7 +65,7 @@ public class DeterministicGuidPluginNodes(TimeService timeService, ILogger logge
         if (NodeCount > 0)
         {
             _logger.LogInformation($"Creating {NodeCount} GUID node(s) of type: {NodeType}");
-            _logger.LogInformation($"Node values will change every {NodeRate} ms");
+            _logger.LogInformation($"Node values will change every {NodeRate:N0} ms");
         }
 
         for (int i = 0; i < NodeCount; i++)

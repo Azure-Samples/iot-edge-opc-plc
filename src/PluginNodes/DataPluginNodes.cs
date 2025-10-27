@@ -202,7 +202,7 @@ public class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNo
     }
 
     /// <summary>
-    /// Updates simulation values. Called each SimulationCycleLength msec.
+    /// Updates simulation values. Called each SimulationCycleLength ms.
     /// Using SimulationCycleCount cycles per simulation phase.
     /// </summary>
     private uint StepUpGenerator(uint value)
@@ -223,7 +223,7 @@ public class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNo
     }
 
     /// <summary>
-    /// Updates simulation values. Called each SimulationCycleLength msec.
+    /// Updates simulation values. Called each SimulationCycleLength ms.
     /// Using SimulationCycleCount cycles per simulation phase.
     /// </summary>
     private bool AlternatingBooleanGenerator(bool value)

@@ -123,7 +123,7 @@ public class PlcSimulation
     }
 
     private const int SIMULATION_CYCLECOUNT_DEFAULT = 50;          // in cycles
-    private const int SIMULATION_CYCLELENGTH_DEFAULT = 100;        // in msec
+    private const int SIMULATION_CYCLELENGTH_DEFAULT = 100;        // in ms
 
     private PlcServer _plcServer;
 
