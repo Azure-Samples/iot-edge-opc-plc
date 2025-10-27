@@ -1003,37 +1003,37 @@ public partial class PlcServer : StandardServer
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "!!!!! Closing all sessions and associated subscriptions. !!!!!!")]
+        Message = "!!!!! Closing all sessions and associated subscriptions !!!!!!")]
     partial void LogClosingAllSessionsAndSubscriptions();
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "!!!!! Closing all sessions. !!!!!")]
+        Message = "!!!!! Closing all sessions !!!!!")]
     partial void LogClosingAllSessions();
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "!!!!! Notifying expiration and closing all subscriptions. !!!!!")]
+        Message = "!!!!! Notifying expiration and closing all subscriptions !!!!!")]
     partial void LogNotifyingExpirationAndClosingAllSubscriptions();
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "!!!!! Closing all subscriptions. !!!!!")]
+        Message = "!!!!! Closing all subscriptions !!!!!")]
     partial void LogClosingAllSubscriptions();
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "!!!!! Closing session {Session} (delete subscriptions: {Delete}). !!!!!")]
+        Message = "!!!!! Closing session {Session} (delete subscriptions: {Delete}) !!!!!")]
     partial void LogClosingSession(NodeId session, bool delete);
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "!!!!! Injecting random errors every {Rate} responses for {Duration} ms. !!!!!")]
+        Message = "!!!!! Injecting random errors every {Rate} responses for {Duration:N0} ms !!!!!")]
     partial void LogInjectingRandomErrors(int rate, double duration);
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "!!!!! Closing subscription {Subscription} (notify: {Notify}). !!!!!")]
+        Message = "!!!!! Closing subscription {Subscription} (notify: {Notify}) !!!!!")]
     partial void LogClosingSubscription(uint subscription, bool notify);
 
     [LoggerMessage(

@@ -51,7 +51,7 @@ public static class CliOptions
 
             // simulation configuration
             { "sc|simulationcyclecount=", $"count of cycles in one simulation phase.\nDefault: {plcSimulation.SimulationCycleCount} cycles", (int i) => plcSimulation.SimulationCycleCount = i },
-            { "ct|cycletime=", $"length of one cycle time in milliseconds.\nDefault: {plcSimulation.SimulationCycleLength} msec", (int i) => plcSimulation.SimulationCycleLength = i },
+            { "ct|cycletime=", $"length of one cycle time in milliseconds.\nDefault: {plcSimulation.SimulationCycleLength:N0} ms", (int i) => plcSimulation.SimulationCycleLength = i },
 
             // events
             { "ei|eventinstances=", $"number of event instances.\nDefault: {plcSimulation.EventInstanceCount}", (uint i) => plcSimulation.EventInstanceCount = i },
