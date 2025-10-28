@@ -25,7 +25,7 @@ public partial class PlcServer
                     configuration.SecurityConfiguration.UserIssuerCertificates != null)
             {
                 var certificateValidator = new CertificateValidator();
-                await certificateValidator.UpdateAsync(configuration).ConfigureAwait(false);
+                await certificateValidator.Update(configuration).ConfigureAwait(false);
                 certificateValidator.Update(configuration.SecurityConfiguration.UserIssuerCertificates,
                     configuration.SecurityConfiguration.TrustedUserCertificates,
                     configuration.SecurityConfiguration.RejectedCertificateStore);
