@@ -609,7 +609,7 @@ public partial class PlcServer : StandardServer
             if (currentSessions.Count > 0)
             {
                 // Provide some time for the connected clients to detect the shutdown state.
-                // // For newest stack: var shutdownReason = new LocalizedText(string.Empty, "Application closed."); // Invariant.
+                // For newest stack: var shutdownReason = new LocalizedText(string.Empty, "Application closed."); // Invariant.
 
                 for (uint secondsUntilShutdown = PlcShutdownWaitSeconds; secondsUntilShutdown > 0; secondsUntilShutdown--)
                 {
