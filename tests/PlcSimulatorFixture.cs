@@ -173,7 +173,7 @@ public class PlcSimulatorFixture
 
         // When unit test certificate expires,
         // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
-        return await Session.CreateAsync(
+        return await Session.Create(
             _config,
             reverseConnectManager: null,
             _serverEndpoint,
@@ -246,10 +246,10 @@ public class PlcSimulatorFixture
         };
 
         // load the application configuration.
-        var config = await application.LoadApplicationConfigurationAsync(silent: false).ConfigureAwait(false);
+        var config = await application.LoadApplicationConfiguration(silent: false).ConfigureAwait(false);
 
         // check the application certificate.
-        bool haveAppCertificate = await application.CheckApplicationInstanceCertificatesAsync(silent: false).ConfigureAwait(false);
+        bool haveAppCertificate = await application.CheckApplicationInstanceCertificates(silent: false).ConfigureAwait(false);
         if (!haveAppCertificate)
         {
             throw new Exception("Application instance certificate invalid!");
@@ -287,7 +287,8 @@ public class PlcSimulatorFixture
         {
             try
             {
-                var endpoint = await CoreClientUtils.SelectEndpointAsync(_config, endpointUrl, useSecurity: false, discoverTimeout: 15000).ConfigureAwait(false);
+                var endpoint = CoreClientUtils.SelectEndpoint(_config, endpointUrl, useSecurity: false, discoverTimeout: 15000);
+
                 var endpointConfiguration = EndpointConfiguration.Create(_config);
                 return new ConfiguredEndpoint(collection: null, endpoint, endpointConfiguration);
             }

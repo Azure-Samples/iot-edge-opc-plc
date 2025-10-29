@@ -70,7 +70,7 @@ public partial class PlcServer : StandardServer
                     ThreadPool.GetAvailableThreads(out int availWorkerThreads, out _);
 
                     uint sessionCount = ServerInternal.ServerDiagnostics.CurrentSessionCount;
-                    IList<ISubscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
+                    IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
                     int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
 
                     _autoDisablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
@@ -533,7 +533,7 @@ public partial class PlcServer : StandardServer
     /// </summary>
     protected override ResourceManager CreateResourceManager(IServerInternal server, ApplicationConfiguration configuration)
     {
-        var resourceManager = new ResourceManager(configuration);
+        var resourceManager = new ResourceManager(server, configuration);
 
         FieldInfo[] fields = typeof(StatusCodes).GetFields(BindingFlags.Public | BindingFlags.Static);
 
@@ -604,20 +604,26 @@ public partial class PlcServer : StandardServer
         try
         {
             // check for connected clients
-            IList<ISession> currentSessions = ServerInternal.SessionManager.GetSessions();
+            IList<Session> currentSessions = ServerInternal.SessionManager.GetSessions();
 
             if (currentSessions.Count > 0)
             {
-                // provide some time for the connected clients to detect the shutdown state.
-                var shutdownReason = new LocalizedText(string.Empty, "Application closed."); // Invariant.
+                // Provide some time for the connected clients to detect the shutdown state.
+                // For newest stack: var shutdownReason = new LocalizedText(string.Empty, "Application closed."); // Invariant.
 
                 for (uint secondsUntilShutdown = PlcShutdownWaitSeconds; secondsUntilShutdown > 0; secondsUntilShutdown--)
                 {
-                    ServerInternal.UpdateServerStatus(status => {
-                        status.Value.State = ServerState.Shutdown;
-                        status.Value.ShutdownReason = shutdownReason;
-                        status.Value.SecondsTillShutdown = secondsUntilShutdown;
-                    });
+                    ServerInternal.Status.Value.SecondsTillShutdown = secondsUntilShutdown;
+                    ServerInternal.Status.Variable.SecondsTillShutdown.Value = secondsUntilShutdown;
+                    ServerInternal.Status.Variable.ClearChangeMasks(ServerInternal.DefaultSystemContext, includeChildren: true);
+
+                    // For newest stack:
+                    //ServerInternal.UpdateServerStatus(status => {
+                    //    status.Value.State = ServerState.Shutdown;
+                    //    status.Value.ShutdownReason = shutdownReason;
+                    //    status.Value.SecondsTillShutdown = secondsUntilShutdown;
+                    //});
+
                     Thread.Sleep(TimeSpan.FromSeconds(1));
                 }
             }

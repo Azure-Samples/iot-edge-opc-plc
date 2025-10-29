@@ -6,7 +6,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -66,17 +65,17 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
 
     public void Close() => _innerStore.Close();
 
-    // Async interface members (add default parameter values to match interface definition).
-    public Task AddAsync(X509Certificate2 certificate, string password = null, CancellationToken ct = default) => _innerStore.AddAsync(certificate, password, ct);
-    public Task AddRejectedAsync(X509Certificate2Collection certificates, int maxCertificates, CancellationToken ct = default) => _innerStore.AddRejectedAsync(certificates, maxCertificates, ct);
-    public Task<bool> DeleteAsync(string thumbprint, CancellationToken ct = default) => _innerStore.DeleteAsync(thumbprint, ct);
-    public async Task<X509Certificate2Collection> EnumerateAsync(CancellationToken ct = default)
+    public Task Add(X509Certificate2 certificate, string password = null) => _innerStore.Add(certificate, password);
+    public Task AddRejected(X509Certificate2Collection certificates, int maxCertificates) => _innerStore.AddRejected(certificates, maxCertificates);
+    public Task<bool> Delete(string thumbprint) => _innerStore.Delete(thumbprint);
+    public async Task<X509Certificate2Collection> Enumerate()
     {
-        var certificatesCollection = await _innerStore.EnumerateAsync(ct).ConfigureAwait(false);
-        if (ct.IsCancellationRequested || !_innerStore.Directory.Exists) return certificatesCollection;
+        var certificatesCollection = await _innerStore.Enumerate().ConfigureAwait(false);
+
+        // Async in newest stack: if (ct.IsCancellationRequested || !_innerStore.Directory.Exists) return certificatesCollection;
         foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
         {
-            if (ct.IsCancellationRequested) break;
+            // Async in newest stack: if (ct.IsCancellationRequested) break;
             try
             {
                 var certificates = new X509Certificate2Collection();
@@ -90,17 +89,18 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
         }
         return certificatesCollection;
     }
-    public Task AddCRLAsync(X509CRL crl, CancellationToken ct = default) => _innerStore.AddCRLAsync(crl, ct);
-    public Task<bool> DeleteCRLAsync(X509CRL crl, CancellationToken ct = default) => _innerStore.DeleteCRLAsync(crl, ct);
-    public Task<X509CRLCollection> EnumerateCRLsAsync(CancellationToken ct = default) => _innerStore.EnumerateCRLsAsync(ct);
-    public Task<X509CRLCollection> EnumerateCRLsAsync(X509Certificate2 issuer, bool validateUpdateTime = true, CancellationToken ct = default) => _innerStore.EnumerateCRLsAsync(issuer, validateUpdateTime, ct);
-    public async Task<X509Certificate2Collection> FindByThumbprintAsync(string thumbprint, CancellationToken ct = default)
+    public Task AddCRL(X509CRL crl) => _innerStore.AddCRL(crl);
+    public Task<bool> DeleteCRL(X509CRL crl) => _innerStore.DeleteCRL(crl);
+    public Task<X509CRLCollection> EnumerateCRLs() => _innerStore.EnumerateCRLs();
+    public Task<X509CRLCollection> EnumerateCRLs(X509Certificate2 issuer, bool validateUpdateTime = true) => _innerStore.EnumerateCRLs(issuer, validateUpdateTime);
+    public async Task<X509Certificate2Collection> FindByThumbprint(string thumbprint)
     {
-        var certificatesCollection = await _innerStore.FindByThumbprintAsync(thumbprint, ct).ConfigureAwait(false);
-        if (ct.IsCancellationRequested || !_innerStore.Directory.Exists) return certificatesCollection;
+        var certificatesCollection = await _innerStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
+
+        // Async in newest stack: if (ct.IsCancellationRequested || !_innerStore.Directory.Exists) return certificatesCollection;
         foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
         {
-            if (ct.IsCancellationRequested) break;
+            // Async in newest stack: if (ct.IsCancellationRequested) break;
             try
             {
                 var certificates = new X509Certificate2Collection();
@@ -117,18 +117,18 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
         }
         return certificatesCollection;
     }
-    public Task<StatusCode> IsRevokedAsync(X509Certificate2 issuer, X509Certificate2 certificate, CancellationToken ct = default) => _innerStore.IsRevokedAsync(issuer, certificate, ct);
-    public Task<X509Certificate2> LoadPrivateKeyAsync(string thumbprint, string subjectName, string password) => LoadPrivateKeyAsync(thumbprint, subjectName, null, null, password, CancellationToken.None);
-    public async Task<X509Certificate2> LoadPrivateKeyAsync(string thumbprint, string subjectName, string applicationUri, NodeId certificateType, string password, CancellationToken ct = default)
+    public Task<StatusCode> IsRevoked(X509Certificate2 issuer, X509Certificate2 certificate) => _innerStore.IsRevoked(issuer, certificate);
+    public Task<X509Certificate2> LoadPrivateKey(string thumbprint, string subjectName, string password) => LoadPrivateKey(thumbprint, subjectName, applicationUri: null, certificateType: null, password);
+    public async Task<X509Certificate2> LoadPrivateKey(string thumbprint, string subjectName, string applicationUri, NodeId certificateType, string password)
     {
-        if (ct.IsCancellationRequested) return null;
+        // Async in newest stack: if (ct.IsCancellationRequested) return null;
         if (!_innerStore.Directory.Exists)
         {
-            return await _innerStore.LoadPrivateKeyAsync(thumbprint, subjectName, applicationUri, certificateType, password, ct).ConfigureAwait(false);
+            return await _innerStore.LoadPrivateKey(thumbprint, subjectName, applicationUri, certificateType, password).ConfigureAwait(false);
         }
         foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
         {
-            if (ct.IsCancellationRequested) break;
+            // Async in newest stack: if (ct.IsCancellationRequested) break;
             try
             {
                 var keyFilePath = filePath.Replace(CrtExtension, KeyExtension, StringComparison.OrdinalIgnoreCase);
@@ -143,7 +143,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
             }
         }
 
-        return await _innerStore.LoadPrivateKeyAsync(thumbprint, subjectName, applicationUri, certificateType, password, ct).ConfigureAwait(false);
+        return await _innerStore.LoadPrivateKey(thumbprint, subjectName, applicationUri, certificateType, password).ConfigureAwait(false);
     }
 
     private static bool MatchCertificate(X509Certificate2 certificate, string thumbprint, string subjectName, NodeId certificateType)
