@@ -73,6 +73,8 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
         var certificatesCollection = await _innerStore.Enumerate().ConfigureAwait(false);
 
         // Async in newest stack: if (ct.IsCancellationRequested || !_innerStore.Directory.Exists) return certificatesCollection;
+        if (!_innerStore.Directory.Exists) { return certificatesCollection; }
+
         foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
         {
             // Async in newest stack: if (ct.IsCancellationRequested) break;
@@ -98,6 +100,8 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
         var certificatesCollection = await _innerStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
 
         // Async in newest stack: if (ct.IsCancellationRequested || !_innerStore.Directory.Exists) return certificatesCollection;
+        if (!_innerStore.Directory.Exists) { return certificatesCollection; }
+
         foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
         {
             // Async in newest stack: if (ct.IsCancellationRequested) break;

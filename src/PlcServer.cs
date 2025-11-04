@@ -559,7 +559,7 @@ public partial class PlcServer : StandardServer
 
         // it is up to the application to decide how to validate user identity tokens.
         // this function creates validator for X509 identity tokens.
-        CreateUserIdentityValidators(configuration).GetAwaiter().GetResult();
+        CreateUserIdentityValidatorAsync(configuration).GetAwaiter().GetResult();
     }
 
     protected override void OnServerStarted(IServerInternal server)
