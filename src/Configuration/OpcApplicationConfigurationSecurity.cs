@@ -15,6 +15,10 @@ public partial class OpcApplicationConfiguration
         OpcTrustedCertStorePath = OpcTrustedCertDirectoryStorePathDefault;
         OpcRejectedCertStorePath = OpcRejectedCertDirectoryStorePathDefault;
         OpcIssuerCertStorePath = OpcIssuerCertDirectoryStorePathDefault;
+
+        // User certificate stores default to their own subfolders under pki.
+        OpcTrustedUserCertStorePath = OpcTrustedUserCertDirectoryStorePathDefault;
+        OpcUserIssuerCertStorePath = OpcUserIssuerCertDirectoryStorePathDefault;
     }
 
     /// <summary>
@@ -28,7 +32,7 @@ public partial class OpcApplicationConfiguration
     public string OpcOwnPKIRootDefault { get; } = "pki";
     public string OpcOwnCertStoreType { get; set; } = CertificateStoreType.Directory;
     public string OpcOwnCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "own");
-    public string OpcOwnCertX509StorePathDefault => "CurrentUser\\UA_MachineDefault";
+    public string OpcOwnCertX509StorePathDefault { get; } = "CurrentUser\\UA_MachineDefault";
     public string OpcOwnCertStorePath { get; set; }
     public string OpcTrustedCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "trusted");
     public string OpcTrustedCertStorePath { get; set; }
@@ -38,6 +42,18 @@ public partial class OpcApplicationConfiguration
 
     public string OpcIssuerCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "issuer");
     public string OpcIssuerCertStorePath { get; set; }
+
+    /// <summary>
+    /// Trusted user certificate store (used for user X509 identity tokens).
+    /// </summary>
+    public string OpcTrustedUserCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "trusted-user");
+    public string OpcTrustedUserCertStorePath { get; set; }
+
+    /// <summary>
+    /// Trusted issuer certificates for user certificates.
+    /// </summary>
+    public string OpcUserIssuerCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "issuer-user");
+    public string OpcUserIssuerCertStorePath { get; set; }
 
     /// <summary>
     /// Accept certs of the clients automatically.
@@ -80,6 +96,18 @@ public partial class OpcApplicationConfiguration
     /// </summary>
     public List<string> TrustedCertificateBase64Strings { get; set; }
     public List<string> TrustedCertificateFileNames { get; set; }
+
+    /// <summary>
+    /// Trusted user certificates to add (user identity certs).
+    /// </summary>
+    public List<string> TrustedUserCertificateBase64Strings { get; set; }
+    public List<string> TrustedUserCertificateFileNames { get; set; }
+
+    /// <summary>
+    /// Issuer certificates for user certificates to add.
+    /// </summary>
+    public List<string> UserIssuerCertificateBase64Strings { get; set; }
+    public List<string> UserIssuerCertificateFileNames { get; set; }
 
     /// <summary>
     /// CRL to update/install.

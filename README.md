@@ -289,6 +289,67 @@ X.509 certificates:
 * Running as Linux Docker container using an X509Store for the application certificate, you need to use the Docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
 * When running in kubernetes context, use option `--at FlatDirectory`. This enables the OPC UA server to consume both public key and private key certificates directly from the /app/pki/own/ path without expecting the `certs` and `private` subdirectories. Furthermore, certificates of type .crt and .key are accepted.
 
+User certificate-based authentication:
+
+* The OPC PLC server supports X.509 certificate-based user authentication in addition to anonymous and username/password authentication.
+* Use `--tup` or `--trustedusercertstorepath` to specify the path where trusted user certificates are stored (default: `pki/trusted-user`).
+* Use `--uip` or `--userissuercertstorepath` to specify the path where issuer certificates for user certificate chain validation are stored (default: `pki/issuer-user`).
+* Add trusted user certificates using `--tuf` or `--addtrustedusercertfile` (file path) or `--tub` or `--addtrustedusercertbase64` (base64 string). Multiple certificates can be provided as comma-separated values.
+* Add user issuer certificates using `--uif` or `--adduserissuercertfile` (file path) or `--uib` or `--adduserissuercertbase64` (base64 string). Multiple certificates can be provided as comma-separated values.
+
+Creating a user certificate with OpenSSL:
+
+To create a self-signed user certificate for testing purposes, use the following OpenSSL commands:
+
+~~~powershell
+# Generate a self-signed certificate with private key in .der format
+openssl req -x509 -newkey rsa:2048 -keyout user.pem -out user.der  -outform der -sha256 -days 365 -nodes `
+	-subj "/CN=test user" `
+	-addext "keyUsage=critical, nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment, keyCertSign" `
+	-addext "extendedKeyUsage = critical, clientAuth" `
+	-addext "basicConstraints=CA:FALSE"
+
+# Create a PFX file (optional, for client use)
+openssl pkcs12 -export -inkey user.pem -in user.der -out user.pfx -password pass:TestP@ssw0rd123
+~~~
+
+After generating the certificate, add the public key to the trusted user certificate store:
+~~~powershell
+dotnet opcplc.dll --tuf user.der
+~~~
+
+Alternatively, you can manually copy the certificate to the trusted user certificate store directory:
+~~~powershell
+# Create the directory if it doesn't exist
+mkdir -p pki/trusted-user/certs
+
+# Copy the certificate file
+cp user.der pki/trusted-user/certs/
+~~~
+
+For Docker, mount the PKI directory and copy the certificate:
+~~~powershell
+# Copy certificate to your local PKI directory
+mkdir -p ./pki/trusted-user/certs
+cp user.der ./pki/trusted-user/certs/
+
+# Run the container with the PKI directory mounted
+docker run --rm -it -p 50000:50000 -v $(pwd)/pki:/app/pki mcr.microsoft.com/iotedge/opc-plc:latest
+~~~
+
+Client configuration for user certificate authentication:
+
+When connecting to the OPC PLC server using certificate-based user authentication, OPC UA clients must provide both the public certificate and private key. The format depends on the client implementation:
+
+* **Separate files**: Some clients require the public certificate (`.der` or `.crt` file) and private key (`.pem` or `.key` file) as separate files.
+* **PFX/PKCS#12 format**: Other clients accept a single `.pfx` (or `.p12`) file that contains both the public certificate and private key, along with the password used to protect the private key.
+
+Note: Only the public certificate (`.der` or `.crt`) needs to be added to the server's trusted user certificate store using the `--tuf` option. The private key remains with the client and is used to prove the user's identity during session establishment.
+
+Disabling certificate authentication:
+
+* Certificate authentication can be disabled using the `--dca` or `--disablecertauth` flag.
+
 ## Resources
 - [The OPC Foundation OPC UA .NET reference stack](https://github.com/OPCFoundation/UA-.NETStandard)
 
@@ -409,6 +470,12 @@ Options:
       --ip, --issuercertstorepath=VALUE
                              the path of the trusted issuer cert store.
                                Default 'pki\issuer'
+      --tup, --trustedusercertstorepath=VALUE
+                             the path of the trusted user cert store.
+                               Default 'pki\trusted-user'
+      --uip, --userissuercertstorepath=VALUE
+                             the path of the user issuer cert store.
+                               Default 'pki\issuer-user'
       --csr                  show data to create a certificate signing request.
                                Default 'False'
       --ab, --applicationcertbase64=VALUE
@@ -443,6 +510,22 @@ Options:
       --if, --addissuercertfile=VALUE
                              adds the specified issuer certificate file(s) to
                                the application's trusted issuer cert store (
+                               multiple comma separated filenames supported).
+      --tub, --addtrustedusercertbase64=VALUE
+                             adds the certificate to the application's trusted
+                               user cert store passed in as base64 string (
+                               comma separated values).
+      --tuf, --addtrustedusercertfile=VALUE
+                             adds the certificate file(s) to the application's
+                               trusted user cert store (multiple comma
+                               separated filenames supported).
+      --uib, --adduserissuercertbase64=VALUE
+                             adds the specified issuer certificate to the
+                               application's user issuer cert store passed in
+                               as base64 string (comma separated values).
+      --uif, --adduserissuercertfile=VALUE
+                             adds the specified issuer certificate file(s) to
+                               the application's user issuer cert store (
                                multiple comma separated filenames supported).
       --rb, --updatecrlbase64=VALUE
                              update the CRL passed in as base64 string to the
