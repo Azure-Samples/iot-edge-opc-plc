@@ -20,7 +20,7 @@ public class CliOptionsTests
         var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
 
         // Act
-        var (plcSimulation, extraArgs) = CliOptions.InitConfiguration(args, config, pluginNodes);
+        _ = CliOptions.InitConfiguration(args, config, pluginNodes);
 
         // Assert
         config.OpcUa.TrustedUserCertificateBase64Strings.Should().NotBeNull();
@@ -41,7 +41,7 @@ public class CliOptionsTests
             var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
 
             // Act
-            var (plcSimulation, extraArgs) = CliOptions.InitConfiguration(args, config, pluginNodes);
+            _ = CliOptions.InitConfiguration(args, config, pluginNodes);
 
             // Assert
             config.OpcUa.TrustedUserCertificateFileNames.Should().NotBeNull();
@@ -68,7 +68,7 @@ public class CliOptionsTests
             var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
 
             // Act
-            var (plcSimulation, extraArgs) = CliOptions.InitConfiguration(args, config, pluginNodes);
+            _ = CliOptions.InitConfiguration(args, config, pluginNodes);
 
             // Assert
             config.OpcUa.UserIssuerCertificateFileNames.Should().NotBeNull();
@@ -90,7 +90,7 @@ public class CliOptionsTests
         var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
 
         // Act
-        var (plcSimulation, extraArgs) = CliOptions.InitConfiguration(args, config, pluginNodes);
+        _ = CliOptions.InitConfiguration(args, config, pluginNodes);
 
         // Assert
         config.OpcUa.UserIssuerCertificateBase64Strings.Should().NotBeNull();
@@ -109,7 +109,7 @@ public class CliOptionsTests
         var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
 
         // Act
-        var (plcSimulation, extraArgs) = CliOptions.InitConfiguration(args, config, pluginNodes);
+        _ = CliOptions.InitConfiguration(args, config, pluginNodes);
 
         // Assert
         config.OpcUa.OpcTrustedUserCertStorePath.Should().Be(trustedUserPath);
