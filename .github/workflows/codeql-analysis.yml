@@ -46,10 +46,10 @@ jobs:
       with:
         dotnet-version: '10.0.x'
 
-    # Build the project explicitly for CodeQL analysis
+    # Build the project explicitly for CodeQL analysis (Debug for better analysis)
     - name: Build
       run: |
-        dotnet build opcplc.sln --configuration Release
+        dotnet build opcplc.sln --configuration Debug --no-incremental
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
