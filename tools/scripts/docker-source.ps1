@@ -89,6 +89,8 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             runtimeId = "linux-arm"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm32v7"
+            # TODO: Cross-compile issue, need to investigate and fix.
+            #runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $null
             entryPoint = "[`"./$($assemblyName)`"]"
         }
@@ -96,6 +98,8 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             runtimeId = "linux-arm64"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm64v8"
+            # TODO: Cross-compile issue, need to investigate and fix.
+            #runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $null
             entryPoint = "[`"./$($assemblyName)`"]"
         }
@@ -103,15 +107,9 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             runtimeId = "linux-x64"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-amd64"
+            runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $installLinuxDebugger
             entryPoint = "[`"./$($assemblyName)`"]"
-        }
-        "windows/amd64:ltsc2022-amd64" = @{
-            runtimeId = "win-x64"
-            image = "mcr.microsoft.com/windows/nanoserver:ltsc2022-amd64"
-            platformTag = "nanoserver-ltsc2022-amd64"
-            debugger = $null
-            entryPoint = "[`"$($assemblyName).exe`"]"
         }
     }
 
