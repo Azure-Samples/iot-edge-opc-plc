@@ -85,18 +85,12 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
 
     # Default platform definitions
     $platforms = @{
-        "linux/arm/v7" = @{
-            runtimeId = "linux-arm"
-            image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
-            platformTag = "linux-arm32v7"
-            debugger = $null
-            entryPoint = "[`"./$($assemblyName)`"]"
-        }
         "linux/arm64" = @{
             runtimeId = "linux-arm64"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm64v8"
-            debugger = $null
+            runtimeOnly = "RUN chmod +x $($assemblyName)"
+            debugger = $installLinuxDebugger
             entryPoint = "[`"./$($assemblyName)`"]"
         }
         "linux/amd64" = @{
@@ -106,13 +100,6 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $installLinuxDebugger
             entryPoint = "[`"./$($assemblyName)`"]"
-        }
-        "windows/amd64:ltsc2022-amd64" = @{
-            runtimeId = "win-x64"
-            image = "mcr.microsoft.com/windows/nanoserver:ltsc2022-amd64"
-            platformTag = "nanoserver-ltsc2022-amd64"
-            debugger = $null
-            entryPoint = "[`"$($assemblyName).exe`"]"
         }
     }
 
