@@ -100,7 +100,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             platformTag = "linux-arm64v8"
             # TODO: Cross-compile issue, need to investigate and fix.
             #runtimeOnly = "RUN chmod +x $($assemblyName)"
-            debugger = $installLinuxDebugger
+            debugger = $null
             entryPoint = "[`"./$($assemblyName)`"]"
         }
         "linux/amd64" = @{
