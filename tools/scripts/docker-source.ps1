@@ -182,7 +182,6 @@ $($exposes)
 
 $($workdir)
 COPY . .
-RUN find . -type f -name '$($assemblyName)' -exec chmod +x {} \;
 $($runtimeOnly)
 
 $($debugger)
