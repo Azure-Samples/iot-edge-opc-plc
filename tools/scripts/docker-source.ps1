@@ -85,6 +85,15 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
 
     # Default platform definitions
     $platforms = @{
+        "linux/arm/v7" = @{
+            runtimeId = "linux-arm"
+            image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
+            platformTag = "linux-arm32v7"
+            # TODO: Cross-compile issue, need to investigate and fix.
+            #runtimeOnly = "RUN chmod +x $($assemblyName)"
+            debugger = $null
+            entryPoint = "[`"./$($assemblyName)`"]"
+        }
         "linux/arm64" = @{
             runtimeId = "linux-arm64"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
