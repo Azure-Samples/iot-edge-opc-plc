@@ -89,7 +89,7 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             runtimeId = "linux-arm"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm32v7"
-            debugger = $installLinuxDebugger
+            debugger = $null
             entryPoint = "[`"./$($assemblyName)`"]"
         }
         "linux/arm64" = @{
