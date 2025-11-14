@@ -89,7 +89,6 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             runtimeId = "linux-arm"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm32v7"
-            runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $installLinuxDebugger
             entryPoint = "[`"./$($assemblyName)`"]"
         }
@@ -97,7 +96,6 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             runtimeId = "linux-arm64"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm64v8"
-            runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $null
             entryPoint = "[`"./$($assemblyName)`"]"
         }
@@ -105,7 +103,6 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
             runtimeId = "linux-x64"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-amd64"
-            runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $installLinuxDebugger
             entryPoint = "[`"./$($assemblyName)`"]"
         }
@@ -184,7 +181,7 @@ FROM $($baseImage)
 $($exposes)
 
 $($workdir)
-COPY . .
+COPY --chmod=755 . .
 $($runtimeOnly)
 
 $($debugger)
