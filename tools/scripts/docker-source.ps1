@@ -181,7 +181,8 @@ FROM $($baseImage)
 $($exposes)
 
 $($workdir)
-COPY --chmod=755 . .
+COPY . .
+RUN find . -type f -name '$($assemblyName)' -exec chmod +x {} \;
 $($runtimeOnly)
 
 $($debugger)
