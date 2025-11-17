@@ -53,6 +53,23 @@ public partial class PlcServer : StandardServer
     private uint _countWrite;
     private uint _countPublish;
 
+    // Store previous values for LogPeriodicInfo
+    private uint _lastLoggedSessions;
+    private uint _lastLoggedSubscriptions;
+    private int _lastLoggedMonitoredItems;
+    private uint _lastLoggedTotalSessions;
+    private uint _lastLoggedTotalSubscriptions;
+    private long _lastLoggedWorkingSet;
+    private int _lastLoggedThreadCount;
+    private int _lastLoggedAvailWorkerThreads;
+    private uint _lastLoggedCountCreateSession;
+    private uint _lastLoggedCountCreateSubscription;
+    private uint _lastLoggedCountCreateMonitoredItems;
+    private uint _lastLoggedCountRead;
+    private uint _lastLoggedCountWrite;
+    private uint _lastLoggedCountPublish;
+    private bool _lastLoggedPublishMetricsEnabled;
+
     public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger)
     {
         Config = config;
@@ -65,33 +82,7 @@ public partial class PlcServer : StandardServer
             (state) => {
                 try
                 {
-                    var curProc = Process.GetCurrentProcess();
-
-                    ThreadPool.GetAvailableThreads(out int availWorkerThreads, out _);
-
-                    uint sessionCount = ServerInternal.ServerDiagnostics.CurrentSessionCount;
-                    IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
-                    int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
-
-                    _autoDisablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
-
-                    LogPeriodicInfo(
-                        sessionCount,
-                        ServerInternal.ServerDiagnostics.CurrentSubscriptionCount,
-                        monitoredItemsCount,
-                        ServerInternal.ServerDiagnostics.CumulatedSessionCount,
-                        ServerInternal.ServerDiagnostics.CumulatedSubscriptionCount,
-                        curProc.WorkingSet64 / 1024 / 1024,
-                        curProc.Threads.Count,
-                        availWorkerThreads,
-                        PeriodicLoggingTimerSeconds,
-                        _countCreateSession,
-                        _countCreateSubscription,
-                        _countCreateMonitoredItems,
-                        _countRead,
-                        _countWrite,
-                        _countPublish,
-                        PublishMetricsEnabled);
+                    LogPeriodicInfoIfChanged();
 
                     _countCreateSession = 0;
                     _countCreateSubscription = 0;
@@ -123,6 +114,82 @@ public partial class PlcServer : StandardServer
          (Config.OtlpPublishMetrics == "enable" && Config.OtlpPublishMetrics != "disable") ||
          (Config.OtlpPublishMetrics == "auto" && !_autoDisablePublishMetrics)
         );
+
+    /// <summary>
+    /// Logs periodic server information only if any of the monitored values have changed since the last log.
+    /// </summary>
+    private void LogPeriodicInfoIfChanged()
+    {
+        var curProc = Process.GetCurrentProcess();
+
+        ThreadPool.GetAvailableThreads(out int availWorkerThreads, out _);
+
+        uint sessionCount = ServerInternal.ServerDiagnostics.CurrentSessionCount;
+        IList<Subscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
+        int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
+
+        _autoDisablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
+
+        uint currentSubscriptionCount = ServerInternal.ServerDiagnostics.CurrentSubscriptionCount;
+        uint cumulatedSessionCount = ServerInternal.ServerDiagnostics.CumulatedSessionCount;
+        uint cumulatedSubscriptionCount = ServerInternal.ServerDiagnostics.CumulatedSubscriptionCount;
+        long workingSet = curProc.WorkingSet64 / 1024 / 1024;
+        int threadCount = curProc.Threads.Count;
+        bool publishMetricsEnabled = PublishMetricsEnabled;
+
+        // Only log if any value has changed
+        if (sessionCount != _lastLoggedSessions ||
+            currentSubscriptionCount != _lastLoggedSubscriptions ||
+            monitoredItemsCount != _lastLoggedMonitoredItems ||
+            cumulatedSessionCount != _lastLoggedTotalSessions ||
+            cumulatedSubscriptionCount != _lastLoggedTotalSubscriptions ||
+            workingSet != _lastLoggedWorkingSet ||
+            threadCount != _lastLoggedThreadCount ||
+            availWorkerThreads != _lastLoggedAvailWorkerThreads ||
+            _countCreateSession != _lastLoggedCountCreateSession ||
+            _countCreateSubscription != _lastLoggedCountCreateSubscription ||
+            _countCreateMonitoredItems != _lastLoggedCountCreateMonitoredItems ||
+            _countRead != _lastLoggedCountRead ||
+            _countWrite != _lastLoggedCountWrite ||
+            _countPublish != _lastLoggedCountPublish ||
+            publishMetricsEnabled != _lastLoggedPublishMetricsEnabled)
+        {
+            LogPeriodicInfo(
+                sessionCount,
+                currentSubscriptionCount,
+                monitoredItemsCount,
+                cumulatedSessionCount,
+                cumulatedSubscriptionCount,
+                workingSet,
+                threadCount,
+                availWorkerThreads,
+                PeriodicLoggingTimerSeconds,
+                _countCreateSession,
+                _countCreateSubscription,
+                _countCreateMonitoredItems,
+                _countRead,
+                _countWrite,
+                _countPublish,
+                publishMetricsEnabled);
+
+            // Update last logged values
+            _lastLoggedSessions = sessionCount;
+            _lastLoggedSubscriptions = currentSubscriptionCount;
+            _lastLoggedMonitoredItems = monitoredItemsCount;
+            _lastLoggedTotalSessions = cumulatedSessionCount;
+            _lastLoggedTotalSubscriptions = cumulatedSubscriptionCount;
+            _lastLoggedWorkingSet = workingSet;
+            _lastLoggedThreadCount = threadCount;
+            _lastLoggedAvailWorkerThreads = availWorkerThreads;
+            _lastLoggedCountCreateSession = _countCreateSession;
+            _lastLoggedCountCreateSubscription = _countCreateSubscription;
+            _lastLoggedCountCreateMonitoredItems = _countCreateMonitoredItems;
+            _lastLoggedCountRead = _countRead;
+            _lastLoggedCountWrite = _countWrite;
+            _lastLoggedCountPublish = _countPublish;
+            _lastLoggedPublishMetricsEnabled = publishMetricsEnabled;
+        }
+    }
 
     public override ResponseHeader CreateSession(
         RequestHeader requestHeader,
