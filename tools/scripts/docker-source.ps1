@@ -38,7 +38,7 @@ $projFile = Get-ChildItem $Path -Filter *.csproj | Select-Object -First 1
 if ($projFile) {
 
     $output = (Join-Path $Path (Join-Path "bin" (Join-Path "publish" $configuration)))
-    $runtimes = @("linux-arm", "linux-arm64", "linux-x64", "win-x64", "")
+    $runtimes = @("linux-arm", "linux-arm64", "linux-x64")
     if (![string]::IsNullOrEmpty($metadata.base)) {
         # Shortcut - only build portable
         $runtimes = @("")
