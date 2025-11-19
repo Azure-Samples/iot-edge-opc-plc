@@ -38,7 +38,7 @@ $projFile = Get-ChildItem $Path -Filter *.csproj | Select-Object -First 1
 if ($projFile) {
 
     $output = (Join-Path $Path (Join-Path "bin" (Join-Path "publish" $configuration)))
-    $runtimes = @("linux-arm", "linux-arm64", "linux-x64", "win-x64", "")
+    $runtimes = @("linux-arm", "linux-arm64", "linux-x64")
     if (![string]::IsNullOrEmpty($metadata.base)) {
         # Shortcut - only build portable
         $runtimes = @("")
@@ -68,17 +68,17 @@ if ($projFile) {
         }
     }
 
-    $installLinuxDebugger = @"
+    $installLinuxDebugger = @'
 RUN apt-get update && apt-get install -y --no-install-recommends unzip curl procps \
     && rm -rf /var/lib/apt/lists/* \
     && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
-ENV PATH="${PATH}:/root/vsdbg/vsdbg"
-"@
+ENV PATH=$PATH:/root/vsdbg/vsdbg
+'@
     # Get project's assembly name to create entry point entry in dockerfile
-    $assemblyName = $null
-    ([xml] (Get-Content -Path $projFile.FullName)).Project.PropertyGroup `
-        | Where-Object { ![string]::IsNullOrWhiteSpace($_.AssemblyName) } `
-        | Foreach-Object { $assemblyName = $_.AssemblyName }
+    $assemblyName = ([xml] (Get-Content -Path $projFile.FullName)).Project.PropertyGroup.AssemblyName `
+        | Where-Object { ![string]::IsNullOrWhiteSpace($_) } `
+        | Select-Object -Last 1
+
     if ([string]::IsNullOrWhiteSpace($assemblyName)) {
         $assemblyName = $projFile.BaseName
     }
@@ -171,7 +171,10 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
         $userSwitch = ""
         if ($runtimeId.StartsWith("linux")) {
             # Escape $ so the generated Dockerfile contains the literal $APP_UID
-            $userSwitch = "# Switch to non-root user.`nUSER `$APP_UID"
+            $userSwitch = "RUN mkdir -p /app`n"
+            $userSwitch += "RUN chown `$APP_UID /app`n"
+            $userSwitch += "# Switch to non-root user.`n"
+            $userSwitch += "USER `$APP_UID"
         }
         $dockerFileContent = @"
 FROM $($baseImage)

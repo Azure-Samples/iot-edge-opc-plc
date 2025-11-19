@@ -59,7 +59,11 @@ Write-Host "Current docker OS/Arch: $platform"
 # Select build definition
 $def = $definitions `
     | Where-Object { $_.platform -eq $platform } `
-    | Select-Object
+    | Select-Object -First 1
+
+if ($null -eq $def) {
+    throw "No build definition found for platform '$platform'."
+}
 
 # Build docker image from definition
 $dockerfile = $def.dockerfile
