@@ -36,6 +36,7 @@ if (![string]::IsNullOrEmpty($JobPrefix)) {
     $JobPrefix = "$($JobPrefix)-"
 }
 
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops&tabs=yaml#software
 # Hosted agent mapping (Linux-only)
 $agents = @{
     linux = "ubuntu-latest"
