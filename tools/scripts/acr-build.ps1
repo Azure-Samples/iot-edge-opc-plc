@@ -316,6 +316,9 @@ while ($true) {
         $wc.DownloadFile($url, $manifestToolPath)
 
         if (Test-Path $manifestToolPath) {
+            if ($env:OS -ne "windows_nt") {
+                & chmod +x $manifestToolPath
+            }
             break
         }
     }

@@ -37,9 +37,9 @@ if (![string]::IsNullOrEmpty($JobPrefix)) {
 }
 
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops&tabs=yaml#software
+# Hosted agent mapping (Linux-only)
 $agents = @{
-    windows = "windows-2022"
-    linux = "ubuntu-22.04"
+    linux = "ubuntu-latest"
 }
 
 $jobMatrix = @{}
