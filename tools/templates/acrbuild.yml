@@ -5,7 +5,7 @@ jobs:
 - job: imagesprep
   displayName: Prepare Image Jobs
   pool:
-    vmImage: 'windows-2022'
+    vmImage: 'ubuntu-latest'
   variables:
     skipComponentGovernanceDetection: true
   steps:
@@ -15,10 +15,12 @@ jobs:
     inputs:
       targetType: filePath
       filePath: ./tools/scripts/acr-matrix.ps1
+      pwsh: true
+
 - job: imagesall
   displayName: Build Images for
   pool:
-    vmImage: 'windows-2022'
+    vmImage: 'ubuntu-latest'
   dependsOn: imagesprep
   strategy:
     matrix: $[ dependencies.imagesprep.outputs['acrmatrix.acrMatrix'] ]
@@ -30,6 +32,8 @@ jobs:
     inputs:
       targetType: filePath
       filePath: ./tools/scripts/set-version.ps1
+      pwsh: true
+
   - task: UseDotNet@2
     displayName: 'Install .NET Core SDK'
     inputs:
@@ -37,17 +41,21 @@ jobs:
       version: 10.0.x
       includePreviewVersions: false
       installationPath: $(Agent.ToolsDirectory)/dotnet
+
   - task: AzureCLI@1
     name: acrbuildr
     displayName: Build Release Images
     inputs:
       azureSubscription: azureiiot
       scriptLocation: inlineScript
-      inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder)
+      scriptType: pscore
+      inlineScript: pwsh ./tools/scripts/acr-build.ps1 $(dockerFolder)
+
   - task: AzureCLI@1
     name: acrbuildd
     displayName: Build Debug Images
     inputs:
       azureSubscription: azureiiot
       scriptLocation: inlineScript
-      inlineScript: powershell ./tools/scripts/acr-build.ps1 $(dockerFolder) -debug
+      scriptType: pscore
+      inlineScript: pwsh ./tools/scripts/acr-build.ps1 $(dockerFolder) -debug
