@@ -171,7 +171,10 @@ ENV PATH="${PATH}:/root/vsdbg/vsdbg"
         $userSwitch = ""
         if ($runtimeId.StartsWith("linux")) {
             # Escape $ so the generated Dockerfile contains the literal $APP_UID
-            $userSwitch = "# Switch to non-root user.`nUSER `$APP_UID"
+            $userSwitch = "RUN mkdir -p /app/pki`n"
+            $userSwitch += "RUN chown `$APP_UID /app/pki`n"
+            $userSwitch += "# Switch to non-root user.`n"
+            $userSwitch += "USER `$APP_UID"
         }
         $dockerFileContent = @"
 FROM $($baseImage)
