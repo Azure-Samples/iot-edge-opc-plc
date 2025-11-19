@@ -168,11 +168,14 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
             $workdir = "WORKDIR /app"
         }
         # Add user switch for linux platforms only. Use literal $APP_UID in the Dockerfile.
+        # Escape $ so the generated Dockerfile contains the literal $APP_UID.
         $userSwitch = ""
         if ($runtimeId.StartsWith("linux")) {
-            # Escape $ so the generated Dockerfile contains the literal $APP_UID
-            $userSwitch = "RUN mkdir -p /app`n"
-            $userSwitch += "RUN chown `$APP_UID /app`n"
+            # TODO: mkdir and chown not working on ARM.
+            if ($runtimeId -notmatch "arm") {
+                $userSwitch += "RUN mkdir -p /app`n"
+                $userSwitch += "RUN chown `$APP_UID /app`n"
+            }
             $userSwitch += "# Switch to non-root user.`n"
             $userSwitch += "USER `$APP_UID"
         }
