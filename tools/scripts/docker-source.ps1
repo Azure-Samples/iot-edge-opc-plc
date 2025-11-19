@@ -89,16 +89,17 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
             runtimeId = "linux-arm"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm32v7"
-            runtimeOnly = "RUN chmod +x $($assemblyName)"
-            debugger = $installLinuxDebugger
+            # TODO: Cross-compile issue, need to investigate and fix.
+            #runtimeOnly = "RUN chmod +x $($assemblyName)"
+            debugger = $null
             entryPoint = "[`"./$($assemblyName)`"]"
         }
         "linux/arm64" = @{
             runtimeId = "linux-arm64"
             image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm64v8"
-            runtimeOnly = "RUN chmod +x $($assemblyName)"
-            # TODO: Restore when arm64 debugger is available
+            # TODO: Cross-compile issue, need to investigate and fix.
+            #runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger = $null
             entryPoint = "[`"./$($assemblyName)`"]"
         }
