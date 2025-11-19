@@ -75,10 +75,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends unzip curl proc
 ENV PATH="${PATH}:/root/vsdbg/vsdbg"
 "@
     # Get project's assembly name to create entry point entry in dockerfile
-    $assemblyName = $null
-    ([xml] (Get-Content -Path $projFile.FullName)).Project.PropertyGroup `
-        | Where-Object { ![string]::IsNullOrWhiteSpace($_.AssemblyName) } `
-        | Foreach-Object { $assemblyName = $_.AssemblyName }
+    $assemblyName = ([xml] (Get-Content -Path $projFile.FullName)).Project.PropertyGroup.AssemblyName `
+        | Where-Object { ![string]::IsNullOrWhiteSpace($_) } `
+        | Select-Object -Last 1
+
     if ([string]::IsNullOrWhiteSpace($assemblyName)) {
         $assemblyName = $projFile.BaseName
     }
