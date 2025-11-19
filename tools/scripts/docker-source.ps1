@@ -68,12 +68,12 @@ if ($projFile) {
         }
     }
 
-    $installLinuxDebugger = @"
+    $installLinuxDebugger = @'
 RUN apt-get update && apt-get install -y --no-install-recommends unzip curl procps \
     && rm -rf /var/lib/apt/lists/* \
     && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
-ENV PATH="${PATH}:/root/vsdbg/vsdbg"
-"@
+ENV PATH=$PATH:/root/vsdbg/vsdbg
+'@
     # Get project's assembly name to create entry point entry in dockerfile
     $assemblyName = ([xml] (Get-Content -Path $projFile.FullName)).Project.PropertyGroup.AssemblyName `
         | Where-Object { ![string]::IsNullOrWhiteSpace($_) } `
