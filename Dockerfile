@@ -10,19 +10,29 @@ COPY src/Directory.Build.props src/
 COPY src/opc-plc.csproj src/
 
 # Restore dependencies
-RUN case "$TARGETARCH" in amd64) ARCH=x64 ;; *) ARCH="$TARGETARCH" ;; esac \
-    && dotnet restore src/opc-plc.csproj -a "$ARCH"
+RUN case "$TARGETARCH" in \
+    "amd64") RID=linux-x64 ;; \
+    "arm64") RID=linux-arm64 ;; \
+    "arm") RID=linux-arm ;; \
+    *) echo "Unsupported architecture: $TARGETARCH"; exit 1 ;; \
+    esac \
+    && dotnet restore src/opc-plc.csproj -r "$RID"
 
 # Copy source code
 COPY src/ src/
 
 # Publish
 WORKDIR /app/src
-RUN case "$TARGETARCH" in amd64) ARCH=x64 ;; *) ARCH="$TARGETARCH" ;; esac \
+RUN case "$TARGETARCH" in \
+    "amd64") RID=linux-x64 ;; \
+    "arm64") RID=linux-arm64 ;; \
+    "arm") RID=linux-arm ;; \
+    *) echo "Unsupported architecture: $TARGETARCH"; exit 1 ;; \
+    esac \
     && dotnet publish opc-plc.csproj \
     -c Release \
     -o /app/publish \
-    -a "$ARCH" \
+    -r "$RID" \
     --self-contained true \
     /p:TargetLatestRuntimePatch=true
 
