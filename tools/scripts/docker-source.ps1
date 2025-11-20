@@ -39,15 +39,6 @@ if ($projFile) {
 
     $output = (Join-Path $Path (Join-Path "bin" (Join-Path "publish" $configuration)))
 
-    # Get project's assembly name to create entry point entry in dockerfile
-    $assemblyName = ([xml] (Get-Content -Path $projFile.FullName)).Project.PropertyGroup.AssemblyName `
-    | Where-Object { ![string]::IsNullOrWhiteSpace($_) } `
-    | Select-Object -Last 1
-
-    if ([string]::IsNullOrWhiteSpace($assemblyName)) {
-        $assemblyName = $projFile.BaseName
-    }
-
     $runtimes = @("linux-arm", "linux-arm64", "linux-x64")
     if (![string]::IsNullOrEmpty($metadata.base)) {
         # Shortcut - only build portable
@@ -76,19 +67,6 @@ if ($projFile) {
         if ($LastExitCode -ne 0) {
             throw "Error: 'dotnet $($argumentList)' failed with $($LastExitCode)."
         }
-
-        if ($runtimeId -ne "portable") {
-            # Ensure the executable is present in the publish directory
-            $publishDir = (Join-Path $output $runtimeId)
-            $exeName = $assemblyName
-            if ($runtimeId.StartsWith("win")) {
-                $exeName += ".exe"
-            }
-            $exePath = Join-Path $publishDir $exeName
-
-            Write-Host "Setting execute permissions on $exePath"
-            & chmod +x $exePath
-        }
     }
 
     $installLinuxDebugger = @'
@@ -98,12 +76,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends unzip curl proc
 ENV PATH=$PATH:/root/vsdbg/vsdbg
 '@
 
+    # Get project's assembly name to create entry point entry in dockerfile
+    $assemblyName = ([xml] (Get-Content -Path $projFile.FullName)).Project.PropertyGroup.AssemblyName `
+    | Where-Object { ![string]::IsNullOrWhiteSpace($_) } `
+    | Select-Object -Last 1
+
+    if ([string]::IsNullOrWhiteSpace($assemblyName)) {
+        $assemblyName = $projFile.BaseName
+    }
+
     # Default platform definitions
     $platforms = @{
         "linux/arm/v7" = @{
             runtimeId   = "linux-arm"
             image       = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm32v7"
+            # TODO: Cross-compile issue, need to investigate and fix.
+            runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger    = $installLinuxDebugger
             entryPoint  = "[`"./$($assemblyName)`"]"
         }
@@ -111,14 +100,17 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
             runtimeId   = "linux-arm64"
             image       = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm64v8"
+            # TODO: Cross-compile issue, need to investigate and fix.
+            runtimeOnly = "RUN chmod +x $($assemblyName)"
             # TODO: Add arm64 debugger when available.
-            debugger    = $null
+            #debugger    = $installLinuxDebugger
             entryPoint  = "[`"./$($assemblyName)`"]"
         }
         "linux/amd64"  = @{
             runtimeId   = "linux-x64"
             image       = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-amd64"
+            runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger    = $installLinuxDebugger
             entryPoint  = "[`"./$($assemblyName)`"]"
         }
@@ -179,12 +171,12 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
         # Add user switch for linux platforms only. Use literal $APP_UID in the Dockerfile.
         # Escape $ so the generated Dockerfile contains the literal $APP_UID.
         $userSwitch = ""
-        $copyCommand = "COPY . ."
         if ($runtimeId.StartsWith("linux")) {
-            # Define APP_UID arg for COPY --chown
-            $userSwitch += "ARG APP_UID=1654`n"
-            # Use COPY --chown and --chmod to avoid RUN commands that fail on cross-arch builds without emulation
-            $copyCommand = "COPY --chown=`$APP_UID --chmod=755 . ."
+            # TODO: mkdir and chown not working on ARM.
+            if ($runtimeId -notmatch "arm") {
+                $userSwitch += "RUN mkdir -p /app`n"
+                $userSwitch += "RUN chown `$APP_UID /app`n"
+            }
             $userSwitch += "# Switch to non-root user.`n"
             $userSwitch += "USER `$APP_UID"
         }
@@ -194,7 +186,7 @@ FROM $($baseImage)
 $($exposes)
 
 $($workdir)
-$($copyCommand)
+COPY . .
 $($runtimeOnly)
 
 $($debugger)
