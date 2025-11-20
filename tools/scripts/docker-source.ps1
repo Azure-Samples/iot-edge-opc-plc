@@ -86,30 +86,8 @@ if ($projFile) {
             }
             $exePath = Join-Path $publishDir $exeName
 
-            if (-not (Test-Path $exePath -PathType Leaf)) {
-                Write-Host "Executable $exeName not found in publish output. Attempting to copy from build output..."
-
-                # Attempt to find the executable in the build output directory
-                # Pattern: bin/$configuration/net*/$runtimeId/$exeName
-                $buildDirPattern = Join-Path $Path "bin/$configuration"
-                if (Test-Path $buildDirPattern) {
-                    $candidates = Get-ChildItem -Path $buildDirPattern -Recurse -Filter $exeName |
-                    Where-Object { $_.DirectoryName -like "*$runtimeId*" }
-
-                    $candidate = $candidates | Select-Object -First 1
-
-                    if ($candidate) {
-                        Write-Host "Copying $($candidate.FullName) to $exePath"
-                        Copy-Item -Path $candidate.FullName -Destination $exePath
-                    }
-                    else {
-                        Write-Warning "Could not find executable $exeName in build output to copy."
-                    }
-                }
-                else {
-                    Write-Warning "Build directory $buildDirPattern does not exist."
-                }
-            }
+            Write-Host "Setting execute permissions on $exePath"
+            & chmod +x $exePath
         }
     }
 
@@ -126,7 +104,6 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
             runtimeId   = "linux-arm"
             image       = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm32v7"
-            runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger    = $installLinuxDebugger
             entryPoint  = "[`"./$($assemblyName)`"]"
         }
@@ -134,7 +111,6 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
             runtimeId   = "linux-arm64"
             image       = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm64v8"
-            runtimeOnly = "RUN chmod +x $($assemblyName)"
             # TODO: Add arm64 debugger when available.
             debugger    = $null
             entryPoint  = "[`"./$($assemblyName)`"]"
@@ -143,7 +119,6 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
             runtimeId   = "linux-x64"
             image       = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-amd64"
-            runtimeOnly = "RUN chmod +x $($assemblyName)"
             debugger    = $installLinuxDebugger
             entryPoint  = "[`"./$($assemblyName)`"]"
         }
