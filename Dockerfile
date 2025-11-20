@@ -29,7 +29,7 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # Setup non-root user
-ARG APP_UID=1000
+ARG APP_UID=1654
 RUN mkdir -p /app && chown "$APP_UID" /app
 USER $APP_UID
 
