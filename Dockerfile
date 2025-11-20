@@ -8,35 +8,22 @@ COPY common.props .
 COPY Directory.Build.targets .
 COPY src/Directory.Build.props src/
 COPY src/opc-plc.csproj src/
+COPY docs/media/icon.png docs/media/
 
 # Restore dependencies
-RUN case "$TARGETARCH" in \
-    "amd64") RID=linux-x64 ;; \
-    "arm64") RID=linux-arm64 ;; \
-    "arm") RID=linux-arm ;; \
-    *) echo "Unsupported architecture: $TARGETARCH"; exit 1 ;; \
-    esac \
-    && dotnet restore src/opc-plc.csproj -r "$RID"
-
-# Copy source code
+RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
+    && dotnet restore src/opc-plc.csproj -a "$ARCH"# Copy source code
 COPY src/ src/
 
 # Publish
 WORKDIR /app/src
-RUN case "$TARGETARCH" in \
-    "amd64") RID=linux-x64 ;; \
-    "arm64") RID=linux-arm64 ;; \
-    "arm") RID=linux-arm ;; \
-    *) echo "Unsupported architecture: $TARGETARCH"; exit 1 ;; \
-    esac \
+RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
     && dotnet publish opc-plc.csproj \
     -c Release \
     -o /app/publish \
-    -r "$RID" \
+    -a "$ARCH" \
     --self-contained true \
-    /p:TargetLatestRuntimePatch=true
-
-# Final stage
+    /p:TargetLatestRuntimePatch=true# Final stage
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble AS final
 WORKDIR /app
 COPY --from=build /app/publish .
