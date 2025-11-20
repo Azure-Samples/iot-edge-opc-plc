@@ -182,6 +182,13 @@ $user = $credentials.username
 $password = $credentials.passwords[0].value
 Write-Debug "Using User name $($user) and passsword ****"
 
+# Login to registry
+Write-Host "Logging in to $Registry.azurecr.io..."
+$password | docker login "$Registry.azurecr.io" -u "$user" --password-stdin
+if ($LastExitCode -ne 0) {
+    throw "docker login failed with $($LastExitCode)."
+}
+
 # Get build root - this is the top most folder with .dockerignore
 $buildRoot = & $getroot -startDir $Path -fileName ".dockerignore"
 # Get meta data
@@ -246,28 +253,28 @@ $definitions | ForEach-Object {
     $image = "$($namespace)$($imageName):$($tagPrefix)$($sourceTag)-$($platformTag)$($tagPostfix)"
     Write-Host "Start build job for $($image)"
 
-    # Create acr command line
-    $argumentList = @("acr", "build", "--verbose",
-        "--registry", $Registry,
-        "--resource-group", $resourceGroup,
+    # Create docker buildx command line
+    $fullImage = "$($Registry).azurecr.io/$($image)"
+    $argumentList = @("buildx", "build",
         "--platform", $platform,
         "--file", $dockerfile,
-        "--image", $image
+        "--tag", $fullImage,
+        "--push"
     )
     $argumentList += $buildContext
 
     $jobs += Start-Job -Name $image -ArgumentList $argumentList -ScriptBlock {
         $argumentList = $args
-        Write-Host "Building ... az $($argumentList | Out-String) for $($image)..."
-        & az $argumentList 2>&1 | ForEach-Object { "$_" }
+        Write-Host "Building ... docker $($argumentList | Out-String) for $($image)..."
+        & docker $argumentList 2>&1 | ForEach-Object { "$_" }
         if ($LastExitCode -ne 0) {
-            Write-Warning "az $($argumentList | Out-String) failed for $($image) with $($LastExitCode) - 2nd attempt..."
-            & az $argumentList 2>&1 | ForEach-Object { "$_" }
+            Write-Warning "docker $($argumentList | Out-String) failed for $($image) with $($LastExitCode) - 2nd attempt..."
+            & docker $argumentList 2>&1 | ForEach-Object { "$_" }
             if ($LastExitCode -ne 0) {
-                throw "Error: 'az $($argumentList | Out-String)' 2nd attempt failed for $($image) with $($LastExitCode)."
+                throw "Error: 'docker $($argumentList | Out-String)' 2nd attempt failed for $($image) with $($LastExitCode)."
             }
         }
-        Write-Host "... az $($argumentList | Out-String) completed for $($image)."
+        Write-Host "... docker $($argumentList | Out-String) completed for $($image)."
     }
 
     # Append to manifest

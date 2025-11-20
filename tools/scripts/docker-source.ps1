@@ -172,11 +172,8 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
         # Escape $ so the generated Dockerfile contains the literal $APP_UID.
         $userSwitch = ""
         if ($runtimeId.StartsWith("linux")) {
-            # TODO: mkdir and chown not working on ARM.
-            if ($runtimeId -notmatch "arm") {
-                $userSwitch += "RUN mkdir -p /app`n"
-                $userSwitch += "RUN chown `$APP_UID /app`n"
-            }
+            $userSwitch += "RUN mkdir -p /app`n"
+            $userSwitch += "RUN chown `$APP_UID /app`n"
             $userSwitch += "# Switch to non-root user.`n"
             $userSwitch += "USER `$APP_UID"
         }
