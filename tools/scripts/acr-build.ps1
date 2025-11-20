@@ -37,14 +37,6 @@ if (!(Test-Path -Path $Path -PathType Container)) {
 }
 $Path = Resolve-Path -LiteralPath $Path
 
-# Try to build all code and create dockerfile definitions to build using docker.
-$definitions = & (Join-Path $PSScriptRoot "docker-source.ps1") `
-    -Path $Path -Debug:$Debug
-if ($definitions.Count -eq 0) {
-    Write-Host "Nothing to build."
-    return
-}
-
 # Try get branch name
 $branchName = $env:BUILD_SOURCEBRANCH
 if (![string]::IsNullOrEmpty($branchName)) {
@@ -211,13 +203,7 @@ if (![string]::IsNullOrEmpty($metadata.tag)) {
 $fullImageName = "$($Registry).azurecr.io/$($namespace)$($imageName):$($tagPrefix)$($sourceTag)$($tagPostfix)"
 Write-Host "Full image name: $($fullImageName)"
 
-$manifest = @"
-image: $($fullImageName)
-tags: [$($tagPrefix)$($latestTag)$($tagPostfix)]
-manifests:
-"@
-
-Write-Host "Building $($definitions.Count) images in $($Path) in $($buildRoot)"
+Write-Host "Building images in $($Path) in $($buildRoot)"
 Write-Host " and pushing to $($Registry)/$($namespace)$($imageName)..."
 
 # Setup for multi-arch builds
@@ -225,150 +211,36 @@ Write-Host "Setting up QEMU..."
 docker run --privileged --rm tonistiigi/binfmt --install all
 
 Write-Host "Creating and bootstrapping new builder..."
-docker buildx create --use --name mybuilder --driver docker-container
+if (!(docker buildx ls | Select-String "mybuilder")) {
+    docker buildx create --use --name mybuilder --driver docker-container
+} else {
+    docker buildx use mybuilder
+}
 docker buildx inspect --bootstrap
 
-$definitions | Out-Host
-
-# Create build jobs from build definitions
-$jobs = @()
-$definitions | ForEach-Object {
-
-    $dockerfile = $_.dockerfile
-    $buildContext = $_.buildContext
-    $platform = $_.platform.ToLower()
-    $platformTag = $_.platformTag.ToLower()
-
-    $os = ""
-    $osVersion = ""
-    $osVerArr = $platform.Split(':')
-    if ($osVerArr.Count -gt 1) {
-        # --platform argument must be without os version
-        $platform = $osVerArr[0]
-        $osVersion = ("osversion: {0}" -f $osVerArr[1])
-    }
-
-    $osArchArr = $platform.Split('/')
-    if ($osArchArr.Count -gt 1) {
-        $os = ("os: {0}" -f $osArchArr[0])
-        $architecture = ("architecture: {0}" -f $osArchArr[1])
-        $variant = ""
-        if ($osArchArr.Count -gt 2) {
-            $variant = ("variant: {0}" -f $osArchArr[2])
-        }
-    }
-
-    $image = "$($namespace)$($imageName):$($tagPrefix)$($sourceTag)-$($platformTag)$($tagPostfix)"
-    Write-Host "Start build job for $($image)"
-
-    # Create docker buildx command line
-    $fullImage = "$($Registry).azurecr.io/$($image)"
-    $argumentList = @("buildx", "build",
-        "--platform", $platform,
-        "--file", $dockerfile,
-        "--tag", $fullImage,
-        "--provenance=false",
-        "--push"
-    )
-    $argumentList += $buildContext
-
-    $jobs += Start-Job -Name $image -ArgumentList $argumentList -ScriptBlock {
-        $argumentList = $args
-        Write-Host "Building ... docker $($argumentList | Out-String) for $($image)..."
-        & docker $argumentList 2>&1 | ForEach-Object { "$_" }
-        if ($LastExitCode -ne 0) {
-            Write-Warning "docker $($argumentList | Out-String) failed for $($image) with $($LastExitCode) - 2nd attempt..."
-            & docker $argumentList 2>&1 | ForEach-Object { "$_" }
-            if ($LastExitCode -ne 0) {
-                throw "Error: 'docker $($argumentList | Out-String)' 2nd attempt failed for $($image) with $($LastExitCode)."
-            }
-        }
-        Write-Host "... docker $($argumentList | Out-String) completed for $($image)."
-    }
-
-    # Append to manifest
-    if (![string]::IsNullOrEmpty($os)) {
-        $manifest +=
-        @"
-
-  -
-    image: $($Registry).azurecr.io/$($image)
-    platform:
-      $($os)
-      $($architecture)
-      $($osVersion)
-      $($variant)
-"@
-    }
+# Adjust build root if we are in src
+if ($buildRoot -eq $Path -and (Test-Path (Join-Path $Path "../common.props"))) {
+    $buildRoot = Resolve-Path (Join-Path $Path "..")
 }
 
-if ($jobs.Count -ne 0) {
-    # Wait until all jobs are completed
-    Receive-Job -Job $jobs -WriteEvents -Wait | Out-Host
-    $jobs | Out-Host
-    $jobs | Where-Object { $_.State -ne "Completed" } | ForEach-Object {
-        throw "ERROR: Building $($_.Name). resulted in $($_.State)."
-    }
-}
-Write-Host "All build jobs completed successfully."
-Write-Host ""
+$dockerfile = Join-Path $buildRoot "Dockerfile"
+$platforms = "linux/amd64,linux/arm/v7,linux/arm64"
 
-# Build manifest using the manifest tool
-$manifestFile = New-TemporaryFile
-$url = "https://github.com/estesp/manifest-tool/releases/download/v1.0.0/"
-if ($env:OS -eq "windows_nt") {
-    $manifestTool = "manifest-tool-windows-amd64.exe"
-}
-else {
-    $manifestTool = "manifest-tool-linux-amd64"
-}
-$manifestToolPath = Join-Path $PSScriptRoot $manifestTool
-while ($true) {
-    try {
-        # Download and verify manifest tool
-        $wc = New-Object System.Net.WebClient
-        $url += $manifestTool
-        Write-Host "Downloading $($manifestTool)..."
-        $wc.DownloadFile($url, $manifestToolPath)
+Write-Host "Building $fullImageName for $platforms using $dockerfile context $buildRoot"
 
-        if (Test-Path $manifestToolPath) {
-            if ($env:OS -ne "windows_nt") {
-                & chmod +x $manifestToolPath
-            }
-            break
-        }
-    }
-    catch {
-        Write-Warning "Failed to download $($manifestTool) - try again..."
-        Start-Sleep -s 3
-    }
+$argumentList = @("buildx", "build",
+    "--platform", $platforms,
+    "--file", $dockerfile,
+    "--tag", $fullImageName,
+    "--provenance=false",
+    "--push"
+)
+$argumentList += $buildRoot
+
+Write-Host "Running: docker $($argumentList -join ' ')"
+& docker $argumentList
+if ($LastExitCode -ne 0) {
+    throw "Docker build failed with exit code $LastExitCode"
 }
 
-try {
-    Write-Host "Building and pushing manifest file:"
-    Write-Host
-    $manifest | Out-Host
-    $manifest | Out-File -Encoding ascii -FilePath $manifestFile.FullName
-    $argumentList = @(
-        "--username", $user,
-        "--password", $password,
-        "push",
-        "from-spec", $manifestFile.FullName
-    )
-    while ($true) {
-        (& $manifestToolPath $argumentList) | Out-Host
-        if ($LastExitCode -eq 0) {
-            break
-        }
-        Write-Warning "Manifest push failed - try again."
-        Start-Sleep -s 2
-    }
-    Write-Host "Manifest pushed successfully."
-}
-catch {
-    throw $_.Exception
-}
-finally {
-    Remove-Item -Force -Path $manifestFile.FullName
-    Remove-Item -Force -Path $manifestToolPath
-}
+Write-Host "Build and push completed successfully."
