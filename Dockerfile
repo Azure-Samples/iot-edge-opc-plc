@@ -10,17 +10,19 @@ COPY src/Directory.Build.props src/
 COPY src/opc-plc.csproj src/
 
 # Restore dependencies
-RUN dotnet restore src/opc-plc.csproj -a "$TARGETARCH"
+RUN case "$TARGETARCH" in amd64) ARCH=x64 ;; *) ARCH="$TARGETARCH" ;; esac \
+    && dotnet restore src/opc-plc.csproj -a "$ARCH"
 
 # Copy source code
 COPY src/ src/
 
 # Publish
 WORKDIR /app/src
-RUN dotnet publish opc-plc.csproj \
+RUN case "$TARGETARCH" in amd64) ARCH=x64 ;; *) ARCH="$TARGETARCH" ;; esac \
+    && dotnet publish opc-plc.csproj \
     -c Release \
     -o /app/publish \
-    -a "$TARGETARCH" \
+    -a "$ARCH" \
     --self-contained true \
     /p:TargetLatestRuntimePatch=true
 
