@@ -9,6 +9,7 @@ COPY Directory.Build.targets .
 COPY src/Directory.Build.props src/
 COPY src/opc-plc.csproj src/
 COPY docs/media/icon.png docs/media/
+COPY README.md .
 
 # Restore dependencies
 RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
