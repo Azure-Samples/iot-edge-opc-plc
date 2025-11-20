@@ -220,6 +220,14 @@ manifests:
 Write-Host "Building $($definitions.Count) images in $($Path) in $($buildRoot)"
 Write-Host " and pushing to $($Registry)/$($namespace)$($imageName)..."
 
+# Setup for multi-arch builds
+Write-Host "Setting up QEMU..."
+docker run --privileged --rm tonistiigi/binfmt --install all
+
+Write-Host "Creating and bootstrapping new builder..."
+docker buildx create --use --name mybuilder --driver docker-container
+docker buildx inspect --bootstrap
+
 $definitions | Out-Host
 
 # Create build jobs from build definitions
