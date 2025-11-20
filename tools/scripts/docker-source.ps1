@@ -21,7 +21,7 @@ if ([string]::IsNullOrEmpty($Path)) {
 }
 if (!(Test-Path -Path $Path -PathType Container)) {
     $Path = Join-Path (& (Join-Path $PSScriptRoot "get-root.ps1") `
-        -fileName $Path) $Path
+            -fileName $Path) $Path
 }
 $Path = Resolve-Path -LiteralPath $Path
 $configuration = "Release"
@@ -29,7 +29,7 @@ if ($Debug.IsPresent) {
     $configuration = "Debug"
 }
 $metadata = Get-Content -Raw -Path (Join-Path $Path "container.json") `
-    | ConvertFrom-Json
+| ConvertFrom-Json
 
 $definitions = @()
 
@@ -38,6 +38,16 @@ $projFile = Get-ChildItem $Path -Filter *.csproj | Select-Object -First 1
 if ($projFile) {
 
     $output = (Join-Path $Path (Join-Path "bin" (Join-Path "publish" $configuration)))
+
+    # Get project's assembly name to create entry point entry in dockerfile
+    $assemblyName = ([xml] (Get-Content -Path $projFile.FullName)).Project.PropertyGroup.AssemblyName `
+    | Where-Object { ![string]::IsNullOrWhiteSpace($_) } `
+    | Select-Object -Last 1
+
+    if ([string]::IsNullOrWhiteSpace($assemblyName)) {
+        $assemblyName = $projFile.BaseName
+    }
+
     $runtimes = @("linux-arm", "linux-arm64", "linux-x64")
     if (![string]::IsNullOrEmpty($metadata.base)) {
         # Shortcut - only build portable
@@ -66,6 +76,41 @@ if ($projFile) {
         if ($LastExitCode -ne 0) {
             throw "Error: 'dotnet $($argumentList)' failed with $($LastExitCode)."
         }
+
+        if ($runtimeId -ne "portable") {
+            # Ensure the executable is present in the publish directory
+            $publishDir = (Join-Path $output $runtimeId)
+            $exeName = $assemblyName
+            if ($runtimeId.StartsWith("win")) {
+                $exeName += ".exe"
+            }
+            $exePath = Join-Path $publishDir $exeName
+
+            if (-not (Test-Path $exePath -PathType Leaf)) {
+                Write-Host "Executable $exeName not found in publish output. Attempting to copy from build output..."
+
+                # Attempt to find the executable in the build output directory
+                # Pattern: bin/$configuration/net*/$runtimeId/$exeName
+                $buildDirPattern = Join-Path $Path "bin/$configuration"
+                if (Test-Path $buildDirPattern) {
+                    $candidates = Get-ChildItem -Path $buildDirPattern -Recurse -Filter $exeName |
+                    Where-Object { $_.DirectoryName -like "*$runtimeId*" }
+
+                    $candidate = $candidates | Select-Object -First 1
+
+                    if ($candidate) {
+                        Write-Host "Copying $($candidate.FullName) to $exePath"
+                        Copy-Item -Path $candidate.FullName -Destination $exePath
+                    }
+                    else {
+                        Write-Warning "Could not find executable $exeName in build output to copy."
+                    }
+                }
+                else {
+                    Write-Warning "Build directory $buildDirPattern does not exist."
+                }
+            }
+        }
     }
 
     $installLinuxDebugger = @'
@@ -74,42 +119,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends unzip curl proc
     && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
 ENV PATH=$PATH:/root/vsdbg/vsdbg
 '@
-    # Get project's assembly name to create entry point entry in dockerfile
-    $assemblyName = ([xml] (Get-Content -Path $projFile.FullName)).Project.PropertyGroup.AssemblyName `
-        | Where-Object { ![string]::IsNullOrWhiteSpace($_) } `
-        | Select-Object -Last 1
-
-    if ([string]::IsNullOrWhiteSpace($assemblyName)) {
-        $assemblyName = $projFile.BaseName
-    }
 
     # Default platform definitions
     $platforms = @{
         "linux/arm/v7" = @{
-            runtimeId = "linux-arm"
-            image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
+            runtimeId   = "linux-arm"
+            image       = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm32v7"
-            # TODO: Cross-compile issue, need to investigate and fix.
-            #runtimeOnly = "RUN chmod +x $($assemblyName)"
-            debugger = $null
-            entryPoint = "[`"./$($assemblyName)`"]"
+            runtimeOnly = "RUN chmod +x $($assemblyName)"
+            debugger    = $installLinuxDebugger
+            entryPoint  = "[`"./$($assemblyName)`"]"
         }
-        "linux/arm64" = @{
-            runtimeId = "linux-arm64"
-            image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
+        "linux/arm64"  = @{
+            runtimeId   = "linux-arm64"
+            image       = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm64v8"
-            # TODO: Cross-compile issue, need to investigate and fix.
-            #runtimeOnly = "RUN chmod +x $($assemblyName)"
-            debugger = $null
-            entryPoint = "[`"./$($assemblyName)`"]"
+            runtimeOnly = "RUN chmod +x $($assemblyName)"
+            # TODO: Add arm64 debugger when available.
+            debugger    = $null
+            entryPoint  = "[`"./$($assemblyName)`"]"
         }
-        "linux/amd64" = @{
-            runtimeId = "linux-x64"
-            image = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
+        "linux/amd64"  = @{
+            runtimeId   = "linux-x64"
+            image       = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-amd64"
             runtimeOnly = "RUN chmod +x $($assemblyName)"
-            debugger = $installLinuxDebugger
-            entryPoint = "[`"./$($assemblyName)`"]"
+            debugger    = $installLinuxDebugger
+            entryPoint  = "[`"./$($assemblyName)`"]"
         }
     }
 
@@ -171,11 +207,8 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
         # Escape $ so the generated Dockerfile contains the literal $APP_UID.
         $userSwitch = ""
         if ($runtimeId.StartsWith("linux")) {
-            # TODO: mkdir and chown not working on ARM.
-            if ($runtimeId -notmatch "arm") {
-                $userSwitch += "RUN mkdir -p /app`n"
-                $userSwitch += "RUN chown `$APP_UID /app`n"
-            }
+            $userSwitch += "RUN mkdir -p /app`n"
+            $userSwitch += "RUN chown `$APP_UID /app`n"
             $userSwitch += "# Switch to non-root user.`n"
             $userSwitch += "USER `$APP_UID"
         }
@@ -202,9 +235,9 @@ ENTRYPOINT $($entryPoint)
         # $dockerFileContent | Out-Host
         $dockerFileContent | Out-File -Encoding ascii -FilePath $dockerFile
         $definitions += @{
-            platform = $_
-            dockerfile = $dockerFile
-            platformTag = $platformTag
+            platform     = $_
+            dockerfile   = $dockerFile
+            platformTag  = $platformTag
             buildContext = $imageContent
         }
     }
@@ -213,8 +246,8 @@ ENTRYPOINT $($entryPoint)
 if ($definitions.Count -eq 0) {
     # Non-.net - Create job definitions from dockerfile structure in current folder
     Get-ChildItem $Path -Recurse `
-        | Where-Object Name -eq "Dockerfile" `
-        | ForEach-Object {
+    | Where-Object Name -eq "Dockerfile" `
+    | ForEach-Object {
 
         $dockerfile = $_.FullName
 
@@ -223,9 +256,9 @@ if ($definitions.Count -eq 0) {
         $platformTag = $platform.Replace("/", "-")
 
         $definitions += @{
-            dockerfile = $dockerfile
-            platform = $platform
-            platformTag = $platformTag
+            dockerfile   = $dockerfile
+            platform     = $platform
+            platformTag  = $platformTag
             buildContext = $buildRoot
         }
     }
