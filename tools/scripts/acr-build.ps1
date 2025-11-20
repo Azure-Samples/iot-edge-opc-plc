@@ -267,6 +267,7 @@ $definitions | ForEach-Object {
         "--platform", $platform,
         "--file", $dockerfile,
         "--tag", $fullImage,
+        "--provenance=false",
         "--push"
     )
     $argumentList += $buildContext
