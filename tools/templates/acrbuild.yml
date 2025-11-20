@@ -45,8 +45,6 @@ jobs:
   - task: AzureCLI@1
     name: acrbuildr
     displayName: Build Release Images
-    env:
-      DOCKER_BUILDKIT: 1
     inputs:
       azureSubscription: azureiiot
       scriptLocation: inlineScript
@@ -56,8 +54,6 @@ jobs:
   - task: AzureCLI@1
     name: acrbuildd
     displayName: Build Debug Images
-    env:
-      DOCKER_BUILDKIT: 1
     inputs:
       azureSubscription: azureiiot
       scriptLocation: inlineScript
