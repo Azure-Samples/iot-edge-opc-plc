@@ -135,7 +135,8 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
             image       = "mcr.microsoft.com/dotnet/runtime-deps:10.0-noble"
             platformTag = "linux-arm64v8"
             runtimeOnly = "RUN chmod +x $($assemblyName)"
-            debugger    = $installLinuxDebugger
+            # TODO: Add arm64 debugger when available.
+            debugger    = $null
             entryPoint  = "[`"./$($assemblyName)`"]"
         }
         "linux/amd64"  = @{
