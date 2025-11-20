@@ -134,11 +134,9 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
         $entryPoint = $platformInfo.entryPoint
         $environmentVars = @("ENV DOTNET_RUNNING_IN_CONTAINER=true")
 
-        #
         # Check for overridden base image name - e.g. aspnet core images
         # this script only supports portable and defaults to dotnet entry
         # point
-        #
         if (![string]::IsNullOrEmpty($metadata.base)) {
             $baseImage = $metadata.base
             $runtimeId = $null
@@ -191,7 +189,6 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
             $userSwitch += "USER `$APP_UID"
         }
         $dockerFileContent = @"
-# syntax=docker/dockerfile:1
 FROM $($baseImage)
 
 $($exposes)
