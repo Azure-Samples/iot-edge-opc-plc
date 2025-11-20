@@ -181,19 +181,23 @@ ENV PATH=$PATH:/root/vsdbg/vsdbg
         # Add user switch for linux platforms only. Use literal $APP_UID in the Dockerfile.
         # Escape $ so the generated Dockerfile contains the literal $APP_UID.
         $userSwitch = ""
+        $copyCommand = "COPY . ."
         if ($runtimeId.StartsWith("linux")) {
-            $userSwitch += "RUN mkdir -p /app`n"
-            $userSwitch += "RUN chown `$APP_UID /app`n"
+            # Define APP_UID arg for COPY --chown
+            $userSwitch += "ARG APP_UID=1654`n"
+            # Use COPY --chown and --chmod to avoid RUN commands that fail on cross-arch builds without emulation
+            $copyCommand = "COPY --chown=`$APP_UID --chmod=755 . ."
             $userSwitch += "# Switch to non-root user.`n"
             $userSwitch += "USER `$APP_UID"
         }
         $dockerFileContent = @"
+# syntax=docker/dockerfile:1
 FROM $($baseImage)
 
 $($exposes)
 
 $($workdir)
-COPY . .
+$($copyCommand)
 $($runtimeOnly)
 
 $($debugger)
