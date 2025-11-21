@@ -223,7 +223,11 @@ if ($buildRoot -eq $Path -and (Test-Path (Join-Path $Path "../common.props"))) {
     $buildRoot = Resolve-Path (Join-Path $Path "..")
 }
 
-$dockerfile = Join-Path $buildRoot "Dockerfile"
+$dockerfileName = "Dockerfile.release"
+if ($Debug.IsPresent) {
+    $dockerfileName = "Dockerfile.debug"
+}
+$dockerfile = Join-Path $buildRoot $dockerfileName
 $platforms = "linux/amd64,linux/arm/v7,linux/arm64"
 
 Write-Host "Building $fullImageName for $platforms using $dockerfile context $buildRoot"
