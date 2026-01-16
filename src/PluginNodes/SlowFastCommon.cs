@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using System;
 
-public class SlowFastCommon
+public partial class SlowFastCommon
 {
     private readonly PlcNodeManager _plcNodeManager;
     protected readonly TimeService _timeService;
@@ -43,14 +43,13 @@ public class SlowFastCommon
 
         if (count > 0)
         {
-            _logger.LogInformation("Creating {Count} {Name} nodes of type: {Type}", count, name, type);
-            _logger.LogInformation("Node values will change every {NodeRate} ms", nodeRate);
+            LogCreatingNodes(count, name, type);
+            LogNodeValuesChangeRate(nodeRate);
         }
 
         for (int i = 0; i < count; i++)
         {
-            var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) =
-                GetNodeType(type, stepSize, minValue, maxValue);
+            var (dataType, valueRank, defaultValue, stepTypeSize, minTypeValue, maxTypeValue) = GetNodeType(type, stepSize, minValue, maxValue);
 
             string id = (i + 1).ToString();
             nodes[i] = _plcNodeManager.CreateBaseVariable(
@@ -94,8 +93,7 @@ public class SlowFastCommon
 
     private static (NodeId dataType, int valueRank, object defaultValue, object stepSize, object minValue, object maxValue) GetNodeType(NodeType nodeType, string stepSize, string minValue, string maxValue)
     {
-        return nodeType switch
-        {
+        return nodeType switch {
             NodeType.Bool => (new NodeId((uint)BuiltInType.Boolean), ValueRanks.Scalar, true, null, null, null),
 
             NodeType.Double => (new NodeId((uint)BuiltInType.Double), ValueRanks.Scalar, 0.0, double.Parse(stepSize),
@@ -141,7 +139,7 @@ public class SlowFastCommon
     {
         if (nodes == null || nodes.Length == 0)
         {
-            _logger.LogWarning("Invalid argument {Argument} provided.", nodes);
+            LogInvalidArgument(nodes);
             return;
         }
 
@@ -344,15 +342,30 @@ public class SlowFastCommon
 
     private readonly (StatusCode, bool)[] BadStatusSequence =
     [
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.UncertainLastUsableValue, true),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.Good, true ),
-            ( StatusCodes.UncertainLastUsableValue, true),
-            ( StatusCodes.BadDataLost, true),
-            ( StatusCodes.BadNoCommunication, false)
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.UncertainLastUsableValue, true),
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.Good, true ),
+        ( StatusCodes.UncertainLastUsableValue, true),
+        ( StatusCodes.BadDataLost, true),
+        ( StatusCodes.BadNoCommunication, false)
     ];
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Creating {Count} {Name} nodes of type: {Type}")]
+    partial void LogCreatingNodes(uint count, string name, NodeType type);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Node values will change every {NodeRate:N0} ms")]
+    partial void LogNodeValuesChangeRate(uint nodeRate);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Invalid argument {Argument} provided")]
+    partial void LogInvalidArgument(object argument);
 }

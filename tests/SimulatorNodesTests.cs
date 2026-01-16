@@ -1,11 +1,12 @@
 namespace OpcPlc.Tests;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using static System.TimeSpan;
 
 /// <summary>
@@ -26,7 +27,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
     private const int NoLimit = -1;
 
     [TestCase]
-    public void Telemetry_StepUp()
+    public async Task Telemetry_StepUp()
     {
         var nodeId = GetOpcPlcNodeId("StepUp");
 
@@ -39,7 +40,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         {
             FireTimersWithPeriod(FromMilliseconds(100), numberOfTimes: 1);
 
-            var value = ReadValue<uint>(nodeId);
+            var value = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
             if (firstValue == 0)
             {
                 firstValue = value;
@@ -59,14 +60,14 @@ public class SimulatorNodesTests : SimulatorTestsBase
     }
 
     [TestCase]
-    public void Telemetry_FastNode()
+    public async Task Telemetry_FastNode()
     {
         var nodeId = GetOpcPlcNodeId("FastUInt1");
 
         var lastValue = 0u;
         for (int i = 0; i < 10; i++)
         {
-            var value = ReadValue<uint>(nodeId);
+            var value = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
             if (lastValue == 0)
             {
                 lastValue = value;
@@ -82,25 +83,25 @@ public class SimulatorNodesTests : SimulatorTestsBase
 
         lastValue++;
 
-        CallMethod("StopUpdateFastNodes");
+        await CallMethodAsync("StopUpdateFastNodes").ConfigureAwait(false);
 
-        var nextValue = ReadValue<uint>(nodeId);
+        var nextValue = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
         nextValue.Should().Be(lastValue);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
-        nextValue = ReadValue<uint>(nodeId);
+        nextValue = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
         nextValue.Should().Be(lastValue);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
-        CallMethod("StartUpdateFastNodes");
+        await CallMethodAsync("StartUpdateFastNodes").ConfigureAwait(false);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
-        nextValue = ReadValue<uint>(nodeId);
+        nextValue = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
         nextValue.Should().Be(lastValue + 1);
     }
 
     [TestCase("DipData", -1000)]
     [TestCase("SpikeData", 1000)]
-    public void Telemetry_ContainsOutlier(string identifier, int outlierValue)
+    public async Task Telemetry_ContainsOutlier(string identifier, int outlierValue)
     {
         var nodeId = GetOpcPlcNodeId(identifier);
 
@@ -113,7 +114,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         {
             FireTimersWithPeriod(FromMilliseconds(100), numberOfTimes: 1);
 
-            var value = ReadValue<double>(nodeId);
+            var value = await ReadValueAsync<double>(nodeId).ConfigureAwait(false);
 
             if (Math.Round(value) == outlierValue)
             {
@@ -139,7 +140,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
     [TestCase("AlternatingBoolean", typeof(bool), 100u, 50, 0)]
     [TestCase("NegativeTrendData", typeof(double), 100u, 50, RampUpPeriods)]
     [TestCase("PositiveTrendData", typeof(double), 100u, 50, RampUpPeriods)]
-    public void Telemetry_ChangesWithPeriod(string identifier, Type type, uint periodInMilliseconds, int invocations, int rampUpPeriods)
+    public async Task Telemetry_ChangesWithPeriod(string identifier, Type type, uint periodInMilliseconds, int invocations, int rampUpPeriods)
     {
         var nodeId = GetOpcPlcNodeId(identifier);
         int numberOfTimes = invocations * rampUpPeriods;
@@ -153,10 +154,10 @@ public class SimulatorNodesTests : SimulatorTestsBase
         {
             FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations);
 
-            var value = Session.ReadValue(nodeId).Value;
+            var value = (await Session.ReadValueAsync(nodeId).ConfigureAwait(false)).Value;
             value.Should().BeOfType(type);
 
-            if (i > 0 && ((IComparable)value).CompareTo(lastValue) != 0)
+            if (i > 0 && (value as IComparable).CompareTo(lastValue) != 0)
             {
                 numberOfValueChanges++;
             }
@@ -169,28 +170,27 @@ public class SimulatorNodesTests : SimulatorTestsBase
 
     [Test]
     [TestCase("BadFastUInt1", 1000u, 1)]
-    public void BadNode_HasAlternatingStatusCode(string identifier, uint periodInMilliseconds, int invocations)
+    public async Task BadNode_HasAlternatingStatusCode(string identifier, uint periodInMilliseconds, int invocations)
     {
         var nodeId = GetOpcPlcNodeId(identifier);
 
         var cycles = 15;
-        var values = Enumerable.Range(0, cycles)
-            .Select(i =>
+        var readings = new List<(StatusCode StatusCode, object Value)>(capacity: cycles);
+        for (int i = 0; i < cycles; i++)
+        {
+            FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations);
+            try
             {
-                FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations);
+                var dataValue = await Session.ReadValueAsync(nodeId).ConfigureAwait(false);
+                readings.Add((dataValue.StatusCode, dataValue.Value));
+            }
+            catch (ServiceResultException e)
+            {
+                readings.Add((e.StatusCode, null));
+            }
+        }
 
-                try
-                {
-                    var value = Session.ReadValue(nodeId);
-                    return (value.StatusCode, value.Value);
-                }
-                catch (ServiceResultException e)
-                {
-                    return (e.StatusCode, null);
-                }
-            }).ToList();
-
-        var valuesByStatus = values.GroupBy(v => v.StatusCode).ToDictionary(g => g.Key, g => g.ToList());
+        var valuesByStatus = readings.GroupBy(v => v.StatusCode).ToDictionary(g => g.Key, g => g.ToList());
 
         valuesByStatus
             .Keys.Should().BeEquivalentTo(new[]
@@ -216,50 +216,50 @@ public class SimulatorNodesTests : SimulatorTestsBase
     [Test]
     [TestCase("FastUInt1", "FastNumberOfUpdates", 1000u)]
     [TestCase("SlowUInt1", "SlowNumberOfUpdates", 10000u)]
-    public void LimitNumberOfUpdates_StopsUpdatingAfterLimit(string identifier, string numberOfUpdatesNodeName, uint periodInMilliseconds)
+    public async Task LimitNumberOfUpdates_StopsUpdatingAfterLimit(string identifier, string numberOfUpdatesNodeName, uint periodInMilliseconds)
     {
         var nodeId = GetOpcPlcNodeId(identifier);
-        var value1 = ReadValue<uint>(nodeId);
+        var value1 = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
 
         // Change the value of the NumberOfUpdates control variable to 6.
         var numberOfUpdatesNode = GetOpcPlcNodeId(numberOfUpdatesNodeName);
-        WriteValue(numberOfUpdatesNode, 6);
+        await WriteValueAsync(numberOfUpdatesNode, 6).ConfigureAwait(false);
 
         // Fire the timer 6 times, should increase the value each time.
         FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: 6);
-        var value2 = ReadValue<uint>(nodeId);
+        var value2 = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
         value2.Should().Be(value1 + 6);
 
         // NumberOfUpdates variable should now be 0. The Fast node value should not change anymore.
         for (var i = 0; i < 10; i++)
         {
-            ReadValue<int>(numberOfUpdatesNode).Should().Be(0);
+            (await ReadValueAsync<int>(numberOfUpdatesNode).ConfigureAwait(false)).Should().Be(0);
             FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: 1);
-            var value3 = ReadValue<uint>(nodeId);
+            var value3 = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
             value3.Should().Be(value1 + 6);
         }
 
         // Change the value of the NumberOfUpdates control variable to -1.
         // The Fast node value should now increase indefinitely.
-        WriteValue(numberOfUpdatesNode, NoLimit);
+        await WriteValueAsync(numberOfUpdatesNode, NoLimit).ConfigureAwait(false);
         FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: 3);
-        var value4 = ReadValue<uint>(nodeId);
+        var value4 = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
         value4.Should().Be(value1 + 6 + 3);
-        ReadValue<int>(numberOfUpdatesNode).Should().Be(NoLimit, "NumberOfUpdates node value should not change when it is {0}", NoLimit);
+        (await ReadValueAsync<int>(numberOfUpdatesNode).ConfigureAwait(false)).Should().Be(NoLimit, "NumberOfUpdates node value should not change when it is {0}", NoLimit);
     }
 
     [Test]
     [TestCase("NegativeTrendData", 100u, 50, false)]
     [TestCase("PositiveTrendData", 100u, 50, true)]
-    public void TrendDataNode_HasValueWithTrend(string identifier, uint periodInMilliseconds, int invocations, bool increasing)
+    public async Task TrendDataNode_HasValueWithTrend(string identifier, uint periodInMilliseconds, int invocations, bool increasing)
     {
         var nodeId = GetOpcPlcNodeId(identifier);
 
         FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations * RampUpPeriods);
 
-        var firstValue = ReadValue<double>(nodeId);
+        var firstValue = await ReadValueAsync<double>(nodeId).ConfigureAwait(false);
         FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations);
-        var secondValue = ReadValue<double>(nodeId);
+        var secondValue = await ReadValueAsync<double>(nodeId).ConfigureAwait(false);
         if (increasing)
         {
             secondValue.Should().BeGreaterThan(firstValue);

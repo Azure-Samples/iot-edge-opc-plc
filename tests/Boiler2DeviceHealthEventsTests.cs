@@ -1,10 +1,11 @@
-﻿namespace OpcPlc.Tests;
+namespace OpcPlc.Tests;
 
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using static System.TimeSpan;
 
 /// <summary>
@@ -26,7 +27,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
     }
 
     [SetUp]
-    public void CreateMonitoredItem()
+    public async Task CreateMonitoredItem()
     {
         _eventType = new NodeId(15143, 2);
 
@@ -37,7 +38,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         var whereClause = filter.WhereClause;
         whereClause.Push(FilterOperator.OfType, _eventType);
 
-        AddMonitoredItem();
+        await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
     [TestCase, Order(1)]
@@ -57,8 +58,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
 
         foreach (var value in values)
         {
-            value.Should().Contain(new Dictionary<string, object>
-            {
+            value.Should().Contain(new Dictionary<string, object> {
                 ["/EventType"] = _eventType,
                 ["/SourceName"] = "Maintenance",
             });
@@ -89,15 +89,15 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         {
             if (i == 1)
             {
-                value.Should().Contain(new Dictionary<string, object>
-                {
+                value.Should().Contain(new Dictionary<string, object> {
                     ["/EventType"] = _eventType,
-                    ["/SourceName"] = "CurrentTemperature",
+                    ["/SourceName"] = "Boiler #2",
                 });
                 value.Should().ContainKey("/Message")
                     .WhoseValue.Should().BeOfType<LocalizedText>()
                     .Which.Text.Should().Be("Temperature is above or equal to the overheat threshold!");
             }
+            i++;
         }
     }
 
@@ -122,10 +122,9 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         {
             if (i == 2)
             {
-                value.Should().Contain(new Dictionary<string, object>
-                {
+                value.Should().Contain(new Dictionary<string, object> {
                     ["/EventType"] = _eventType,
-                    ["/SourceName"] = "CurrentTemperature",
+                    ["/SourceName"] = "Boiler #2",
                 });
                 value.Should().ContainKey("/Message")
                     .WhoseValue.Should().BeOfType<LocalizedText>()
@@ -137,17 +136,17 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
 
 
     [TestCase, Order(4)]
-    public void FiresEvent_OffSpec1()
+    public async Task FiresEvent_OffSpec1()
     {
         // 4. OFF_SPEC 1: Temperature < base temperature
 
         ClearEvents();
 
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var currentTemperatureDegrees = (float)Session.ReadValue(currentTemperatureNodeId).Value;
+        var currentTemperatureDegrees = (float)(await Session.ReadValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
 
         var baseTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var statusCode = WriteValue(baseTemperatureNodeId, currentTemperatureDegrees + 10f);
+        var statusCode = await WriteValueAsync(baseTemperatureNodeId, currentTemperatureDegrees + 10f).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
 
         // Fast forward 1 s to update the DeviceHealth.
@@ -160,10 +159,9 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
 
         foreach (var value in values)
         {
-            value.Should().Contain(new Dictionary<string, object>
-            {
+            value.Should().Contain(new Dictionary<string, object> {
                 ["/EventType"] = _eventType,
-                ["/SourceName"] = "CurrentTemperature",
+                ["/SourceName"] = "Boiler #2",
             });
             value.Should().ContainKey("/Message")
                 .WhoseValue.Should().BeOfType<LocalizedText>()
@@ -188,10 +186,9 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
 
         foreach (var value in values)
         {
-            value.Should().Contain(new Dictionary<string, object>
-            {
+            value.Should().Contain(new Dictionary<string, object> {
                 ["/EventType"] = _eventType,
-                ["/SourceName"] = "CurrentTemperature",
+                ["/SourceName"] = "Boiler #2",
             });
             value.Should().ContainKey("/Message")
                 .WhoseValue.Should().BeOfType<LocalizedText>()

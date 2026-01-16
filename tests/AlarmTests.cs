@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 [TestFixture]
 public class AlarmTests : SubscriptionTestsBase
@@ -15,12 +16,12 @@ public class AlarmTests : SubscriptionTestsBase
     }
 
     [SetUp]
-    public void CreateMonitoredItem()
+    public async Task CreateMonitoredItem()
     {
         _eventType = ToNodeId(ObjectTypes.TripAlarmType);
 
-        var areaNode = FindNode(Server, OpcPlc.Namespaces.OpcPlcAlarmsInstance, "Green", "East", "Blue");
-        var southMotor = FindNode(areaNode, OpcPlc.Namespaces.OpcPlcAlarmsInstance, "SouthMotor");
+        var areaNode = await FindNodeAsync(Server, OpcPlc.Namespaces.OpcPlcAlarmsInstance, "Green", "East", "Blue").ConfigureAwait(false);
+        var southMotor = await FindNodeAsync(areaNode, OpcPlc.Namespaces.OpcPlcAlarmsInstance, "SouthMotor").ConfigureAwait(false);
 
         SetUpMonitoredItem(areaNode, NodeClass.Object, Attributes.EventNotifier);
 
@@ -29,20 +30,18 @@ public class AlarmTests : SubscriptionTestsBase
         var whereClause = filter.WhereClause;
         var element1 = whereClause.Push(FilterOperator.OfType, _eventType);
         var element2 = whereClause.Push(FilterOperator.InList,
-            new SimpleAttributeOperand
-            {
+            new SimpleAttributeOperand {
                 AttributeId = Attributes.Value,
                 TypeDefinitionId = ObjectTypeIds.BaseEventType,
                 BrowsePath = new QualifiedName[] { BrowseNames.SourceNode },
             },
-            new LiteralOperand
-            {
+            new LiteralOperand {
                 Value = new Variant(southMotor)
             });
 
         whereClause.Push(FilterOperator.And, element1, element2);
 
-        AddMonitoredItem();
+        await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
     [Test]
@@ -52,8 +51,7 @@ public class AlarmTests : SubscriptionTestsBase
         var events = ReceiveEventsAsDictionary(1);
         foreach (var value in events)
         {
-            value.Should().Contain(new Dictionary<string, object>
-            {
+            value.Should().Contain(new Dictionary<string, object> {
                 ["/EventType"] = _eventType,
                 ["/SourceName"] = "SouthMotor",
             });

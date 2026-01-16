@@ -1,6 +1,7 @@
-﻿namespace OpcPlc.Tests;
+namespace OpcPlc.Tests;
 
 using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
@@ -18,13 +19,13 @@ public class DataRandomizationTests : SubscriptionTestsBase
     }
 
     [SetUp]
-    public void CreateMonitoredItem()
+    public async Task CreateMonitoredItem()
     {
         var slowNodeId = GetOpcPlcNodeId("SlowUInt1");
         slowNodeId.Should().NotBeNull();
 
         SetUpMonitoredItem(slowNodeId, NodeClass.Variable, Attributes.Value);
-        AddMonitoredItem();
+        await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
     [Test]

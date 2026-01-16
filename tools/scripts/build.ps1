@@ -26,7 +26,7 @@ if ([string]::IsNullOrEmpty($Path)) {
 
 # Traverse from build root and find all container.json metadata files and build
 Get-ChildItem $Path -Recurse -Include "container.json" `
-    | ForEach-Object {
+| ForEach-Object {
 
     # Get root
     $dockerFolder = $_.DirectoryName.Replace($BuildRoot, "")
@@ -38,7 +38,25 @@ Get-ChildItem $Path -Recurse -Include "container.json" `
     }
 
     $metadata = Get-Content -Raw -Path (join-path $_.DirectoryName "container.json") `
-        | ConvertFrom-Json
-    & (Join-Path $PSScriptRoot "docker-build.ps1") `
-        -ImageName $metadata.name -Path $dockerFolder -Debug:$Debug
+    | ConvertFrom-Json
+
+    $dockerfileName = "Dockerfile.release"
+    if ($Debug.IsPresent) {
+        $dockerfileName = "Dockerfile.debug"
+    }
+    $dockerfilePath = Join-Path $BuildRoot $dockerfileName
+
+    $imageName = $metadata.name
+    if ($Debug.IsPresent) {
+        $imageName += ":debug"
+    }
+    else {
+        $imageName += ":latest"
+    }
+
+    Write-Host "Building $imageName using $dockerfilePath context $BuildRoot"
+    docker build -f $dockerfilePath -t $imageName $BuildRoot
+    if ($LastExitCode -ne 0) {
+        throw "Docker build failed with exit code $LastExitCode"
+    }
 }

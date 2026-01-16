@@ -32,10 +32,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
     /// <summary>
     /// Initializes a new instance of the <see cref="FlatDirectoryCertificateStore"/> class.
     /// </summary>
-    public FlatDirectoryCertificateStore()
-    {
-        _innerStore = new DirectoryCertificateStore(noSubDirs: true);
-    }
+    public FlatDirectoryCertificateStore() => _innerStore = new DirectoryCertificateStore(noSubDirs: true);
 
     /// <inheritdoc/>
     public string StoreType => StoreTypeName;
@@ -49,213 +46,119 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
     /// <inheritdoc/>
     public bool SupportsCRLs => _innerStore.SupportsCRLs;
 
+    /// <inheritdoc/>
     public bool NoPrivateKeys => _innerStore.NoPrivateKeys;
 
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        _innerStore.Dispose();
-    }
+    public void Dispose() => _innerStore.Dispose();
 
-    /// <inheritdoc/>
     public void Open(string location, bool noPrivateKeys = true)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(location);
+        ArgumentException.ThrowIfNullOrEmpty(location);
         if (!location.StartsWith(StoreTypePrefix, StringComparison.Ordinal))
         {
             throw new ArgumentException(
-                message: $"Expected argument {nameof(location)} starting with {StoreTypePrefix}",
-                paramName: nameof(location));
+                $"Expected argument {nameof(location)} starting with {StoreTypePrefix}",
+                nameof(location));
         }
-
         _innerStore.Open(location.Substring(StoreTypePrefix.Length), noPrivateKeys);
     }
 
-    /// <inheritdoc/>
-    public void Close()
-    {
-        _innerStore.Close();
-    }
+    public void Close() => _innerStore.Close();
 
-    /// <inheritdoc/>
-    public Task Add(X509Certificate2 certificate, string password = null)
-    {
-        return _innerStore.Add(certificate, password);
-    }
-
-    /// <inheritdoc/>
-    public Task AddRejected(X509Certificate2Collection certificates, int maxCertificates)
-    {
-        return _innerStore.AddRejected(certificates, maxCertificates);
-    }
-
-    /// <inheritdoc/>
-    public Task<bool> Delete(string thumbprint)
-    {
-        return _innerStore.Delete(thumbprint);
-    }
-
-    /// <inheritdoc/>
+    public Task Add(X509Certificate2 certificate, string password = null) => _innerStore.Add(certificate, password);
+    public Task AddRejected(X509Certificate2Collection certificates, int maxCertificates) => _innerStore.AddRejected(certificates, maxCertificates);
+    public Task<bool> Delete(string thumbprint) => _innerStore.Delete(thumbprint);
     public async Task<X509Certificate2Collection> Enumerate()
     {
-        X509Certificate2Collection certificatesCollection = await _innerStore.Enumerate().ConfigureAwait(false);
-        if (!_innerStore.Directory.Exists)
-        {
-            return certificatesCollection;
-        }
+        var certificatesCollection = await _innerStore.Enumerate().ConfigureAwait(false);
 
-        foreach (FileInfo file in _innerStore.Directory.GetFiles('*' + CrtExtension))
+        // Async in newest stack: if (ct.IsCancellationRequested || !_innerStore.Directory.Exists) return certificatesCollection;
+        if (!_innerStore.Directory.Exists) { return certificatesCollection; }
+
+        foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
         {
+            // Async in newest stack: if (ct.IsCancellationRequested) break;
             try
             {
                 var certificates = new X509Certificate2Collection();
-                certificates.ImportFromPemFile(file.FullName);
+                certificates.ImportFromPemFile(filePath);
                 certificatesCollection.AddRange(certificates);
-                foreach (X509Certificate2 certificate in certificates)
-                {
-                    Utils.LogInfo("Enumerate certificates - certificate added {thumbprint}", certificate.Thumbprint);
-                }
             }
             catch (Exception e)
             {
-                Utils.LogError(e, "Could not load certificate from file: {fileName}", file.FullName);
+                Utils.LogError(e, "Could not load certificate from file: {FileName}", filePath);
             }
         }
-
         return certificatesCollection;
     }
-
-    /// <inheritdoc/>
-    public Task AddCRL(X509CRL crl)
-    {
-        return _innerStore.AddCRL(crl);
-    }
-
-    /// <inheritdoc/>
-    public Task<bool> DeleteCRL(X509CRL crl)
-    {
-        return _innerStore.DeleteCRL(crl);
-    }
-
-    /// <inheritdoc/>
-    public Task<X509CRLCollection> EnumerateCRLs()
-    {
-        return _innerStore.EnumerateCRLs();
-    }
-
-    /// <inheritdoc/>
-    public Task<X509CRLCollection> EnumerateCRLs(X509Certificate2 issuer, bool validateUpdateTime = true)
-    {
-        return _innerStore.EnumerateCRLs(issuer, validateUpdateTime);
-    }
-
-    /// <inheritdoc/>
+    public Task AddCRL(X509CRL crl) => _innerStore.AddCRL(crl);
+    public Task<bool> DeleteCRL(X509CRL crl) => _innerStore.DeleteCRL(crl);
+    public Task<X509CRLCollection> EnumerateCRLs() => _innerStore.EnumerateCRLs();
+    public Task<X509CRLCollection> EnumerateCRLs(X509Certificate2 issuer, bool validateUpdateTime = true) => _innerStore.EnumerateCRLs(issuer, validateUpdateTime);
     public async Task<X509Certificate2Collection> FindByThumbprint(string thumbprint)
     {
-        X509Certificate2Collection certificatesCollection = await _innerStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
+        var certificatesCollection = await _innerStore.FindByThumbprint(thumbprint).ConfigureAwait(false);
 
-        if (!_innerStore.Directory.Exists)
-        {
-            return certificatesCollection;
-        }
+        // Async in newest stack: if (ct.IsCancellationRequested || !_innerStore.Directory.Exists) return certificatesCollection;
+        if (!_innerStore.Directory.Exists) { return certificatesCollection; }
 
-        foreach (FileInfo file in _innerStore.Directory.GetFiles('*' + CrtExtension))
+        foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
         {
+            // Async in newest stack: if (ct.IsCancellationRequested) break;
             try
             {
                 var certificates = new X509Certificate2Collection();
-                certificates.ImportFromPemFile(file.FullName);
-                foreach (X509Certificate2 certificate in certificates)
+                certificates.ImportFromPemFile(filePath);
+                foreach (var certificate in certificates.Cast<X509Certificate2>().Where(c => string.Equals(c.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase)))
                 {
-                    if (string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
-                    {
-                        Utils.LogInfo("Find by thumbprint: {thumbprint} - found", thumbprint);
-                        certificatesCollection.Add(certificate);
-                    }
+                    certificatesCollection.Add(certificate);
                 }
             }
             catch (Exception e)
             {
-                Utils.LogError(e, "Could not load certificate from file: {fileName}", file.FullName);
+                Utils.LogError(e, "Could not load certificate from file: {FileName}", filePath);
             }
         }
-
         return certificatesCollection;
     }
-
-    /// <inheritdoc/>
-    public Task<StatusCode> IsRevoked(X509Certificate2 issuer, X509Certificate2 certificate)
-    {
-        return _innerStore.IsRevoked(issuer, certificate);
-    }
-
-    /// <inheritdoc/>
-    public Task<X509Certificate2> LoadPrivateKey(string thumbprint, string subjectName, string password)
-    {
-        return LoadPrivateKey(thumbprint, subjectName, applicationUri: null, certificateType: null, password);
-    }
-
-    /// <inheritdoc/>
+    public Task<StatusCode> IsRevoked(X509Certificate2 issuer, X509Certificate2 certificate) => _innerStore.IsRevoked(issuer, certificate);
+    public Task<X509Certificate2> LoadPrivateKey(string thumbprint, string subjectName, string password) => LoadPrivateKey(thumbprint, subjectName, applicationUri: null, certificateType: null, password);
     public async Task<X509Certificate2> LoadPrivateKey(string thumbprint, string subjectName, string applicationUri, NodeId certificateType, string password)
     {
+        // Async in newest stack: if (ct.IsCancellationRequested) return null;
         if (!_innerStore.Directory.Exists)
         {
             return await _innerStore.LoadPrivateKey(thumbprint, subjectName, applicationUri, certificateType, password).ConfigureAwait(false);
         }
-
-        foreach (FileInfo file in _innerStore.Directory.GetFiles('*' + CrtExtension))
+        foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
         {
+            // Async in newest stack: if (ct.IsCancellationRequested) break;
             try
             {
-                var keyFile = new FileInfo(file.FullName.Replace(CrtExtension, KeyExtension, StringComparison.OrdinalIgnoreCase));
-                if (keyFile.Exists)
-                {
-                    using var certificate = X509CertificateLoader.LoadCertificateFromFile(file.FullName);
-                    if (!MatchCertificate(certificate, thumbprint, subjectName, applicationUri, certificateType))
-                    {
-                        continue;
-                    }
-
-                    X509Certificate2 privateKeyCertificate = X509Certificate2.CreateFromPemFile(file.FullName, keyFile.FullName);
-
-                    Utils.LogInfo("Loading private key succeeded for {thumbprint} - {subjectName}", thumbprint, subjectName);
-                    return privateKeyCertificate;
-                }
+                var keyFilePath = filePath.Replace(CrtExtension, KeyExtension, StringComparison.OrdinalIgnoreCase);
+                if (!File.Exists(keyFilePath)) continue;
+                using var certificate = X509CertificateLoader.LoadCertificateFromFile(filePath);
+                if (!MatchCertificate(certificate, thumbprint, subjectName, certificateType)) continue;
+                return X509Certificate2.CreateFromPemFile(filePath, keyFilePath);
             }
             catch (Exception e)
             {
-                Utils.LogError(e, "Could not load private key for certificate file: {fileName}", file.FullName);
+                Utils.LogError(e, "Could not load private key for certificate file: {FileName}", filePath);
             }
         }
 
         return await _innerStore.LoadPrivateKey(thumbprint, subjectName, applicationUri, certificateType, password).ConfigureAwait(false);
     }
 
-    private bool MatchCertificate(X509Certificate2 certificate, string thumbprint, string subjectName, string applicationUri, NodeId certificateType)
+    private static bool MatchCertificate(X509Certificate2 certificate, string thumbprint, string subjectName, NodeId certificateType)
     {
-        if (certificateType == null ||
-            certificateType == ObjectTypeIds.RsaSha256ApplicationCertificateType ||
-            certificateType == ObjectTypeIds.RsaMinApplicationCertificateType ||
-            certificateType == ObjectTypeIds.ApplicationCertificateType)
+        if (certificateType == null || certificateType == ObjectTypeIds.RsaSha256ApplicationCertificateType || certificateType == ObjectTypeIds.RsaMinApplicationCertificateType || certificateType == ObjectTypeIds.ApplicationCertificateType)
         {
-            if (!string.IsNullOrEmpty(thumbprint) &&
-                !string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            if (!string.IsNullOrEmpty(subjectName) &&
-                !X509Utils.CompareDistinguishedName(subjectName, certificate.Subject) &&
-                (
-                    subjectName.Contains('=', StringComparison.OrdinalIgnoreCase) ||
-                    !X509Utils.ParseDistinguishedName(certificate.Subject).Any(s => s.Equals("CN=" + subjectName, StringComparison.Ordinal))))
-            {
-                return false;
-            }
-
-            // skip if not RSA certificate
+            if (!string.IsNullOrEmpty(thumbprint) && !string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase)) return false;
+            if (!string.IsNullOrEmpty(subjectName) && !X509Utils.CompareDistinguishedName(subjectName, certificate.Subject) && (subjectName.Contains('=', StringComparison.OrdinalIgnoreCase) || !X509Utils.ParseDistinguishedName(certificate.Subject).Any(s => s.Equals("CN=" + subjectName, StringComparison.Ordinal)))) return false;
             return X509Utils.GetRSAPublicKeySize(certificate) >= 0;
         }
+
         return false;
     }
 }

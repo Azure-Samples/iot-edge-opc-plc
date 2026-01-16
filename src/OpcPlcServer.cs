@@ -292,7 +292,7 @@ public class OpcPlcServer
         Logger.LogInformation("Starting server on endpoint {Endpoint} ...", plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
         Logger.LogInformation("Simulation settings are:");
         Logger.LogInformation("One simulation phase consists of {SimulationCycleCount} cycles", PlcSimulationInstance.SimulationCycleCount);
-        Logger.LogInformation("One cycle takes {SimulationCycleLength} ms", PlcSimulationInstance.SimulationCycleLength);
+        Logger.LogInformation("One cycle takes {SimulationCycleLength:N0} ms", PlcSimulationInstance.SimulationCycleLength);
         Logger.LogInformation("Reference test simulation: {AddReferenceTestSimulation}",
             PlcSimulationInstance.AddReferenceTestSimulation ? "Enabled" : "Disabled");
         Logger.LogInformation("Simple events: {AddSimpleEventsSimulation}",

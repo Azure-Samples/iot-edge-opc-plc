@@ -51,7 +51,7 @@ public static class CliOptions
 
             // simulation configuration
             { "sc|simulationcyclecount=", $"count of cycles in one simulation phase.\nDefault: {plcSimulation.SimulationCycleCount} cycles", (int i) => plcSimulation.SimulationCycleCount = i },
-            { "ct|cycletime=", $"length of one cycle time in milliseconds.\nDefault: {plcSimulation.SimulationCycleLength} msec", (int i) => plcSimulation.SimulationCycleLength = i },
+            { "ct|cycletime=", $"length of one cycle time in milliseconds.\nDefault: {plcSimulation.SimulationCycleLength:N0} ms", (int i) => plcSimulation.SimulationCycleLength = i },
 
             // events
             { "ei|eventinstances=", $"number of event instances.\nDefault: {plcSimulation.EventInstanceCount}", (uint i) => plcSimulation.EventInstanceCount = i },
@@ -139,6 +139,10 @@ public static class CliOptions
 
             { "ip|issuercertstorepath=", $"the path of the trusted issuer cert store.\nDefault '{config.OpcUa.OpcIssuerCertDirectoryStorePathDefault}'", (s) => config.OpcUa.OpcIssuerCertStorePath = s },
 
+            // add trusted user and user issuer store path options (optional)
+            { "tup|trustedusercertstorepath=", $"the path of the trusted user cert store.\nDefault '{config.OpcUa.OpcTrustedUserCertDirectoryStorePathDefault}'", (s) => config.OpcUa.OpcTrustedUserCertStorePath = s },
+            { "uip|userissuercertstorepath=", $"the path of the user issuer cert store.\nDefault '{config.OpcUa.OpcUserIssuerCertDirectoryStorePathDefault}'", (s) => config.OpcUa.OpcUserIssuerCertStorePath = s },
+
             { "csr", $"show data to create a certificate signing request.\nDefault '{config.OpcUa.ShowCreateSigningRequestInfo}'", (s) => config.OpcUa.ShowCreateSigningRequestInfo = s != null },
 
             { "ab|applicationcertbase64=", "update/set this application's certificate with the certificate passed in as base64 string.", (s) => config.OpcUa.NewCertificateBase64String = s },
@@ -176,6 +180,14 @@ public static class CliOptions
 
             { "ib|addissuercertbase64=", "adds the specified issuer certificate to the application's trusted issuer cert store passed in as base64 string (comma separated values).", (s) => config.OpcUa.IssuerCertificateBase64Strings = ParseListOfStrings(s) },
             { "if|addissuercertfile=", "adds the specified issuer certificate file(s) to the application's trusted issuer cert store (multiple comma separated filenames supported).", (s) => config.OpcUa.IssuerCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addissuercertfile") },
+
+            // new: trusted user certs (for user X509 identity tokens)
+            { "tub|addtrustedusercertbase64=", "adds the certificate to the application's trusted user cert store passed in as base64 string (comma separated values).", (s) => config.OpcUa.TrustedUserCertificateBase64Strings = ParseListOfStrings(s) },
+            { "tuf|addtrustedusercertfile=", "adds the certificate file(s) to the application's trusted user cert store (multiple comma separated filenames supported).", (s) => config.OpcUa.TrustedUserCertificateFileNames = CliHelper.ParseListOfFileNames(s, "addtrustedusercertfile") },
+
+            // new: user issuer certs (for user certificate chain validation)
+            { "uib|adduserissuercertbase64=", "adds the specified issuer certificate to the application's user issuer cert store passed in as base64 string (comma separated values).", (s) => config.OpcUa.UserIssuerCertificateBase64Strings = ParseListOfStrings(s) },
+            { "uif|adduserissuercertfile=", "adds the specified issuer certificate file(s) to the application's user issuer cert store (multiple comma separated filenames supported).", (s) => config.OpcUa.UserIssuerCertificateFileNames = CliHelper.ParseListOfFileNames(s, "adduserissuercertfile") },
 
             { "rb|updatecrlbase64=", "update the CRL passed in as base64 string to the corresponding cert store (trusted or trusted issuer).", (s) => config.OpcUa.CrlBase64String = s },
             { "uc|updatecrlfile=", "update the CRL passed in as file to the corresponding cert store (trusted or trusted issuer).", (s) =>
@@ -252,7 +264,7 @@ public static class CliOptions
         sb.AppendLine("Use the following format to specify a list of strings:");
         sb.AppendLine("\"<string 1>,<string 2>,...,<string n>\"");
         sb.AppendLine("or if one string contains commas:");
-        sb.AppendLine("\"\"<string 1>\",\"<string 2>\",...,\"<string n>\"\"");
+        sb.AppendLine("\"\"<string 1>\",\"<string 2>\",...,\"<string n>\"\"\"");
         sb.AppendLine();
 
         // Append the options.

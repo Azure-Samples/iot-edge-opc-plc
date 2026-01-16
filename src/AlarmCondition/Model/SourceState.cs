@@ -27,12 +27,10 @@
  * http://opcfoundation.org/License/MIT/1.00/
  * ======================================================================*/
 
-using Microsoft.AspNetCore.Hosting.Server;
 using Opc.Ua;
 using Opc.Ua.Test;
 using System;
 using System.Collections.Generic;
-using System.Reflection.Emit;
 
 namespace AlarmCondition
 {
@@ -69,7 +67,10 @@ namespace AlarmCondition
             Description = null;
             ReferenceTypeId = null;
             TypeDefinitionId = ObjectTypeIds.BaseObjectType;
-            EventNotifier = EventNotifiers.None;
+            // Allow direct event subscriptions on the source itself.
+            EventNotifier = EventNotifiers.SubscribeToEvents;
+            // Forward reported events to the server so subscriptions on this source NodeId receive them.
+            OnReportEvent = OnReportSourceEvent;
 
             // create a dialog.
             m_generator = generator;
@@ -84,6 +85,12 @@ namespace AlarmCondition
             //m_source.Refresh();
         }
         #endregion
+
+        private void OnReportSourceEvent(ISystemContext context, NodeState node, IFilterTarget e)
+        {
+            // Route the event through the server so it is delivered to subscriptions directly on this source node.
+            m_nodeManager.Server.ReportEvent(context, e);
+        }
 
         #region Public Interface
         /// <summary>
@@ -201,8 +208,7 @@ namespace AlarmCondition
         {
             ISystemContext context = m_nodeManager.SystemContext;
 
-            var node = new DialogConditionState(this)
-            {
+            var node = new DialogConditionState(this) {
                 SymbolicName = dialogName,
             };
 
@@ -323,16 +329,12 @@ namespace AlarmCondition
                     }
 
                 case "TripAlarm":
-                    {
-                        node = new TripAlarmState(this);
-                        break;
-                    }
+                    node = new TripAlarmState(this);
+                    break;
 
                 default:
-                    {
-                        node = new AlarmConditionState(this);
-                        break;
-                    }
+                    node = new AlarmConditionState(this);
+                    break;
             }
 
             node.SymbolicName = alarm.Name;
@@ -699,7 +701,7 @@ namespace AlarmCondition
         /// </summary>
         /// <param name="alarm">The alarm.</param>
         /// <returns>The record number; 0 if the alarm is not an archived alarm.</returns>
-        private uint GetRecordNumber(AlarmConditionState alarm)
+        private static uint GetRecordNumber(AlarmConditionState alarm)
         {
             if (alarm == null)
             {
@@ -724,7 +726,7 @@ namespace AlarmCondition
         /// <summary>
         /// Gets the user name associated with the context.
         /// </summary>
-        private string GetUserName(ISystemContext context)
+        private static string GetUserName(ISystemContext context)
         {
             if (context.UserIdentity != null)
             {
@@ -742,7 +744,7 @@ namespace AlarmCondition
         private readonly Dictionary<string, AlarmConditionState> m_events;
         private readonly Dictionary<NodeId, AlarmConditionState> m_branches;
         private readonly DialogConditionState m_dialog;
-        private DataGenerator m_generator;
+        private readonly DataGenerator m_generator;
         #endregion
     }
 }

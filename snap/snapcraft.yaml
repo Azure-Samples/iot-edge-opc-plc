@@ -20,7 +20,7 @@ parts:
     dotnet-self-contained-runtime-identifier: linux-x64
     source: .
     build-packages:
-      - dotnet-sdk-9.0
+      - dotnet-sdk-10.0
   scripts:
     plugin: dump
     source: scripts/

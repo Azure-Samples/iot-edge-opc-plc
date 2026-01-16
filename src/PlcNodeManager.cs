@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-public class PlcNodeManager : CustomNodeManager2
+public partial class PlcNodeManager : CustomNodeManager2
 {
     private readonly OpcPlcConfiguration _config;
     private readonly ImmutableList<IPluginNodes> _pluginNodes;
@@ -24,6 +24,7 @@ public class PlcNodeManager : CustomNodeManager2
         _pluginNodes = pluginNodes;
         _logger = logger;
         SystemContext.NodeIdFactory = this;
+        SystemContext.EncodeableFactory = Server.Factory;
     }
 
     public PlcSimulation PlcSimulationInstance { get; }
@@ -78,7 +79,7 @@ public class PlcNodeManager : CustomNodeManager2
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error creating address space");
+                LogErrorCreatingAddressSpace(e);
             }
 
             AddPredefinedNode(SystemContext, root);
@@ -103,8 +104,7 @@ public class PlcNodeManager : CustomNodeManager2
 
         ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
 
-        var folder = new FolderState(parent)
-        {
+        var folder = new FolderState(parent) {
             SymbolicName = name,
             ReferenceTypeId = ReferenceTypes.Organizes,
             TypeDefinitionId = ObjectTypeIds.FolderType,
@@ -126,8 +126,7 @@ public class PlcNodeManager : CustomNodeManager2
     /// </summary>
     public BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, bool randomize, object stepSizeValue, object minTypeValue, object maxTypeValue, object defaultValue = null)
     {
-        var baseDataVariableState = new BaseDataVariableStateExtended(parent, randomize, stepSizeValue, minTypeValue, maxTypeValue)
-        {
+        var baseDataVariableState = new BaseDataVariableStateExtended(parent, randomize, stepSizeValue, minTypeValue, maxTypeValue) {
             SymbolicName = name,
             ReferenceTypeId = ReferenceTypes.Organizes,
             TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
@@ -141,8 +140,7 @@ public class PlcNodeManager : CustomNodeManager2
     /// </summary>
     public BaseDataVariableState CreateBaseVariable(NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
     {
-        var baseDataVariableState = new BaseDataVariableState(parent)
-        {
+        var baseDataVariableState = new BaseDataVariableState(parent) {
             SymbolicName = name,
             ReferenceTypeId = ReferenceTypes.Organizes,
             TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
@@ -158,8 +156,7 @@ public class PlcNodeManager : CustomNodeManager2
     {
         ushort namespaceIndex = NamespaceIndexes[(int)namespaceType];
 
-        var method = new MethodState(parent)
-        {
+        var method = new MethodState(parent) {
             SymbolicName = name,
             ReferenceTypeId = ReferenceTypeIds.HasComponent,
             NodeId = new NodeId(path, namespaceIndex),
@@ -175,6 +172,14 @@ public class PlcNodeManager : CustomNodeManager2
         parent?.AddChild(method);
 
         return method;
+    }
+
+    /// <summary>
+    /// Registers a node as a root notifier for event subscriptions.
+    /// </summary>
+    public void RegisterRootNotifier(NodeState notifier)
+    {
+        AddRootNotifier(notifier);
     }
 
     private BaseDataVariableState CreateBaseVariable(BaseDataVariableState baseDataVariableState, NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
@@ -193,7 +198,7 @@ public class PlcNodeManager : CustomNodeManager2
         }
         else
         {
-            _logger.LogDebug("NodeId type is {NodeIdType}", (string)path.GetType().ToString());
+            LogNodeIdType(path.GetType().ToString());
             baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
             baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
         }
@@ -251,4 +256,14 @@ public class PlcNodeManager : CustomNodeManager2
     private readonly TimeService _timeService;
     private IDictionary<NodeId, IList<IReference>> _externalReferences;
     private Func<ISystemContext, NodeStateCollection> _loadPredefinedNodesHandler;
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Error creating address space")]
+    partial void LogErrorCreatingAddressSpace(Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "NodeId type is {NodeIdType}")]
+    partial void LogNodeIdType(string nodeIdType);
 }

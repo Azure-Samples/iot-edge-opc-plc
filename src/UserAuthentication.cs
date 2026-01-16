@@ -5,13 +5,14 @@ using Opc.Ua;
 using Opc.Ua.Server;
 using System;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 public partial class PlcServer
 {
     /// <summary>
     /// Creates the objects used to validate the user identity tokens supported by the server.
     /// </summary>
-    private void CreateUserIdentityValidators(ApplicationConfiguration configuration)
+    private async Task CreateUserIdentityValidatorAsync(ApplicationConfiguration configuration)
     {
         for (int ii = 0; ii < configuration.ServerConfiguration.UserTokenPolicies.Count; ii++)
         {
@@ -21,16 +22,17 @@ public partial class PlcServer
             // Check if user certificate trust lists are specified in configuration.
             if (policy.TokenType == UserTokenType.Certificate &&
                 configuration.SecurityConfiguration.TrustedUserCertificates != null &&
-                    configuration.SecurityConfiguration.UserIssuerCertificates != null)
+                configuration.SecurityConfiguration.UserIssuerCertificates != null)
             {
                 var certificateValidator = new CertificateValidator();
-                certificateValidator.Update(configuration).Wait();
+                await certificateValidator.Update(configuration).ConfigureAwait(false);
                 certificateValidator.Update(configuration.SecurityConfiguration.UserIssuerCertificates,
                     configuration.SecurityConfiguration.TrustedUserCertificates,
                     configuration.SecurityConfiguration.RejectedCertificateStore);
 
                 // set custom validator for user certificates.
-                m_certificateValidator = certificateValidator.GetChannelValidator();
+                m_userCertificateValidator = certificateValidator;
+                break;
             }
         }
     }
@@ -40,8 +42,8 @@ public partial class PlcServer
     /// </summary>
     private IUserIdentity VerifyPassword(UserNameIdentityToken userNameToken)
     {
-        var userName = userNameToken.UserName;
-        var password = userNameToken.DecryptedPassword;
+        string userName = userNameToken.UserName;
+        string password = userNameToken.DecryptedPassword;
         if (string.IsNullOrEmpty(userName))
         {
             // an empty username is not accepted.
@@ -88,14 +90,18 @@ public partial class PlcServer
     /// </summary>
     private void SessionManager_ImpersonateUser(Session session, ImpersonateEventArgs args)
     {
-        // check for a WSS token.
-        //var wssToken = args.NewIdentity as IssuedIdentityToken;
+        if (args.NewIdentity is AnonymousIdentityToken anonymousToken)
+        {
+            args.Identity = new UserIdentity(anonymousToken);
+            _logger.LogInformation("Anonymous Token Accepted: {DisplayName}", args.Identity.DisplayName);
+            return;
+        }
 
         // check for a user name token.
         if (args.NewIdentity is UserNameIdentityToken userNameToken)
         {
             args.Identity = VerifyPassword(userNameToken);
-            _logger.LogInformation("UserName Token Accepted: {displayName}", args.Identity.DisplayName);
+            _logger.LogInformation("UserName Token Accepted: {DisplayName}", args.Identity.DisplayName);
             return;
         }
 
@@ -104,8 +110,13 @@ public partial class PlcServer
         {
             VerifyCertificate(x509Token.Certificate);
             args.Identity = new UserIdentity(x509Token);
-            _logger.LogInformation("X509 Token Accepted: {displayName}", args.Identity.DisplayName);
+            _logger.LogInformation("X509 Token Accepted: {DisplayName}", args.Identity.DisplayName);
+            return;
         }
+
+        // no other token types are accepted.
+        throw ServiceResultException.Create(StatusCodes.BadIdentityTokenRejected,
+            "Security token is not a valid user identity token.");
     }
 
     /// <summary>
@@ -115,9 +126,9 @@ public partial class PlcServer
     {
         try
         {
-            if (m_certificateValidator != null)
+            if (m_userCertificateValidator != null)
             {
-                m_certificateValidator.Validate(certificate);
+                m_userCertificateValidator.Validate(certificate);
             }
             else
             {
@@ -158,5 +169,5 @@ public partial class PlcServer
         }
     }
 
-    private ICertificateValidator m_certificateValidator;
+    private CertificateValidator m_userCertificateValidator;
 }

@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -48,7 +49,7 @@ public abstract class SimulatorTestsBase
     [OneTimeTearDown]
     public async Task TearDown()
     {
-        Session?.Close();
+        await Session.CloseAsync().ConfigureAwait(false);
         await _simulator.StopAsync().ConfigureAwait(false);
     }
 
@@ -65,8 +66,8 @@ public abstract class SimulatorTestsBase
     /// <param name="namespaceUri">The namespace URI of all the path parts.</param>
     /// <param name="pathParts">The browse names of the path parts up to the node to retrieve.</param>
     /// <returns>The node reached by traversing the path parts from the starting node.</returns>
-    protected NodeId FindNode(NodeId startingNode, string namespaceUri, params string[] pathParts)
-        => FindNode(
+    protected Task<NodeId> FindNodeAsync(NodeId startingNode, string namespaceUri, params string[] pathParts)
+        => FindNodeAsync(
             startingNode,
             string.Join(
                 '/',
@@ -93,7 +94,7 @@ public abstract class SimulatorTestsBase
     protected void FireTimersWithPeriod(TimeSpan periodInMilliseconds, int numberOfTimes)
         => _simulator.FireTimersWithPeriod((uint)periodInMilliseconds.TotalMilliseconds, numberOfTimes);
 
-    private NodeId FindNode(NodeId startingNode, string relativePath)
+    private async Task<NodeId> FindNodeAsync(NodeId startingNode, string relativePath)
     {
         var browsePaths = new BrowsePathCollection
             {
@@ -104,13 +105,12 @@ public abstract class SimulatorTestsBase
                 }
             };
 
-        Session.TranslateBrowsePathsToNodeIds(
+        var results = await Session.TranslateBrowsePathsToNodeIdsAsync(
             requestHeader: null,
             browsePaths,
-            out var results,
-            out _);
+            CancellationToken.None).ConfigureAwait(false);
 
-        var nodeId = results
+        var nodeId = results.Results
             .Should().ContainSingle("search should contain a result")
             .Subject.Targets
             .Should().ContainSingle("search for {0} should contain a result target (Results: {1})", relativePath, JsonSerializer.Serialize(results))
@@ -119,12 +119,12 @@ public abstract class SimulatorTestsBase
         return ToNodeId(nodeId);
     }
 
-    protected T ReadValue<T>(NodeId nodeId)
+    protected async Task<T> ReadValueAsync<T>(NodeId nodeId)
     {
-        return (T)Session.ReadValue(nodeId, typeof(T));
+        return (T)(await Session.ReadValueAsync(nodeId).ConfigureAwait(false)).Value;
     }
 
-    protected StatusCode WriteValue(NodeId nodeId, object newValue)
+    protected async Task<StatusCode> WriteValueAsync(NodeId nodeId, object newValue)
     {
         var valuesToWrite = new WriteValueCollection
             {
@@ -140,20 +140,19 @@ public abstract class SimulatorTestsBase
             };
 
         // write value.
-        Session.Write(
+        var results = await Session.WriteAsync(
             default,
             valuesToWrite,
-            out var results,
-            out _);
+            CancellationToken.None).ConfigureAwait(false);
 
-        return results.FirstOrDefault();
+        return results.Results.FirstOrDefault();
     }
 
     /// <summary>
     /// Calls OPC UA method over active session
     /// </summary>
-    protected IList<object> CallMethod(string methodName, string objectName = "Methods", params object[] args)
+    protected Task<IList<object>> CallMethodAsync(string methodName, string objectName = "Methods", params object[] args)
     {
-        return Session.Call(GetOpcPlcNodeId(objectName), GetOpcPlcNodeId(methodName), args);
+        return Session.CallAsync(GetOpcPlcNodeId(objectName), GetOpcPlcNodeId(methodName), args: args);
     }
 }
