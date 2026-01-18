@@ -140,7 +140,11 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         // set logger interface, disables TraceEvent
         Utils.SetLogger(microsoftLogger);
 
-        // log certificate status
+        // Determine if custom certificate was provided via command line
+        bool customCertificateProvided = !string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) || 
+                                         !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName);
+
+        // log certificate status - refetch after InitApplicationSecurityAsync
         var certificate = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
         if (certificate == null)
         {
@@ -156,18 +160,33 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                 certificate.Thumbprint);
         }
 
-        // Check the certificate, create new self-signed certificate if necessary.
-        bool isCertValid = await application.CheckApplicationInstanceCertificates(silent: true, lifeTimeInMonths: CertificateFactory.DefaultLifeTime).ConfigureAwait(false);
-        if (!isCertValid)
+        // Check the certificate, create new self-signed certificate if necessary (but not if custom cert was provided)
+        bool isCertValid;
+        if (customCertificateProvided)
         {
-            throw new Exception("Application certificate invalid.");
+            // Custom certificate was provided, just validate it without creating a new one
+            isCertValid = certificate != null;
+            if (!isCertValid)
+            {
+                throw new Exception("Custom application certificate was provided but could not be loaded.");
+            }
+            _logger.LogInformation("Using custom application certificate, skipping automatic certificate creation");
         }
-
-        if (certificate == null)
+        else
         {
-            certificate = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
-            _logger.LogInformation("Application certificate with thumbprint {Thumbprint} created",
-                certificate.Thumbprint);
+            // No custom certificate, let the system create a self-signed one if needed
+            isCertValid = await application.CheckApplicationInstanceCertificates(silent: true, lifeTimeInMonths: CertificateFactory.DefaultLifeTime).ConfigureAwait(false);
+            if (!isCertValid)
+            {
+                throw new Exception("Application certificate invalid.");
+            }
+            
+            if (certificate == null)
+            {
+                certificate = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
+                _logger.LogInformation("Application certificate with thumbprint {Thumbprint} created",
+                    certificate.Thumbprint);
+            }
         }
 
         _logger.LogInformation("Application certificate is for ApplicationUri {ApplicationUri}, ApplicationName {ApplicationName} and Subject is {Subject}",
@@ -227,6 +246,13 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
                     new FlatDirectoryCertificateStoreType());
             }
         }
+
+        // Update/install the custom application certificate first if provided, before setting up stores
+        if (!string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) || !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName))
+        {
+            _logger.LogInformation("Custom application certificate provided via command line, installing before security configuration");
+        }
+
         var applicationCerts = new CertificateIdentifierCollection
         {
             new CertificateIdentifier
@@ -251,6 +277,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             securityConfiguration.ApplicationCertificate.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcOwnCertStorePath;
 
             // configure trusted issuer certificates store
+
             securityConfiguration.TrustedIssuerCertificates.StoreType = FlatDirectoryCertificateStore.StoreTypeName;
             securityConfiguration.TrustedIssuerCertificates.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcIssuerCertStorePath;
 
@@ -297,7 +324,24 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
 
         }
 
-        _config.OpcUa.ApplicationConfiguration = await options.Create().ConfigureAwait(false);
+        // update application certificate if requested BEFORE creating configuration
+        // This ensures the custom certificate is available when the security configuration is created
+        if ((!string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) || !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName)))
+        {
+            // Temporarily create the configuration so we can install the custom certificate
+            _config.OpcUa.ApplicationConfiguration = await options.Create().ConfigureAwait(false);
+            
+            if (!await UpdateApplicationCertificateAsync(_config.OpcUa.NewCertificateBase64String, _config.OpcUa.NewCertificateFileName, _config.OpcUa.CertificatePassword, _config.OpcUa.PrivateKeyBase64String, _config.OpcUa.PrivateKeyFileName).ConfigureAwait(false))
+            {
+                throw new Exception("Update/Setting of the application certificate failed.");
+            }
+            
+            _logger.LogInformation("Custom application certificate installed successfully");
+        }
+        else
+        {
+            _config.OpcUa.ApplicationConfiguration = await options.Create().ConfigureAwait(false);
+        }
 
         _logger.LogInformation("Application Certificate store type is: {StoreType}", securityConfiguration.ApplicationCertificate.StoreType);
         _logger.LogInformation("Application Certificate store path is: {StorePath}", securityConfiguration.ApplicationCertificate.StorePath);
@@ -371,13 +415,6 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             !await UpdateCrlAsync(_config.OpcUa.CrlBase64String, _config.OpcUa.CrlFileName).ConfigureAwait(false))
         {
             throw new Exception("CRL update failed.");
-        }
-
-        // update application certificate if requested or use the existing certificate
-        if ((!string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) || !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName)) &&
-            !await UpdateApplicationCertificateAsync(_config.OpcUa.NewCertificateBase64String, _config.OpcUa.NewCertificateFileName, _config.OpcUa.CertificatePassword, _config.OpcUa.PrivateKeyBase64String, _config.OpcUa.PrivateKeyFileName).ConfigureAwait(false))
-        {
-            throw new Exception("Update/Setting of the application certificate failed.");
         }
 
         return _config.OpcUa.ApplicationConfiguration;
@@ -1295,7 +1332,6 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
             }
         }
 
-        // if there is no current application cert, we need a new cert with a private key
         if (hasApplicationCertificate)
         {
             if (string.IsNullOrEmpty(newCertFormat))
@@ -1314,7 +1350,7 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         }
 
         // remove the existing and add the new application cert
-        using (ICertificateStore appStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore())
+        using (ICertificateStore appStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.OpenStore())
         {
             _logger.LogInformation("Remove the existing application certificate");
             try
@@ -1344,7 +1380,9 @@ public class OpcUaAppConfigFactory(OpcPlcConfiguration config, ILogger logger, I
         try
         {
             _logger.LogInformation("Activating the new application certificate with thumbprint '{NewThumbprint}'", newCertificateWithPrivateKey.Thumbprint);
-            _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = newCertificate;
+            _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = newCertificateWithPrivateKey;
+            _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Thumbprint = newCertificateWithPrivateKey.Thumbprint;
+            _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.SubjectName = newCertificateWithPrivateKey.SubjectName.Name;
             await _config.OpcUa.ApplicationConfiguration.CertificateValidator.UpdateCertificateAsync(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration).ConfigureAwait(false);
         }
         catch (Exception e)
