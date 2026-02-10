@@ -84,12 +84,6 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
         _plcNodeManager = plcNodeManager;
 
         AddNodes();
-
-        // Register Boiler #2 as a root notifier so it can be independently subscribed for events.
-        if (_boiler2Object != null)
-        {
-            _plcNodeManager.RegisterRootNotifier(_boiler2Object);
-        }
     }
 
     public void StartSimulation()
