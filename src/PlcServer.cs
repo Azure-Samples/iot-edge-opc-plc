@@ -422,6 +422,17 @@ public partial class PlcServer : StandardServer
 
             return new ResponseHeader { ServiceResult = StatusCodes.BadSessionClosed };
         }
+        catch (ServiceResultException ex) when (ex.StatusCode == StatusCodes.BadTimeout)
+        {
+            MetricsHelper.RecordTotalErrors(nameof(Publish));
+
+            LogErrorWithStatusCode(
+                nameof(Publish),
+                nameof(StatusCodes.BadTimeout),
+                ex);
+
+            return new ResponseHeader { ServiceResult = StatusCodes.BadTimeout };
+        }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
