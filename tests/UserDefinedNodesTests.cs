@@ -62,6 +62,6 @@ public class UserDefinedNodesTests : SubscriptionTestsBase
 
         var arrayNodeId = await FindNodeAsync(myTelemetryNode, Namespaces.OpcPlcApplications, "1048").ConfigureAwait(false);
         arrayNodeId.Should().NotBeNull();
-        (await Session.ReadValueAsync(arrayNodeId).ConfigureAwait(false)).Value.Should().BeEquivalentTo(new int[] { 1, 2, 3, 4, 5 });
+        (await ReadDataValueAsync(arrayNodeId).ConfigureAwait(false)).Value.Should().BeEquivalentTo(new int[] { 1, 2, 3, 4, 5 });
     }
 }

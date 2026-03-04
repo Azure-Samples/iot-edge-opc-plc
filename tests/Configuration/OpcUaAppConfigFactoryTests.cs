@@ -6,11 +6,13 @@ using Moq;
 using NUnit.Framework;
 using OpcPlc.Configuration;
 using OpcPlc.Certs;
+using OpcPlc.Helpers;
 using Opc.Ua.Security.Certificates;
 using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 
 [TestFixture]
@@ -64,15 +66,16 @@ public class OpcUaAppConfigFactoryTests
             var loggerMock = new Mock<ILogger>();
             var loggerFactoryMock = new Mock<ILoggerFactory>();
             loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+            var telemetryContext = new OpcTelemetryContext(loggerFactoryMock.Object, "Opc.Ua", OpcTelemetryContext.ResolveOpcPlcVersion());
 
-            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object);
+            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext);
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
 
             // Assert - open the configured trusted user store and find our certificate
-            using var store = appConfig.SecurityConfiguration.TrustedUserCertificates.OpenStore();
-            var certs = await store.Enumerate().ConfigureAwait(false);
+            using var store = appConfig.SecurityConfiguration.TrustedUserCertificates.OpenStore(telemetryContext);
+            var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
             certs.Count.Should().BeGreaterThanOrEqualTo(1, "Trusted user store should contain at least one certificate");
@@ -123,15 +126,16 @@ public class OpcUaAppConfigFactoryTests
             var loggerMock = new Mock<ILogger>();
             var loggerFactoryMock = new Mock<ILoggerFactory>();
             loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+            var telemetryContext = new OpcTelemetryContext(loggerFactoryMock.Object, "Opc.Ua", OpcTelemetryContext.ResolveOpcPlcVersion());
 
-            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object);
+            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext);
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
 
             // Assert - open the configured trusted user store and find our certificate
-            using var store = appConfig.SecurityConfiguration.TrustedUserCertificates.OpenStore();
-            var certs = await store.Enumerate().ConfigureAwait(false);
+            using var store = appConfig.SecurityConfiguration.TrustedUserCertificates.OpenStore(telemetryContext);
+            var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
             certs.Count.Should().BeGreaterThanOrEqualTo(1, "Trusted user store should contain at least one certificate");
@@ -183,15 +187,16 @@ public class OpcUaAppConfigFactoryTests
             var loggerMock = new Mock<ILogger>();
             var loggerFactoryMock = new Mock<ILoggerFactory>();
             loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+            var telemetryContext = new OpcTelemetryContext(loggerFactoryMock.Object, "Opc.Ua", OpcTelemetryContext.ResolveOpcPlcVersion());
 
-            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object);
+            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext);
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
 
             // Assert
-            using var store = appConfig.SecurityConfiguration.UserIssuerCertificates.OpenStore();
-            var certs = await store.Enumerate().ConfigureAwait(false);
+            using var store = appConfig.SecurityConfiguration.UserIssuerCertificates.OpenStore(telemetryContext);
+            var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
             certs.Count.Should().BeGreaterThanOrEqualTo(1, "User issuer store should contain at least one certificate");
@@ -245,15 +250,16 @@ public class OpcUaAppConfigFactoryTests
             var loggerMock = new Mock<ILogger>();
             var loggerFactoryMock = new Mock<ILoggerFactory>();
             loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+            var telemetryContext = new OpcTelemetryContext(loggerFactoryMock.Object, "Opc.Ua", OpcTelemetryContext.ResolveOpcPlcVersion());
 
-            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object);
+            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext);
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
 
             // Assert - open the configured user issuer store and find our certificate
-            using var store = appConfig.SecurityConfiguration.UserIssuerCertificates.OpenStore();
-            var certs = await store.Enumerate().ConfigureAwait(false);
+            using var store = appConfig.SecurityConfiguration.UserIssuerCertificates.OpenStore(telemetryContext);
+            var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
             certs.Count.Should().BeGreaterThanOrEqualTo(1, "User issuer store should contain at least one certificate");
@@ -303,8 +309,9 @@ public class OpcUaAppConfigFactoryTests
             var loggerMock = new Mock<ILogger>();
             var loggerFactoryMock = new Mock<ILoggerFactory>();
             loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+            var telemetryContext = new OpcTelemetryContext(loggerFactoryMock.Object, "Opc.Ua", OpcTelemetryContext.ResolveOpcPlcVersion());
 
-            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object);
+            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext);
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);

@@ -39,7 +39,6 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     [SetUp]
     public async Task CreateSubscription()
     {
-        Utils.SetLogger(new TestLogger<SubscriptionTestsBase>(TestContext.Out, new SyslogFormatter(new SyslogFormatterOptions())));
         _subscription = Session.DefaultSubscription;
         Session.AddSubscription(_subscription);
         await _subscription.CreateAsync().ConfigureAwait(false);

@@ -29,6 +29,7 @@
 
 namespace AlarmCondition;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using System;
 using System.Collections.Generic;
@@ -42,8 +43,9 @@ public class UnderlyingSystemSource
     /// <summary>
     /// Initializes a new instance of the <see cref="UnderlyingSystemSource"/> class.
     /// </summary>
-    public UnderlyingSystemSource()
+    public UnderlyingSystemSource(ILogger logger)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         m_alarms = new List<UnderlyingSystemAlarm>();
         m_archive = new Dictionary<uint, UnderlyingSystemAlarm>();
     }
@@ -383,7 +385,7 @@ public class UnderlyingSystemSource
         }
         catch (Exception e)
         {
-            Utils.Trace(e, "Unexpected error running simulation for source {0}", SourcePath);
+            _logger.LogError(e, "Unexpected error running simulation for source {SourcePath}", SourcePath);
         }
     }
     #endregion
@@ -439,7 +441,7 @@ public class UnderlyingSystemSource
             }
             catch (Exception e)
             {
-                Utils.Trace(e, "Unexpected error reporting change to an Alarm for Source {0}.", SourcePath);
+                _logger.LogError(e, "Unexpected error reporting change to an Alarm for Source {SourcePath}", SourcePath);
             }
         }
     }
@@ -595,6 +597,7 @@ public class UnderlyingSystemSource
     #region Private Fields
     private readonly List<UnderlyingSystemAlarm> m_alarms;
     private readonly Dictionary<uint, UnderlyingSystemAlarm> m_archive;
+    private readonly ILogger _logger;
     private uint m_nextRecordNumber;
     #endregion
 }
