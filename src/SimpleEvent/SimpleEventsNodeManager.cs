@@ -29,6 +29,7 @@
 
 namespace SimpleEvents;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
 using OpcPlc.SimpleEvent;
@@ -47,10 +48,11 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
     /// <summary>
     /// Initializes the node manager.
     /// </summary>
-    public SimpleEventsNodeManager(IServerInternal server, ApplicationConfiguration _)
+    public SimpleEventsNodeManager(IServerInternal server, ApplicationConfiguration _, ILogger logger)
     :
         base(server, _)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         SystemContext.NodeIdFactory = this;
 
         // set one namespace for the type model and one names for dynamically created nodes.
@@ -226,7 +228,7 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
         }
         catch (Exception e)
         {
-            Utils.Trace(e, "Unexpected error during simulation");
+            _logger.LogError(e, "Unexpected error during simulation");
         }
     }
     #endregion
@@ -234,5 +236,6 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
     #region Private Fields
     private Timer m_simulationTimer;
     private int m_cycleId;
+    private readonly ILogger _logger;
     #endregion
 }

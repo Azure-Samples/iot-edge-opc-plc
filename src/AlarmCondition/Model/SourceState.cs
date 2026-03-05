@@ -398,7 +398,7 @@ namespace AlarmCondition
             node.ConditionName.Value = node.SymbolicName;
             node.Time.Value = DateTime.UtcNow;
             node.ReceiveTime.Value = node.Time.Value;
-            node.BranchId.Value = branchId;
+            node.BranchId.Value = branchId ?? NodeId.Null;
 
             // set up method handlers.
             node.OnEnableDisable = OnEnableDisableAlarm;
@@ -728,9 +728,47 @@ namespace AlarmCondition
         /// </summary>
         private static string GetUserName(ISystemContext context)
         {
-            if (context.UserIdentity != null)
+            if (context is ISessionSystemContext sessionSystemContext)
             {
-                return context.UserIdentity.DisplayName;
+                string sessionUserName = ExtractUserName(sessionSystemContext.UserIdentity);
+
+                if (!string.IsNullOrWhiteSpace(sessionUserName))
+                {
+                    return sessionUserName;
+                }
+            }
+
+            if (context is ISessionOperationContext sessionOperationContext)
+            {
+                string operationUserName = ExtractUserName(sessionOperationContext.UserIdentity);
+
+                if (!string.IsNullOrWhiteSpace(operationUserName))
+                {
+                    return operationUserName;
+                }
+            }
+
+            return null;
+        }
+
+        private static string ExtractUserName(IUserIdentity userIdentity)
+        {
+            if (userIdentity == null)
+            {
+                return null;
+            }
+
+            UserIdentityToken identityToken = userIdentity.GetIdentityToken();
+
+            if (identityToken is UserNameIdentityToken userNameToken &&
+                !string.IsNullOrWhiteSpace(userNameToken.UserName))
+            {
+                return userNameToken.UserName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(userIdentity.DisplayName))
+            {
+                return userIdentity.DisplayName;
             }
 
             return null;

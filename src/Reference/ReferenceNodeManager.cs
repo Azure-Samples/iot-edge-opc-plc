@@ -29,6 +29,7 @@
 
 namespace OpcPlc.Reference
 {
+    using Microsoft.Extensions.Logging;
     using System;
     using System.Collections.Generic;
     using System.Xml;
@@ -45,9 +46,11 @@ namespace OpcPlc.Reference
         /// <summary>
         /// Initializes the node manager.
         /// </summary>
-        public ReferenceNodeManager(IServerInternal server, ApplicationConfiguration configuration)
+            public ReferenceNodeManager(IServerInternal server, ApplicationConfiguration configuration, ILogger logger, ITelemetryContext telemetryContext)
             : base(server, configuration, [OpcPlc.Namespaces.OpcPlcReferenceTest])
         {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _telemetryContext = telemetryContext ?? throw new ArgumentNullException(nameof(telemetryContext));
             SystemContext.NodeIdFactory = this;
 
             m_dynamicNodes = new List<BaseDataVariableState>();
@@ -62,7 +65,11 @@ namespace OpcPlc.Reference
         {
             if (disposing)
             {
-                // TBD
+                if (m_simulationTimer != null)
+                {
+                    m_simulationTimer.Dispose();
+                    m_simulationTimer = null;
+                }
             }
         }
         #endregion
@@ -1425,7 +1432,7 @@ namespace OpcPlc.Reference
                 }
                 catch (Exception e)
                 {
-                    Utils.Trace(e, "Error creating the address space.");
+                    _logger.LogError(e, "Error creating the address space");
                 }
 
                 AddPredefinedNode(SystemContext, root);
@@ -1448,7 +1455,7 @@ namespace OpcPlc.Reference
             }
             catch (Exception e)
             {
-                Utils.Trace(e, "Error writing Interval variable.");
+                _logger.LogError(e, "Error writing Interval variable");
                 return ServiceResult.Create(e, StatusCodes.Bad, "Error writing Interval variable.");
             }
         }
@@ -1472,7 +1479,7 @@ namespace OpcPlc.Reference
             }
             catch (Exception e)
             {
-                Utils.Trace(e, "Error writing Enabled variable.");
+                _logger.LogError(e, "Error writing Enabled variable");
                 return ServiceResult.Create(e, StatusCodes.Bad, "Error writing Enabled variable.");
             }
         }
@@ -2604,7 +2611,7 @@ namespace OpcPlc.Reference
         private void ResetRandomGenerator(int seed, int boundaryValueFrequency = 0)
         {
             m_randomSource = new RandomSource(seed);
-            m_generator = new DataGenerator(m_randomSource);
+            m_generator = new DataGenerator(m_randomSource, _telemetryContext);
             m_generator.BoundaryValueFrequency = boundaryValueFrequency;
         }
 
@@ -2648,9 +2655,11 @@ namespace OpcPlc.Reference
             }
             catch (Exception e)
             {
-                Utils.Trace(e, "Unexpected error doing simulation.");
+                _logger.LogError(e, "Unexpected error doing simulation");
             }
         }
+        private readonly ILogger _logger;
+        private readonly ITelemetryContext _telemetryContext;
 
         /// <summary>
         /// Frees any resources allocated for the address space.

@@ -4,8 +4,10 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
 using System;
+using System.Text;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using System.Threading;
 
 public partial class PlcServer
 {
@@ -24,8 +26,8 @@ public partial class PlcServer
                 configuration.SecurityConfiguration.TrustedUserCertificates != null &&
                 configuration.SecurityConfiguration.UserIssuerCertificates != null)
             {
-                var certificateValidator = new CertificateValidator();
-                await certificateValidator.Update(configuration).ConfigureAwait(false);
+                var certificateValidator = new CertificateValidator(_telemetryContext);
+                await certificateValidator.UpdateAsync(configuration).ConfigureAwait(false);
                 certificateValidator.Update(configuration.SecurityConfiguration.UserIssuerCertificates,
                     configuration.SecurityConfiguration.TrustedUserCertificates,
                     configuration.SecurityConfiguration.RejectedCertificateStore);
@@ -43,7 +45,9 @@ public partial class PlcServer
     private IUserIdentity VerifyPassword(UserNameIdentityToken userNameToken)
     {
         string userName = userNameToken.UserName;
-        string password = userNameToken.DecryptedPassword;
+        string password = userNameToken.DecryptedPassword is null
+            ? null
+            : Encoding.UTF8.GetString(userNameToken.DecryptedPassword);
         if (string.IsNullOrEmpty(userName))
         {
             // an empty username is not accepted.
@@ -67,19 +71,10 @@ public partial class PlcServer
         // standard users for CTT verification
         if (!(userName == Config.DefaultUser && password == Config.DefaultPassword))
         {
-            // construct translation object with default text.
-            var info = new TranslationInfo(
-                "InvalidPassword",
-                locale: string.Empty, // Invariant.
-                "Invalid username or password.",
-                userName);
-
-            // create an exception with a vendor defined sub-code.
-            throw new ServiceResultException(new ServiceResult(
+              // create an exception with a vendor defined sub-code.
+            throw ServiceResultException.Create(
                 StatusCodes.BadUserAccessDenied,
-                "InvalidPassword",
-                LoadServerProperties().ProductUri,
-                new LocalizedText(info)));
+                "Invalid username or password.");
         }
 
         return new UserIdentity(userNameToken);
@@ -88,7 +83,7 @@ public partial class PlcServer
     /// <summary>
     /// Called when a client tries to change its user identity.
     /// </summary>
-    private void SessionManager_ImpersonateUser(Session session, ImpersonateEventArgs args)
+    private void SessionManager_ImpersonateUser(ISession session, ImpersonateEventArgs args)
     {
         if (args.NewIdentity is AnonymousIdentityToken anonymousToken)
         {
@@ -108,7 +103,7 @@ public partial class PlcServer
         // check for x509 user token.
         if (args.NewIdentity is X509IdentityToken x509Token)
         {
-            VerifyCertificate(x509Token.Certificate);
+            VerifyCertificateAsync(x509Token.Certificate, default).GetAwaiter().GetResult();
             args.Identity = new UserIdentity(x509Token);
             _logger.LogInformation("X509 Token Accepted: {DisplayName}", args.Identity.DisplayName);
             return;
@@ -122,17 +117,17 @@ public partial class PlcServer
     /// <summary>
     /// Verifies that a certificate user token is trusted.
     /// </summary>
-    private void VerifyCertificate(X509Certificate2 certificate)
+    private async Task VerifyCertificateAsync(X509Certificate2 certificate, CancellationToken ct)
     {
         try
         {
             if (m_userCertificateValidator != null)
             {
-                m_userCertificateValidator.Validate(certificate);
+                await m_userCertificateValidator.ValidateAsync(certificate, ct).ConfigureAwait(false);
             }
             else
             {
-                CertificateValidator.Validate(certificate);
+                await Config.OpcUa.ApplicationConfiguration.CertificateValidator.ValidateAsync(certificate, ct).ConfigureAwait(false);
             }
         }
         catch (Exception e)
@@ -161,11 +156,7 @@ public partial class PlcServer
             }
 
             // create an exception with a vendor defined sub-code.
-            throw new ServiceResultException(new ServiceResult(
-                result,
-                info.Key,
-                namespaceUri: "http://opcfoundation.org/UA/Sample/",
-                new LocalizedText(info)));
+            throw ServiceResultException.Create((uint)result, info.Text);
         }
     }
 

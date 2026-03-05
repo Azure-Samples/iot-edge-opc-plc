@@ -234,7 +234,7 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
         IList<MonitoringFilterResult> filterErrors,
         IList<IMonitoredItem> monitoredItems,
         bool createDurable,
-        ref long globalIdCounter)
+        MonitoredItemIdFactory monitoredItemIdFactory)
     {
         ServerSystemContext systemContext = _defaultSystemContext.Copy(context);
         IDictionary<NodeId, NodeState> operationCache = new NodeIdDictionary<NodeState>();
@@ -310,7 +310,7 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
                     timestampsToReturn,
                     itemToCreate,
                     createDurable,
-                    ref globalIdCounter,
+                    monitoredItemIdFactory,
                     out filterResult,
                     out monitoredItem);
             }
