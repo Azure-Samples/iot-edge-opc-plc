@@ -67,6 +67,10 @@ public class PlcSimulatorFixture
 
     private ConfiguredEndpoint _serverEndpoint;
 
+    public ApplicationConfiguration ClientConfiguration => _config;
+
+    public string EndpointUrl => _serverEndpoint?.EndpointUrl?.ToString();
+
     /// <summary>
     /// Initializes a new instance of the <see cref="PlcSimulatorFixture"/> class.
     /// </summary>
