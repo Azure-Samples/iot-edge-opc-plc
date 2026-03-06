@@ -103,6 +103,29 @@ public partial class PlcServer
         // check for x509 user token.
         if (args.NewIdentity is X509IdentityToken x509Token)
         {
+            if (x509Token.Certificate == null)
+            {
+                if (x509Token.CertificateData != null)
+                {
+                    try
+                    {
+                        x509Token.Certificate = X509CertificateLoader.LoadCertificate(x509Token.CertificateData);
+                    }
+                    catch (Exception ex)
+                    {
+                        // create an exception with a vendor defined sub-code.
+                        throw ServiceResultException.Create(StatusCodes.BadIdentityTokenInvalid,
+                            "Security token is not a valid X509 token. The certificate data is invalid.", ex);
+                    }
+                }
+                else
+                {
+                    // create an exception with a vendor defined sub-code.
+                    throw ServiceResultException.Create(StatusCodes.BadIdentityTokenInvalid,
+                        "Security token is not a valid X509 token. The certificate is missing.");
+                }
+            }
+
             VerifyCertificateAsync(x509Token.Certificate, default).GetAwaiter().GetResult();
             args.Identity = new UserIdentity(x509Token);
             _logger.LogInformation("X509 Token Accepted: {DisplayName}", args.Identity.DisplayName);
