@@ -290,6 +290,49 @@ X.509 certificates:
 * Running as Linux Docker container using an X509Store for the application certificate, you need to use the Docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
 * When running in kubernetes context, use option `--at FlatDirectory`. This enables the OPC UA server to consume both public key and private key certificates directly from the /app/pki/own/ path without expecting the `certs` and `private` subdirectories. Furthermore, certificates of type .crt and .key are accepted.
 
+GDS push service support:
+
+* OPC PLC exposes the standard OPC UA Server Configuration methods used by GDS push (for example `CreateSigningRequest`, `GetRejectedList`, `UpdateCertificate`, and `ApplyChanges`).
+* Access to these methods follows OPC UA security requirements: use a secure endpoint (`Sign & Encrypt`) and administrator credentials (`--au` / `--ac`, defaults: `sysadmin` / `demo`).
+* GDS push works with both `Directory` and `FlatDirectory` certificate store modes.
+
+Short example (C# with OPC Foundation GDS client):
+
+~~~csharp
+using Opc.Ua;
+using Opc.Ua.Gds.Client;
+using System.Text;
+
+var client = new ServerPushConfigurationClient(appConfig)
+{
+  AdminCredentials = new UserIdentity(new UserNameIdentityToken
+  {
+    UserName = "sysadmin",
+    DecryptedPassword = Encoding.UTF8.GetBytes("demo")
+  })
+};
+
+await client.ConnectAsync("opc.tcp://localhost:50000");
+
+byte[] csr = await client.CreateSigningRequestAsync(
+  client.DefaultApplicationGroup,
+  client.ApplicationCertificateType,
+  subjectName: null,
+  regeneratePrivateKey: false,
+  nonce: [1, 2, 3, 4]);
+
+// Submit CSR to your CA / GDS workflow, then call UpdateCertificateAsync(...)
+// with the returned certificate chain and finally:
+await client.ApplyChangesAsync();
+await client.DisconnectAsync();
+~~~
+
+CLI start example for FlatDirectory mode:
+
+~~~powershell
+dotnet opcplc.dll --at FlatDirectory --ap pki/own --tp pki/trusted --ip pki/issuer --rp pki/rejected
+~~~
+
 User certificate-based authentication:
 
 * The OPC PLC server supports X.509 certificate-based user authentication in addition to anonymous and username/password authentication.
