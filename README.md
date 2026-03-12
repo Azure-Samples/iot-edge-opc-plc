@@ -288,13 +288,14 @@ X.509 certificates:
 * Running on Windows natively, you cannot use an application certificate store of type `Directory`, since the access to the private key will fail. Use the option `--at X509Store` in this case.
 * Running as Linux Docker container, you can map the certificate stores to the host file system by using the Docker run option `-v <hostpkidirectory>:/app/pki`. This will make the certificate persistent over starts.
 * Running as Linux Docker container using an X509Store for the application certificate, you need to use the Docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
-* When running in kubernetes context, use option `--at FlatDirectory`. This enables the OPC UA server to consume both public key and private key certificates directly from the /app/pki/own/ path without expecting the `certs` and `private` subdirectories. Furthermore, certificates of type .crt and .key are accepted.
+* When running in kubernetes context with certificates mounted as files, use option `--at FlatDirectory`. This enables the OPC UA server to consume both public key and private key certificates directly from the /app/pki/own/ path without expecting the `certs` and `private` subdirectories. Furthermore, certificates of type .crt and .key are accepted.
+* When running in kubernetes context and you want the certificate stores persisted as Kubernetes Secrets, use `--at KubernetesSecret`. Each configured store path is sanitized into its own secret name, for example `pki/own` becomes `pki-own` and `pki/trusted` becomes `pki-trusted`. Secret entries stay flat and are differentiated by file extension: certificates use `.der` or PEM-based `.crt`, private keys can use `.pfx` and, for the application certificate store, PEM-based `.pem` or `.key`, and CRLs use `.crl`. Use `--ksns <namespace>` to pin the namespace, or let the server auto-detect it in-cluster.
 
 GDS push service support:
 
 * OPC PLC exposes the standard OPC UA Server Configuration methods used by GDS push (for example `CreateSigningRequest`, `GetRejectedList`, `UpdateCertificate`, and `ApplyChanges`).
 * Access to these methods follows OPC UA security requirements: use a secure endpoint (`Sign & Encrypt`) and administrator credentials (`--au` / `--ac`, defaults: `sysadmin` / `demo`).
-* GDS push works with both `Directory` and `FlatDirectory` certificate store modes.
+* GDS push works with `Directory`, `FlatDirectory`, and `KubernetesSecret` certificate store modes.
 
 Short example (C# with OPC Foundation GDS client):
 
@@ -331,6 +332,12 @@ CLI start example for FlatDirectory mode:
 
 ~~~powershell
 dotnet opcplc.dll --at FlatDirectory --ap pki/own --tp pki/trusted --ip pki/issuer --rp pki/rejected
+~~~
+
+CLI start example for KubernetesSecret mode:
+
+~~~powershell
+dotnet opcplc.dll --at KubernetesSecret --ksns opcplc --ap pki/own --tp pki/trusted --ip pki/issuer --rp pki/rejected --tup pki/trusted-user --uip pki/issuer-user
 ~~~
 
 User certificate-based authentication:
@@ -496,7 +503,7 @@ Options:
       --at, --appcertstoretype=VALUE
                              the own application cert store type.
                                (allowed values: Directory, X509Store,
-                               FlatDirectory)
+                               FlatDirectory, KubernetesSecret)
                                Default: 'Directory'
       --ap, --appcertstorepath=VALUE
                              the path where the own application cert should be
@@ -505,6 +512,16 @@ Options:
                                X509Store: 'CurrentUser\UA_MachineDefault'
                                Directory: 'pki\own'
                                FlatDirectory: 'pki\own'
+                               KubernetesSecret: 'pki\own' (mapped to a
+                               sanitized Kubernetes secret name)
+      --ksns, --kubernetessecretnamespace=VALUE
+                             the namespace used for KubernetesSecret
+                               certificate stores.
+                               Default: auto-detect in cluster, otherwise
+                               'default'
+      --kcfg, --kuberneteskubeconfig=VALUE
+                             the kubeconfig file used for KubernetesSecret
+                               certificate stores when not running in cluster.
       --tp, --trustedcertstorepath=VALUE
                              the path of the trusted cert store.
                                Default 'pki\trusted'
