@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Node with a sine wave value with a dip anomaly.
 /// </summary>
-public class DipPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class DipPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
@@ -50,7 +50,7 @@ public class DipPluginNode(TimeService timeService, ILogger logger) : PluginNode
         {
             _dipCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _dipAnomalyCycle = _random.Next(_plcNodeManager.PlcSimulationInstance.SimulationCycleCount);
-            _logger.LogTrace($"First dip anomaly cycle: {_dipAnomalyCycle}");
+            LogFirstDipAnomalyCycle(_dipAnomalyCycle);
 
             _node.Start(DipGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
@@ -96,22 +96,34 @@ public class DipPluginNode(TimeService timeService, ILogger logger) : PluginNode
         if (_isEnabled && _dipCycleInPhase == _dipAnomalyCycle)
         {
             nextValue = SimulationMaxAmplitude * -10;
-            _logger.LogTrace("Generate dip anomaly");
+            LogGenerateDipAnomaly();
         }
         else
         {
             nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / _plcNodeManager.PlcSimulationInstance.SimulationCycleCount) * _dipCycleInPhase);
         }
-        _logger.LogTrace($"Spike cycle: {_dipCycleInPhase} data: {nextValue}");
+        LogDipCycleData(_dipCycleInPhase, nextValue);
 
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_dipCycleInPhase == 0)
         {
             _dipCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _dipAnomalyCycle = _random.Next(_plcNodeManager.PlcSimulationInstance.SimulationCycleCount);
-            _logger.LogTrace($"Next dip anomaly cycle: {_dipAnomalyCycle}");
+            LogNextDipAnomalyCycle(_dipAnomalyCycle);
         }
 
         return nextValue;
     }
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "First dip anomaly cycle: {DipAnomalyCycle}")]
+    partial void LogFirstDipAnomalyCycle(int dipAnomalyCycle);
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Generate dip anomaly")]
+    partial void LogGenerateDipAnomaly();
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Dip cycle: {DipCycleInPhase} data: {NextValue}")]
+    partial void LogDipCycleData(int dipCycleInPhase, double nextValue);
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Next dip anomaly cycle: {DipAnomalyCycle}")]
+    partial void LogNextDipAnomalyCycle(int dipAnomalyCycle);
 }

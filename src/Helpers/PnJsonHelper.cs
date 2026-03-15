@@ -10,7 +10,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-public static class PnJsonHelper
+public static partial class PnJsonHelper
 {
     /// <summary>
     /// Show and save pn.json
@@ -52,8 +52,11 @@ public static class PnJsonHelper
         sb.AppendLine("]");
 
         string pnJson = sb.ToString();
-        logger.LogInformation("OPC Publisher configuration file: {PnJsonFile}", $"{pnJsonFileName}{pnJson}");
+        logger.LogPnJsonFile($"{pnJsonFileName}{pnJson}");
 
         await File.WriteAllTextAsync(pnJsonFileName, pnJson.Trim()).ConfigureAwait(false);
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "OPC Publisher configuration file: {PnJsonFile}")]
+    static partial void LogPnJsonFile(this ILogger logger, string pnJsonFile);
 }

@@ -10,7 +10,7 @@ using System.Timers;
 /// <summary>
 /// Nodes with slow changing values.
 /// </summary>
-public class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private uint NodeCount { get; set; } = 1;
     private uint NodeRate { get; set; } = 10000; // ms.
@@ -182,7 +182,7 @@ public class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNo
     private ServiceResult OnStopUpdateSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _updateNodes = false;
-        _logger.LogDebug("StopUpdateSlowNodes method called");
+        LogStopUpdateSlowNodesMethodCalled();
         return ServiceResult.Good;
     }
 
@@ -192,7 +192,7 @@ public class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNo
     private ServiceResult OnStartUpdateSlowNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _updateNodes = true;
-        _logger.LogDebug("StartUpdateSlowNodes method called");
+        LogStartUpdateSlowNodesMethodCalled();
         return ServiceResult.Good;
     }
 
@@ -200,4 +200,10 @@ public class SlowPluginNodes(TimeService timeService, ILogger logger) : PluginNo
     {
         _slowFastCommon.UpdateNodes(_nodes, _badNodes, NodeType, _updateNodes);
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "StopUpdateSlowNodes method called")]
+    partial void LogStopUpdateSlowNodesMethodCalled();
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "StartUpdateSlowNodes method called")]
+    partial void LogStartUpdateSlowNodesMethodCalled();
 }

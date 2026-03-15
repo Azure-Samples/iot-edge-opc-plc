@@ -16,7 +16,7 @@ using System.Timers;
 /// <summary>
 /// Boiler that inherits from DI companion spec.
 /// </summary>
-public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState _tempSpeedDegreesPerSecNode;
@@ -282,7 +282,7 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
     private ServiceResult SwitchOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         SetValue(_heaterStateNode, inputArguments.First());
-        _logger.LogDebug($"SwitchOnCall method called with argument: {inputArguments.First()}");
+        LogSwitchOnCallMethodCalled(inputArguments.First());
 
         return ServiceResult.Good;
     }
@@ -412,4 +412,7 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
     {
         _plcNodeManager.Server.ReportEvent(context, @event);
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "SwitchOnCall method called with argument: {Argument}")]
+    partial void LogSwitchOnCallMethodCalled(object argument);
 }

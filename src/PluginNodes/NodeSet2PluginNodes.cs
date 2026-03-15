@@ -12,7 +12,7 @@ using System.Linq;
 /// <summary>
 /// Nodes that are configured via *.NodeSet2.xml file(s).
 /// </summary>
-public class NodeSet2PluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class NodeSet2PluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private List<string> _nodesFileNames;
     private PlcNodeManager _plcNodeManager;
@@ -57,11 +57,11 @@ public class NodeSet2PluginNodes(TimeService timeService, ILogger logger) : Plug
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error loading NodeSet2 file {file}: {error}", file, e.Message);
+                LogErrorLoadingNodeSet2File(e, file, e.Message);
             }
         }
 
-        _logger.LogInformation("Completed processing NodeSet2 file(s)");
+        LogCompletedProcessingNodeSet2Files();
     }
 
     /// <summary>
@@ -92,4 +92,10 @@ public class NodeSet2PluginNodes(TimeService timeService, ILogger logger) : Plug
 
         return predefinedNodes;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error loading NodeSet2 file {File}: {Error}")]
+    partial void LogErrorLoadingNodeSet2File(Exception exception, string file, string error);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Completed processing NodeSet2 file(s)")]
+    partial void LogCompletedProcessingNodeSet2Files();
 }

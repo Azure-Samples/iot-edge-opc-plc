@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Node with a value that shows a negative trend.
 /// </summary>
-public class NegTrendPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class NegTrendPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
@@ -52,7 +52,7 @@ public class NegTrendPluginNode(TimeService timeService, ILogger logger) : Plugi
         {
             _negTrendAnomalyPhase = _random.Next(10);
             _negTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
-            _logger.LogTrace($"First neg trend anomaly phase: {_negTrendAnomalyPhase}");
+            LogFirstNegTrendAnomalyPhase(_negTrendAnomalyPhase);
 
             _node.Start(NegTrendGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
@@ -110,7 +110,7 @@ public class NegTrendPluginNode(TimeService timeService, ILogger logger) : Plugi
         if (_isEnabled && _negTrendPhase >= _negTrendAnomalyPhase)
         {
             nextValue = TREND_BASEVALUE - ((_negTrendPhase - _negTrendAnomalyPhase) / 10d);
-            _logger.LogTrace("Generate negtrend anomaly");
+            LogGenerateNegTrendAnomaly();
         }
 
         // end of cycle: reset cycle count and calc next anomaly cycle
@@ -118,7 +118,7 @@ public class NegTrendPluginNode(TimeService timeService, ILogger logger) : Plugi
         {
             _negTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _negTrendPhase++;
-            _logger.LogTrace($"Neg trend phase: {_negTrendPhase}, data: {nextValue}");
+            LogNegTrendPhase(_negTrendPhase, nextValue);
         }
 
         return nextValue;
@@ -135,7 +135,7 @@ public class NegTrendPluginNode(TimeService timeService, ILogger logger) : Plugi
     private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         ResetTrendData();
-        _logger.LogDebug("ResetNegTrend method called");
+        LogResetNegTrendMethodCalled();
         return ServiceResult.Good;
     }
 
@@ -148,4 +148,16 @@ public class NegTrendPluginNode(TimeService timeService, ILogger logger) : Plugi
         _negTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
         _negTrendPhase = 0;
     }
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "First neg trend anomaly phase: {NegTrendAnomalyPhase}")]
+    partial void LogFirstNegTrendAnomalyPhase(int negTrendAnomalyPhase);
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Generate negtrend anomaly")]
+    partial void LogGenerateNegTrendAnomaly();
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Neg trend phase: {NegTrendPhase}, data: {NextValue}")]
+    partial void LogNegTrendPhase(int negTrendPhase, double nextValue);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "ResetNegTrend method called")]
+    partial void LogResetNegTrendMethodCalled();
 }

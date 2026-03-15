@@ -14,7 +14,7 @@ using System.Linq;
 /// To produce a binary *.PredefinedNodes.uanodes file from an XML NodeSet file, run the following command:
 /// ModelCompiler.cmd <XML_NodeSet_FileName_Without_Extension>
 /// </summary>
-public class UaNodesPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class UaNodesPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
 
     private List<string> _nodesFileNames;
@@ -62,11 +62,11 @@ public class UaNodesPluginNodes(TimeService timeService, ILogger logger) : Plugi
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error loading binary uanodes file {file}: {error}", file, e.Message);
+                LogErrorLoadingUaNodesFile(e, file, e.Message);
             }
         }
 
-        _logger.LogInformation("Completed processing binary uanodes file(s)");
+        LogCompletedProcessingUaNodesFiles();
     }
 
     /// <summary>
@@ -89,4 +89,10 @@ public class UaNodesPluginNodes(TimeService timeService, ILogger logger) : Plugi
 
         return predefinedNodes;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error loading binary uanodes file {File}: {Error}")]
+    partial void LogErrorLoadingUaNodesFile(Exception exception, string file, string error);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Completed processing binary uanodes file(s)")]
+    partial void LogCompletedProcessingUaNodesFiles();
 }

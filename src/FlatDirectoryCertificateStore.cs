@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 /// Flat directory certificate store that does not have internal
 /// hierarchy with certs/crl/private subdirectories.
 /// </summary>
-public sealed class FlatDirectoryCertificateStore : ICertificateStore
+public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
 {
     private const string CrtExtension = ".crt";
     private const string KeyExtension = ".key";
@@ -99,7 +99,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Could not load certificate from file {FilePath}", filePath);
+                LogCouldNotLoadCertificate(e, filePath);
             }
         }
         return certificatesCollection;
@@ -137,7 +137,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Could not load certificate from file {FilePath}", filePath);
+                LogCouldNotLoadCertificate(e, filePath);
             }
         }
         return certificatesCollection;
@@ -177,7 +177,7 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Could not load private key for certificate file {FilePath}", filePath);
+                LogCouldNotLoadPrivateKey(e, filePath);
             }
         }
 
@@ -195,4 +195,10 @@ public sealed class FlatDirectoryCertificateStore : ICertificateStore
 
         return false;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Could not load certificate from file {FilePath}")]
+    partial void LogCouldNotLoadCertificate(Exception exception, string filePath);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Could not load private key for certificate file {FilePath}")]
+    partial void LogCouldNotLoadPrivateKey(Exception exception, string filePath);
 }

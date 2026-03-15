@@ -3,9 +3,7 @@ namespace OpcPlc.Configuration;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Configuration;
-using Opc.Ua.Security.Certificates;
 using OpcPlc.Certs;
-using OpcPlc.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,7 +12,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class OpcUaAppConfigFactory(
+public partial class OpcUaAppConfigFactory(
     OpcPlcConfiguration config,
     ILogger logger,
     ILoggerFactory loggerFactory,
@@ -73,11 +71,11 @@ public class OpcUaAppConfigFactory(
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not get hostname.");
+                LogCouldNotGetHostname(ex);
             }
         }
 
-        _logger.LogInformation("Alternate base addresses (for server binding and certificate DNSNames and IPAddresses extensions): {AlternateBaseAddresses}", alternateBaseAddresses);
+        LogAlternateBaseAddresses(alternateBaseAddresses);
 
         string applicationUri = $"urn:{_config.ProgramName}:{_config.OpcUa.HostnameLabel}{(string.IsNullOrEmpty(_config.OpcUa.ServerPath)
              ? string.Empty
@@ -130,18 +128,15 @@ public class OpcUaAppConfigFactory(
 
         foreach (var policy in _config.OpcUa.ApplicationConfiguration.ServerConfiguration.SecurityPolicies)
         {
-            _logger.LogInformation("Added security policy {SecurityPolicyUri} with mode {SecurityMode}",
-                policy.SecurityPolicyUri,
-                policy.SecurityMode);
+            LogAddedSecurityPolicy(policy.SecurityPolicyUri, policy.SecurityMode);
 
             if (policy.SecurityMode == MessageSecurityMode.None)
             {
-                _logger.LogWarning("Security policy {None} is a security risk and needs to be disabled for production use", "None");
+                LogSecurityPolicyNoneRisk();
             }
         }
 
-        _logger.LogInformation("LDS(-ME) registration interval set to {LdsRegistrationInterval} ms (0 means no registration)",
-            _config.OpcUa.LdsRegistrationInterval);
+        LogLdsRegistrationInterval(_config.OpcUa.LdsRegistrationInterval);
 
         // Determine if custom certificate was provided via command line
         bool customCertificateProvided = !string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) ||
@@ -151,16 +146,11 @@ public class OpcUaAppConfigFactory(
         var certificate = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
         if (certificate == null)
         {
-            _logger.LogInformation("No existing application certificate found. Creating a self-signed application certificate valid since yesterday for {DefaultLifeTime} months, " +
-                "with a {DefaultKeySize} bit key and {DefaultHashSize} bit hash",
-                CertificateFactory.DefaultLifeTime,
-                CertificateFactory.DefaultKeySize,
-                CertificateFactory.DefaultHashSize);
+            LogNoExistingCertificateFound(CertificateFactory.DefaultLifeTime, CertificateFactory.DefaultKeySize, CertificateFactory.DefaultHashSize);
         }
         else
         {
-            _logger.LogInformation("Application certificate with thumbprint {Thumbprint} found in the application certificate store",
-                certificate.Thumbprint);
+            LogCertificateFound(certificate.Thumbprint);
         }
 
         // Check the certificate, create new self-signed certificate if necessary (but not if custom cert was provided)
@@ -173,7 +163,7 @@ public class OpcUaAppConfigFactory(
             {
                 throw new Exception("Custom application certificate was provided but could not be loaded.");
             }
-            _logger.LogInformation("Using custom application certificate, skipping automatic certificate creation");
+            LogUsingCustomCertificate();
         }
         else
         {
@@ -187,12 +177,11 @@ public class OpcUaAppConfigFactory(
             if (certificate == null)
             {
                 certificate = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
-                _logger.LogInformation("Application certificate with thumbprint {Thumbprint} created",
-                    certificate.Thumbprint);
+                LogCertificateCreated(certificate.Thumbprint);
             }
         }
 
-        _logger.LogInformation("Application certificate is for ApplicationUri {ApplicationUri}, ApplicationName {ApplicationName} and Subject is {Subject}",
+        LogApplicationCertificateInfo(
             _config.OpcUa.ApplicationConfiguration.ApplicationUri,
             _config.OpcUa.ApplicationConfiguration.ApplicationName,
             _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate.Subject);
@@ -206,7 +195,7 @@ public class OpcUaAppConfigFactory(
         // show certificate store information
         await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
 
-        _logger.LogInformation("Application configured with MaxSessionCount {MaxSessionCount} and MaxSubscriptionCount {MaxSubscriptionCount}",
+        LogApplicationConfigured(
             _config.OpcUa.ApplicationConfiguration.ServerConfiguration.MaxSessionCount,
             _config.OpcUa.ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount);
 
@@ -253,7 +242,7 @@ public class OpcUaAppConfigFactory(
         // Update/install the custom application certificate first if provided, before setting up stores
         if (!string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) || !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName))
         {
-            _logger.LogInformation("Custom application certificate provided via command line, installing before security configuration");
+            LogCustomCertificateProvided();
         }
 
         var applicationCerts = new CertificateIdentifierCollection
@@ -339,41 +328,39 @@ public class OpcUaAppConfigFactory(
                 throw new Exception("Update/Setting of the application certificate failed.");
             }
 
-            _logger.LogInformation("Custom application certificate installed successfully");
+            LogCustomCertificateInstalled();
         }
         else
         {
             _config.OpcUa.ApplicationConfiguration = await options.CreateAsync().ConfigureAwait(false);
         }
 
-        _logger.LogInformation("Application Certificate store type is: {StoreType}", securityConfiguration.ApplicationCertificate.StoreType);
-        _logger.LogInformation("Application Certificate store path is: {StorePath}", securityConfiguration.ApplicationCertificate.StorePath);
+        LogStoreTypeInfo("Application Certificate", securityConfiguration.ApplicationCertificate.StoreType);
+        LogStorePathInfo("Application Certificate", securityConfiguration.ApplicationCertificate.StorePath);
 
-        _logger.LogInformation("Rejection of SHA1 signed certificates is {Status}",
-            securityConfiguration.RejectSHA1SignedCertificates ? "enabled" : "disabled");
+        LogSha1RejectionStatus(securityConfiguration.RejectSHA1SignedCertificates ? "enabled" : "disabled");
 
-        _logger.LogInformation("Minimum certificate key size set to {MinimumCertificateKeySize}",
-            securityConfiguration.MinimumCertificateKeySize);
+        LogMinCertKeySize(securityConfiguration.MinimumCertificateKeySize);
 
-        _logger.LogInformation("Trusted Issuer store type is: {StoreType}", securityConfiguration.TrustedIssuerCertificates.StoreType);
-        _logger.LogInformation("Trusted Issuer Certificate store path is: {StorePath}", securityConfiguration.TrustedIssuerCertificates.StorePath);
+        LogStoreTypeInfo("Trusted Issuer", securityConfiguration.TrustedIssuerCertificates.StoreType);
+        LogStorePathInfo("Trusted Issuer Certificate", securityConfiguration.TrustedIssuerCertificates.StorePath);
 
-        _logger.LogInformation("Trusted Peer Certificate store type is: {StoreType}", securityConfiguration.TrustedPeerCertificates.StoreType);
-        _logger.LogInformation("Trusted Peer Certificate store path is: {StorePath}", securityConfiguration.TrustedPeerCertificates.StorePath);
+        LogStoreTypeInfo("Trusted Peer Certificate", securityConfiguration.TrustedPeerCertificates.StoreType);
+        LogStorePathInfo("Trusted Peer Certificate", securityConfiguration.TrustedPeerCertificates.StorePath);
 
-        _logger.LogInformation("Trusted User Certificate store type is: {StoreType}", securityConfiguration.TrustedUserCertificates.StoreType);
-        _logger.LogInformation("Trusted User Certificate store path is: {StorePath}", securityConfiguration.TrustedUserCertificates.StorePath);
+        LogStoreTypeInfo("Trusted User Certificate", securityConfiguration.TrustedUserCertificates.StoreType);
+        LogStorePathInfo("Trusted User Certificate", securityConfiguration.TrustedUserCertificates.StorePath);
 
-        _logger.LogInformation("User Issuer Certificate store type is: {StoreType}", securityConfiguration.UserIssuerCertificates.StoreType);
-        _logger.LogInformation("User Issuer Certificate store path is: {StorePath}", securityConfiguration.UserIssuerCertificates.StorePath);
+        LogStoreTypeInfo("User Issuer Certificate", securityConfiguration.UserIssuerCertificates.StoreType);
+        LogStorePathInfo("User Issuer Certificate", securityConfiguration.UserIssuerCertificates.StorePath);
 
-        _logger.LogInformation("Rejected certificate store type is: {StoreType}", securityConfiguration.RejectedCertificateStore.StoreType);
-        _logger.LogInformation("Rejected Certificate store path is: {StorePath}", securityConfiguration.RejectedCertificateStore.StorePath);
+        LogStoreTypeInfo("Rejected certificate", securityConfiguration.RejectedCertificateStore.StoreType);
+        LogStorePathInfo("Rejected Certificate", securityConfiguration.RejectedCertificateStore.StorePath);
 
         // handle cert validation
         if (_config.OpcUa.AutoAcceptCerts)
         {
-            _logger.LogWarning("Automatically accepting all client certificates, this is a security risk!");
+            LogAutoAcceptWarning();
         }
 
         _config.OpcUa.ApplicationConfiguration.CertificateValidator.CertificateValidation += CertificateValidator_CertificateValidation;
@@ -443,7 +430,7 @@ public class OpcUaAppConfigFactory(
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Error while loading private key");
+                    LogErrorLoadingPrivateKey(e);
                     return;
                 }
             }
@@ -455,50 +442,50 @@ public class OpcUaAppConfigFactory(
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while creating signing request");
+                LogErrorCreatingSigningRequest(e);
                 return;
             }
 
-            _logger.LogInformation("----------------------- CreateSigningRequest information ------------------");
-            _logger.LogInformation("ApplicationUri: {ApplicationUri}", _config.OpcUa.ApplicationConfiguration.ApplicationUri);
-            _logger.LogInformation("ApplicationName: {ApplicationName}", _config.OpcUa.ApplicationConfiguration.ApplicationName);
-            _logger.LogInformation("ApplicationType: {ApplicationType}", _config.OpcUa.ApplicationConfiguration.ApplicationType);
-            _logger.LogInformation("ProductUri: {ProductUri}", _config.OpcUa.ApplicationConfiguration.ProductUri);
+            LogCsrHeader();
+            LogCsrApplicationUri(_config.OpcUa.ApplicationConfiguration.ApplicationUri);
+            LogCsrApplicationName(_config.OpcUa.ApplicationConfiguration.ApplicationName);
+            LogCsrApplicationType(_config.OpcUa.ApplicationConfiguration.ApplicationType);
+            LogCsrProductUri(_config.OpcUa.ApplicationConfiguration.ProductUri);
 
             if (_config.OpcUa.ApplicationConfiguration.ApplicationType != ApplicationType.Client)
             {
                 int serverNum = 0;
                 foreach (var endpoint in _config.OpcUa.ApplicationConfiguration.ServerConfiguration.BaseAddresses)
                 {
-                    _logger.LogInformation("DiscoveryUrl[{ServerNumber}]: {Endpoint}", serverNum++, endpoint);
+                    LogDiscoveryUrl(serverNum++, endpoint);
                 }
 
                 foreach (var endpoint in _config.OpcUa.ApplicationConfiguration.ServerConfiguration.AlternateBaseAddresses)
                 {
-                    _logger.LogInformation("DiscoveryUrl[{ServerNumber}]: {Endpoint}", serverNum++, endpoint);
+                    LogDiscoveryUrl(serverNum++, endpoint);
                 }
 
                 string[] serverCapabilities = _config.OpcUa.ApplicationConfiguration.ServerConfiguration.ServerCapabilities.ToArray();
-                _logger.LogInformation("ServerCapabilities: {ServerCapabilities}", string.Join(", ", serverCapabilities));
+                LogServerCapabilities(string.Join(", ", serverCapabilities));
             }
 
-            _logger.LogInformation("CSR (base64 encoded):");
-            _logger.LogInformation("{CertificateSigningRequestBase64}", Convert.ToBase64String(certificateSigningRequest));
-            _logger.LogInformation("---------------------------------------------------------------------------");
+            LogCsrBase64Header();
+            LogCsrBase64Content(Convert.ToBase64String(certificateSigningRequest));
+            LogCsrFooter();
 
             try
             {
                 await File.WriteAllBytesAsync($"{_config.OpcUa.ApplicationConfiguration.ApplicationName}.csr", certificateSigningRequest).ConfigureAwait(false);
-                _logger.LogInformation("Binary CSR written to '{CsrFileName}'", $"{_config.OpcUa.ApplicationConfiguration.ApplicationName}.csr");
+                LogBinaryCsrWritten($"{_config.OpcUa.ApplicationConfiguration.ApplicationName}.csr");
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while writing .csr file");
+                LogErrorWritingCsrFile(e);
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error in CSR creation");
+            LogErrorInCsrCreation(e);
         }
     }
 
@@ -513,19 +500,16 @@ public class OpcUaAppConfigFactory(
             using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.OpenStore(_telemetryContext);
             var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
             int certNum = 1;
-            _logger.LogInformation("Application store contains {Count} certs", certs.Count);
+            LogStoreContainsCerts("Application", certs.Count);
 
             foreach (var cert in certs)
             {
-                _logger.LogInformation("{Index}: Subject {Subject} (thumbprint: {Thumbprint})",
-                    $"{certNum++:D2}",
-                    cert.Subject,
-                    cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error while trying to read information from application store");
+            LogErrorReadingStore(e, "application");
         }
 
         // show trusted issuer certs
@@ -534,33 +518,27 @@ public class OpcUaAppConfigFactory(
             using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.OpenStore(_telemetryContext);
             var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
             int certNum = 1;
-            _logger.LogInformation("Trusted issuer store contains {Count} certs", certs.Count);
+            LogStoreContainsCerts("Trusted issuer", certs.Count);
             foreach (var cert in certs)
             {
-                _logger.LogInformation("{Index}: Subject {Subject} (thumbprint: {Thumbprint})",
-                    $"{certNum++:D2}",
-                    cert.Subject,
-                    cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
             }
 
             if (certStore.SupportsCRLs)
             {
                 var crls = await certStore.EnumerateCRLsAsync(CancellationToken.None).ConfigureAwait(false);
                 int crlNum = 1;
-                _logger.LogInformation("Trusted issuer store has {Count} CRLs", crls.Count);
+                LogStoreHasCrls("Trusted issuer", crls.Count);
 
                 foreach (var crl in crls)
                 {
-                    _logger.LogInformation("{Index}: Issuer {Issuer}, Next update time {NextUpdate}",
-                        $"{crlNum++:D2}",
-                        crl.Issuer,
-                        crl.NextUpdate);
+                    LogCrlDetails($"{crlNum++:D2}", crl.Issuer, crl.NextUpdate);
                 }
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error while trying to read information from trusted issuer store");
+            LogErrorReadingStore(e, "trusted issuer");
         }
 
         // show trusted peer certs
@@ -569,34 +547,28 @@ public class OpcUaAppConfigFactory(
             using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore(_telemetryContext);
             var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
             int certNum = 1;
-            _logger.LogInformation("Trusted peer store contains {Count} certs", certs.Count);
+            LogStoreContainsCerts("Trusted peer", certs.Count);
 
             foreach (var cert in certs)
             {
-                _logger.LogInformation("{Index}: Subject {Subject} (thumbprint: {Thumbprint})",
-                    $"{certNum++:D2}",
-                    cert.Subject,
-                    cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
             }
 
             if (certStore.SupportsCRLs)
             {
                 var crls = await certStore.EnumerateCRLsAsync(CancellationToken.None).ConfigureAwait(false);
                 int crlNum = 1;
-                _logger.LogInformation("Trusted peer store has {Count} CRLs", crls.Count);
+                LogStoreHasCrls("Trusted peer", crls.Count);
 
                 foreach (var crl in crls)
                 {
-                    _logger.LogInformation("{Index}: Issuer {Issuer}, Next update time {NextUpdate}",
-                        $"{crlNum++:D2}",
-                        crl.Issuer,
-                        crl.NextUpdate);
+                    LogCrlDetails($"{crlNum++:D2}", crl.Issuer, crl.NextUpdate);
                 }
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error while trying to read information from trusted peer store");
+            LogErrorReadingStore(e, "trusted peer");
         }
 
         // show trusted user certs
@@ -605,34 +577,28 @@ public class OpcUaAppConfigFactory(
             using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedUserCertificates.OpenStore(_telemetryContext);
             var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
             int certNum = 1;
-            _logger.LogInformation("Trusted user store contains {Count} certs", certs.Count);
+            LogStoreContainsCerts("Trusted user", certs.Count);
 
             foreach (var cert in certs)
             {
-                _logger.LogInformation("{Index}: Subject {Subject} (thumbprint: {Thumbprint})",
-                    $"{certNum++:D2}",
-                    cert.Subject,
-                    cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
             }
 
             if (certStore.SupportsCRLs)
             {
                 var crls = await certStore.EnumerateCRLsAsync(CancellationToken.None).ConfigureAwait(false);
                 int crlNum = 1;
-                _logger.LogInformation("Trusted user store has {Count} CRLs", crls.Count);
+                LogStoreHasCrls("Trusted user", crls.Count);
 
                 foreach (var crl in crls)
                 {
-                    _logger.LogInformation("{Index}: Issuer {Issuer}, Next update time {NextUpdate}",
-                        $"{crlNum++:D2}",
-                        crl.Issuer,
-                        crl.NextUpdate);
+                    LogCrlDetails($"{crlNum++:D2}", crl.Issuer, crl.NextUpdate);
                 }
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error while trying to read information from trusted user store");
+            LogErrorReadingStore(e, "trusted user");
         }
 
         // show user issuer certs
@@ -641,34 +607,28 @@ public class OpcUaAppConfigFactory(
             using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.UserIssuerCertificates.OpenStore(_telemetryContext);
             var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
             int certNum = 1;
-            _logger.LogInformation("User issuer store contains {Count} certs", certs.Count);
+            LogStoreContainsCerts("User issuer", certs.Count);
 
             foreach (var cert in certs)
             {
-                _logger.LogInformation("{Index}: Subject {Subject} (thumbprint: {Thumbprint})",
-                    $"{certNum++:D2}",
-                    cert.Subject,
-                    cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
             }
 
             if (certStore.SupportsCRLs)
             {
                 var crls = await certStore.EnumerateCRLsAsync(CancellationToken.None).ConfigureAwait(false);
                 int crlNum = 1;
-                _logger.LogInformation("User issuer store has {Count} CRLs", crls.Count);
+                LogStoreHasCrls("User issuer", crls.Count);
 
                 foreach (var crl in crls)
                 {
-                    _logger.LogInformation("{Index}: Issuer {Issuer}, Next update time {NextUpdate}",
-                        $"{crlNum++:D2}",
-                        crl.Issuer,
-                        crl.NextUpdate);
+                    LogCrlDetails($"{crlNum++:D2}", crl.Issuer, crl.NextUpdate);
                 }
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error while trying to read information from user issuer store");
+            LogErrorReadingStore(e, "user issuer");
         }
 
         // show rejected peer certs
@@ -677,19 +637,16 @@ public class OpcUaAppConfigFactory(
             using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.OpenStore(_telemetryContext);
             var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
             int certNum = 1;
-            _logger.LogInformation("Rejected certificate store contains {Count} certs", certs.Count);
+            LogStoreContainsCerts("Rejected certificate", certs.Count);
 
             foreach (var cert in certs)
             {
-                _logger.LogInformation("{Index}: Subject {Subject} (thumbprint: {Thumbprint})",
-                    $"{certNum++:D2}",
-                    cert.Subject,
-                    cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error while trying to read information from rejected certificate store");
+            LogErrorReadingStore(e, "rejected certificate");
         }
     }
 
@@ -703,12 +660,11 @@ public class OpcUaAppConfigFactory(
             e.Accept = _config.OpcUa.AutoAcceptCerts;
             if (_config.OpcUa.AutoAcceptCerts)
             {
-                _logger.LogWarning("Trusting certificate {CertificateSubject} because of corresponding command line option", e.Certificate.Subject);
+                LogTrustingCertificate(e.Certificate.Subject);
             }
             else
             {
-                _logger.LogError(
-                    "Rejecting OPC application with certificate {CertificateSubject}. If you want to trust this certificate, please copy it from the directory {RejectedCertificateStore} to {TrustedPeerCertificates}",
+                LogRejectingCertificate(
                     e.Certificate.Subject,
                     $"{_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath}{Path.DirectorySeparatorChar}certs",
                     $"{_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}{Path.DirectorySeparatorChar}certs");
@@ -732,4 +688,124 @@ public class OpcUaAppConfigFactory(
             password?.ToCharArray(),
             ct).ConfigureAwait(false);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not get hostname.")]
+    partial void LogCouldNotGetHostname(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Alternate base addresses (for server binding and certificate DNSNames and IPAddresses extensions): {AlternateBaseAddresses}")]
+    partial void LogAlternateBaseAddresses(IEnumerable<string> alternateBaseAddresses);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Added security policy {SecurityPolicyUri} with mode {SecurityMode}")]
+    partial void LogAddedSecurityPolicy(string securityPolicyUri, MessageSecurityMode securityMode);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Security policy None is a security risk and needs to be disabled for production use")]
+    partial void LogSecurityPolicyNoneRisk();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "LDS(-ME) registration interval set to {LdsRegistrationInterval} ms (0 means no registration)")]
+    partial void LogLdsRegistrationInterval(int ldsRegistrationInterval);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "No existing application certificate found. Creating a self-signed application certificate valid since yesterday for {DefaultLifeTime} months, with a {DefaultKeySize} bit key and {DefaultHashSize} bit hash")]
+    partial void LogNoExistingCertificateFound(ushort defaultLifeTime, ushort defaultKeySize, ushort defaultHashSize);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Application certificate with thumbprint {Thumbprint} found in the application certificate store")]
+    partial void LogCertificateFound(string thumbprint);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Using custom application certificate, skipping automatic certificate creation")]
+    partial void LogUsingCustomCertificate();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Application certificate with thumbprint {Thumbprint} created")]
+    partial void LogCertificateCreated(string thumbprint);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Application certificate is for ApplicationUri {ApplicationUri}, ApplicationName {ApplicationName} and Subject is {Subject}")]
+    partial void LogApplicationCertificateInfo(string applicationUri, string applicationName, string subject);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Application configured with MaxSessionCount {MaxSessionCount} and MaxSubscriptionCount {MaxSubscriptionCount}")]
+    partial void LogApplicationConfigured(int maxSessionCount, int maxSubscriptionCount);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Custom application certificate provided via command line, installing before security configuration")]
+    partial void LogCustomCertificateProvided();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Custom application certificate installed successfully")]
+    partial void LogCustomCertificateInstalled();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{StoreName} store type is: {StoreType}")]
+    partial void LogStoreTypeInfo(string storeName, string storeType);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{StoreName} store path is: {StorePath}")]
+    partial void LogStorePathInfo(string storeName, string storePath);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Rejection of SHA1 signed certificates is {Status}")]
+    partial void LogSha1RejectionStatus(string status);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Minimum certificate key size set to {MinimumCertificateKeySize}")]
+    partial void LogMinCertKeySize(ushort minimumCertificateKeySize);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Automatically accepting all client certificates, this is a security risk!")]
+    partial void LogAutoAcceptWarning();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Trusting certificate {CertificateSubject} because of corresponding command line option")]
+    partial void LogTrustingCertificate(string certificateSubject);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Rejecting OPC application with certificate {CertificateSubject}. If you want to trust this certificate, please copy it from the directory {RejectedCertificateStore} to {TrustedPeerCertificates}")]
+    partial void LogRejectingCertificate(string certificateSubject, string rejectedCertificateStore, string trustedPeerCertificates);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error while loading private key")]
+    partial void LogErrorLoadingPrivateKey(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error while creating signing request")]
+    partial void LogErrorCreatingSigningRequest(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "----------------------- CreateSigningRequest information ------------------")]
+    partial void LogCsrHeader();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "ApplicationUri: {ApplicationUri}")]
+    partial void LogCsrApplicationUri(string applicationUri);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "ApplicationName: {ApplicationName}")]
+    partial void LogCsrApplicationName(string applicationName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "ApplicationType: {ApplicationType}")]
+    partial void LogCsrApplicationType(ApplicationType applicationType);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "ProductUri: {ProductUri}")]
+    partial void LogCsrProductUri(string productUri);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "DiscoveryUrl[{ServerNumber}]: {Endpoint}")]
+    partial void LogDiscoveryUrl(int serverNumber, string endpoint);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "ServerCapabilities: {ServerCapabilities}")]
+    partial void LogServerCapabilities(string serverCapabilities);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "CSR (base64 encoded):")]
+    partial void LogCsrBase64Header();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{CertificateSigningRequestBase64}")]
+    partial void LogCsrBase64Content(string certificateSigningRequestBase64);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "---------------------------------------------------------------------------")]
+    partial void LogCsrFooter();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Binary CSR written to '{CsrFileName}'")]
+    partial void LogBinaryCsrWritten(string csrFileName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error while writing .csr file")]
+    partial void LogErrorWritingCsrFile(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error in CSR creation")]
+    partial void LogErrorInCsrCreation(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{StoreName} store contains {Count} certs")]
+    partial void LogStoreContainsCerts(string storeName, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Index}: Subject {Subject} (thumbprint: {Thumbprint})")]
+    partial void LogCertificateDetails(string index, string subject, string thumbprint);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{StoreName} store has {Count} CRLs")]
+    partial void LogStoreHasCrls(string storeName, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Index}: Issuer {Issuer}, Next update time {NextUpdate}")]
+    partial void LogCrlDetails(string index, string issuer, DateTime nextUpdate);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error while trying to read information from {StoreName} store")]
+    partial void LogErrorReadingStore(Exception exception, string storeName);
 }
