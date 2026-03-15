@@ -1,6 +1,5 @@
 namespace OpcPlc.Configuration;
 
-using OpenTelemetry.Exporter;
 using System;
 
 public class OpcPlcConfiguration
