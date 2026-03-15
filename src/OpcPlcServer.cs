@@ -37,10 +37,18 @@ public partial class OpcPlcServer
     /// </summary>
     public ILoggerFactory LoggerFactory { get; set; }
 
+    private ILogger _logger;
+
     /// <summary>
     /// Logging object.
     /// </summary>
-    public ILogger Logger { get; set; }
+#pragma warning disable S2292 // Trivial properties should be auto-implemented
+    public ILogger Logger
+#pragma warning restore S2292 // Trivial properties should be auto-implemented
+    {
+        get => _logger;
+        set => _logger = value;
+    }
 
     /// <summary>
     /// OPC UA server object.
