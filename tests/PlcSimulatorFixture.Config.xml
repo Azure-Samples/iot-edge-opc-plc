@@ -11,10 +11,10 @@
 
   <SecurityConfiguration>
 
-    <!-- Where the application instance certificate is stored (MachineDefault) -->
+    <!-- Where the application instance certificate is stored -->
     <ApplicationCertificate>
-      <StoreType>X509Store</StoreType>
-      <StorePath>CurrentUser\My</StorePath>
+      <StoreType>Directory</StoreType>
+      <StorePath>pki/own</StorePath>
       <SubjectName>CN=PlcSimulatorFixture, C=US, S=Arizona, O=OPC Foundation, DC=localhost</SubjectName>
     </ApplicationCertificate>
 

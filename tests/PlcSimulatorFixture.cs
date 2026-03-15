@@ -130,15 +130,14 @@ public class PlcSimulatorFixture
         // The simulator program command line.
         // Passed args override the following defaults.
         _serverTask = Task.Run(async () => await _opcPlcServer.StartAsync(
-            _args.Concat(
-                new[]
-                {
-                    "--autoaccept",
-                    $"--portnum={Port}",
-                    "--fn=25",
-                    "--fr=1",
-                    "--ft=uint",
-                }).ToArray(),
+            new[]
+            {
+                "--autoaccept",
+                $"--portnum={Port}",
+                "--fn=25",
+                "--fr=1",
+                "--ft=uint",
+            }.Concat(_args).ToArray(),
             _serverCancellationTokenSource.Token)
             .ConfigureAwait(false));
 
@@ -277,10 +276,7 @@ public class PlcSimulatorFixture
 
     private static void CertificateValidator_AutoAccept(CertificateValidator validator, CertificateValidationEventArgs e)
     {
-        if (e.Error.StatusCode == StatusCodes.BadCertificateUntrusted)
-        {
-            e.Accept = true;
-        }
+        e.Accept = true;
     }
 
     /// <summary>
