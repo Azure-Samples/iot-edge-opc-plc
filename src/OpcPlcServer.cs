@@ -43,6 +43,8 @@ public partial class OpcPlcServer
     /// Logging object.
     /// </summary>
 #pragma warning disable S2292 // Trivial properties should be auto-implemented
+    // Source generator is used to inject logging into this class,
+    // so we need a backing field for the Logger property.
     public ILogger Logger
 #pragma warning restore S2292 // Trivial properties should be auto-implemented
     {
