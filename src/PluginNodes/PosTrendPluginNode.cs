@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Node with a value that shows a positive trend.
 /// </summary>
-public class PosTrendPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class PosTrendPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
@@ -52,7 +52,7 @@ public class PosTrendPluginNode(TimeService timeService, ILogger logger) : Plugi
         {
             _posTrendAnomalyPhase = _random.Next(10);
             _posTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
-            _logger.LogTrace($"First pos trend anomaly phase: {_posTrendAnomalyPhase}");
+            LogFirstPosTrendAnomalyPhase(_posTrendAnomalyPhase);
 
             _node.Start(PosTrendGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
@@ -110,7 +110,7 @@ public class PosTrendPluginNode(TimeService timeService, ILogger logger) : Plugi
         if (_isEnabled && _posTrendPhase >= _posTrendAnomalyPhase)
         {
             nextValue = TREND_BASEVALUE + ((_posTrendPhase - _posTrendAnomalyPhase) / 10d);
-            _logger.LogTrace("Generate postrend anomaly");
+            LogGeneratePosTrendAnomaly();
         }
 
         // end of cycle: reset cycle count and calc next anomaly cycle
@@ -118,7 +118,7 @@ public class PosTrendPluginNode(TimeService timeService, ILogger logger) : Plugi
         {
             _posTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _posTrendPhase++;
-            _logger.LogTrace($"Pos trend phase: {_posTrendPhase}, data: {nextValue}");
+            LogPosTrendPhase(_posTrendPhase, nextValue);
         }
 
         return nextValue;
@@ -135,7 +135,7 @@ public class PosTrendPluginNode(TimeService timeService, ILogger logger) : Plugi
     private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         ResetTrendData();
-        _logger.LogDebug("ResetPosTrend method called");
+        LogResetPosTrendMethodCalled();
         return ServiceResult.Good;
     }
 
@@ -148,4 +148,16 @@ public class PosTrendPluginNode(TimeService timeService, ILogger logger) : Plugi
         _posTrendCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
         _posTrendPhase = 0;
     }
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "First pos trend anomaly phase: {PosTrendAnomalyPhase}")]
+    partial void LogFirstPosTrendAnomalyPhase(int posTrendAnomalyPhase);
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Generate postrend anomaly")]
+    partial void LogGeneratePosTrendAnomaly();
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Pos trend phase: {PosTrendPhase}, data: {NextValue}")]
+    partial void LogPosTrendPhase(int posTrendPhase, double nextValue);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "ResetPosTrend method called")]
+    partial void LogResetPosTrendMethodCalled();
 }

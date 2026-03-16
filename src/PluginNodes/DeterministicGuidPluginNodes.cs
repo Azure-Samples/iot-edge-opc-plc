@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Nodes with deterministic GUIDs as ID.
 /// </summary>
-public class DeterministicGuidPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class DeterministicGuidPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private readonly DeterministicGuid _deterministicGuid = new ();
     private PlcNodeManager _plcNodeManager;
@@ -64,8 +64,8 @@ public class DeterministicGuidPluginNodes(TimeService timeService, ILogger logge
 
         if (NodeCount > 0)
         {
-            _logger.LogInformation($"Creating {NodeCount} GUID node(s) of type: {NodeType}");
-            _logger.LogInformation($"Node values will change every {NodeRate:N0} ms");
+            LogCreatingGuidNodes(NodeCount, NodeType);
+            LogNodeValuesChangeRate(NodeRate);
         }
 
         for (int i = 0; i < NodeCount; i++)
@@ -91,4 +91,10 @@ public class DeterministicGuidPluginNodes(TimeService timeService, ILogger logge
 
         Nodes = nodes;
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Creating {NodeCount} GUID node(s) of type: {NodeType}")]
+    partial void LogCreatingGuidNodes(uint nodeCount, NodeType nodeType);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Node values will change every {NodeRate:N0} ms")]
+    partial void LogNodeValuesChangeRate(uint nodeRate);
 }

@@ -10,7 +10,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class CertificateManagementService(
+public partial class CertificateManagementService(
     OpcPlcConfiguration config,
     ILogger logger,
     ITelemetryContext telemetryContext)
@@ -28,14 +28,14 @@ public class CertificateManagementService(
 
         if (thumbprintsToRemove.Count == 0)
         {
-            _logger.LogError("There is no thumbprint specified for certificates to remove. Please check your command line options.");
+            LogNoThumbprintSpecified();
             return false;
         }
 
         // search the trusted peer store and remove certificates with a specified thumbprint
         try
         {
-            _logger.LogInformation("Starting to remove certificate(s) from trusted peer and trusted issuer store");
+            LogStartingRemoveCertificates();
             using ICertificateStore trustedStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore(_telemetryContext);
             foreach (var thumbprint in thumbprintsToRemove)
             {
@@ -44,18 +44,18 @@ public class CertificateManagementService(
                 {
                     if (!await trustedStore.DeleteAsync(thumbprint, CancellationToken.None).ConfigureAwait(false))
                     {
-                        _logger.LogWarning("Failed to remove certificate with thumbprint '{Thumbprint}' from the trusted peer store", thumbprint);
+                        LogFailedToRemoveCertificate(thumbprint, "trusted peer");
                     }
                     else
                     {
-                        _logger.LogInformation("Removed certificate with thumbprint '{Thumbprint}' from the trusted peer store", thumbprint);
+                        LogRemovedCertificate(thumbprint, "trusted peer");
                     }
                 }
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error while trying to remove certificate(s) from the trusted peer store");
+            LogErrorRemovingCertificates(e, "trusted peer");
             result = false;
         }
 
@@ -70,18 +70,18 @@ public class CertificateManagementService(
                 {
                     if (!await issuerStore.DeleteAsync(thumbprint, CancellationToken.None).ConfigureAwait(false))
                     {
-                        _logger.LogWarning("Failed to delete certificate with thumbprint '{Thumbprint}' from the trusted issuer store", thumbprint);
+                        LogFailedToRemoveCertificate(thumbprint, "trusted issuer");
                     }
                     else
                     {
-                        _logger.LogInformation("Removed certificate with thumbprint '{Thumbprint}' from the trusted issuer store", thumbprint);
+                        LogRemovedCertificate(thumbprint, "trusted issuer");
                     }
                 }
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error while trying to remove certificate(s) from the trusted issuer store");
+            LogErrorRemovingCertificates(e, "trusted issuer");
             result = false;
         }
         return result;
@@ -99,11 +99,11 @@ public class CertificateManagementService(
 
         if (certificateBase64Strings?.Count == 0 && certificateFileNames?.Count == 0)
         {
-            _logger.LogError("There is no certificate provided. Please check your command line options.");
+            LogNoCertificateProvided();
             return false;
         }
 
-        _logger.LogInformation("Starting to add certificate(s) to the {StoreType} store", issuerCertificate ? "trusted issuer" : "trusted peer");
+        LogStartingAddCertificates(issuerCertificate ? "trusted issuer" : "trusted peer");
         var certificatesToAdd = new X509Certificate2Collection();
         try
         {
@@ -128,7 +128,7 @@ public class CertificateManagementService(
                     }
                     else
                     {
-                        _logger.LogError("The provided string '{PartialString}...' is not a valid base64 string", certificateBase64String.Substring(0, 10));
+                        LogInvalidBase64String(certificateBase64String.Substring(0, 10));
                         return false;
                     }
                 }
@@ -136,7 +136,7 @@ public class CertificateManagementService(
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "The issuer certificate data is invalid. Please check your command line options");
+            LogInvalidCertificateData(e, "issuer");
             return false;
         }
 
@@ -151,18 +151,18 @@ public class CertificateManagementService(
                     try
                     {
                         await issuerStore.AddAsync(certificateToAdd, null, CancellationToken.None).ConfigureAwait(false);
-                        _logger.LogInformation("Certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the trusted issuer store", certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint);
+                        LogCertificateAddedToStore(certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint, "trusted issuer");
                     }
                     catch (ArgumentException ex)
                     {
                         // ignore error if cert already exists in store
-                        _logger.LogInformation(ex, "Certificate '{SubjectName}' already exists in trusted issuer store", certificateToAdd.SubjectName.Name);
+                        LogCertificateAlreadyExists(ex, certificateToAdd.SubjectName.Name, "trusted issuer");
                     }
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while adding a certificate to the trusted issuer store");
+                LogErrorAddingCertificate(e, "trusted issuer");
                 result = false;
             }
         }
@@ -176,18 +176,18 @@ public class CertificateManagementService(
                     try
                     {
                         await trustedStore.AddAsync(certificateToAdd, null, CancellationToken.None).ConfigureAwait(false);
-                        _logger.LogInformation("Certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the trusted peer store", certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint);
+                        LogCertificateAddedToStore(certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint, "trusted peer");
                     }
                     catch (ArgumentException ex)
                     {
                         // ignore error if cert already exists in store
-                        _logger.LogInformation(ex, "Certificate '{SubjectName}' already exists in trusted peer store", certificateToAdd.SubjectName.Name);
+                        LogCertificateAlreadyExists(ex, certificateToAdd.SubjectName.Name, "trusted peer");
                     }
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while adding a certificate to the trusted peer store");
+                LogErrorAddingCertificate(e, "trusted peer");
                 result = false;
             }
         }
@@ -206,11 +206,11 @@ public class CertificateManagementService(
 
         if (certificateBase64Strings?.Count == 0 && certificateFileNames?.Count == 0)
         {
-            _logger.LogError("There is no certificate provided. Please check your command line options.");
+            LogNoCertificateProvided();
             return false;
         }
 
-        _logger.LogInformation("Starting to add certificate(s) to the {StoreType} store", issuerCertificate ? "user issuer" : "trusted user");
+        LogStartingAddCertificates(issuerCertificate ? "user issuer" : "trusted user");
         var certificatesToAdd = new X509Certificate2Collection();
         try
         {
@@ -235,7 +235,7 @@ public class CertificateManagementService(
                     }
                     else
                     {
-                        _logger.LogError("The provided string '{PartialString}...' is not a valid base64 string", certificateBase64String.Substring(0, 10));
+                        LogInvalidBase64String(certificateBase64String.Substring(0, 10));
                         return false;
                     }
                 }
@@ -243,7 +243,7 @@ public class CertificateManagementService(
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "The user certificate data is invalid. Please check your command line options");
+            LogInvalidCertificateData(e, "user");
             return false;
         }
 
@@ -258,17 +258,17 @@ public class CertificateManagementService(
                     try
                     {
                         await issuerStore.AddAsync(certificateToAdd, null, CancellationToken.None).ConfigureAwait(false);
-                        _logger.LogInformation("Certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the user issuer store", certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint);
+                        LogCertificateAddedToStore(certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint, "user issuer");
                     }
                     catch (ArgumentException ex)
                     {
-                        _logger.LogInformation(ex, "Certificate '{SubjectName}' already exists in user issuer store", certificateToAdd.SubjectName.Name);
+                        LogCertificateAlreadyExists(ex, certificateToAdd.SubjectName.Name, "user issuer");
                     }
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while adding a certificate to the user issuer store");
+                LogErrorAddingCertificate(e, "user issuer");
                 result = false;
             }
         }
@@ -282,17 +282,17 @@ public class CertificateManagementService(
                     try
                     {
                         await trustedUserStore.AddAsync(certificateToAdd, null, CancellationToken.None).ConfigureAwait(false);
-                        _logger.LogInformation("Certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the trusted user store", certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint);
+                        LogCertificateAddedToStore(certificateToAdd.SubjectName.Name, certificateToAdd.Thumbprint, "trusted user");
                     }
                     catch (ArgumentException ex)
                     {
-                        _logger.LogInformation(ex, "Certificate '{SubjectName}' already exists in trusted user store", certificateToAdd.SubjectName.Name);
+                        LogCertificateAlreadyExists(ex, certificateToAdd.SubjectName.Name, "trusted user");
                     }
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error while adding a certificate to the trusted user store");
+                LogErrorAddingCertificate(e, "trusted user");
                 result = false;
             }
         }
@@ -309,12 +309,12 @@ public class CertificateManagementService(
 
         if (string.IsNullOrEmpty(newCrlBase64String) && string.IsNullOrEmpty(newCrlFileName))
         {
-            _logger.LogError("There is no CRL specified. Please check your command line options");
+            LogNoCrlSpecified();
             return false;
         }
 
         // validate input and create the new CRL
-        _logger.LogInformation("Starting to update the current CRL");
+        LogStartingUpdateCrl();
         X509CRL newCrl;
         try
         {
@@ -327,7 +327,7 @@ public class CertificateManagementService(
                 }
                 else
                 {
-                    _logger.LogError("The provided string '{PartialString}...' is not a valid base64 string", newCrlBase64String.Substring(0, 10));
+                    LogInvalidBase64String(newCrlBase64String.Substring(0, 10));
                     return false;
                 }
             }
@@ -338,7 +338,7 @@ public class CertificateManagementService(
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "The new CRL data is invalid");
+            LogInvalidCrlData(e);
             return false;
         }
 
@@ -355,7 +355,7 @@ public class CertificateManagementService(
                     if (X509Utils.CompareDistinguishedName(newCrl.Issuer, trustedCertificate.Subject) && newCrl.VerifySignature(trustedCertificate, throwOnError: false))
                     {
                         // The issuer of the new CRL is trusted. Delete the CRLs of the issuer in the trusted store.
-                        _logger.LogInformation("Remove the current CRL from the trusted peer store");
+                        LogRemoveCrlFromStore("trusted peer");
                         trustedCrlIssuer = true;
 
                         var crlsToRemove = await trustedStore.EnumerateCRLsAsync(trustedCertificate, true, CancellationToken.None).ConfigureAwait(false);
@@ -365,12 +365,12 @@ public class CertificateManagementService(
                             {
                                 if (!await trustedStore.DeleteCRLAsync(crlToRemove, CancellationToken.None).ConfigureAwait(false))
                                 {
-                                    _logger.LogWarning("Failed to remove CRL issued by '{Issuer}' from the trusted peer store", crlToRemove.Issuer);
+                                    LogFailedToRemoveCrl(crlToRemove.Issuer, "trusted peer");
                                 }
                             }
                             catch (Exception e)
                             {
-                                _logger.LogError(e, "Error while removing the current CRL issued by '{Issuer}' from the trusted peer store", crlToRemove.Issuer);
+                                LogErrorRemovingCrl(e, crlToRemove.Issuer, "trusted peer");
                                 result = false;
                             }
                         }
@@ -378,7 +378,7 @@ public class CertificateManagementService(
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Error while removing the current CRL from the trusted peer store");
+                    LogErrorRemovingCrlFromStore(e, "trusted peer");
                     result = false;
                 }
             }
@@ -389,11 +389,11 @@ public class CertificateManagementService(
                 try
                 {
                     await trustedStore.AddCRLAsync(newCrl, CancellationToken.None).ConfigureAwait(false);
-                    _logger.LogInformation("The new CRL issued by '{Issuer}' was added to the trusted peer store", newCrl.Issuer);
+                    LogCrlAddedToStore(newCrl.Issuer, "trusted peer");
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Error while adding the new CRL to the trusted peer store");
+                    LogErrorAddingCrlToStore(e, "trusted peer");
                     result = false;
                 }
             }
@@ -412,7 +412,7 @@ public class CertificateManagementService(
                     if (X509Utils.CompareDistinguishedName(newCrl.Issuer, issuerCertificate.Subject) && newCrl.VerifySignature(issuerCertificate, false))
                     {
                         // The issuer of the new CRL is trusted. Delete the CRLs of the issuer in the trusted store.
-                        _logger.LogInformation("Remove the current CRL from the trusted issuer store");
+                        LogRemoveCrlFromStore("trusted issuer");
                         trustedCrlIssuer = true;
                         var crlsToRemove = await issuerStore.EnumerateCRLsAsync(issuerCertificate, true, CancellationToken.None).ConfigureAwait(false);
 
@@ -422,12 +422,12 @@ public class CertificateManagementService(
                             {
                                 if (!await issuerStore.DeleteCRLAsync(crlToRemove, CancellationToken.None).ConfigureAwait(false))
                                 {
-                                    _logger.LogWarning("Failed to remove the current CRL issued by '{Issuer}' from the trusted issuer store", crlToRemove.Issuer);
+                                    LogFailedToRemoveCrl(crlToRemove.Issuer, "trusted issuer");
                                 }
                             }
                             catch (Exception e)
                             {
-                                _logger.LogError(e, "Error while removing the current CRL issued by '{Issuer}' from the trusted issuer store", crlToRemove.Issuer);
+                                LogErrorRemovingCrl(e, crlToRemove.Issuer, "trusted issuer");
                                 result = false;
                             }
                         }
@@ -435,7 +435,7 @@ public class CertificateManagementService(
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Error while removing the current CRL from the trusted issuer store");
+                    LogErrorRemovingCrlFromStore(e, "trusted issuer");
                     result = false;
                 }
             }
@@ -446,11 +446,11 @@ public class CertificateManagementService(
                 try
                 {
                     await issuerStore.AddCRLAsync(newCrl, CancellationToken.None).ConfigureAwait(false);
-                    _logger.LogInformation("The new CRL issued by '{Issuer}' was added to the trusted issuer store", newCrl.Issuer);
+                    LogCrlAddedToStore(newCrl.Issuer, "trusted issuer");
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Error while adding the new CRL issued by '{Issuer}' to the trusted issuer store", newCrl.Issuer);
+                    LogErrorAddingCrlToStore(e, "trusted issuer");
                     result = false;
                 }
             }
@@ -470,7 +470,7 @@ public class CertificateManagementService(
     {
         if (string.IsNullOrEmpty(newCertificateFileName) && string.IsNullOrEmpty(newCertificateBase64String))
         {
-            _logger.LogError("There is no new application certificate data provided. Please check your command line options.");
+            LogNoNewCertificateData();
             return false;
         }
 
@@ -487,7 +487,7 @@ public class CertificateManagementService(
                 }
                 else
                 {
-                    _logger.LogError("The provided string '{PartialString}...' is not a valid base64 string", newCertificateBase64String.Substring(0, 10));
+                    LogInvalidBase64String(newCertificateBase64String.Substring(0, 10));
                     return false;
                 }
             }
@@ -498,12 +498,12 @@ public class CertificateManagementService(
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "The new application certificate data is invalid");
+            LogInvalidNewCertificateData(e);
             return false;
         }
 
         // validate input and create the private key
-        _logger.LogInformation("Start updating the current application certificate");
+        LogStartUpdatingAppCert();
         byte[] privateKey = null;
         try
         {
@@ -512,7 +512,7 @@ public class CertificateManagementService(
                 privateKey = new byte[privateKeyBase64String.Length * 3 / 4];
                 if (!Convert.TryFromBase64String(privateKeyBase64String, privateKey, out _))
                 {
-                    _logger.LogError("The provided string '{PartialString}...' is not a valid base64 string", privateKeyBase64String.Substring(0, 10));
+                    LogInvalidBase64String(privateKeyBase64String.Substring(0, 10));
                     return false;
                 }
             }
@@ -523,7 +523,7 @@ public class CertificateManagementService(
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "The private key data is invalid");
+            LogInvalidPrivateKeyData(e);
             return false;
         }
 
@@ -536,17 +536,17 @@ public class CertificateManagementService(
             hasApplicationCertificate = true;
             currentApplicationCertificate = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
             currentSubjectName = currentApplicationCertificate.SubjectName.Name;
-            _logger.LogInformation("The current application certificate has SubjectName '{CurrentSubjectName}' and thumbprint '{CurrentThumbprint}'", currentSubjectName, currentApplicationCertificate.Thumbprint);
+            LogCurrentAppCertInfo(currentSubjectName, currentApplicationCertificate.Thumbprint);
         }
         else
         {
-            _logger.LogInformation("There is no existing application certificate");
+            LogNoExistingAppCert();
         }
 
         // for a cert update subject names of current and new certificate must match
         if (hasApplicationCertificate && !X509Utils.CompareDistinguishedName(currentSubjectName, newCertificate.SubjectName.Name))
         {
-            _logger.LogError("The SubjectName '{NewSubjectName}' of the new certificate doesn't match the current certificates SubjectName '{CurrentSubjectName}'", newCertificate.SubjectName.Name, currentSubjectName);
+            LogSubjectNameMismatch(newCertificate.SubjectName.Name, currentSubjectName);
             return false;
         }
 
@@ -582,7 +582,7 @@ public class CertificateManagementService(
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to verify integrity of the new certificate and the trusted issuer list");
+            LogFailedToVerifyCertIntegrity(e);
             return false;
         }
 
@@ -597,11 +597,11 @@ public class CertificateManagementService(
                 X509Certificate2 certWithPrivateKey = X509Utils.CreateCertificateFromPKCS12(privateKey, certificatePassword);
                 newCertificateWithPrivateKey = CertificateFactory.CreateCertificateWithPrivateKey(newCertificate, certWithPrivateKey);
                 newCertFormat = "PFX";
-                _logger.LogInformation("The private key for the new certificate was passed in using PFX format");
+                LogPrivateKeyFormat("PFX");
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Certificate file is not PFX");
+                LogCertFileNotFormat(ex, "PFX");
             }
         }
         // check if new cert is PEM
@@ -611,11 +611,11 @@ public class CertificateManagementService(
             {
                 newCertificateWithPrivateKey = CertificateFactory.CreateCertificateWithPEMPrivateKey(newCertificate, privateKey, certificatePassword);
                 newCertFormat = "PEM";
-                _logger.LogInformation("The private key for the new certificate was passed in using PEM format");
+                LogPrivateKeyFormat("PEM");
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Certificate file is not PEM");
+                LogCertFileNotFormat(ex, "PEM");
             }
         }
 
@@ -635,12 +635,12 @@ public class CertificateManagementService(
                 }
                 else
                 {
-                    _logger.LogError("There is no existing application certificate we can use to extract the private key. You need to pass in a private key using PFX or PEM format");
+                    LogNoExistingCertForPrivateKey();
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Application certificate format is not DER");
+                LogCertFileNotFormat(ex, "DER");
             }
         }
 
@@ -648,7 +648,7 @@ public class CertificateManagementService(
         {
             if (string.IsNullOrEmpty(newCertFormat))
             {
-                _logger.LogError("The provided format of the private key is not supported (must be PEM or PFX) or the provided cert password is wrong");
+                LogUnsupportedPrivateKeyFormat();
                 return false;
             }
         }
@@ -656,7 +656,7 @@ public class CertificateManagementService(
         {
             if (string.IsNullOrEmpty(newCertFormat))
             {
-                _logger.LogError("There is no application certificate we can update and for the new application certificate there was not usable private key (must be PEM or PFX format) provided or the provided cert password is wrong");
+                LogNoAppCertAndNoUsablePrivateKey();
                 return false;
             }
         }
@@ -664,26 +664,26 @@ public class CertificateManagementService(
         // remove the existing and add the new application cert
         using (ICertificateStore appStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.OpenStore(_telemetryContext))
         {
-            _logger.LogInformation("Remove the existing application certificate");
+            LogRemoveExistingAppCert();
             try
             {
                 if (hasApplicationCertificate && !await appStore.DeleteAsync(currentApplicationCertificate.Thumbprint, CancellationToken.None).ConfigureAwait(false))
                 {
-                    _logger.LogWarning("Removing the existing application certificate with thumbprint '{CurrentThumbprint}' failed", currentApplicationCertificate.Thumbprint);
+                    LogRemovingExistingCertFailed(currentApplicationCertificate.Thumbprint);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to remove the existing application certificate from the ApplicationCertificate store");
+                LogFailedToRemoveExistingCert(ex);
             }
             try
             {
                 await appStore.AddAsync(newCertificateWithPrivateKey, null, CancellationToken.None).ConfigureAwait(false);
-                _logger.LogInformation("The new application certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the application certificate store", newCertificateWithPrivateKey.SubjectName.Name, newCertificateWithPrivateKey.Thumbprint);
+                LogNewAppCertAdded(newCertificateWithPrivateKey.SubjectName.Name, newCertificateWithPrivateKey.Thumbprint);
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Failed to add the new application certificate to the application certificate store");
+                LogFailedToAddNewAppCert(e);
                 return false;
             }
         }
@@ -691,7 +691,7 @@ public class CertificateManagementService(
         // update the application certificate
         try
         {
-            _logger.LogInformation("Activating the new application certificate with thumbprint '{NewThumbprint}'", newCertificateWithPrivateKey.Thumbprint);
+            LogActivatingNewAppCert(newCertificateWithPrivateKey.Thumbprint);
             _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = newCertificateWithPrivateKey;
             _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Thumbprint = newCertificateWithPrivateKey.Thumbprint;
             _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.SubjectName = newCertificateWithPrivateKey.SubjectName.Name;
@@ -699,7 +699,7 @@ public class CertificateManagementService(
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to activate the new application certificate");
+            LogFailedToActivateNewAppCert(e);
             return false;
         }
 
@@ -722,4 +722,127 @@ public class CertificateManagementService(
             password?.ToCharArray(),
             ct).ConfigureAwait(false);
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "There is no thumbprint specified for certificates to remove. Please check your command line options.")]
+    partial void LogNoThumbprintSpecified();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting to remove certificate(s) from trusted peer and trusted issuer store")]
+    partial void LogStartingRemoveCertificates();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to remove certificate with thumbprint '{Thumbprint}' from the {StoreName} store")]
+    partial void LogFailedToRemoveCertificate(string thumbprint, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Removed certificate with thumbprint '{Thumbprint}' from the {StoreName} store")]
+    partial void LogRemovedCertificate(string thumbprint, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error while trying to remove certificate(s) from the {StoreName} store")]
+    partial void LogErrorRemovingCertificates(Exception exception, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "There is no certificate provided. Please check your command line options.")]
+    partial void LogNoCertificateProvided();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting to add certificate(s) to the {StoreType} store")]
+    partial void LogStartingAddCertificates(string storeType);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The provided string '{PartialString}...' is not a valid base64 string")]
+    partial void LogInvalidBase64String(string partialString);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The {CertType} certificate data is invalid. Please check your command line options")]
+    partial void LogInvalidCertificateData(Exception exception, string certType);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the {StoreName} store")]
+    partial void LogCertificateAddedToStore(string subjectName, string thumbprint, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Certificate '{SubjectName}' already exists in {StoreName} store")]
+    partial void LogCertificateAlreadyExists(Exception exception, string subjectName, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error while adding a certificate to the {StoreName} store")]
+    partial void LogErrorAddingCertificate(Exception exception, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "There is no CRL specified. Please check your command line options")]
+    partial void LogNoCrlSpecified();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting to update the current CRL")]
+    partial void LogStartingUpdateCrl();
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The new CRL data is invalid")]
+    partial void LogInvalidCrlData(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Remove the current CRL from the {StoreName} store")]
+    partial void LogRemoveCrlFromStore(string storeName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to remove CRL issued by '{Issuer}' from the {StoreName} store")]
+    partial void LogFailedToRemoveCrl(string issuer, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error while removing the current CRL issued by '{Issuer}' from the {StoreName} store")]
+    partial void LogErrorRemovingCrl(Exception exception, string issuer, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error while removing the current CRL from the {StoreName} store")]
+    partial void LogErrorRemovingCrlFromStore(Exception exception, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "The new CRL issued by '{Issuer}' was added to the {StoreName} store")]
+    partial void LogCrlAddedToStore(string issuer, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error while adding the new CRL to the {StoreName} store")]
+    partial void LogErrorAddingCrlToStore(Exception exception, string storeName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "There is no new application certificate data provided. Please check your command line options.")]
+    partial void LogNoNewCertificateData();
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The new application certificate data is invalid")]
+    partial void LogInvalidNewCertificateData(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Start updating the current application certificate")]
+    partial void LogStartUpdatingAppCert();
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The private key data is invalid")]
+    partial void LogInvalidPrivateKeyData(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "The current application certificate has SubjectName '{CurrentSubjectName}' and thumbprint '{CurrentThumbprint}'")]
+    partial void LogCurrentAppCertInfo(string currentSubjectName, string currentThumbprint);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "There is no existing application certificate")]
+    partial void LogNoExistingAppCert();
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The SubjectName '{NewSubjectName}' of the new certificate doesn't match the current certificates SubjectName '{CurrentSubjectName}'")]
+    partial void LogSubjectNameMismatch(string newSubjectName, string currentSubjectName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to verify integrity of the new certificate and the trusted issuer list")]
+    partial void LogFailedToVerifyCertIntegrity(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "The private key for the new certificate was passed in using {Format} format")]
+    partial void LogPrivateKeyFormat(string format);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Certificate file is not {Format}")]
+    partial void LogCertFileNotFormat(Exception exception, string format);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "There is no existing application certificate we can use to extract the private key. You need to pass in a private key using PFX or PEM format")]
+    partial void LogNoExistingCertForPrivateKey();
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The provided format of the private key is not supported (must be PEM or PFX) or the provided cert password is wrong")]
+    partial void LogUnsupportedPrivateKeyFormat();
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "There is no application certificate we can update and for the new application certificate there was not usable private key (must be PEM or PFX format) provided or the provided cert password is wrong")]
+    partial void LogNoAppCertAndNoUsablePrivateKey();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Remove the existing application certificate")]
+    partial void LogRemoveExistingAppCert();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Removing the existing application certificate with thumbprint '{CurrentThumbprint}' failed")]
+    partial void LogRemovingExistingCertFailed(string currentThumbprint);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to remove the existing application certificate from the ApplicationCertificate store")]
+    partial void LogFailedToRemoveExistingCert(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "The new application certificate '{SubjectName}' and thumbprint '{Thumbprint}' was added to the application certificate store")]
+    partial void LogNewAppCertAdded(string subjectName, string thumbprint);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to add the new application certificate to the application certificate store")]
+    partial void LogFailedToAddNewAppCert(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Activating the new application certificate with thumbprint '{NewThumbprint}'")]
+    partial void LogActivatingNewAppCert(string newThumbprint);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to activate the new application certificate")]
+    partial void LogFailedToActivateNewAppCert(Exception exception);
 }

@@ -6,12 +6,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Opc.Ua;
-using OpenTelemetry;
-using OpenTelemetry.Exporter;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
-using System;
 using System.IO;
 
 public class Startup

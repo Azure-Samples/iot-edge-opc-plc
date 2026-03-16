@@ -88,7 +88,7 @@ public partial class PlcServer
         if (args.NewIdentity is AnonymousIdentityToken anonymousToken)
         {
             args.Identity = new UserIdentity(anonymousToken);
-            _logger.LogInformation("Anonymous Token Accepted: {DisplayName}", args.Identity.DisplayName);
+            LogTokenAccepted("Anonymous", args.Identity.DisplayName);
             return;
         }
 
@@ -96,7 +96,7 @@ public partial class PlcServer
         if (args.NewIdentity is UserNameIdentityToken userNameToken)
         {
             args.Identity = VerifyPassword(userNameToken);
-            _logger.LogInformation("UserName Token Accepted: {DisplayName}", args.Identity.DisplayName);
+            LogTokenAccepted("UserName", args.Identity.DisplayName);
             return;
         }
 
@@ -128,7 +128,7 @@ public partial class PlcServer
 
             VerifyCertificateAsync(x509Token.Certificate, default).GetAwaiter().GetResult();
             args.Identity = new UserIdentity(x509Token);
-            _logger.LogInformation("X509 Token Accepted: {DisplayName}", args.Identity.DisplayName);
+            LogTokenAccepted("X509", args.Identity.DisplayName);
             return;
         }
 
@@ -184,4 +184,7 @@ public partial class PlcServer
     }
 
     private CertificateValidator m_userCertificateValidator;
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{TokenType} Token Accepted: {DisplayName}")]
+    partial void LogTokenAccepted(string tokenType, string displayName);
 }
