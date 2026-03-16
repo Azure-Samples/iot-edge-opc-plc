@@ -34,6 +34,8 @@ public partial class OpcApplicationConfiguration
     public string OpcOwnCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "own");
     public string OpcOwnCertX509StorePathDefault { get; } = "CurrentUser\\UA_MachineDefault";
     public string OpcOwnCertStorePath { get; set; }
+    public string OpcKubernetesSecretNamespace { get; set; }
+    public string OpcKubernetesKubeConfigFilePath { get; set; }
     public string OpcTrustedCertDirectoryStorePathDefault => Path.Combine(OpcOwnPKIRootDefault, "trusted");
     public string OpcTrustedCertStorePath { get; set; }
 

@@ -16,9 +16,11 @@ public partial class OpcUaAppConfigFactory(
     OpcPlcConfiguration config,
     ILogger logger,
     ILoggerFactory loggerFactory,
-    ITelemetryContext telemetryContext)
+    ITelemetryContext telemetryContext,
+    IKubernetesSecretStoreClientFactory kubernetesSecretStoreClientFactory = null)
 {
     private readonly OpcPlcConfiguration _config = config;
+    private readonly IKubernetesSecretStoreClientFactory _kubernetesSecretStoreClientFactory = kubernetesSecretStoreClientFactory ?? new KubernetesSecretStoreClientFactory(config.OpcUa.OpcKubernetesKubeConfigFilePath, loggerFactory.CreateLogger<KubernetesSecretStoreClient>());
     private readonly ILogger _logger = logger;
     private readonly ILoggerFactory _loggerFactory = loggerFactory;
     private readonly ITelemetryContext _telemetryContext = telemetryContext ?? throw new ArgumentNullException(nameof(telemetryContext));
@@ -225,19 +227,7 @@ public partial class OpcUaAppConfigFactory(
     /// </summary>
     public async Task<ApplicationConfiguration> InitApplicationSecurityAsync(IApplicationConfigurationBuilderServerOptions securityBuilder)
     {
-
-        if (_config.OpcUa.OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName)
-        {
-            // Register FlatDirectoryCertificateStoreType as known certificate store type.
-            var certStoreTypeName = CertificateStoreType.GetCertificateStoreTypeByName(FlatDirectoryCertificateStore.StoreTypeName);
-
-            if (certStoreTypeName is null)
-            {
-                CertificateStoreType.RegisterCertificateStoreType(
-                    FlatDirectoryCertificateStore.StoreTypeName,
-                    new FlatDirectoryCertificateStoreType(_loggerFactory));
-            }
-        }
+        RegisterCustomCertificateStoreType();
 
         // Update/install the custom application certificate first if provided, before setting up stores
         if (!string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) || !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName))
@@ -263,31 +253,9 @@ public partial class OpcUaAppConfigFactory(
 
         var securityConfiguration = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration;
 
-        if (_config.OpcUa.OpcOwnCertStoreType == FlatDirectoryCertificateStore.StoreTypeName)
+        if (UsesCustomCertificateStoreType(_config.OpcUa.OpcOwnCertStoreType))
         {
-            securityConfiguration.ApplicationCertificate.StoreType = _config.OpcUa.OpcOwnCertStoreType;
-            securityConfiguration.ApplicationCertificate.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcOwnCertStorePath;
-
-            // configure trusted issuer certificates store
-
-            securityConfiguration.TrustedIssuerCertificates.StoreType = FlatDirectoryCertificateStore.StoreTypeName;
-            securityConfiguration.TrustedIssuerCertificates.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcIssuerCertStorePath;
-
-            // configure trusted peer certificates store
-            securityConfiguration.TrustedPeerCertificates.StoreType = FlatDirectoryCertificateStore.StoreTypeName;
-            securityConfiguration.TrustedPeerCertificates.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcTrustedCertStorePath;
-
-            // configure trusted user certificates store
-            securityConfiguration.TrustedUserCertificates.StoreType = FlatDirectoryCertificateStore.StoreTypeName;
-            securityConfiguration.TrustedUserCertificates.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcTrustedUserCertStorePath;
-
-            // configure user issuer certificates store
-            securityConfiguration.UserIssuerCertificates.StoreType = FlatDirectoryCertificateStore.StoreTypeName;
-            securityConfiguration.UserIssuerCertificates.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcUserIssuerCertStorePath;
-
-            // configure rejected certificates store
-            securityConfiguration.RejectedCertificateStore.StoreType = FlatDirectoryCertificateStore.StoreTypeName;
-            securityConfiguration.RejectedCertificateStore.StorePath = FlatDirectoryCertificateStore.StoreTypePrefix + _config.OpcUa.OpcRejectedCertStorePath;
+            ConfigureCustomCertificateStores(securityConfiguration);
         }
         else
         {
@@ -408,6 +376,73 @@ public partial class OpcUaAppConfigFactory(
         }
 
         return _config.OpcUa.ApplicationConfiguration;
+    }
+
+    private void ConfigureCustomCertificateStores(SecurityConfiguration securityConfiguration)
+    {
+        var storeType = _config.OpcUa.OpcOwnCertStoreType;
+        var storePathPrefix = GetCustomStorePathPrefix(storeType);
+
+        securityConfiguration.ApplicationCertificate.StoreType = storeType;
+        securityConfiguration.ApplicationCertificate.StorePath = storePathPrefix + _config.OpcUa.OpcOwnCertStorePath;
+
+        securityConfiguration.TrustedIssuerCertificates.StoreType = storeType;
+        securityConfiguration.TrustedIssuerCertificates.StorePath = storePathPrefix + _config.OpcUa.OpcIssuerCertStorePath;
+
+        securityConfiguration.TrustedPeerCertificates.StoreType = storeType;
+        securityConfiguration.TrustedPeerCertificates.StorePath = storePathPrefix + _config.OpcUa.OpcTrustedCertStorePath;
+
+        securityConfiguration.TrustedUserCertificates.StoreType = storeType;
+        securityConfiguration.TrustedUserCertificates.StorePath = storePathPrefix + _config.OpcUa.OpcTrustedUserCertStorePath;
+
+        securityConfiguration.UserIssuerCertificates.StoreType = storeType;
+        securityConfiguration.UserIssuerCertificates.StorePath = storePathPrefix + _config.OpcUa.OpcUserIssuerCertStorePath;
+
+        securityConfiguration.RejectedCertificateStore.StoreType = storeType;
+        securityConfiguration.RejectedCertificateStore.StorePath = storePathPrefix + _config.OpcUa.OpcRejectedCertStorePath;
+    }
+
+    private static string GetCustomStorePathPrefix(string storeType) => storeType switch
+    {
+        FlatDirectoryCertificateStore.StoreTypeName => FlatDirectoryCertificateStore.StoreTypePrefix,
+        KubernetesSecretCertificateStore.StoreTypeName => KubernetesSecretCertificateStore.StoreTypePrefix,
+        _ => throw new ArgumentOutOfRangeException(nameof(storeType), $"Unsupported custom certificate store type '{storeType}'."),
+    };
+
+    private void RegisterCustomCertificateStoreType()
+    {
+        if (!UsesCustomCertificateStoreType(_config.OpcUa.OpcOwnCertStoreType))
+        {
+            return;
+        }
+
+        var certStoreTypeName = CertificateStoreType.GetCertificateStoreTypeByName(_config.OpcUa.OpcOwnCertStoreType);
+        if (certStoreTypeName is not null)
+        {
+            return;
+        }
+
+        switch (_config.OpcUa.OpcOwnCertStoreType)
+        {
+            case FlatDirectoryCertificateStore.StoreTypeName:
+                CertificateStoreType.RegisterCertificateStoreType(
+                    FlatDirectoryCertificateStore.StoreTypeName,
+                    new FlatDirectoryCertificateStoreType(_loggerFactory));
+                break;
+            case KubernetesSecretCertificateStore.StoreTypeName:
+                CertificateStoreType.RegisterCertificateStoreType(
+                    KubernetesSecretCertificateStore.StoreTypeName,
+                    new KubernetesSecretCertificateStoreType(_loggerFactory, _kubernetesSecretStoreClientFactory, _config.OpcUa.OpcKubernetesSecretNamespace));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(_config.OpcUa.OpcOwnCertStoreType), $"Unsupported custom certificate store type '{_config.OpcUa.OpcOwnCertStoreType}'.");
+        }
+    }
+
+    private static bool UsesCustomCertificateStoreType(string storeType)
+    {
+        return storeType == FlatDirectoryCertificateStore.StoreTypeName ||
+            storeType == KubernetesSecretCertificateStore.StoreTypeName;
     }
 
     /// <summary>

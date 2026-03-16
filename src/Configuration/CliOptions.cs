@@ -105,7 +105,7 @@ public static class CliOptions
             { "mqrc|maxqueuedrequestcount=", $"maximum number of requests that will be queued waiting for a thread.\nDefault: {config.OpcUa.MaxQueuedRequestCount}", (int i) => config.OpcUa.MaxQueuedRequestCount = i },
 
             // cert store options
-            { "at|appcertstoretype=", $"the own application cert store type.\n(allowed values: Directory, X509Store, FlatDirectory)\nDefault: '{config.OpcUa.OpcOwnCertStoreType}'", (s) => {
+            { "at|appcertstoretype=", $"the own application cert store type.\n(allowed values: Directory, X509Store, FlatDirectory, KubernetesSecret)\nDefault: '{config.OpcUa.OpcOwnCertStoreType}'", (s) => {
                     switch (s)
                     {
                         case CertificateStoreType.X509Store:
@@ -120,6 +120,10 @@ public static class CliOptions
                             config.OpcUa.OpcOwnCertStoreType = FlatDirectoryCertificateStore.StoreTypeName;
                             config.OpcUa.OpcOwnCertStorePath = config.OpcUa.OpcOwnCertDirectoryStorePathDefault;
                             break;
+                        case KubernetesSecretCertificateStore.StoreTypeName:
+                            config.OpcUa.OpcOwnCertStoreType = KubernetesSecretCertificateStore.StoreTypeName;
+                            config.OpcUa.OpcOwnCertStorePath = config.OpcUa.OpcOwnCertDirectoryStorePathDefault;
+                            break;
                         default:
                             throw new OptionException();
                     }
@@ -127,11 +131,16 @@ public static class CliOptions
             },
 
             { "ap|appcertstorepath=", "the path where the own application cert should be stored.\nDefault (depends on store type):\n" +
-                    $"X509Store: '{config.OpcUa.OpcOwnCertX509StorePathDefault}'\n" +
-                    $"Directory: '{config.OpcUa.OpcOwnCertDirectoryStorePathDefault}'\n" +
-                    $"FlatDirectory: '{config.OpcUa.OpcOwnCertDirectoryStorePathDefault}'",
+                        $"X509Store: '{config.OpcUa.OpcOwnCertX509StorePathDefault}'\n" +
+                        $"Directory: '{config.OpcUa.OpcOwnCertDirectoryStorePathDefault}'\n" +
+                        $"FlatDirectory: '{config.OpcUa.OpcOwnCertDirectoryStorePathDefault}'\n" +
+                        $"KubernetesSecret: '{config.OpcUa.OpcOwnCertDirectoryStorePathDefault}' (mapped to a sanitized Kubernetes secret name)",
                     (s) => config.OpcUa.OpcOwnCertStorePath = s
             },
+
+                    { "ksns|kubernetessecretnamespace=", "the namespace used for KubernetesSecret certificate stores.\nDefault: auto-detect in cluster, otherwise 'default'", (s) => config.OpcUa.OpcKubernetesSecretNamespace = s },
+
+                    { "kcfg|kuberneteskubeconfig=", "the kubeconfig file used for KubernetesSecret certificate stores when not running in cluster.", (s) => config.OpcUa.OpcKubernetesKubeConfigFilePath = s },
 
             { "tp|trustedcertstorepath=", $"the path of the trusted cert store.\nDefault '{config.OpcUa.OpcTrustedCertDirectoryStorePathDefault}'", (s) => config.OpcUa.OpcTrustedCertStorePath = s },
 
