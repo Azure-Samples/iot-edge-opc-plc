@@ -154,7 +154,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
         {
             FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations);
 
-            var value = (await Session.ReadValueAsync(nodeId).ConfigureAwait(false)).Value;
+            var value = (await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value;
             value.Should().BeOfType(type);
 
             if (i > 0 && (value as IComparable).CompareTo(lastValue) != 0)
@@ -181,7 +181,7 @@ public class SimulatorNodesTests : SimulatorTestsBase
             FireTimersWithPeriod(FromMilliseconds(periodInMilliseconds), numberOfTimes: invocations);
             try
             {
-                var dataValue = await Session.ReadValueAsync(nodeId).ConfigureAwait(false);
+                var dataValue = await ReadDataValueAsync(nodeId).ConfigureAwait(false);
                 readings.Add((dataValue.StatusCode, dataValue.Value));
             }
             catch (ServiceResultException e)

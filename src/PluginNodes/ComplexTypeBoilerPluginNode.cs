@@ -14,7 +14,7 @@ using System.Timers;
 /// <summary>
 /// Complex type boiler node.
 /// </summary>
-public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private PlcNodeManager _plcNodeManager;
     private Boiler1State _node;
@@ -182,7 +182,7 @@ public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger
     private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.On;
-        _logger.LogDebug("OnHeaterOnCall method called");
+        LogOnHeaterOnCallMethodCalled();
         return ServiceResult.Good;
     }
 
@@ -192,7 +192,7 @@ public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger
     private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.Off;
-        _logger.LogDebug("OnHeaterOffCall method called");
+        LogOnHeaterOffCallMethodCalled();
         return ServiceResult.Good;
     }
     private void AllowReadAndWrite(BaseDataVariableState variable)
@@ -202,4 +202,10 @@ public class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger
         variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
         variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "OnHeaterOnCall method called")]
+    partial void LogOnHeaterOnCallMethodCalled();
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "OnHeaterOffCall method called")]
+    partial void LogOnHeaterOffCallMethodCalled();
 }

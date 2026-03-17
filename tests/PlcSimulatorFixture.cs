@@ -8,6 +8,7 @@ using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Configuration;
 using OpcPlc;
+using OpcPlc.Helpers;
 using OpcPlc.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -65,6 +66,10 @@ public class PlcSimulatorFixture
     private ApplicationConfiguration _config;
 
     private ConfiguredEndpoint _serverEndpoint;
+
+    public ApplicationConfiguration ClientConfiguration => _config;
+
+    public string EndpointUrl => _serverEndpoint?.EndpointUrl?.ToString();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PlcSimulatorFixture"/> class.
@@ -125,15 +130,14 @@ public class PlcSimulatorFixture
         // The simulator program command line.
         // Passed args override the following defaults.
         _serverTask = Task.Run(async () => await _opcPlcServer.StartAsync(
-            _args.Concat(
-                new[]
-                {
-                    "--autoaccept",
-                    $"--portnum={Port}",
-                    "--fn=25",
-                    "--fr=1",
-                    "--ft=uint",
-                }).ToArray(),
+            new[]
+            {
+                "--autoaccept",
+                $"--portnum={Port}",
+                "--fn=25",
+                "--fr=1",
+                "--ft=uint",
+            }.Concat(_args).ToArray(),
             _serverCancellationTokenSource.Token)
             .ConfigureAwait(false));
 
@@ -173,7 +177,8 @@ public class PlcSimulatorFixture
 
         // When unit test certificate expires,
         // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
-        return await Session.Create(
+        var sessionFactory = new DefaultSessionFactory(null);
+        var session = await sessionFactory.CreateAsync(
             _config,
             reverseConnectManager: null,
             _serverEndpoint,
@@ -182,7 +187,9 @@ public class PlcSimulatorFixture
             sessionName,
             sessionTimeout: 60000,
             userIdentity,
-            preferredLocales: null).ConfigureAwait(false);
+            preferredLocales: null,
+            CancellationToken.None).ConfigureAwait(false);
+        return (Session)session;
     }
 
     /// <summary>
@@ -239,23 +246,27 @@ public class PlcSimulatorFixture
     {
         await _log.WriteLineAsync("Create Application Configuration").ConfigureAwait(false);
 
-        var application = new ApplicationInstance {
+        var loggerFactory = LoggerFactory.Create(_ => { });
+        var telemetryContext = new OpcTelemetryContext(loggerFactory, "OpcPlc", OpcTelemetryContext.ResolveOpcPlcVersion());
+
+        var application = new ApplicationInstance(telemetryContext) {
             ApplicationName = nameof(PlcSimulatorFixture),
             ApplicationType = ApplicationType.Client,
             ConfigSectionName = nameof(PlcSimulatorFixture) // Defines name of *.Config.xml file read
         };
 
         // load the application configuration.
-        var config = await application.LoadApplicationConfiguration(silent: false).ConfigureAwait(false);
+        var config = await application.LoadApplicationConfigurationAsync(silent: false).ConfigureAwait(false);
 
         // check the application certificate.
-        bool haveAppCertificate = await application.CheckApplicationInstanceCertificates(silent: false).ConfigureAwait(false);
+        bool haveAppCertificate = await application.CheckApplicationInstanceCertificatesAsync(silent: false).ConfigureAwait(false);
         if (!haveAppCertificate)
         {
             throw new Exception("Application instance certificate invalid!");
         }
 
-        config.ApplicationUri = X509Utils.GetApplicationUriFromCertificate(config.SecurityConfiguration.ApplicationCertificate.Certificate);
+        var applicationUris = X509Utils.GetApplicationUrisFromCertificate(config.SecurityConfiguration.ApplicationCertificate.Certificate);
+        config.ApplicationUri = applicationUris.Count > 0 ? applicationUris[0] : null;
 
         // Auto-accept server certificate
         config.CertificateValidator.CertificateValidation += CertificateValidator_AutoAccept;
@@ -265,10 +276,7 @@ public class PlcSimulatorFixture
 
     private static void CertificateValidator_AutoAccept(CertificateValidator validator, CertificateValidationEventArgs e)
     {
-        if (e.Error.StatusCode == StatusCodes.BadCertificateUntrusted)
-        {
-            e.Accept = true;
-        }
+        e.Accept = true;
     }
 
     /// <summary>
@@ -287,7 +295,13 @@ public class PlcSimulatorFixture
         {
             try
             {
-                var endpoint = CoreClientUtils.SelectEndpoint(_config, endpointUrl, useSecurity: false, discoverTimeout: 15000);
+                var endpoint = await CoreClientUtils.SelectEndpointAsync(
+                    _config,
+                    endpointUrl,
+                    useSecurity: false,
+                    discoverTimeout: 15000,
+                    telemetry: null,
+                    CancellationToken.None).ConfigureAwait(false);
 
                 var endpointConfiguration = EndpointConfiguration.Create(_config);
                 return new ConfiguredEndpoint(collection: null, endpoint, endpointConfiguration);

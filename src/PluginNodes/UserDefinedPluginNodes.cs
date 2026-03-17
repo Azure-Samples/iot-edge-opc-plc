@@ -14,7 +14,7 @@ using System.Linq;
 /// <summary>
 /// Nodes that are configured via JSON file.
 /// </summary>
-public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private string _nodesFileName;
     private PlcNodeManager _plcNodeManager;
@@ -57,22 +57,22 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
                 TypeNameHandling = TypeNameHandling.None,
             });
 
-            _logger.LogInformation($"Processing node information configured in {_nodesFileName}");
+            LogProcessingNodeInformation(_nodesFileName);
 
             Nodes = AddNodes(folder, cfgFolder).ToList();
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error loading user defined node file {File}: {Error}", _nodesFileName, e.Message);
+            LogErrorLoadingUserDefinedNodeFile(e, _nodesFileName, e.Message);
         }
 
 
-        _logger.LogInformation("Completed processing user defined node file");
+        LogCompletedProcessingUserDefinedNodeFile();
     }
 
     private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder)
     {
-        _logger.LogDebug($"Create folder {cfgFolder.Folder}");
+        LogCreateFolder(cfgFolder.Folder);
         FolderState userNodesFolder = _plcNodeManager.CreateFolder(
             folder,
             path: cfgFolder.Folder,
@@ -86,7 +86,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
 
             if (!isDecimal && !isString)
             {
-                _logger.LogError($"The type of the node configuration for node with name {node.Name} ({node.NodeId.GetType()}) is not supported. Only decimal, string, and GUID are supported. Defaulting to string.");
+                LogUnsupportedNodeType(node.Name, node.NodeId.GetType().ToString());
                 node.NodeId = node.NodeId.ToString();
             }
 
@@ -118,11 +118,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
                 node.Description = node.Name;
             }
 
-            _logger.LogDebug("Create node with Id {TypedNodeId}, BrowseName {Name} and type {Type} in namespace with index {NamespaceIndex}",
-                typedNodeId,
-                node.Name,
-                (string)node.NodeId.GetType().Name,
-                _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]);
+            LogCreateNode(typedNodeId, node.Name, (string)node.NodeId.GetType().Name, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]);
 
             CreateBaseVariable(userNodesFolder, node);
 
@@ -162,7 +158,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
     {
         if (!Enum.TryParse(node.DataType, out BuiltInType nodeDataType))
         {
-            _logger.LogError($"Value {node.DataType} of node {node.NodeId} cannot be parsed. Defaulting to Int32");
+            LogCannotParseDataType(node.DataType, node.NodeId.ToString());
             node.DataType = "Int32";
         }
 
@@ -174,7 +170,7 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
         }
         catch
         {
-            _logger.LogError($"AccessLevel {node.AccessLevel} of node {node.Name} is not supported. Defaulting to CurrentReadOrWrite");
+            LogUnsupportedAccessLevel(node.AccessLevel, node.Name);
             node.AccessLevel = "CurrentRead";
             accessLevel = AccessLevels.CurrentReadOrWrite;
         }
@@ -193,4 +189,28 @@ public class UserDefinedPluginNodes(TimeService timeService, ILogger logger) : P
             _ => throw new NotImplementedException($"Node type not implemented: {node.DataType}."),
         };
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Processing node information configured in {NodesFileName}")]
+    partial void LogProcessingNodeInformation(string nodesFileName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error loading user defined node file {File}: {Error}")]
+    partial void LogErrorLoadingUserDefinedNodeFile(Exception exception, string file, string error);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Completed processing user defined node file")]
+    partial void LogCompletedProcessingUserDefinedNodeFile();
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Create folder {Folder}")]
+    partial void LogCreateFolder(string folder);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The type of the node configuration for node with name {Name} ({NodeIdType}) is not supported. Only decimal, string, and GUID are supported. Defaulting to string.")]
+    partial void LogUnsupportedNodeType(string name, string nodeIdType);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Create node with Id {TypedNodeId}, BrowseName {Name} and type {Type} in namespace with index {NamespaceIndex}")]
+    partial void LogCreateNode(string typedNodeId, string name, string type, ushort namespaceIndex);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Value {DataType} of node {NodeId} cannot be parsed. Defaulting to Int32")]
+    partial void LogCannotParseDataType(string dataType, string nodeId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "AccessLevel {AccessLevel} of node {Name} is not supported. Defaulting to CurrentReadOrWrite")]
+    partial void LogUnsupportedAccessLevel(string accessLevel, string name);
 }

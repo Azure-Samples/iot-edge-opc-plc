@@ -29,7 +29,7 @@
 
 namespace AlarmCondition;
 
-using Opc.Ua;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -43,8 +43,9 @@ public class UnderlyingSystem : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="UnderlyingSystem"/> class.
     /// </summary>
-    public UnderlyingSystem()
+    public UnderlyingSystem(ILogger logger)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         m_sources = new Dictionary<string, UnderlyingSystemSource>();
     }
     #endregion
@@ -94,7 +95,7 @@ public class UnderlyingSystem : IDisposable
         lock (m_lock)
         {
             // create a new source.
-            source = new UnderlyingSystemSource();
+            source = new UnderlyingSystemSource(_logger);
 
             // extract the name from the path.
             string name = sourcePath;
@@ -216,12 +217,12 @@ public class UnderlyingSystem : IDisposable
         }
         catch (OutOfMemoryException oome)
         {
-            Utils.Trace(oome, $"OutOfMemoryException: {oome.Message}");
+            _logger.LogCritical(oome, "OutOfMemoryException in alarm simulation");
             Environment.Exit(-1); // Exit app as we cannot recover from this.
         }
         catch (Exception e)
         {
-            Utils.Trace(e, "Unexpected error running simulation for system");
+            _logger.LogError(e, "Unexpected error running simulation for system");
         }
     }
 
@@ -252,6 +253,7 @@ public class UnderlyingSystem : IDisposable
     #region Private Fields
     private readonly object m_lock = new object();
     private readonly Dictionary<string, UnderlyingSystemSource> m_sources;
+    private readonly ILogger _logger;
     private Timer m_simulationTimer;
     private long m_simulationCounter;
     #endregion

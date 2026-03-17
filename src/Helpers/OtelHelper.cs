@@ -1,6 +1,5 @@
 namespace OpcPlc.Helpers;
 
-using Opc.Ua;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
@@ -8,14 +7,20 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 using System;
+using System.Collections.Generic;
 
 public static class OtelHelper
 {
-    public static void ConfigureOpenTelemetry(string serviceName, string exportEndpointUri, string exportProtocol, TimeSpan exportInterval)
+    public static IDisposable ConfigureOpenTelemetry(
+        string serviceName,
+        string exportEndpointUri,
+        string exportProtocol,
+        TimeSpan exportInterval,
+        string activitySourceName)
     {
-        _ = Sdk.CreateTracerProviderBuilder()
+        TracerProvider tracerProvider = Sdk.CreateTracerProviderBuilder()
             .AddAspNetCoreInstrumentation()
-            .AddSource(EndpointBase.ActivitySourceName)
+            .AddSource(activitySourceName)
             .SetResourceBuilder(ResourceBuilder.CreateDefault()
                 .AddService(serviceName))
             .AddOtlpExporter(exporterOptions => {
@@ -27,7 +32,7 @@ public static class OtelHelper
             })
             .Build();
 
-        _ = Sdk.CreateMeterProviderBuilder()
+        MeterProvider meterProvider = Sdk.CreateMeterProviderBuilder()
             .SetResourceBuilder(ResourceBuilder.CreateDefault()
                 .AddService(MetricsHelper.ServiceName).AddTelemetrySdk())
             .AddMeter(MetricsHelper.Meter.Name)
@@ -44,5 +49,25 @@ public static class OtelHelper
                 };
             })
             .Build();
+
+        return new TelemetryProvidersLifetime(tracerProvider, meterProvider);
+    }
+
+    private sealed class TelemetryProvidersLifetime : IDisposable
+    {
+        private readonly List<IDisposable> _providers;
+
+        public TelemetryProvidersLifetime(params IDisposable[] providers)
+        {
+            _providers = [.. providers];
+        }
+
+        public void Dispose()
+        {
+            foreach (IDisposable provider in _providers)
+            {
+                provider.Dispose();
+            }
+        }
     }
 }

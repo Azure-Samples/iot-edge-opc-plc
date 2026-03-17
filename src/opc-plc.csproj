@@ -36,6 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="KubernetesClient" Version="19.0.2" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Mono.Options" Version="6.12.0.148" />
     <PackageReference Include="OpenTelemetry" Version="1.15.0" />
@@ -56,26 +57,30 @@
   <Choose>
     <When Condition="'$(Configuration)'=='Debug'">
       <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.5.376.244" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.5.376.244" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.5.378.106" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.5.378.106" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" Version="1.5.378.106" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types.Debug" Version="1.5.378.106" NoWarn="NU5104" />
       </ItemGroup>
       <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
         <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Security.Certificates\Opc.Ua.Security.Certificates.csproj" />
         <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj" />
         <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj" />
+        <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Types\Opc.Ua.Types.csproj" />
       </ItemGroup>
     </When>
     <When Condition="'$(Configuration)'=='Release'">
       <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.5.376.244" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.5.376.244" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.5.378.106" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.5.378.106" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.5.378.106" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types" Version="1.5.378.106" NoWarn="NU5104" />
       </ItemGroup>
       <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
         <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Security.Certificates\Opc.Ua.Security.Certificates.csproj" />
         <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj" />
         <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj" />
+        <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Types\Opc.Ua.Types.csproj" />
       </ItemGroup>
     </When>
   </Choose>

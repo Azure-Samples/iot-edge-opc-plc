@@ -32,7 +32,7 @@ public class SimSourceNodeState : BaseObjectState
         Description = null;
         ReferenceTypeId = null;
         TypeDefinitionId = ObjectTypeIds.BaseObjectType;
-        EventNotifier = EventNotifiers.None;
+        EventNotifier = EventNotifiers.SubscribeToEvents;
 
         // This is to create all alarms
         _simSourceNodeBackend.Refresh();
@@ -123,6 +123,14 @@ public class SimSourceNodeState : BaseObjectState
             null,
             true);
 
+        if (node.BranchId is null)
+        {
+            node.BranchId = new PropertyState<NodeId>(node)
+            {
+                Value = NodeId.Null
+            };
+        }
+
         // initialize event information.node
         node.EventType.Value = node.TypeDefinitionId;
         node.SourceNode.Value = NodeId;
@@ -130,7 +138,7 @@ public class SimSourceNodeState : BaseObjectState
         node.ConditionName.Value = node.SymbolicName;
         node.Time.Value = DateTime.UtcNow;
         node.ReceiveTime.Value = node.Time.Value;
-        node.BranchId.Value = branchId;
+        node.BranchId.Value = branchId ?? NodeId.Null;
 
         // don't add branches to the address space.
         if (NodeId.IsNull(branchId))
@@ -176,6 +184,9 @@ public class SimSourceNodeState : BaseObjectState
         node.EnabledState.TransitionTime = new PropertyState<DateTime>(node.EnabledState);
         node.EnabledState.EffectiveDisplayName = new PropertyState<LocalizedText>(node.EnabledState);
         node.EnabledState.Create(context, null, BrowseNames.EnabledState, null, false);
+
+        node.BranchId = new PropertyState<NodeId>(node);
+        node.BranchId.Create(context, null, BrowseNames.BranchId, null, false);
 
         // specify reference type between the source and the alarm.
         node.ReferenceTypeId = ReferenceTypeIds.HasComponent;

@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Node with a sine wave value with a spike anomaly.
 /// </summary>
-public class SpikePluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class SpikePluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
@@ -50,7 +50,7 @@ public class SpikePluginNode(TimeService timeService, ILogger logger) : PluginNo
         {
             _spikeCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _spikeAnomalyCycle = _random.Next(_plcNodeManager.PlcSimulationInstance.SimulationCycleCount);
-            _logger.LogTrace($"First spike anomaly cycle: {_spikeAnomalyCycle}");
+            LogFirstSpikeAnomalyCycle(_spikeAnomalyCycle);
 
             _node.Start(SpikeGenerator, _plcNodeManager.PlcSimulationInstance.SimulationCycleLength);
         }
@@ -97,22 +97,34 @@ public class SpikePluginNode(TimeService timeService, ILogger logger) : PluginNo
         {
             // TODO: calculate
             nextValue = SimulationMaxAmplitude * 10;
-            _logger.LogTrace("Generate spike anomaly");
+            LogGenerateSpikeAnomaly();
         }
         else
         {
             nextValue = SimulationMaxAmplitude * Math.Sin(((2 * Math.PI) / _plcNodeManager.PlcSimulationInstance.SimulationCycleCount) * _spikeCycleInPhase);
         }
-        _logger.LogTrace($"Spike cycle: {_spikeCycleInPhase} data: {nextValue}");
+        LogSpikeCycleData(_spikeCycleInPhase, nextValue);
 
         // end of cycle: reset cycle count and calc next anomaly cycle
         if (--_spikeCycleInPhase == 0)
         {
             _spikeCycleInPhase = _plcNodeManager.PlcSimulationInstance.SimulationCycleCount;
             _spikeAnomalyCycle = _random.Next(_plcNodeManager.PlcSimulationInstance.SimulationCycleCount);
-            _logger.LogTrace($"Next spike anomaly cycle: {_spikeAnomalyCycle}");
+            LogNextSpikeAnomalyCycle(_spikeAnomalyCycle);
         }
 
         return nextValue;
     }
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "First spike anomaly cycle: {SpikeAnomalyCycle}")]
+    partial void LogFirstSpikeAnomalyCycle(int spikeAnomalyCycle);
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Generate spike anomaly")]
+    partial void LogGenerateSpikeAnomaly();
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Spike cycle: {SpikeCycleInPhase} data: {NextValue}")]
+    partial void LogSpikeCycleData(int spikeCycleInPhase, double nextValue);
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Next spike anomaly cycle: {SpikeAnomalyCycle}")]
+    partial void LogNextSpikeAnomalyCycle(int spikeAnomalyCycle);
 }

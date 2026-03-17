@@ -9,7 +9,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Nodes with values: Cycling step-up, alternating boolean, random signed 32-bit integer and random unsigend 32-bit integer.
 /// </summary>
-public class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
+public partial class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private bool _isEnabled = true;
     private PlcNodeManager _plcNodeManager;
@@ -177,7 +177,7 @@ public class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNo
     private ServiceResult OnResetStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         ResetStepUpData();
-        _logger.LogDebug("ResetStepUp method called");
+        LogResetStepUpMethodCalled();
         return ServiceResult.Good;
     }
 
@@ -187,7 +187,7 @@ public class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNo
     private ServiceResult OnStartStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         StartStepUp();
-        _logger.LogDebug("StartStepUp method called");
+        LogStartStepUpMethodCalled();
         return ServiceResult.Good;
     }
 
@@ -197,7 +197,7 @@ public class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNo
     private ServiceResult OnStopStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
     {
         StopStepUp();
-        _logger.LogDebug("StopStepUp method called");
+        LogStopStepUpMethodCalled();
         return ServiceResult.Good;
     }
 
@@ -232,7 +232,7 @@ public class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNo
         bool nextAlternatingBoolean = _alternatingBooleanCycleInPhase % _plcNodeManager.PlcSimulationInstance.SimulationCycleCount == 0 ? !value : value;
         if (value != nextAlternatingBoolean)
         {
-            _logger.LogTrace($"Data change to: {nextAlternatingBoolean}");
+            LogDataChange(nextAlternatingBoolean);
         }
 
         // end of cycle: reset cycle count
@@ -267,4 +267,16 @@ public class DataPluginNodes(TimeService timeService, ILogger logger) : PluginNo
     {
         _stepUpStarted = false;
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "ResetStepUp method called")]
+    partial void LogResetStepUpMethodCalled();
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "StartStepUp method called")]
+    partial void LogStartStepUpMethodCalled();
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "StopStepUp method called")]
+    partial void LogStopStepUpMethodCalled();
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Data change to: {NextAlternatingBoolean}")]
+    partial void LogDataChange(bool nextAlternatingBoolean);
 }

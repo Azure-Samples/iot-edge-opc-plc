@@ -29,6 +29,7 @@
 
 namespace AlarmCondition;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
 using Opc.Ua.Test;
@@ -53,11 +54,13 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
     /// <summary>
     /// Initializes the node manager.
     /// </summary>
-    public AlarmConditionServerNodeManager(IServerInternal server, ApplicationConfiguration _)
+    public AlarmConditionServerNodeManager(IServerInternal server, ApplicationConfiguration _, ILogger logger, ITelemetryContext telemetryContext)
     :
         base(server, _, OpcPlc.Namespaces.OpcPlcAlarmsInstance)
     {
-        SystemContext.SystemHandle = m_system = new UnderlyingSystem();
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _telemetryContext = telemetryContext ?? throw new ArgumentNullException(nameof(telemetryContext));
+        SystemContext.SystemHandle = m_system = new UnderlyingSystem(_logger);
         SystemContext.NodeIdFactory = this;
 
         // create the table to store the available areas.
@@ -264,7 +267,7 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
         }
         catch (Exception e)
         {
-            Utils.Trace(e, "Unexpected error in OnRaiseSystemEvents");
+            _logger.LogError(e, "Unexpected error in OnRaiseSystemEvents");
         }
     }
 
@@ -293,7 +296,7 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
         }
         catch (Exception ex)
         {
-            Utils.Trace(ex, "Unexpected error in OnDeterministicEvent");
+            _logger.LogError(ex, "Unexpected error in OnDeterministicEvent");
         }
     }
 
@@ -521,7 +524,7 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
 
     private void ResetRandomGenerator(int seed, int boundaryValueFrequency = 0)
     {
-        m_generator = new DataGenerator(new RoundRobinSource(seed));
+        m_generator = new DataGenerator(new RoundRobinSource(seed), _telemetryContext);
         m_generator.BoundaryValueFrequency = boundaryValueFrequency;
     }
 
@@ -533,6 +536,8 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
     private readonly Dictionary<string, SourceState> m_sources;
     private Timer m_simulationTimer;
     private DataGenerator m_generator;
+    private readonly ILogger _logger;
+    private readonly ITelemetryContext _telemetryContext;
 
     private Timer _deterministicEventTimer;
     private SourceState[] _deterministicEventSources;
