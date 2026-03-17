@@ -247,4 +247,26 @@ public class Boiler2Tests : SimulatorTestsBase
         var currentMaintenanceInterval = (uint)(await ReadDataValueAsync(overheatIntervalNodeId).ConfigureAwait(false)).Value;
         currentMaintenanceInterval.Should().Be(newValue);
     }
+
+    [TestCase, Order(15)]
+    public async Task SetAssetId()
+    {
+        var newValue = "Asset-12345";
+        var assetIdNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_AssetId, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var statusCode = await WriteValueAsync(assetIdNodeId, newValue).ConfigureAwait(false);
+        statusCode.Should().Be(StatusCodes.Good);
+        var currentAssetId = (string)(await Session.ReadValueAsync(assetIdNodeId).ConfigureAwait(false)).Value;
+        currentAssetId.Should().Be(newValue);
+    }
+
+    [TestCase, Order(16)]
+    public async Task SetDeviceManual()
+    {
+        var newValue = "https://example.com/manual/boiler2.pdf";
+        var deviceManualNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceManual, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var statusCode = await WriteValueAsync(deviceManualNodeId, newValue).ConfigureAwait(false);
+        statusCode.Should().Be(StatusCodes.Good);
+        var currentDeviceManual = (string)(await Session.ReadValueAsync(deviceManualNodeId).ConfigureAwait(false)).Value;
+        currentDeviceManual.Should().Be(newValue);
+    }
 }
