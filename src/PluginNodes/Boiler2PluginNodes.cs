@@ -136,6 +136,20 @@ public class Boiler2PluginNodes(TimeService timeService, ILogger logger) : Plugi
         AllowReadAndWrite(_overheatThresholdDegreesNode);
         AllowReadAndWrite(_maintenanceIntervalInSecondsNode);
 
+        // Find and enable write access to device properties for testing.
+        var assetIdNode = (PropertyState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_AssetId, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(PropertyState));
+        var deviceManualNode = (PropertyState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_DeviceManual, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(PropertyState));
+
+        if (assetIdNode is not null)
+        {
+            AllowReadAndWrite(assetIdNode);
+        }
+        
+        if (deviceManualNode is not null)
+        {
+            AllowReadAndWrite(deviceManualNode);
+        }
+
         SetValue(_tempSpeedDegreesPerSecNode, _tempSpeedDegreesPerSec);
         SetValue(_baseTempDegreesNode, _baseTempDegrees);
         SetValue(_targetTempDegreesNode, _targetTempDegrees);
