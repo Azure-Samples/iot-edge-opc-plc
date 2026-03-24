@@ -155,7 +155,6 @@ public partial class OpcPlcServer
         {
             _otelProviders?.Dispose();
             _telemetryContext?.Dispose();
-            LoggerFactory?.Dispose();
         }
 
         LogServerExiting();
