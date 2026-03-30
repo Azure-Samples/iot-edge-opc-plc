@@ -53,11 +53,11 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
         _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
 
         // Find the Boiler1 node that was created when the model was loaded.
-        var passiveBoiler1Node = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel1.Objects.Boiler1, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
-        var boilersNode = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(BoilerModel2.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
-        var boiler2Node = (BaseObjectState)_plcNodeManager.FindPredefinedNode(new NodeId(5017, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]), typeof(BaseObjectState));
+        var passiveBoiler1Node = _plcNodeManager.FindPredefinedNode<BaseObjectState>(new NodeId(BoilerModel1.Objects.Boiler1, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        var boilersNode = _plcNodeManager.FindPredefinedNode<BaseObjectState>(new NodeId(BoilerModel2.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        var boiler2Node = _plcNodeManager.FindPredefinedNode<BaseObjectState>(new NodeId(5017, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
 
-        var boilerStatus = (BaseDataVariableState)_plcNodeManager.FindPredefinedNode(ExpandedNodeId.ToNodeId(BoilerModel1.VariableIds.Boiler1_BoilerStatus, _plcNodeManager.Server.NamespaceUris), typeof(BaseDataVariableState));
+        var boilerStatus = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(ExpandedNodeId.ToNodeId(BoilerModel1.VariableIds.Boiler1_BoilerStatus, _plcNodeManager.Server.NamespaceUris));
         AllowReadAndWrite(boilerStatus);
 
         // Convert to node that can be manipulated within the server.
