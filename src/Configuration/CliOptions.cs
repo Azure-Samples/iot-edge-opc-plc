@@ -92,6 +92,10 @@ public static class CliOptions
             },
             { "aa|autoaccept", $"all certs are trusted when a connection is established.\nDefault: {config.OpcUa.AutoAcceptCerts}", (s) => config.OpcUa.AutoAcceptCerts = s != null },
 
+            { "rsha1|rejectsha1", $"reject SHA1 signed certificates.\nDefault: {config.OpcUa.RejectSHA1SignedCertificates}", (s) => config.OpcUa.RejectSHA1SignedCertificates = s != null },
+
+            { "mks|mincertkeysize=", $"the minimum certificate key size allowed.\nDefault: {config.OpcUa.MinimumCertificateKeySize}", (ushort i) => config.OpcUa.MinimumCertificateKeySize = i },
+
             { "drurs|dontrejectunknownrevocationstatus", $"Don't reject chain validation with CA certs with unknown revocation status, e.g. when the CRL is not available or the OCSP provider is offline.\nDefault: {config.OpcUa.DontRejectUnknownRevocationStatus}", (s) => config.OpcUa.DontRejectUnknownRevocationStatus = s != null },
 
             { "ut|unsecuretransport", $"enables the unsecured transport.\nDefault: {config.OpcUa.EnableUnsecureTransport}", (s) => config.OpcUa.EnableUnsecureTransport = s != null },

@@ -247,8 +247,8 @@ public partial class OpcUaAppConfigFactory(
         var options = securityBuilder.AddSecurityConfiguration(applicationCerts, _config.OpcUa.OpcOwnPKIRootDefault, rejectedRoot: null)
             .SetAutoAcceptUntrustedCertificates(_config.OpcUa.AutoAcceptCerts)
             .SetRejectUnknownRevocationStatus(!_config.OpcUa.DontRejectUnknownRevocationStatus)
-            .SetRejectSHA1SignedCertificates(false)
-            .SetMinimumCertificateKeySize(1024)
+            .SetRejectSHA1SignedCertificates(_config.OpcUa.RejectSHA1SignedCertificates)
+            .SetMinimumCertificateKeySize(_config.OpcUa.MinimumCertificateKeySize)
             .SetAddAppCertToTrustedStore(_config.OpcUa.TrustMyself);
 
         var securityConfiguration = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration;
