@@ -115,4 +115,94 @@ public class CliOptionsTests
         config.OpcUa.OpcTrustedUserCertStorePath.Should().Be(trustedUserPath);
         config.OpcUa.OpcUserIssuerCertStorePath.Should().Be(userIssuerPath);
     }
+
+    [Test]
+    public void Parse_RejectSha1_DefaultIsFalse()
+    {
+        // Arrange
+        var config = new OpcPlcConfiguration();
+        var args = System.Array.Empty<string>();
+        var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
+
+        // Act
+        _ = CliOptions.InitConfiguration(args, config, pluginNodes);
+
+        // Assert
+        config.OpcUa.RejectSHA1SignedCertificates.Should().BeFalse();
+    }
+
+    [Test]
+    public void Parse_RejectSha1Flag_SetsConfigToTrue()
+    {
+        // Arrange
+        var config = new OpcPlcConfiguration();
+        var args = new[] { "--rejectsha1" };
+        var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
+
+        // Act
+        _ = CliOptions.InitConfiguration(args, config, pluginNodes);
+
+        // Assert
+        config.OpcUa.RejectSHA1SignedCertificates.Should().BeTrue();
+    }
+
+    [Test]
+    public void Parse_RejectSha1ShortFlag_SetsConfigToTrue()
+    {
+        // Arrange
+        var config = new OpcPlcConfiguration();
+        var args = new[] { "--rsha1" };
+        var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
+
+        // Act
+        _ = CliOptions.InitConfiguration(args, config, pluginNodes);
+
+        // Assert
+        config.OpcUa.RejectSHA1SignedCertificates.Should().BeTrue();
+    }
+
+    [Test]
+    public void Parse_MinCertKeySize_DefaultIs2048()
+    {
+        // Arrange
+        var config = new OpcPlcConfiguration();
+        var args = System.Array.Empty<string>();
+        var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
+
+        // Act
+        _ = CliOptions.InitConfiguration(args, config, pluginNodes);
+
+        // Assert
+        config.OpcUa.MinimumCertificateKeySize.Should().Be(2048);
+    }
+
+    [Test]
+    public void Parse_MinCertKeySize_SetsConfigValue()
+    {
+        // Arrange
+        var config = new OpcPlcConfiguration();
+        var args = new[] { "--mincertkeysize=4096" };
+        var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
+
+        // Act
+        _ = CliOptions.InitConfiguration(args, config, pluginNodes);
+
+        // Assert
+        config.OpcUa.MinimumCertificateKeySize.Should().Be(4096);
+    }
+
+    [Test]
+    public void Parse_MinCertKeySizeShortOption_SetsConfigValue()
+    {
+        // Arrange
+        var config = new OpcPlcConfiguration();
+        var args = new[] { "--mks=1024" };
+        var pluginNodes = ImmutableList<OpcPlc.PluginNodes.Models.IPluginNodes>.Empty;
+
+        // Act
+        _ = CliOptions.InitConfiguration(args, config, pluginNodes);
+
+        // Assert
+        config.OpcUa.MinimumCertificateKeySize.Should().Be(1024);
+    }
 }

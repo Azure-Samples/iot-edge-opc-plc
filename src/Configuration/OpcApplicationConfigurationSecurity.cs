@@ -58,6 +58,16 @@ public partial class OpcApplicationConfiguration
     public string OpcUserIssuerCertStorePath { get; set; }
 
     /// <summary>
+    /// Reject SHA1 signed certificates.
+    /// </summary>
+    public bool RejectSHA1SignedCertificates { get; set; }
+
+    /// <summary>
+    /// Minimum certificate key size in bits.
+    /// </summary>
+    public ushort MinimumCertificateKeySize { get; set; } = 2048;
+
+    /// <summary>
     /// Accept certs of the clients automatically.
     /// </summary>
     public bool AutoAcceptCerts { get; set; }

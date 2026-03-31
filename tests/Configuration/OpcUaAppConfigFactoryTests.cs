@@ -328,4 +328,132 @@ public class OpcUaAppConfigFactoryTests
             try { Directory.Delete(root, recursive: true); } catch { };
         }
     }
+
+    [Test]
+    [TestCase((ushort)1024)]
+    [TestCase((ushort)2048)]
+    [TestCase((ushort)4096)]
+    public async Task ConfigureAsync_MinimumCertificateKeySize_AppliedToSecurityConfiguration(ushort keySize)
+    {
+        // Arrange
+        string root = Path.Combine(Path.GetTempPath(), "opcplc_test_pki_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var config = new OpcPlcConfiguration();
+            config.OpcUa.OpcOwnCertStoreType = FlatDirectoryCertificateStore.StoreTypeName;
+            config.OpcUa.OpcOwnCertStorePath = Path.Combine(root, "own");
+            config.OpcUa.OpcTrustedCertStorePath = Path.Combine(root, "trusted");
+            config.OpcUa.OpcRejectedCertStorePath = Path.Combine(root, "rejected");
+            config.OpcUa.OpcIssuerCertStorePath = Path.Combine(root, "issuer");
+            config.OpcUa.OpcTrustedUserCertStorePath = Path.Combine(root, "trusted-user");
+            config.OpcUa.OpcUserIssuerCertStorePath = Path.Combine(root, "issuer-user");
+            config.OpcUa.MinimumCertificateKeySize = keySize;
+
+            Directory.CreateDirectory(config.OpcUa.OpcOwnCertStorePath);
+
+            var loggerMock = new Mock<ILogger>();
+            var loggerFactoryMock = new Mock<ILoggerFactory>();
+            loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+            var telemetryContext = new OpcTelemetryContext(loggerFactoryMock.Object, "Opc.Ua", OpcTelemetryContext.ResolveOpcPlcVersion());
+
+            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext);
+
+            // Act
+            var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+
+            // Assert - security configuration should reflect the requested minimum key size
+            appConfig.SecurityConfiguration.MinimumCertificateKeySize.Should().Be(keySize);
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { };
+        }
+    }
+
+    [Test]
+    public async Task ConfigureAsync_MinimumCertificateKeySize_GeneratedCertificateMeetsMinimum()
+    {
+        // Arrange
+        string root = Path.Combine(Path.GetTempPath(), "opcplc_test_pki_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var config = new OpcPlcConfiguration();
+            config.OpcUa.OpcOwnCertStoreType = FlatDirectoryCertificateStore.StoreTypeName;
+            config.OpcUa.OpcOwnCertStorePath = Path.Combine(root, "own");
+            config.OpcUa.OpcTrustedCertStorePath = Path.Combine(root, "trusted");
+            config.OpcUa.OpcRejectedCertStorePath = Path.Combine(root, "rejected");
+            config.OpcUa.OpcIssuerCertStorePath = Path.Combine(root, "issuer");
+            config.OpcUa.OpcTrustedUserCertStorePath = Path.Combine(root, "trusted-user");
+            config.OpcUa.OpcUserIssuerCertStorePath = Path.Combine(root, "issuer-user");
+            config.OpcUa.MinimumCertificateKeySize = 2048;
+
+            Directory.CreateDirectory(config.OpcUa.OpcOwnCertStorePath);
+
+            var loggerMock = new Mock<ILogger>();
+            var loggerFactoryMock = new Mock<ILoggerFactory>();
+            loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+            var telemetryContext = new OpcTelemetryContext(loggerFactoryMock.Object, "Opc.Ua", OpcTelemetryContext.ResolveOpcPlcVersion());
+
+            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext);
+
+            // Act
+            var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+
+            // Assert - the generated application certificate key size should meet the minimum
+            var certificate = appConfig.SecurityConfiguration.ApplicationCertificate.Certificate;
+            certificate.Should().NotBeNull("a self-signed application certificate should have been created");
+
+            using var rsaKey = certificate.GetRSAPublicKey();
+            rsaKey.Should().NotBeNull();
+            rsaKey.KeySize.Should().BeGreaterThanOrEqualTo(config.OpcUa.MinimumCertificateKeySize,
+                "generated application certificate key size should meet or exceed the configured minimum");
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { };
+        }
+    }
+
+    [Test]
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task ConfigureAsync_RejectSHA1SignedCertificates_AppliedToSecurityConfiguration(bool rejectSha1)
+    {
+        // Arrange
+        string root = Path.Combine(Path.GetTempPath(), "opcplc_test_pki_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var config = new OpcPlcConfiguration();
+            config.OpcUa.OpcOwnCertStoreType = FlatDirectoryCertificateStore.StoreTypeName;
+            config.OpcUa.OpcOwnCertStorePath = Path.Combine(root, "own");
+            config.OpcUa.OpcTrustedCertStorePath = Path.Combine(root, "trusted");
+            config.OpcUa.OpcRejectedCertStorePath = Path.Combine(root, "rejected");
+            config.OpcUa.OpcIssuerCertStorePath = Path.Combine(root, "issuer");
+            config.OpcUa.OpcTrustedUserCertStorePath = Path.Combine(root, "trusted-user");
+            config.OpcUa.OpcUserIssuerCertStorePath = Path.Combine(root, "issuer-user");
+            config.OpcUa.RejectSHA1SignedCertificates = rejectSha1;
+
+            Directory.CreateDirectory(config.OpcUa.OpcOwnCertStorePath);
+
+            var loggerMock = new Mock<ILogger>();
+            var loggerFactoryMock = new Mock<ILoggerFactory>();
+            loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+            var telemetryContext = new OpcTelemetryContext(loggerFactoryMock.Object, "Opc.Ua", OpcTelemetryContext.ResolveOpcPlcVersion());
+
+            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext);
+
+            // Act
+            var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+
+            // Assert
+            appConfig.SecurityConfiguration.RejectSHA1SignedCertificates.Should().Be(rejectSha1);
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { };
+        }
+    }
 }

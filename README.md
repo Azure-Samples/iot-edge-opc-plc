@@ -475,6 +475,11 @@ Options:
       --aa, --autoaccept     all certs are trusted when a connection is
                                established.
                                Default: False
+      --rsha1, --rejectsha1  reject SHA1 signed certificates.
+                               Default: False
+      --mks, --mincertkeysize=VALUE
+                             the minimum certificate key size allowed.
+                               Default: 2048
       --drurs, --dontrejectunknownrevocationstatus
                              Don't reject chain validation with CA certs with
                                unknown revocation status, e.g. when the CRL is
