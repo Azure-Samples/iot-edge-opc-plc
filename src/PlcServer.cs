@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
 using OpcPlc.CompanionSpecs.DI;
+using OpcPlc.CompanionSpecs.IA;
 using OpcPlc.Configuration;
 using OpcPlc.DeterministicAlarms;
 using OpcPlc.PluginNodes.Models;
@@ -545,6 +546,10 @@ public partial class PlcServer : StandardServer
         // Add DI node manager first so that it gets the namespace index 2.
         var diNodeManager = new DiNodeManager(server, configuration);
         nodeManagers.Add(diNodeManager);
+
+        // Add IA node manager (depends on DI, includes Stacklight types).
+        var iaNodeManager = new IaNodeManager(server, configuration);
+        nodeManagers.Add(iaNodeManager);
 
         PlcNodeManager = new PlcNodeManager(
             server,

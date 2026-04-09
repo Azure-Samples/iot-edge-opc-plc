@@ -32,6 +32,8 @@ public partial class OpcPlcServer
 
     public OpcPlcConfiguration Config { get; set; }
 
+    public ImmutableList<IPluginNodes> PluginNodes => _pluginNodes;
+
     /// <summary>
     /// The LoggerFactory used to create logging objects.
     /// </summary>
@@ -139,7 +141,7 @@ public partial class OpcPlcServer
             }
 
             using var host = CreateHostBuilder(args);
-            if (Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh)
+            if (Config.WebServerPort > 0)
             {
                 StartWebServer(host);
             }

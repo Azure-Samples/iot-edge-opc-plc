@@ -95,6 +95,15 @@
     <None Update="CompanionSpecs\DI\Opc.Ua.DI.PredefinedNodes.uanodes">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="CompanionSpecs\IA\Opc.Ua.IA.NodeSet2.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="wwwroot\stacklight.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="wwwroot\stacklight.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="nodesfile.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

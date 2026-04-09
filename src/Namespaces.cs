@@ -54,4 +54,9 @@ public static partial class Namespaces
     /// The namespace for DI nodes.
     /// </summary>
     public const string DI = "http://opcfoundation.org/UA/DI/";
+
+    /// <summary>
+    /// The namespace for IA (Industrial Automation) nodes, including Stacklight.
+    /// </summary>
+    public const string IA = "http://opcfoundation.org/UA/IA/";
 }
