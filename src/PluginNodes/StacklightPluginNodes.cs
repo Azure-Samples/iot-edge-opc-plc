@@ -4,11 +4,12 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
+using System;
 using System.Collections.Generic;
 using System.Timers;
 
 /// <summary>
-/// Stacklight simulation with 3 lamp elements (Red, Yellow, Green) that cycle states.
+/// Stacklight simulation with 3 lamp elements (Red, Yellow, Green) driven by StacklightMode.
 /// Based on the OPC UA IA companion specification stacklight model.
 /// </summary>
 public partial class StacklightPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
@@ -25,10 +26,10 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
     private readonly BaseDataVariableState[] _signalColorNodes = new BaseDataVariableState[3];
     private readonly BaseDataVariableState[] _signalModeNodes = new BaseDataVariableState[3];
 
-    private int _cycleCounter;
-
-    // StacklightOperationMode enum values (from IA spec).
-    private const int StacklightModeSegmented = 0;
+    // StacklightMode values used by this simulator.
+    private const int StacklightModeRed = 0;
+    private const int StacklightModeYellow = 1;
+    private const int StacklightModeGreen = 2;
 
     // SignalColor enum values (from IA spec).
     private const int SignalColorRed = 1;
@@ -83,9 +84,10 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
             dataType: DataTypeIds.UInt32,
             valueRank: ValueRanks.Scalar,
             accessLevel: AccessLevels.CurrentReadOrWrite,
-            description: "Shows how the stacklight unit is used (0=Segmented, 1=Levelmeter, 2=RunningLight, 3=Other).",
+            description: "Controls the active lamp (0=Red, 1=Yellow, 2=Green).",
             NamespaceType.OpcPlcApplications,
-            defaultValue: (uint)StacklightModeSegmented);
+            defaultValue: (uint)StacklightModeRed);
+        _stacklightModeNode.OnSimpleWriteValue = OnWriteStacklightMode;
 
         AddLamp(stacklightFolder, 0, "Red", SignalColorRed);
         AddLamp(stacklightFolder, 1, "Yellow", SignalColorYellow);
@@ -97,6 +99,8 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
             PluginNodesHelper.GetNodeWithIntervals(_signalOnNodes[1].NodeId, _plcNodeManager),
             PluginNodesHelper.GetNodeWithIntervals(_signalOnNodes[2].NodeId, _plcNodeManager),
         };
+
+        ApplyStacklightMode();
     }
 
     private void AddLamp(FolderState parent, int index, string colorName, int signalColor)
@@ -145,31 +149,53 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
 
     private void UpdateStacklight(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        _cycleCounter++;
+        ApplyStacklightMode();
+    }
 
-        // Cycle through steady states every 5 seconds:
-        // Phase 0: Green ON
-        // Phase 1: Yellow ON
-        // Phase 2: Red ON
-        int phase = (_cycleCounter / 5) % 3;
+    private void ApplyStacklightMode()
+    {
+        int stacklightMode = (int)(uint)(_stacklightModeNode?.Value ?? (uint)StacklightModeRed);
 
-        switch (phase)
+        switch (stacklightMode)
         {
-            case 0: // Green ON
-                SetLampState(0, signalOn: false, SignalModeContinuous);
-                SetLampState(1, signalOn: false, SignalModeContinuous);
-                SetLampState(2, signalOn: true, SignalModeContinuous);
-                break;
-            case 1: // Yellow ON
-                SetLampState(0, signalOn: false, SignalModeContinuous);
-                SetLampState(1, signalOn: true, SignalModeContinuous);
-                SetLampState(2, signalOn: false, SignalModeContinuous);
-                break;
-            case 2: // Red ON
+            case StacklightModeRed:
                 SetLampState(0, signalOn: true, SignalModeContinuous);
                 SetLampState(1, signalOn: false, SignalModeContinuous);
                 SetLampState(2, signalOn: false, SignalModeContinuous);
                 break;
+            case StacklightModeYellow:
+                SetLampState(0, signalOn: false, SignalModeContinuous);
+                SetLampState(1, signalOn: true, SignalModeContinuous);
+                SetLampState(2, signalOn: false, SignalModeContinuous);
+                break;
+            case StacklightModeGreen:
+                SetLampState(0, signalOn: false, SignalModeContinuous);
+                SetLampState(1, signalOn: false, SignalModeContinuous);
+                SetLampState(2, signalOn: true, SignalModeContinuous);
+                break;
+            default:
+                SetLampState(0, signalOn: false, SignalModeContinuous);
+                SetLampState(1, signalOn: false, SignalModeContinuous);
+                SetLampState(2, signalOn: false, SignalModeContinuous);
+                break;
+        }
+    }
+
+    private ServiceResult OnWriteStacklightMode(ISystemContext context, NodeState node, ref object value)
+    {
+        try
+        {
+            _stacklightModeNode.Value = value;
+            _stacklightModeNode.Timestamp = _timeService.Now();
+            _stacklightModeNode.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
+
+            ApplyStacklightMode();
+            return ServiceResult.Good;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error writing StacklightMode variable");
+            return ServiceResult.Create(ex, StatusCodes.Bad, "Error writing StacklightMode variable.");
         }
     }
 
