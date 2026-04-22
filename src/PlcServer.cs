@@ -668,11 +668,81 @@ public partial class PlcServer : StandardServer
         // request notifications when the user identity is changed, all valid users are accepted by default.
         server.SessionManager.ImpersonateUser += new ImpersonateEventHandler(SessionManager_ImpersonateUser);
 
+        // The standard OPC UA NodeSet defaults the TrustList file node's Writable / UserWritable
+        // properties to false. The SDK's ConfigurationNodeManager does not flip them, so GDS push
+        // orchestrators that probe these properties (e.g. the Azure IoT Operations OPC UA broker /
+        // connector) refuse to attempt the trust list update with "The server does not grant write
+        // access to the TrustList node." Authorization on the actual Open/Write/CloseAndUpdate
+        // methods is enforced separately by HasApplicationSecureAdminAccess, so it is safe to
+        // advertise the node as writable.
+        EnableTrustListWritable(server);
+
         if (Config.RunInChaosMode)
         {
             LogStartChaos();
             Chaos = true;
         }
+    }
+
+    /// <summary>
+    /// Marks the TrustList file nodes of all certificate groups (DefaultApplicationGroup,
+    /// DefaultHttpsGroup, DefaultUserTokenGroup) as Writable / UserWritable so that GDS push
+    /// clients are willing to perform a TrustList update against this server. The trust list
+    /// holds both trusted and issuer certificates, so this also enables issuer pushes. The
+    /// actual authorization is enforced by the SDK on Open / Write / CloseAndUpdate
+    /// (SecurityAdmin role over a SignAndEncrypt channel).
+    /// </summary>
+    private void EnableTrustListWritable(IServerInternal server)
+    {
+        var trustListNodeIds = new[]
+        {
+            Opc.Ua.ObjectIds.ServerConfiguration_CertificateGroups_DefaultApplicationGroup_TrustList,
+            Opc.Ua.ObjectIds.ServerConfiguration_CertificateGroups_DefaultHttpsGroup_TrustList,
+            Opc.Ua.ObjectIds.ServerConfiguration_CertificateGroups_DefaultUserTokenGroup_TrustList,
+        };
+
+        foreach (NodeId trustListNodeId in trustListNodeIds)
+        {
+            try
+            {
+                if (TryEnableWritableOnTrustList(server, trustListNodeId))
+                {
+                    LogTrustListWritableEnabled(trustListNodeId);
+                }
+                else
+                {
+                    LogTrustListNodeNotFound(trustListNodeId);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogTrustListWritableError(trustListNodeId, ex);
+            }
+        }
+    }
+
+    private static bool TryEnableWritableOnTrustList(IServerInternal server, NodeId trustListNodeId)
+    {
+        foreach (INodeManager nodeManager in server.NodeManager.NodeManagers)
+        {
+            if (nodeManager is CustomNodeManager2 customNodeManager &&
+                customNodeManager.FindPredefinedNode<TrustListState>(trustListNodeId) is TrustListState trustList)
+            {
+                if (trustList.Writable != null)
+                {
+                    trustList.Writable.Value = true;
+                }
+
+                if (trustList.UserWritable != null)
+                {
+                    trustList.UserWritable.Value = true;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -1079,6 +1149,21 @@ public partial class PlcServer : StandardServer
         Level = LogLevel.Warning,
         Message = "Starting chaos mode...")]
     partial void LogStartChaos();
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "TrustList node {NodeId} Writable / UserWritable set to true to allow GDS push trust list updates")]
+    partial void LogTrustListWritableEnabled(NodeId nodeId);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "TrustList node {NodeId} not found while enabling Writable / UserWritable for GDS push trust list updates")]
+    partial void LogTrustListNodeNotFound(NodeId nodeId);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Failed to enable Writable / UserWritable on TrustList node {NodeId} for GDS push trust list updates")]
+    partial void LogTrustListWritableError(NodeId nodeId, Exception exception);
 
     [LoggerMessage(
         Level = LogLevel.Information,
