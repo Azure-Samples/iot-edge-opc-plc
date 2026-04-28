@@ -127,7 +127,12 @@ public partial class PlcServer
             }
 
             VerifyCertificateAsync(x509Token.Certificate, default).GetAwaiter().GetResult();
-            args.Identity = new UserIdentity(x509Token);
+
+            // A client that authenticates with a trusted X509 user certificate is treated
+            // as a privileged identity (e.g. a GDS push device). Grant the SecurityAdmin /
+            // ConfigureAdmin roles via SystemConfigurationIdentity so that GDS push
+            // operations such as UpdateCertificate and TrustList updates are permitted.
+            args.Identity = new SystemConfigurationIdentity(new UserIdentity(x509Token));
             LogTokenAccepted("X509", args.Identity.DisplayName);
             return;
         }
