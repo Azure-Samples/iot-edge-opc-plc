@@ -217,6 +217,15 @@ The option `--dalm=<file>` enables deterministic testing of Alarms and Condition
 
 More information about this feature can be found [here](deterministic-alarms.md).
 
+## Stacklight
+The option `--sl` (or `--stacklight`) adds a stacklight simulation to the address space, based on the OPC UA Industrial Automation (IA) companion specification stacklight model.
+
+It creates a `Stacklight` folder under the telemetry node containing:
+- A writable `StacklightMode` variable that controls which lamp is currently active (`0` = Red, `1` = Yellow, `2` = Green).
+- Three lamp elements (Red, Yellow, Green), each exposing `SignalOn`, `SignalColor` and `SignalMode` variables that reflect the current stacklight state.
+
+Writing a new value to `StacklightMode` switches the active lamp. The simulator updates the lamp `SignalOn` states once per second to mirror the selected mode, allowing OPC UA clients to subscribe to and visualize stacklight transitions. A simple HTML viewer is also available at `/stacklight.html` on the OPC PLC web endpoint.
+
 ## Chaos mode
 Randomly injects errors, closes subscriptions or sessions, expires subscriptions and more. You can use it to test the resiliency of OPC UA clients. To enable start the server with the option `--chaos=True`.
 
@@ -626,6 +635,8 @@ Options:
                              the password of the default user.
                                Default: password
       --alm, --alarms        add alarm simulation to address space.
+                               Default: False
+      --sl, --stacklight     add stacklight simulation to address space.
                                Default: False
       --ses, --simpleevents  add simple events simulation to address space.
                                Default: False
