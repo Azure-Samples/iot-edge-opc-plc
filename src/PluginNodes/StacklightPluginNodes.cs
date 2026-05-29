@@ -48,6 +48,11 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
     private const uint IaSignalColorId = 3004;
     private const uint IaSignalModeLightId = 3005;
 
+    /// <summary>
+    /// Gets a value indicating whether the stacklight simulation is enabled via the --stacklight option.
+    /// </summary>
+    public bool IsEnabled => _isEnabled;
+
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
         optionSet.Add(
@@ -59,7 +64,11 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
     public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
     {
         _plcNodeManager = plcNodeManager;
-        AddNodes(telemetryFolder);
+
+        if (_isEnabled)
+        {
+            AddNodes(telemetryFolder);
+        }
     }
 
     public void StartSimulation()
