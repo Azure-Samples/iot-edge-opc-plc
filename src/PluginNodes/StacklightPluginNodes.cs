@@ -10,9 +10,7 @@ using System.Timers;
 
 /// <summary>
 /// Stacklight simulation with 3 lamp elements (Red, Yellow, Green) driven by StacklightMode.
-/// Uses proper OPC UA IA companion specification type definitions (StacklightType) so
-/// that OPC UA clients performing DI discovery can detect this as a typed device.
-/// StacklightType implements IDeviceHealthType from the DI companion spec.
+/// Based on the OPC UA IA companion specification stacklight model.
 /// </summary>
 public partial class StacklightPluginNodes(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
@@ -28,25 +26,18 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
     private readonly BaseDataVariableState[] _signalColorNodes = new BaseDataVariableState[3];
     private readonly BaseDataVariableState[] _signalModeNodes = new BaseDataVariableState[3];
 
-    // Simulator lamp mode values (mapped to StacklightOperationMode enum for the control variable).
-    private const int LampModeRed = 0;
-    private const int LampModeYellow = 1;
-    private const int LampModeGreen = 2;
+    // StacklightMode values used by this simulator.
+    private const int StacklightModeRed = 0;
+    private const int StacklightModeYellow = 1;
+    private const int StacklightModeGreen = 2;
 
-    // SignalColor enum values (IA spec DataType ns=IA;i=3004).
+    // SignalColor enum values (from IA spec).
     private const int SignalColorRed = 1;
     private const int SignalColorGreen = 2;
     private const int SignalColorYellow = 4;
 
-    // SignalModeLight enum values (IA spec DataType ns=IA;i=3005).
+    // SignalModeLight enum values (from IA spec).
     private const int SignalModeContinuous = 0;
-
-    // IA companion spec type NodeId numeric identifiers.
-    private const uint IaStacklightTypeId = 1010;
-    private const uint IaStackElementLightTypeId = 1006;
-    private const uint IaStacklightOperationModeId = 3002;
-    private const uint IaSignalColorId = 3004;
-    private const uint IaSignalModeLightId = 3005;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -80,48 +71,27 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
 
     private void AddNodes(FolderState telemetryFolder)
     {
-        ushort iaNamespaceIndex = (ushort)_plcNodeManager.Server.NamespaceUris.GetIndex(OpcPlc.Namespaces.IA);
-        ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+        FolderState stacklightFolder = _plcNodeManager.CreateFolder(
+            telemetryFolder,
+            path: "Stacklight",
+            name: "Stacklight",
+            NamespaceType.OpcPlcApplications);
 
-        // Create stacklight object using IA StacklightType (implements IDeviceHealthType for DI discovery).
-        var stacklightObject = new BaseObjectState(telemetryFolder)
-        {
-            SymbolicName = "Stacklight",
-            NodeId = new NodeId("Stacklight", appNamespaceIndex),
-            BrowseName = new QualifiedName("Stacklight", appNamespaceIndex),
-            DisplayName = new LocalizedText("en", "Stacklight"),
-            TypeDefinitionId = new NodeId(IaStacklightTypeId, iaNamespaceIndex),
-            ReferenceTypeId = ReferenceTypes.Organizes,
-            WriteMask = AttributeWriteMask.None,
-            UserWriteMask = AttributeWriteMask.None,
-            EventNotifier = EventNotifiers.None,
-        };
-        telemetryFolder.AddChild(stacklightObject);
-
-        // StacklightMode property (IA BrowseName, IA StacklightOperationMode DataType).
-        _stacklightModeNode = new BaseDataVariableState(stacklightObject)
-        {
-            SymbolicName = "StacklightMode",
-            NodeId = new NodeId("Stacklight_StacklightMode", appNamespaceIndex),
-            BrowseName = new QualifiedName("StacklightMode", iaNamespaceIndex),
-            DisplayName = new LocalizedText("en", "StacklightMode"),
-            Description = new LocalizedText("Controls the active lamp (0=Red, 1=Yellow, 2=Green)."),
-            TypeDefinitionId = VariableTypeIds.PropertyType,
-            ReferenceTypeId = ReferenceTypeIds.HasProperty,
-            DataType = new NodeId(IaStacklightOperationModeId, iaNamespaceIndex),
-            ValueRank = ValueRanks.Scalar,
-            AccessLevel = AccessLevels.CurrentReadOrWrite,
-            UserAccessLevel = AccessLevels.CurrentReadOrWrite,
-            Value = LampModeRed,
-            StatusCode = StatusCodes.Good,
-            Timestamp = _timeService.UtcNow(),
-        };
+        _stacklightModeNode = _plcNodeManager.CreateBaseVariable(
+            stacklightFolder,
+            path: "Stacklight_StacklightMode",
+            name: "StacklightMode",
+            dataType: DataTypeIds.UInt32,
+            valueRank: ValueRanks.Scalar,
+            accessLevel: AccessLevels.CurrentReadOrWrite,
+            description: "Controls the active lamp (0=Red, 1=Yellow, 2=Green).",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: (uint)StacklightModeRed);
         _stacklightModeNode.OnSimpleWriteValue = OnWriteStacklightMode;
-        stacklightObject.AddChild(_stacklightModeNode);
 
-        AddLampElement(stacklightObject, 0, "Red", SignalColorRed, iaNamespaceIndex, appNamespaceIndex);
-        AddLampElement(stacklightObject, 1, "Yellow", SignalColorYellow, iaNamespaceIndex, appNamespaceIndex);
-        AddLampElement(stacklightObject, 2, "Green", SignalColorGreen, iaNamespaceIndex, appNamespaceIndex);
+        AddLamp(stacklightFolder, 0, "Red", SignalColorRed);
+        AddLamp(stacklightFolder, 1, "Yellow", SignalColorYellow);
+        AddLamp(stacklightFolder, 2, "Green", SignalColorGreen);
 
         Nodes = new List<NodeWithIntervals>
         {
@@ -133,103 +103,48 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
         ApplyStacklightMode();
     }
 
-    private void AddLampElement(BaseObjectState parent, int index, string colorName, int signalColor, ushort iaNamespaceIndex, ushort appNamespaceIndex)
+    private void AddLamp(FolderState parent, int index, string colorName, int signalColor)
     {
-        string lampId = $"Stacklight_Lamp_{colorName}";
+        string lampPath = $"Stacklight_Lamp_{colorName}";
 
-        // Lamp object using IA StackElementLightType, connected via HasOrderedComponent.
-        var lampObject = new BaseObjectState(parent)
-        {
-            SymbolicName = $"Lamp_{colorName}",
-            NodeId = new NodeId(lampId, appNamespaceIndex),
-            BrowseName = new QualifiedName($"Lamp_{colorName}", appNamespaceIndex),
-            DisplayName = new LocalizedText("en", $"Lamp_{colorName}"),
-            TypeDefinitionId = new NodeId(IaStackElementLightTypeId, iaNamespaceIndex),
-            ReferenceTypeId = ReferenceTypeIds.HasOrderedComponent,
-            WriteMask = AttributeWriteMask.None,
-            UserWriteMask = AttributeWriteMask.None,
-            EventNotifier = EventNotifiers.None,
-        };
-        parent.AddChild(lampObject);
+        FolderState lampFolder = _plcNodeManager.CreateFolder(
+            parent,
+            path: lampPath,
+            name: $"Lamp_{colorName}",
+            NamespaceType.OpcPlcApplications);
 
-        // NumberInList property (mandatory on StackElementType, base OPC UA BrowseName).
-        var numberInList = new BaseDataVariableState(lampObject)
-        {
-            SymbolicName = "NumberInList",
-            NodeId = new NodeId($"{lampId}_NumberInList", appNamespaceIndex),
-            BrowseName = new QualifiedName("NumberInList"),
-            DisplayName = new LocalizedText("en", "NumberInList"),
-            TypeDefinitionId = VariableTypeIds.PropertyType,
-            ReferenceTypeId = ReferenceTypeIds.HasProperty,
-            DataType = DataTypeIds.UInteger,
-            ValueRank = ValueRanks.Scalar,
-            AccessLevel = AccessLevels.CurrentRead,
-            UserAccessLevel = AccessLevels.CurrentRead,
-            Value = (uint)(index + 1),
-            StatusCode = StatusCodes.Good,
-            Timestamp = _timeService.UtcNow(),
-        };
-        lampObject.AddChild(numberInList);
+        _signalOnNodes[index] = _plcNodeManager.CreateBaseVariable(
+            lampFolder,
+            path: $"{lampPath}_SignalOn",
+            name: "SignalOn",
+            dataType: DataTypeIds.Boolean,
+            valueRank: ValueRanks.Scalar,
+            accessLevel: AccessLevels.CurrentReadOrWrite,
+            description: "Indicates if the lamp is currently switched on.",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: false);
 
-        // SignalOn property (IA BrowseName, optional on StackElementType).
-        _signalOnNodes[index] = new BaseDataVariableState(lampObject)
-        {
-            SymbolicName = "SignalOn",
-            NodeId = new NodeId($"{lampId}_SignalOn", appNamespaceIndex),
-            BrowseName = new QualifiedName("SignalOn", iaNamespaceIndex),
-            DisplayName = new LocalizedText("en", "SignalOn"),
-            Description = new LocalizedText("Indicates if the lamp is currently switched on."),
-            TypeDefinitionId = VariableTypeIds.PropertyType,
-            ReferenceTypeId = ReferenceTypeIds.HasProperty,
-            DataType = DataTypeIds.Boolean,
-            ValueRank = ValueRanks.Scalar,
-            AccessLevel = AccessLevels.CurrentReadOrWrite,
-            UserAccessLevel = AccessLevels.CurrentReadOrWrite,
-            Value = false,
-            StatusCode = StatusCodes.Good,
-            Timestamp = _timeService.UtcNow(),
-        };
-        lampObject.AddChild(_signalOnNodes[index]);
+        _signalColorNodes[index] = _plcNodeManager.CreateBaseVariable(
+            lampFolder,
+            path: $"{lampPath}_SignalColor",
+            name: "SignalColor",
+            dataType: DataTypeIds.UInt32,
+            valueRank: ValueRanks.Scalar,
+            accessLevel: AccessLevels.CurrentRead,
+            description: "Colour of the lamp (0=Off, 1=Red, 2=Green, 3=Blue, 4=Yellow, 5=Purple, 6=Cyan, 7=White).",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: (uint)signalColor);
 
-        // SignalColor variable (IA BrowseName, IA SignalColor DataType, optional on StackElementLightType).
-        _signalColorNodes[index] = new BaseDataVariableState(lampObject)
-        {
-            SymbolicName = "SignalColor",
-            NodeId = new NodeId($"{lampId}_SignalColor", appNamespaceIndex),
-            BrowseName = new QualifiedName("SignalColor", iaNamespaceIndex),
-            DisplayName = new LocalizedText("en", "SignalColor"),
-            Description = new LocalizedText("Indicates the colour the lamp has when switched on."),
-            TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
-            ReferenceTypeId = ReferenceTypeIds.HasComponent,
-            DataType = new NodeId(IaSignalColorId, iaNamespaceIndex),
-            ValueRank = ValueRanks.Scalar,
-            AccessLevel = AccessLevels.CurrentRead,
-            UserAccessLevel = AccessLevels.CurrentRead,
-            Value = signalColor,
-            StatusCode = StatusCodes.Good,
-            Timestamp = _timeService.UtcNow(),
-        };
-        lampObject.AddChild(_signalColorNodes[index]);
-
-        // SignalMode variable (IA BrowseName, IA SignalModeLight DataType, optional on StackElementLightType).
-        _signalModeNodes[index] = new BaseDataVariableState(lampObject)
-        {
-            SymbolicName = "SignalMode",
-            NodeId = new NodeId($"{lampId}_SignalMode", appNamespaceIndex),
-            BrowseName = new QualifiedName("SignalMode", iaNamespaceIndex),
-            DisplayName = new LocalizedText("en", "SignalMode"),
-            Description = new LocalizedText("Shows in what way the lamp is used."),
-            TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
-            ReferenceTypeId = ReferenceTypeIds.HasComponent,
-            DataType = new NodeId(IaSignalModeLightId, iaNamespaceIndex),
-            ValueRank = ValueRanks.Scalar,
-            AccessLevel = AccessLevels.CurrentReadOrWrite,
-            UserAccessLevel = AccessLevels.CurrentReadOrWrite,
-            Value = SignalModeContinuous,
-            StatusCode = StatusCodes.Good,
-            Timestamp = _timeService.UtcNow(),
-        };
-        lampObject.AddChild(_signalModeNodes[index]);
+        _signalModeNodes[index] = _plcNodeManager.CreateBaseVariable(
+            lampFolder,
+            path: $"{lampPath}_SignalMode",
+            name: "SignalMode",
+            dataType: DataTypeIds.UInt32,
+            valueRank: ValueRanks.Scalar,
+            accessLevel: AccessLevels.CurrentReadOrWrite,
+            description: "Light mode (0=Continuous, 1=Blinking, 2=Flashing, 3=Other).",
+            NamespaceType.OpcPlcApplications,
+            defaultValue: (uint)SignalModeContinuous);
     }
 
     private void UpdateStacklight(object state, ElapsedEventArgs elapsedEventArgs)
@@ -239,21 +154,21 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
 
     private void ApplyStacklightMode()
     {
-        int stacklightMode = Convert.ToInt32(_stacklightModeNode?.Value ?? LampModeRed);
+        int stacklightMode = (int)(uint)(_stacklightModeNode?.Value ?? (uint)StacklightModeRed);
 
         switch (stacklightMode)
         {
-            case LampModeRed:
+            case StacklightModeRed:
                 SetLampState(0, signalOn: true, SignalModeContinuous);
                 SetLampState(1, signalOn: false, SignalModeContinuous);
                 SetLampState(2, signalOn: false, SignalModeContinuous);
                 break;
-            case LampModeYellow:
+            case StacklightModeYellow:
                 SetLampState(0, signalOn: false, SignalModeContinuous);
                 SetLampState(1, signalOn: true, SignalModeContinuous);
                 SetLampState(2, signalOn: false, SignalModeContinuous);
                 break;
-            case LampModeGreen:
+            case StacklightModeGreen:
                 SetLampState(0, signalOn: false, SignalModeContinuous);
                 SetLampState(1, signalOn: false, SignalModeContinuous);
                 SetLampState(2, signalOn: true, SignalModeContinuous);
@@ -296,7 +211,7 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
 
         return new StacklightState
         {
-            StacklightMode = Convert.ToInt32(_stacklightModeNode?.Value ?? 0),
+            StacklightMode = (uint)(_stacklightModeNode?.Value ?? 0u),
             Lamps =
             [
                 GetLampState(0, "Red"),
@@ -312,14 +227,14 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
         {
             Name = name,
             SignalOn = (bool)(_signalOnNodes[index]?.Value ?? false),
-            SignalColor = Convert.ToInt32(_signalColorNodes[index]?.Value ?? 0),
-            SignalMode = Convert.ToInt32(_signalModeNodes[index]?.Value ?? 0),
+            SignalColor = (uint)(_signalColorNodes[index]?.Value ?? 0u),
+            SignalMode = (uint)(_signalModeNodes[index]?.Value ?? 0u),
         };
     }
 
     public sealed class StacklightState
     {
-        public int StacklightMode { get; set; }
+        public uint StacklightMode { get; set; }
 
         public LampState[] Lamps { get; set; }
     }
@@ -330,9 +245,9 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
 
         public bool SignalOn { get; set; }
 
-        public int SignalColor { get; set; }
+        public uint SignalColor { get; set; }
 
-        public int SignalMode { get; set; }
+        public uint SignalMode { get; set; }
     }
 
     private void SetLampState(int index, bool signalOn, int signalMode)
@@ -341,7 +256,7 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
         _signalOnNodes[index].Timestamp = _timeService.Now();
         _signalOnNodes[index].ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
 
-        _signalModeNodes[index].Value = signalMode;
+        _signalModeNodes[index].Value = (uint)signalMode;
         _signalModeNodes[index].Timestamp = _timeService.Now();
         _signalModeNodes[index].ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }

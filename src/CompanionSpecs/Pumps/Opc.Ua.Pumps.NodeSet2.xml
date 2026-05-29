@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+ * Trimmed subset of the OPC UA Companion Specification for Pumps and Vacuum Pumps
+ * (https://reference.opcfoundation.org/Pumps/v100/docs/).
+ *
+ * Only the types required by the OPC PLC pump simulation are defined here so that the
+ * full ~6.6 MB official NodeSet (which also pulls in the Machinery companion spec) does
+ * not have to be parsed on every server start.
+ *
+ * Differences from the official NodeSet:
+ *  - PumpIdentificationType is re-based directly onto BaseObjectType and implements the
+ *    DI IVendorNameplateType / ITagNameplateType interfaces directly (the official type
+ *    derives from Machinery MachineIdentificationType). This removes the Machinery
+ *    dependency while keeping the pump discoverable via DI (the Identification object
+ *    keeps its DI BrowseName) and via type-based discovery (PumpType keeps NodeId i=1052).
+ *  - A PumpEventType (subtype of BaseEventType) is added so the pump supports events;
+ *    the official Pumps NodeSet does not define any event types.
+ *
+ * OPC Foundation MIT License 1.00 - http://opcfoundation.org/License/MIT/1.00/
+-->
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://opcfoundation.org/UA/Pumps/</Uri>
+    <Uri>http://opcfoundation.org/UA/DI/</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://opcfoundation.org/UA/Pumps/" Version="1.0.0" PublicationDate="2021-04-19T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.04.7" PublicationDate="2020-07-15T00:00:00Z" />
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/DI/" Version="1.02.2" PublicationDate="2020-06-02T00:00:00Z" />
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+    <Alias Alias="BaseObjectType">i=58</Alias>
+    <Alias Alias="BaseDataVariableType">i=63</Alias>
+    <Alias Alias="PropertyType">i=68</Alias>
+    <Alias Alias="Mandatory">i=78</Alias>
+    <Alias Alias="Optional">i=80</Alias>
+    <Alias Alias="BaseEventType">i=2041</Alias>
+    <Alias Alias="HasInterface">i=17603</Alias>
+    <Alias Alias="TopologyElementType">ns=2;i=1001</Alias>
+    <Alias Alias="IVendorNameplateType">ns=2;i=15035</Alias>
+    <Alias Alias="ITagNameplateType">ns=2;i=15048</Alias>
+    <Alias Alias="IDeviceHealthType">ns=2;i=15051</Alias>
+    <Alias Alias="DeviceHealthEnumeration">ns=2;i=6244</Alias>
+  </Aliases>
+
+  <!-- ============================ PumpType ============================ -->
+  <UAObjectType NodeId="ns=1;i=1052" BrowseName="1:PumpType">
+    <DisplayName>PumpType</DisplayName>
+    <Description Locale="en">Represents a pump. Entry point for pump telemetry, identification and health.</Description>
+    <Documentation>https://reference.opcfoundation.org/Pumps/v100/docs/7.1</Documentation>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">TopologyElementType</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5120</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=6200</Reference>
+      <Reference ReferenceType="HasInterface">IDeviceHealthType</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=5120" BrowseName="2:Identification" ParentNodeId="ns=1;i=1052">
+    <DisplayName>Identification</DisplayName>
+    <Description Locale="en">Identification and nameplate information of the pump.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1052</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1005</Reference>
+      <Reference ReferenceType="HasModellingRule">Mandatory</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=6200" BrowseName="2:DeviceHealth" ParentNodeId="ns=1;i=1052" DataType="DeviceHealthEnumeration" AccessLevel="3">
+    <DisplayName>DeviceHealth</DisplayName>
+    <Description Locale="en">Contains the health status information of the pump.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">BaseDataVariableType</Reference>
+      <Reference ReferenceType="HasModellingRule">Mandatory</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1052</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- ===================== PumpIdentificationType ===================== -->
+  <UAObjectType NodeId="ns=1;i=1005" BrowseName="1:PumpIdentificationType">
+    <DisplayName>PumpIdentificationType</DisplayName>
+    <Description Locale="en">Contains information about the identification and nameplate of a pump.</Description>
+    <Documentation>https://reference.opcfoundation.org/Pumps/v100/docs/7.4</Documentation>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">BaseObjectType</Reference>
+      <Reference ReferenceType="HasInterface">IVendorNameplateType</Reference>
+      <Reference ReferenceType="HasInterface">ITagNameplateType</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=6071</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=6073</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=6075</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=6071" BrowseName="2:Manufacturer" ParentNodeId="ns=1;i=1005" DataType="LocalizedText">
+    <DisplayName>Manufacturer</DisplayName>
+    <Description Locale="en">A human-readable, localized name of the manufacturer of the pump.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">PropertyType</Reference>
+      <Reference ReferenceType="HasModellingRule">Mandatory</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1005</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=6073" BrowseName="2:Model" ParentNodeId="ns=1;i=1005" DataType="LocalizedText">
+    <DisplayName>Model</DisplayName>
+    <Description Locale="en">A human-readable, localized name of the product model of the pump.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">PropertyType</Reference>
+      <Reference ReferenceType="HasModellingRule">Mandatory</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1005</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=6075" BrowseName="2:SerialNumber" ParentNodeId="ns=1;i=1005" DataType="String">
+    <DisplayName>SerialNumber</DisplayName>
+    <Description Locale="en">A unique production number of the manufacturer of the pump.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">PropertyType</Reference>
+      <Reference ReferenceType="HasModellingRule">Mandatory</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1005</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- ========================= PumpEventType ========================= -->
+  <UAObjectType NodeId="ns=1;i=1100" BrowseName="1:PumpEventType">
+    <DisplayName>PumpEventType</DisplayName>
+    <Description Locale="en">Event raised by a pump to report changes in its operational telemetry.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">BaseEventType</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=6101</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=6102</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=6103</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=6101" BrowseName="1:PumpId" ParentNodeId="ns=1;i=1100" DataType="String">
+    <DisplayName>PumpId</DisplayName>
+    <Description Locale="en">Identifier of the pump that raised the event.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">PropertyType</Reference>
+      <Reference ReferenceType="HasModellingRule">Mandatory</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1100</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=6102" BrowseName="1:FlowRate" ParentNodeId="ns=1;i=1100" DataType="Double">
+    <DisplayName>FlowRate</DisplayName>
+    <Description Locale="en">Flow rate of the pump at the time the event was raised.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">PropertyType</Reference>
+      <Reference ReferenceType="HasModellingRule">Mandatory</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1100</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=6103" BrowseName="1:Pressure" ParentNodeId="ns=1;i=1100" DataType="Double">
+    <DisplayName>Pressure</DisplayName>
+    <Description Locale="en">Pressure of the pump at the time the event was raised.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">PropertyType</Reference>
+      <Reference ReferenceType="HasModellingRule">Mandatory</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1100</Reference>
+    </References>
+  </UAVariable>
+</UANodeSet>

@@ -10,7 +10,6 @@ using OpcPlc.PluginNodes;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 public class Startup
 {
@@ -38,10 +37,52 @@ public class Startup
             app.UseDeveloperExceptionPage();
         }
 
+        // Serve pn.json
         app.Run(async context => {
-            if (context.Request.Method == "GET" && await HandleStacklightRequestAsync(context).ConfigureAwait(false))
+            if (context.Request.Method == "GET" && context.Request.Path == "/stacklight")
             {
-                return;
+                var stacklightPlugin = Program.OpcPlcServer.PluginNodes?
+                    .OfType<StacklightPluginNodes>()
+                    .FirstOrDefault();
+
+                var state = stacklightPlugin?.GetState();
+                if (state is not null)
+                {
+                    context.Response.ContentType = "application/json";
+                    context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+                    await JsonSerializer.SerializeAsync(context.Response.Body, state, _jsonOptions).ConfigureAwait(false);
+                }
+                else
+                {
+                    context.Response.StatusCode = 404;
+                    await context.Response.WriteAsync("Stacklight not enabled").ConfigureAwait(false);
+                }
+            }
+            else if (context.Request.Method == "GET" && context.Request.Path == "/stacklight.html")
+            {
+                var htmlPath = "wwwroot/stacklight.html";
+                if (File.Exists(htmlPath))
+                {
+                    context.Response.ContentType = "text/html";
+                    await context.Response.WriteAsync(await File.ReadAllTextAsync(htmlPath).ConfigureAwait(false)).ConfigureAwait(false);
+                }
+                else
+                {
+                    context.Response.StatusCode = 404;
+                }
+            }
+            else if (context.Request.Method == "GET" && context.Request.Path == "/stacklight.svg")
+            {
+                var svgPath = "wwwroot/stacklight.svg";
+                if (File.Exists(svgPath))
+                {
+                    context.Response.ContentType = "image/svg+xml";
+                    await context.Response.WriteAsync(await File.ReadAllTextAsync(svgPath).ConfigureAwait(false)).ConfigureAwait(false);
+                }
+                else
+                {
+                    context.Response.StatusCode = 404;
+                }
             }
             else if (context.Request.Method == "GET" &&
                 context.Request.Path == (Program.OpcPlcServer.Config.PnJson[0] != '/' ? "/" : string.Empty) + Program.OpcPlcServer.Config.PnJson &&
@@ -55,64 +96,5 @@ public class Startup
                 context.Response.StatusCode = 404;
             }
         });
-    }
-
-    private static async Task<bool> HandleStacklightRequestAsync(HttpContext context)
-    {
-        if (context.Request.Path == "/stacklight")
-        {
-            var stacklightPlugin = Program.OpcPlcServer.PluginNodes?
-                .OfType<StacklightPluginNodes>()
-                .FirstOrDefault();
-
-            var state = stacklightPlugin?.GetState();
-            if (state is not null)
-            {
-                context.Response.ContentType = "application/json";
-                context.Response.Headers["Access-Control-Allow-Origin"] = "*";
-                await JsonSerializer.SerializeAsync(context.Response.Body, state, _jsonOptions).ConfigureAwait(false);
-            }
-            else
-            {
-                context.Response.StatusCode = 404;
-                await context.Response.WriteAsync("Stacklight not enabled").ConfigureAwait(false);
-            }
-
-            return true;
-        }
-
-        if (context.Request.Path == "/stacklight.html")
-        {
-            var htmlPath = "wwwroot/stacklight.html";
-            if (File.Exists(htmlPath))
-            {
-                context.Response.ContentType = "text/html";
-                await context.Response.WriteAsync(await File.ReadAllTextAsync(htmlPath).ConfigureAwait(false)).ConfigureAwait(false);
-            }
-            else
-            {
-                context.Response.StatusCode = 404;
-            }
-
-            return true;
-        }
-
-        if (context.Request.Path == "/stacklight.svg")
-        {
-            var svgPath = "wwwroot/stacklight.svg";
-            if (File.Exists(svgPath))
-            {
-                context.Response.ContentType = "image/svg+xml";
-                await context.Response.WriteAsync(await File.ReadAllTextAsync(svgPath).ConfigureAwait(false)).ConfigureAwait(false);
-            }
-            else
-            {
-                context.Response.StatusCode = 404;
-            }
-
-            return true;
-        }
-
-        return false;
     }
 }
