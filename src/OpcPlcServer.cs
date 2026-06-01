@@ -143,7 +143,8 @@ public partial class OpcPlcServer
 
             using var host = CreateHostBuilder(args);
             var stacklightEnabled = _pluginNodes.OfType<StacklightPluginNodes>().FirstOrDefault()?.IsEnabled == true;
-            if (Config.WebServerPort > 0 && stacklightEnabled)
+            var publisherJsonEnabled = Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh;
+            if (Config.WebServerPort > 0 && (stacklightEnabled || publisherJsonEnabled))
             {
                 StartWebServer(host);
             }
