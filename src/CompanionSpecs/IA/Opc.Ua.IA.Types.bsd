@@ -1,0 +1,42 @@
+<opc:TypeDictionary xmlns:opc="http://opcfoundation.org/BinarySchema/" DefaultByteOrder="LittleEndian" TargetNamespace="http://opcfoundation.org/UA/IA/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ua="http://opcfoundation.org/UA/" xmlns:tns="http://opcfoundation.org/UA/IA/">
+    <opc:Import Namespace="http://opcfoundation.org/UA/"/>
+    <opc:StructuredType BaseType="ua:ExtensionObject" Name="RGBWDataType">
+        <opc:Field Name="WhiteSpecified" TypeName="opc:Bit"/>
+        <opc:Field Length="31" Name="Reserved1" TypeName="opc:Bit"/>
+        <opc:Field Name="Red" TypeName="opc:Byte"/>
+        <opc:Field Name="Green" TypeName="opc:Byte"/>
+        <opc:Field Name="Blue" TypeName="opc:Byte"/>
+        <opc:Field SwitchField="WhiteSpecified" Name="White" TypeName="opc:Byte"/>
+    </opc:StructuredType>
+    <opc:EnumeratedType LengthInBits="32" Name="LevelDisplayMode">
+        <opc:Documentation>Contains the values used to indicate how a percentual value is displayed if the stacklight unit works in Levelmeter mode.</opc:Documentation>
+        <opc:EnumeratedValue Value="0" Name="Dimmed"/>
+        <opc:EnumeratedValue Value="1" Name="Blinking"/>
+        <opc:EnumeratedValue Value="2" Name="Other"/>
+    </opc:EnumeratedType>
+    <opc:EnumeratedType LengthInBits="32" Name="SignalColor">
+        <opc:Documentation>Holds the possible colour values for stacklight lamps.</opc:Documentation>
+        <opc:EnumeratedValue Value="0" Name="Off"/>
+        <opc:EnumeratedValue Value="1" Name="Red"/>
+        <opc:EnumeratedValue Value="2" Name="Green"/>
+        <opc:EnumeratedValue Value="3" Name="Blue"/>
+        <opc:EnumeratedValue Value="4" Name="Yellow"/>
+        <opc:EnumeratedValue Value="5" Name="Purple"/>
+        <opc:EnumeratedValue Value="6" Name="Cyan"/>
+        <opc:EnumeratedValue Value="7" Name="White"/>
+    </opc:EnumeratedType>
+    <opc:EnumeratedType LengthInBits="32" Name="SignalModeLight">
+        <opc:Documentation>Contains the values used to indicate in what way a lamp behaves when switched on.</opc:Documentation>
+        <opc:EnumeratedValue Value="0" Name="Continuous"/>
+        <opc:EnumeratedValue Value="1" Name="Blinking"/>
+        <opc:EnumeratedValue Value="2" Name="Flashing"/>
+        <opc:EnumeratedValue Value="3" Name="Other"/>
+    </opc:EnumeratedType>
+    <opc:EnumeratedType LengthInBits="32" Name="StacklightOperationMode">
+        <opc:Documentation>Contains the values used to indicate how a stacklight (as a whole unit) is used.</opc:Documentation>
+        <opc:EnumeratedValue Value="0" Name="Segmented"/>
+        <opc:EnumeratedValue Value="1" Name="Levelmeter"/>
+        <opc:EnumeratedValue Value="2" Name="Running_Light"/>
+        <opc:EnumeratedValue Value="3" Name="Other"/>
+    </opc:EnumeratedType>
+</opc:TypeDictionary>

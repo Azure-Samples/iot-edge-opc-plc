@@ -8,6 +8,7 @@ using OpcPlc.Configuration;
 using OpcPlc.Extensions;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
+using OpcPlc.PluginNodes;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Immutable;
@@ -31,6 +32,8 @@ public partial class OpcPlcServer
     private IDisposable _otelProviders;
 
     public OpcPlcConfiguration Config { get; set; }
+
+    public ImmutableList<IPluginNodes> PluginNodes => _pluginNodes;
 
     /// <summary>
     /// The LoggerFactory used to create logging objects.
@@ -139,7 +142,9 @@ public partial class OpcPlcServer
             }
 
             using var host = CreateHostBuilder(args);
-            if (Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh)
+            var stacklightEnabled = _pluginNodes.OfType<StacklightPluginNodes>().FirstOrDefault()?.IsEnabled == true;
+            var publisherJsonEnabled = Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh;
+            if (Config.WebServerPort > 0 && (stacklightEnabled || publisherJsonEnabled))
             {
                 StartWebServer(host);
             }

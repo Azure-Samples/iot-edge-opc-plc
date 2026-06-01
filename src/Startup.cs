@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.IO;
+using System.Threading.Tasks;
 
 public class Startup
 {
@@ -32,7 +33,12 @@ public class Startup
             app.UseDeveloperExceptionPage();
         }
 
-        // Serve pn.json
+        // Serves stacklight.html and stacklight.svg from wwwroot (content type, 404 etc. handled automatically).
+        app.UseStaticFiles();
+
+        // Serves the dynamic /stacklight JSON state endpoint.
+        app.UseMiddleware<StacklightMiddleware>();
+
         app.Run(async context => {
             if (context.Request.Method == "GET" &&
                 context.Request.Path == (Program.OpcPlcServer.Config.PnJson[0] != '/' ? "/" : string.Empty) + Program.OpcPlcServer.Config.PnJson &&

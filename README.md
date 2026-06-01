@@ -217,6 +217,25 @@ The option `--dalm=<file>` enables deterministic testing of Alarms and Condition
 
 More information about this feature can be found [here](deterministic-alarms.md).
 
+## Stacklight
+
+### Address space
+The server always exposes a stacklight in the OPC UA address space using proper OPC UA Industrial Automation (IA) companion specification type definitions. The stacklight is **DI-discoverable**: the `StacklightType` (from the IA spec) implements `IDeviceHealthType` from the DI companion spec.
+A `Stacklight` object (typed as `StacklightType`) is created under the telemetry node containing:
+- A writable `StacklightMode` property (data type: `StacklightOperationMode`) that controls which lamp is currently active (`0` = Red, `1` = Yellow, `2` = Green).
+- Three lamp elements (`Lamp_Red`, `Lamp_Yellow`, `Lamp_Green`), each typed as `StackElementLightType` and connected via `HasOrderedComponent` references. Each lamp exposes:
+  - `SignalOn` (Boolean) — indicates if the lamp is currently switched on.
+  - `SignalColor` (data type: `SignalColor`) — the colour of the lamp.
+  - `SignalMode` (data type: `SignalModeLight`) — the lamp behaviour when on (Continuous, Blinking, etc.).
+  - `NumberInList` (UInteger) — the lamp's position in the stack (1, 2, 3).
+
+OPC UA clients can read and write these nodes at any time, regardless of whether the simulation is active.
+
+### Simulation (`--sl`)
+The option `--sl` (or `--stacklight`) activates the stacklight simulation. When enabled, a timer fires once per second and updates the lamp `SignalOn` states to mirror the current `StacklightMode` value, allowing OPC UA clients to subscribe to and visualize stacklight transitions. Writing a new value to `StacklightMode` immediately switches the active lamp.
+
+A simple HTML viewer is also available at `/stacklight.html` on the OPC PLC web endpoint.
+
 ## Chaos mode
 Randomly injects errors, closes subscriptions or sessions, expires subscriptions and more. You can use it to test the resiliency of OPC UA clients. To enable start the server with the option `--chaos=True`.
 
@@ -626,6 +645,8 @@ Options:
                              the password of the default user.
                                Default: password
       --alm, --alarms        add alarm simulation to address space.
+                               Default: False
+      --sl, --stacklight     add stacklight simulation to address space.
                                Default: False
       --ses, --simpleevents  add simple events simulation to address space.
                                Default: False
