@@ -564,10 +564,6 @@ public partial class PlcServer : StandardServer
 
         nodeManagers.Add(PlcNodeManager);
 
-        // ns=4: IA node manager, depends on DI and includes Stacklight types.
-        var iaNodeManager = new IaNodeManager(server, configuration);
-        nodeManagers.Add(iaNodeManager);
-
         if (PlcSimulation.AddSimpleEventsSimulation)
         {
             SimpleEventsNodeManager = new SimpleEventsNodeManager(server, configuration, _logger);
@@ -604,6 +600,14 @@ public partial class PlcServer : StandardServer
 
             DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, scriptFileName, _logger);
             nodeManagers.Add(DeterministicAlarmsNodeManager);
+        }
+
+        // IA node manager, depends on DI and includes Stacklight types.
+        var stacklightEnabled = _pluginNodes.OfType<OpcPlc.PluginNodes.StacklightPluginNodes>().FirstOrDefault()?.IsEnabled == true;
+        if (stacklightEnabled)
+        {
+            var iaNodeManager = new IaNodeManager(server, configuration);
+            nodeManagers.Add(iaNodeManager);
         }
 
         var masterNodeManager = new MasterNodeManager(server, configuration, dynamicNamespaceUri: null, nodeManagers.ToArray());
