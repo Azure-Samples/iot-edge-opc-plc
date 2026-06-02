@@ -221,8 +221,9 @@ More information about this feature can be found [here](deterministic-alarms.md)
 
 ### Address space
 The server always exposes a stacklight in the OPC UA address space using proper OPC UA Industrial Automation (IA) companion specification type definitions. The stacklight is **DI-discoverable**: the `StacklightType` (from the IA spec) implements `IDeviceHealthType` from the DI companion spec.
-A `Stacklight` object (typed as `StacklightType`) is created under the telemetry node containing:
-- A writable `StacklightMode` property (data type: `StacklightOperationMode`) that controls which lamp is currently active (`0` = Red, `1` = Yellow, `2` = Green).
+
+The `Stacklight` object (typed as `StacklightType`) is located under the DI `DeviceSet` folder, so you can browse to it at **Objects → DeviceSet → Stacklight**. It contains:
+- A writable `StacklightMode` property (data type: `StacklightOperationMode`) that controls which lamp is currently active (`0` = Red, `1` = Yellow, `2` = Green). **To change the active color, write the corresponding value to `StacklightMode`** — the lamp switches immediately.
 - Three lamp elements (`Lamp_Red`, `Lamp_Yellow`, `Lamp_Green`), each typed as `StackElementLightType` and connected via `HasOrderedComponent` references. Each lamp exposes:
   - `SignalOn` (Boolean) — indicates if the lamp is currently switched on.
   - `SignalColor` (data type: `SignalColor`) — the colour of the lamp.

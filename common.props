@@ -31,12 +31,12 @@
   </PropertyGroup>
 
   <ItemGroup Condition="$(NO_GIT) == ''">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
-    <PackageReference Include="Nerdbank.GitVersioning" Version="3.1.74" PrivateAssets="All"/>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All"/>
+    <PackageReference Include="Nerdbank.GitVersioning" PrivateAssets="All"/>
   </ItemGroup>
 
   <ItemGroup Condition="'$(FX_COP)' != ''">
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.3" />
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" />
   </ItemGroup>
 
   <PropertyGroup>
