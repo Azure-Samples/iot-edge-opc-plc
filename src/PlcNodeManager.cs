@@ -86,6 +86,33 @@ public partial class PlcNodeManager : CustomNodeManager2
         }
     }
 
+    /// <summary>
+    /// Registers a top-level node and links it under the DI DeviceSet folder (Objects/DeviceSet)
+    /// using an Organizes reference, so DI-aware clients discover it via the standard device
+    /// topology instead of the application's Telemetry folder. The DeviceSet node is owned by the
+    /// DI node manager, therefore the forward (DeviceSet -> node) reference is supplied via
+    /// externalReferences, which the MasterNodeManager applies to the DI node manager.
+    /// Must be called during <see cref="CreateAddressSpace"/> while externalReferences is available.
+    /// </summary>
+    public void AddNodeToDeviceSet(NodeState node)
+    {
+        ushort diNamespaceIndex = (ushort)Server.NamespaceUris.GetIndex(Namespaces.DI);
+        var deviceSetNodeId = new NodeId(Opc.Ua.DI.Objects.DeviceSet, diNamespaceIndex);
+
+        if (!_externalReferences.TryGetValue(deviceSetNodeId, out IList<IReference> references))
+        {
+            _externalReferences[deviceSetNodeId] = references = new List<IReference>();
+        }
+
+        // Forward reference: DeviceSet -> node.
+        references.Add(new NodeStateReference(ReferenceTypes.Organizes, isInverse: false, node.NodeId));
+
+        // Inverse reference: node -> DeviceSet.
+        node.AddReference(ReferenceTypes.Organizes, isInverse: true, deviceSetNodeId);
+
+        AddPredefinedNode(SystemContext, node);
+    }
+
     public SimulatedVariableNode<T> CreateVariableNode<T>(BaseDataVariableState variable)
     {
         return new SimulatedVariableNode<T>(SystemContext, variable, _timeService);
