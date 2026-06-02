@@ -113,6 +113,31 @@ public partial class PlcNodeManager : CustomNodeManager2
         AddPredefinedNode(SystemContext, node);
     }
 
+    /// <summary>
+    /// Links an already-registered node under the DI DeviceSet folder (Objects/DeviceSet) using an
+    /// additional Organizes reference, without changing its existing parent. Unlike
+    /// <see cref="AddNodeToDeviceSet"/>, this does NOT reparent the node and does NOT call
+    /// AddPredefinedNode, so the node keeps its original location (e.g. the Boilers folder) and
+    /// simply becomes additionally reachable via the standard DI device topology.
+    /// The node's NodeId, namespace and BrowseName are unchanged.
+    /// Must be called during <see cref="CreateAddressSpace"/> while externalReferences is available.
+    /// </summary>
+    public void LinkNodeToDeviceSet(NodeState node)
+    {
+        ushort diNamespaceIndex = (ushort)Server.NamespaceUris.GetIndex(Namespaces.DI);
+        var deviceSetNodeId = new NodeId(Opc.Ua.DI.Objects.DeviceSet, diNamespaceIndex);
+
+        if (!_externalReferences.TryGetValue(deviceSetNodeId, out IList<IReference> references))
+        {
+            _externalReferences[deviceSetNodeId] = references = new List<IReference>();
+        }
+
+        // Forward reference: DeviceSet -> node. The inverse (node -> DeviceSet) is intentionally
+        // omitted to avoid a second hierarchical parent path; the node remains primarily owned by
+        // its existing parent folder.
+        references.Add(new NodeStateReference(ReferenceTypes.Organizes, isInverse: false, node.NodeId));
+    }
+
     public SimulatedVariableNode<T> CreateVariableNode<T>(BaseDataVariableState variable)
     {
         return new SimulatedVariableNode<T>(SystemContext, variable, _timeService);

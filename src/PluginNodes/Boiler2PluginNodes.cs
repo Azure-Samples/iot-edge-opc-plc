@@ -122,6 +122,12 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
             _boiler2Object.EventNotifier = EventNotifiers.SubscribeToEvents;
             // Set the event handler that routes events through the subscription system.
             _boiler2Object.OnReportEvent = OnReportBoilerEvent;
+
+            // Boiler #2 derives from the DI DeviceType, so additionally link it under the DI
+            // DeviceSet folder for standard device discovery. This adds an extra Organizes
+            // reference only; the boiler keeps its primary location in the Boilers folder and its
+            // NodeId/namespace are unchanged.
+            _plcNodeManager.LinkNodeToDeviceSet(_boiler2Object);
         }
 
         // Find the Boiler2 configuration nodes.

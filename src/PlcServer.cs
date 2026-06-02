@@ -551,7 +551,8 @@ public partial class PlcServer : StandardServer
         var diNodeManager = new DiNodeManager(server, configuration);
         nodeManagers.Add(diNodeManager);
 
-        // ns=3: Application-specific nodes (e.g. FastUInt1, Stacklight state, etc.) served by PlcNodeManager.
+        // ns=3: OpcPlcApplications namespace owned by PlcNodeManager. PlcNodeManager hosts this
+        // namespace and registers the plugin nodes; the plugins (e.g. FastUInt1).
         PlcNodeManager = new PlcNodeManager(
             server,
             Config,
