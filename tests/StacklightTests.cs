@@ -1,6 +1,8 @@
 namespace OpcPlc.Tests;
 
 using FluentAssertions;
+using Microsoft.AspNetCore.Http.Headers;
+using Microsoft.AspNetCore.Mvc.ViewEngines;
 using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
@@ -45,11 +47,11 @@ public class StacklightTests : SimulatorTestsBase
         };
 
         var results = await Session.BrowseAsync(
-            null,
-            null,
-            0,
-            new BrowseDescriptionCollection { browseDescription },
-            CancellationToken.None).ConfigureAwait(false);
+            requestHeader: null,
+            view: null,
+            requestedMaxReferencesPerNode: 0,
+            nodesToBrowse: new BrowseDescriptionCollection { browseDescription },
+            ct: CancellationToken.None).ConfigureAwait(false);
 
         var references = results.Results[0].References;
         references.Should().ContainSingle("node should have exactly one HasTypeDefinition reference");

@@ -8,6 +8,7 @@ using OpcPlc.Configuration;
 using OpcPlc.Extensions;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
+using OpcPlc.PluginNodes;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Immutable;
@@ -141,7 +142,9 @@ public partial class OpcPlcServer
             }
 
             using var host = CreateHostBuilder(args);
-            if (Config.WebServerPort > 0)
+            var stacklightEnabled = _pluginNodes.OfType<StacklightPluginNodes>().FirstOrDefault()?.IsEnabled == true;
+            var publisherJsonEnabled = Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh;
+            if (Config.WebServerPort > 0 && (stacklightEnabled || publisherJsonEnabled))
             {
                 StartWebServer(host);
             }
