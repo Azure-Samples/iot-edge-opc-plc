@@ -603,7 +603,7 @@ public partial class PlcServer : StandardServer
         }
 
         // IA node manager, depends on DI and includes Stacklight types.
-        var stacklightEnabled = _pluginNodes.OfType<OpcPlc.PluginNodes.StacklightPluginNodes>().FirstOrDefault()?.IsEnabled == true;
+        var stacklightEnabled = _pluginNodes.OfType<PluginNodes.StacklightPluginNodes>().FirstOrDefault()?.IsEnabled == true;
         if (stacklightEnabled)
         {
             var iaNodeManager = new IaNodeManager(server, configuration);
