@@ -1,87 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OPC PLC Stacklight</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --lamp-w: 132px;
+            --lamp-h: 74px;
+            --housing-w: 158px;
+        }
+
         body {
-            font-family: Georgia, 'Times New Roman', serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
             background:
-                radial-gradient(circle at top, rgba(255,255,255,0.08), transparent 30%),
-                linear-gradient(180deg, #16202b 0%, #0b1118 100%);
-            color: #e0e0e0;
+                radial-gradient(circle at 50% 0%, #233241 0%, transparent 55%),
+                linear-gradient(180deg, #141d27 0%, #090d12 100%);
+            color: #e6edf3;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
         }
+
         .container {
             text-align: center;
             width: min(92vw, 720px);
         }
+
         h1 {
-            font-size: 1.7rem;
-            margin-bottom: 1.5rem;
-            color: #cad5df;
-            letter-spacing: 0.18em;
+            font-size: 1.4rem;
+            margin-bottom: 1.25rem;
+            color: #d6e0ea;
+            letter-spacing: 0.22em;
             text-transform: uppercase;
+            font-weight: 600;
         }
-        .stacklight-scene {
+
+        /* ---- Stacklight assembly (pure CSS) ---- */
+        .stacklight {
+            position: relative;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Dome cap on top */
+        .cap {
+            width: calc(var(--housing-w) - 26px);
+            height: 34px;
+            border-radius: 50% 50% 14px 14px / 70% 70% 14px 14px;
+            background: linear-gradient(180deg, #6c757d 0%, #3a4148 55%, #20262c 100%);
+            box-shadow: inset 0 3px 6px rgba(255, 255, 255, 0.25), 0 4px 8px rgba(0, 0, 0, 0.4);
+            z-index: 3;
+        }
+
+        /* The lamp column / housing */
+        .housing {
+            position: relative;
+            width: var(--housing-w);
+            padding: 12px 0;
+            border-radius: 22px;
+            background:
+                linear-gradient(90deg,
+                    #1b2127 0%, #2c343c 14%, #3c454e 50%, #2c343c 86%, #1b2127 100%);
+            box-shadow:
+                inset 0 0 0 2px rgba(255, 255, 255, 0.06),
+                0 18px 45px rgba(0, 0, 0, 0.55);
             display: flex;
             flex-direction: column;
             align-items: center;
-            background: linear-gradient(180deg, rgba(38,50,63,0.95), rgba(16,24,32,0.98));
-            border: 1px solid rgba(160, 180, 198, 0.15);
-            border-radius: 28px;
-            padding: 2rem 2rem 1.5rem;
-            box-shadow: 0 25px 80px rgba(0,0,0,0.45);
+            gap: 12px;
+            z-index: 2;
         }
-        .stacklight {
-            position: relative;
-            width: 250px;
-            height: 444px;
-            margin: 0 auto;
-        }
-        .stacklight-image {
-            display: block;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            filter: drop-shadow(0 14px 28px rgba(0,0,0,0.35));
-        }
+
+        /* Individual lamp lens (cylindrical look) */
         .lamp {
-            width: 76px;
-            height: 56px;
-            border-radius: 10px;
-            margin: 0;
-            transition: all 0.3s ease;
-            position: absolute;
-            left: 87px;
-            border: 1px solid rgba(255,255,255,0.14);
+            position: relative;
+            width: var(--lamp-w);
+            height: var(--lamp-h);
+            border-radius: 14px;
             overflow: hidden;
-            mix-blend-mode: screen;
-            pointer-events: none;
+            transition: filter 0.25s ease, box-shadow 0.25s ease;
+            box-shadow:
+                inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+                inset 14px 0 22px rgba(0, 0, 0, 0.45),
+                inset -14px 0 22px rgba(0, 0, 0, 0.45);
         }
-        .lamp::before {
+
+        /* Horizontal ridges to suggest a fresnel lens */
+        .lamp::after {
             content: '';
             position: absolute;
             inset: 0;
-            border-radius: 10px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.45), transparent 46%);
+            border-radius: 14px;
+            background: repeating-linear-gradient(180deg,
+                    rgba(255, 255, 255, 0.05) 0px,
+                    rgba(255, 255, 255, 0.05) 1px,
+                    rgba(0, 0, 0, 0.10) 2px,
+                    rgba(0, 0, 0, 0.10) 6px);
             pointer-events: none;
         }
+
+        /* Glossy top highlight */
+        .lamp::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 12%;
+            width: 76%;
+            height: 38%;
+            border-radius: 50%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+            filter: blur(1px);
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.5;
+        }
+
+        .lamp-red {
+            background: radial-gradient(120% 120% at 50% 35%, #ff8da3 0%, #ff1f4b 45%, #b40026 100%);
+        }
+
+        .lamp-yellow {
+            background: radial-gradient(120% 120% at 50% 35%, #ffe487 0%, #ffc400 45%, #cc8a00 100%);
+        }
+
+        .lamp-green {
+            background: radial-gradient(120% 120% at 50% 35%, #8effa6 0%, #19df59 45%, #009536 100%);
+        }
+
+        /* OFF: neutral dark, fully desaturated socket */
         .lamp.off {
-            opacity: 0;
-            box-shadow: none;
+            filter: brightness(0.20) saturate(0) contrast(1.05);
         }
-        .lamp.on {
-            opacity: 0.95;
+
+        .lamp.off::before {
+            opacity: 0.10;
         }
+
+        /* ON: vivid + outer glow halo */
+        .lamp-red.on {
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 30px 6px rgba(255, 40, 80, 0.95), 0 0 80px 20px rgba(255, 20, 60, 0.55);
+        }
+
+        .lamp-yellow.on {
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 30px 6px rgba(255, 205, 30, 0.95), 0 0 80px 20px rgba(255, 175, 0, 0.55);
+        }
+
+        .lamp-green.on {
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 30px 6px rgba(40, 255, 110, 0.95), 0 0 80px 20px rgba(0, 220, 80, 0.55);
+        }
+
         .lamp.blinking {
-            animation: blink 0.8s ease-in-out infinite;
+            animation: blink 0.7s steps(1, end) infinite;
         }
         .lamp-red { top: 79px; background: radial-gradient(circle at 50% 40%, rgba(255,120,160,0.98), rgba(255,32,96,0.9) 58%, rgba(120,0,28,0.72) 100%); }
         .lamp-red.on { box-shadow: 0 0 20px rgba(255,60,110,0.92), 0 0 48px rgba(255,20,80,0.45); }
@@ -91,12 +171,40 @@
         .lamp-green.on { box-shadow: 0 0 20px rgba(50,255,120,0.92), 0 0 48px rgba(10,210,90,0.42); }
 
         @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.15; }
+
+            0%,
+            49% {
+                filter: none;
+            }
+
+            50%,
+            100% {
+                filter: brightness(0.20) saturate(0);
+            }
         }
 
+        /* Base / foot with pole */
+        .pole {
+            width: 16px;
+            height: 42px;
+            background: linear-gradient(90deg, #20262c, #444d55 50%, #20262c);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            z-index: 1;
+        }
+
+        .base {
+            width: 130px;
+            height: 26px;
+            border-radius: 50%;
+            background: radial-gradient(ellipse at 50% 30%, #4a525a 0%, #232a30 60%, #11151a 100%);
+            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55);
+            margin-top: -4px;
+            z-index: 0;
+        }
+
+        /* ---- Status area ---- */
         .status-wrap {
-            margin-top: 1rem;
+            margin-top: 1.5rem;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -116,22 +224,28 @@
         .status-idle     { color: #8892b0; }
 
         .error {
-            color: #ff6b6b;
+            color: #ff7b7b;
             margin-top: 1rem;
             font-size: 0.9rem;
+            min-height: 1.1em;
         }
+
         .info {
             margin-top: 1.5rem;
-            font-size: 0.75rem;
-            color: #555;
+            font-size: 0.72rem;
+            letter-spacing: 0.05em;
+            color: #5a6470;
         }
-        @media (max-width: 760px) {
-            .stacklight-scene {
-                padding: 1.4rem;
+
+        @media (max-width: 520px) {
+            :root {
+                --lamp-w: 118px;
+                --lamp-h: 72px;
+                --housing-w: 142px;
             }
-            .stacklight {
-                width: 210px;
-                height: 373px;
+
+            h1 {
+                font-size: 1.2rem;
             }
             .lamp { left: 73px; width: 64px; height: 47px; }
             .lamp-red { top: 66px; }
@@ -140,82 +254,116 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>OPC UA Stacklight</h1>
-        <div class="stacklight-scene">
-            <div class="stacklight">
-                <img class="stacklight-image" src="/stacklight.svg" alt="Industrial stacklight" />
+
+        <div class="stacklight">
+            <div class="cap"></div>
+            <div class="housing">
                 <div id="lamp-red" class="lamp lamp-red off"></div>
                 <div id="lamp-yellow" class="lamp lamp-yellow off"></div>
                 <div id="lamp-green" class="lamp lamp-green off"></div>
             </div>
-            <div class="status-wrap">
+            <div class="pole"></div>
+            <div class="base"></div>
+        </div>
+
+        <div class="status-wrap">
                 <div id="status" class="status status-idle">Connecting...</div>
-                <div id="error" class="error"></div>
-                <div class="info">Polling every 500ms from /stacklight API</div>
-            </div>
+            <div id="error" class="error"></div>
+            <div class="info">Polling /stacklight API every 500 ms</div>
         </div>
     </div>
 
     <script>
+        const POLL_INTERVAL_MS = 500;
+        const FETCH_TIMEOUT_MS = 4000;
         const SIGNAL_MODE_BLINKING = 1;
+
         const lampElements = {
-            Red:    document.getElementById('lamp-red'),
+            Red: document.getElementById('lamp-red'),
             Yellow: document.getElementById('lamp-yellow'),
-            Green:  document.getElementById('lamp-green')
+            Green: document.getElementById('lamp-green')
         };
-        const statusEl = document.getElementById('status');
-        const errorEl  = document.getElementById('error');
+        const errorEl = document.getElementById('error');
 
-        function getPhaseLabel(lamps) {
-            const red    = lamps.find(l => l.name === 'Red');
-            const yellow = lamps.find(l => l.name === 'Yellow');
-            const green  = lamps.find(l => l.name === 'Green');
+        let pollTimer = null;
 
-            if (green && green.signalOn)  return { text: 'Normal',   css: 'status-normal' };
-            if (yellow && yellow.signalOn) return { text: 'Warning',  css: 'status-warning' };
-            if (red && red.signalOn && red.signalMode === SIGNAL_MODE_BLINKING)
-                return { text: 'Critical', css: 'status-critical' };
-            if (red && red.signalOn)  return { text: 'Alarm',    css: 'status-alarm' };
-            return { text: 'Idle', css: 'status-idle' };
+        function setError(message) {
+            errorEl.textContent = message ? 'Error: ' + message : '';
+        }
+
+        function renderLamp(name, signalOn, signalMode) {
+            const el = lampElements[name];
+            if (!el) return;
+
+            const on = Boolean(signalOn);
+            const blinking = on && signalMode === SIGNAL_MODE_BLINKING;
+
+            el.classList.toggle('on', on);
+            el.classList.toggle('off', !on);
+            el.classList.toggle('blinking', blinking);
         }
 
         function updateUI(data) {
-            errorEl.textContent = '';
-            data.lamps.forEach(lamp => {
-                const el = lampElements[lamp.name];
-                if (!el) return;
-
-                el.classList.remove('on', 'off', 'blinking');
-                if (lamp.signalOn) {
-                    el.classList.add('on');
-                    if (lamp.signalMode === SIGNAL_MODE_BLINKING) {
-                        el.classList.add('blinking');
-                    }
+            if (!data || !Array.isArray(data.lamps)) {
+                throw new Error('Unexpected response shape');
+            }
+            for (const lamp of data.lamps) {
+                renderLamp(lamp.name, lamp.signalOn, lamp.signalMode);
+            }
                 } else {
                     el.classList.add('off');
-                }
+        }
             });
 
-            const phase = getPhaseLabel(data.lamps);
-            statusEl.textContent = phase.text;
-            statusEl.className = 'status ' + phase.css;
+        async function fetchState() {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+            try {
+                const resp = await fetch('/stacklight', { signal: controller.signal });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return await resp.json();
+            } finally {
+                clearTimeout(timeout);
+            }
         }
 
         async function poll() {
             try {
-                const resp = await fetch('/stacklight');
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                const data = await resp.json();
-                updateUI(data);
+                updateUI(await fetchState());
+                setError('');
             } catch (e) {
-                errorEl.textContent = 'Error: ' + e.message;
+                setError(e.name === 'AbortError' ? 'request timed out' : e.message);
+            } finally {
+                pollTimer = setTimeout(poll, POLL_INTERVAL_MS);
             }
         }
 
-        setInterval(poll, 500);
-        poll();
+        function startPolling() {
+            if (pollTimer === null) {
+                poll();
+            }
+        }
+
+        function stopPolling() {
+            clearTimeout(pollTimer);
+            pollTimer = null;
+        }
+
+        // Pause polling while the tab is hidden to avoid needless requests.
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopPolling();
+            } else {
+                startPolling();
+            }
+        });
+
+        startPolling();
     </script>
 </body>
+
 </html>
