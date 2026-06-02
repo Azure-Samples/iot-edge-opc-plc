@@ -543,14 +543,15 @@ public partial class PlcServer : StandardServer
         // Add encodable complex types.
         server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
 
-        // Add DI node manager first so that it gets the namespace index 2.
+        // IMPORTANT: Namespace indices are assigned in the order node managers are added here.
+        // Do NOT reorder these registrations without understanding the impact on the namespace indices.
+        // ns=0 / ns=1: Built-in OPC UA + server.
+
+        // ns=2: DI node manager.
         var diNodeManager = new DiNodeManager(server, configuration);
         nodeManagers.Add(diNodeManager);
 
-        // Add IA node manager (depends on DI, includes Stacklight types).
-        var iaNodeManager = new IaNodeManager(server, configuration);
-        nodeManagers.Add(iaNodeManager);
-
+        // ns=3: Application-specific nodes (e.g. FastUInt1, Stacklight state, etc.) served by PlcNodeManager.
         PlcNodeManager = new PlcNodeManager(
             server,
             Config,
@@ -561,6 +562,10 @@ public partial class PlcServer : StandardServer
             _logger);
 
         nodeManagers.Add(PlcNodeManager);
+
+        // ns=4: IA node manager, depends on DI and includes Stacklight types.
+        var iaNodeManager = new IaNodeManager(server, configuration);
+        nodeManagers.Add(iaNodeManager);
 
         if (PlcSimulation.AddSimpleEventsSimulation)
         {
