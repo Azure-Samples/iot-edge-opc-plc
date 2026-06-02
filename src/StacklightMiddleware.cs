@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 /// <summary>
 /// Middleware that serves the dynamic Stacklight state endpoint (/stacklight) as JSON.
-/// The static stacklight.html and stacklight.svg assets are served by UseStaticFiles.
+/// The static stacklight.html asset is served by UseStaticFiles.
 /// Requests that are not handled are passed on to the next middleware in the pipeline.
 /// </summary>
 public class StacklightMiddleware(RequestDelegate next)

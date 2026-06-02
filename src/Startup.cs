@@ -33,7 +33,7 @@ public class Startup
             app.UseDeveloperExceptionPage();
         }
 
-        // Serves stacklight.html and stacklight.svg from wwwroot (content type, 404 etc. handled automatically).
+        // Serves stacklight.html from wwwroot (content type, 404 etc. handled automatically).
         app.UseStaticFiles();
 
         // Serves the dynamic /stacklight JSON state endpoint.
