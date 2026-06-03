@@ -36,31 +36,29 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="KubernetesClient" Version="19.0.2" />
+    <PackageReference Include="KubernetesClient" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Mono.Options" Version="6.12.0.148" />
-    <PackageReference Include="OpenTelemetry" Version="1.15.1" />
-    <PackageReference Include="OpenTelemetry.Api" Version="1.15.1" />
-    <PackageReference Include="OpenTelemetry.Api.ProviderBuilderExtensions" Version="1.15.1" />
-    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.15.1" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.1" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.1" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.0" />
-    <PackageReference Include="Serilog.Extensions.Logging.File" Version="3.0.0" />
-    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="10.0.201" />
-    <PackageReference Update="Nerdbank.GitVersioning" Version="3.9.50" />
+    <PackageReference Include="Mono.Options" />
+    <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="OpenTelemetry.Api" />
+    <PackageReference Include="OpenTelemetry.Api.ProviderBuilderExtensions" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+    <PackageReference Include="Serilog.Extensions.Logging.File" />
   </ItemGroup>
 
   <!-- When referencing a local build of the OPC UA stack for testing, define the constant UseLocalOpcUaSdk in the file Directory.Build.targets -->
   <Choose>
     <When Condition="'$(Configuration)'=='Debug'">
       <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.5.378.134" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.5.378.134" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" Version="1.5.378.134" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types.Debug" Version="1.5.378.134" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types.Debug" NoWarn="NU5104" />
       </ItemGroup>
       <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
         <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
@@ -71,10 +69,10 @@
     </When>
     <When Condition="'$(Configuration)'=='Release'">
       <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.5.378.134" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.5.378.134" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.5.378.134" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types" Version="1.5.378.134" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" NoWarn="NU5104" />
+        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types" NoWarn="NU5104" />
       </ItemGroup>
       <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
         <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />

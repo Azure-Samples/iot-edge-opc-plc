@@ -5,6 +5,7 @@ WORKDIR /app
 
 # Copy configuration files
 COPY common.props .
+COPY Directory.Packages.props .
 COPY Directory.Build.targets .
 COPY src/Directory.Build.props src/
 COPY src/opc-plc.csproj src/

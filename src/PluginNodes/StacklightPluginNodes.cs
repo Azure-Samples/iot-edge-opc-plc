@@ -67,7 +67,7 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
 
         if (_isEnabled)
         {
-            AddNodes(telemetryFolder);
+            AddNodes();
         }
     }
 
@@ -87,13 +87,15 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
         }
     }
 
-    private void AddNodes(FolderState telemetryFolder)
+    private void AddNodes()
     {
         ushort iaNamespaceIndex = (ushort)_plcNodeManager.Server.NamespaceUris.GetIndex(OpcPlc.Namespaces.IA);
         ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
 
         // Create stacklight object using IA StacklightType (implements IDeviceHealthType for DI discovery).
-        var stacklightObject = new BaseObjectState(telemetryFolder)
+        // The object is parented under the DI DeviceSet folder (see AddNodeToDeviceSet below) rather than
+        // the Telemetry folder, so DI-aware clients discover it via the standard device topology.
+        var stacklightObject = new BaseObjectState(parent: null)
         {
             SymbolicName = "Stacklight",
             NodeId = new NodeId("Stacklight", appNamespaceIndex),
@@ -105,7 +107,6 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
             UserWriteMask = AttributeWriteMask.None,
             EventNotifier = EventNotifiers.None,
         };
-        telemetryFolder.AddChild(stacklightObject);
 
         // StacklightMode property (IA BrowseName, IA StacklightOperationMode DataType).
         _stacklightModeNode = new BaseDataVariableState(stacklightObject)
@@ -138,6 +139,9 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
             PluginNodesHelper.GetNodeWithIntervals(_signalOnNodes[1].NodeId, _plcNodeManager),
             PluginNodesHelper.GetNodeWithIntervals(_signalOnNodes[2].NodeId, _plcNodeManager),
         };
+
+        // Link the stacklight under the DI DeviceSet folder and register it in the address space.
+        _plcNodeManager.AddNodeToDeviceSet(stacklightObject);
 
         ApplyStacklightMode();
     }
