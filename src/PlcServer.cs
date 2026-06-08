@@ -611,9 +611,13 @@ public partial class PlcServer : StandardServer
             nodeManagers.Add(iaNodeManager);
         }
 
-        // Add Pumps node manager (depends on DI).
-        var pumpNodeManager = new PumpNodeManager(server, configuration);
-        nodeManagers.Add(pumpNodeManager);
+        // Pumps node manager, depends on DI and includes Pump types.
+        var pumpsEnabled = _pluginNodes.OfType<PluginNodes.PumpPluginNodes>().FirstOrDefault()?.IsEnabled == true;
+        if (pumpsEnabled)
+        {
+            var pumpNodeManager = new PumpNodeManager(server, configuration);
+            nodeManagers.Add(pumpNodeManager);
+        }
 
         var masterNodeManager = new MasterNodeManager(server, configuration, dynamicNamespaceUri: null, nodeManagers.ToArray());
 

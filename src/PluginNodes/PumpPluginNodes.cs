@@ -40,6 +40,11 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
     private readonly Random _random = new();
     private uint _eventCounter;
 
+    /// <summary>
+    /// Gets a value indicating whether the pump simulation is enabled via the --pumps option.
+    /// </summary>
+    public bool IsEnabled => _isEnabled;
+
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
         optionSet.Add(
@@ -81,19 +86,16 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
 
         ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
 
-        FolderState pumpsFolder = _plcNodeManager.CreateFolder(
-            telemetryFolder,
-            path: "Pumps",
-            name: "Pumps",
-            NamespaceType.OpcPlcApplications);
-
         var nodes = new List<NodeWithIntervals>();
 
         for (int i = 0; i < PumpCount; i++)
         {
             string pumpName = $"Pump{i + 1}";
 
-            var pumpObject = new BaseObjectState(pumpsFolder) {
+            // Create the pump object parented under the DI DeviceSet folder (see AddNodeToDeviceSet below)
+            // rather than the Telemetry folder, so DI-aware clients discover it via the standard device topology.
+            var pumpObject = new BaseObjectState(parent: null) {
+                SymbolicName = pumpName,
                 NodeId = new NodeId(pumpName, appNamespaceIndex),
                 BrowseName = new QualifiedName(pumpName, appNamespaceIndex),
                 DisplayName = new LocalizedText("en", pumpName),
@@ -111,8 +113,8 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
             _rotationalSpeedNodes[i] = AddTelemetry(pumpObject, pumpName, "RotationalSpeed", appNamespaceIndex, defaultValue: 1500.0);
             _motorTemperatureNodes[i] = AddTelemetry(pumpObject, pumpName, "MotorTemperature", appNamespaceIndex, defaultValue: 40.0);
 
-            pumpsFolder.AddChild(pumpObject);
-            _plcNodeManager.AddPredefinedNode(pumpObject);
+            // Link the pump under the DI DeviceSet folder and register it in the address space.
+            _plcNodeManager.AddNodeToDeviceSet(pumpObject);
 
             _pumpObjects[i] = pumpObject;
 

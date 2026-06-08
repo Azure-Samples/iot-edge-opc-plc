@@ -237,6 +237,19 @@ The option `--sl` (or `--stacklight`) activates the stacklight simulation. When 
 
 A simple HTML viewer is also available at `/stacklight.html` on the OPC PLC web endpoint.
 
+## Pumps
+
+### Address space (`--pu`)
+The option `--pu` (or `--pumps`) adds two pumps to the OPC UA address space using a trimmed subset of the OPC UA Pumps companion specification. The pumps are **DI-discoverable** and **type-discoverable**: each pump is an instance of `PumpType` and carries a DI `Identification` object, so it is reachable via the standard device topology.
+
+The pump objects (`Pump1`, `Pump2`) are located under the DI `DeviceSet` folder, so you can browse to them at **Objects → DeviceSet → Pump1 / Pump2**. Each pump contains:
+- An `Identification` object (typed as `PumpIdentificationType`) exposing the DI nameplate properties `Manufacturer`, `Model` and `SerialNumber`.
+- A `DeviceHealth` variable (data type: `DeviceHealthEnumeration`).
+- Four telemetry variables (`FlowRate`, `Pressure`, `RotationalSpeed`, `MotorTemperature`), all of type `Double`.
+
+### Simulation (`--pu`)
+When enabled, a timer fires once per second and updates the telemetry variables with new random values, and each pump raises a `PumpEventType` event carrying the current `PumpId`, `FlowRate` and `Pressure`. OPC UA clients can subscribe to the pump objects to receive these events.
+
 ## Chaos mode
 Randomly injects errors, closes subscriptions or sessions, expires subscriptions and more. You can use it to test the resiliency of OPC UA clients. To enable start the server with the option `--chaos=True`.
 
@@ -648,6 +661,9 @@ Options:
       --alm, --alarms        add alarm simulation to address space.
                                Default: False
       --sl, --stacklight     add stacklight simulation to address space.
+                               Default: False
+      --pu, --pumps          add pump simulation (2 pumps based on the OPC UA
+                               Pumps companion spec) to address space.
                                Default: False
       --ses, --simpleevents  add simple events simulation to address space.
                                Default: False
