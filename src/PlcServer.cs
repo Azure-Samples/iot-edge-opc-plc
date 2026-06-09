@@ -611,10 +611,14 @@ public partial class PlcServer : StandardServer
             nodeManagers.Add(iaNodeManager);
         }
 
-        // Pumps node manager, depends on DI and includes Pump types.
+        // Pumps node manager, depends on DI and Machinery and includes Pump types.
         var pumpsEnabled = _pluginNodes.OfType<PluginNodes.PumpPluginNodes>().FirstOrDefault()?.IsEnabled == true;
         if (pumpsEnabled)
         {
+            // Machinery is a required model of the Pumps companion spec, so load it first.
+            var machineryNodeManager = new CompanionSpecs.Machinery.MachineryNodeManager(server, configuration);
+            nodeManagers.Add(machineryNodeManager);
+
             var pumpNodeManager = new PumpNodeManager(server, configuration);
             nodeManagers.Add(pumpNodeManager);
         }

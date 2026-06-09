@@ -37,6 +37,12 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
     private readonly BaseDataVariableState[] _motorTemperatureNodes = new BaseDataVariableState[PumpCount];
     private readonly BaseDataVariableState[] _deviceHealthNodes = new BaseDataVariableState[PumpCount];
 
+    // Type-conformant variables whose BrowseNames match real PumpType members (Pumps namespace).
+    private readonly BaseDataVariableState[] _volumeFlowRateNodes = new BaseDataVariableState[PumpCount];
+    private readonly BaseDataVariableState[] _ratedDifferentialPressureNodes = new BaseDataVariableState[PumpCount];
+    private readonly BaseDataVariableState[] _maximumOutletPressureNodes = new BaseDataVariableState[PumpCount];
+    private readonly BaseDataVariableState[] _maximumInletPressureNodes = new BaseDataVariableState[PumpCount];
+
     private readonly Random _random = new();
     private uint _eventCounter;
 
@@ -112,6 +118,14 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
             _pressureNodes[i] = AddTelemetry(pumpObject, pumpName, "Pressure", appNamespaceIndex, defaultValue: 2.0);
             _rotationalSpeedNodes[i] = AddTelemetry(pumpObject, pumpName, "RotationalSpeed", appNamespaceIndex, defaultValue: 1500.0);
             _motorTemperatureNodes[i] = AddTelemetry(pumpObject, pumpName, "MotorTemperature", appNamespaceIndex, defaultValue: 40.0);
+
+            // Type-conformant variables: their BrowseNames match real PumpType members (in the
+            // Pumps namespace), so the connector's type-based asset discovery collects them as
+            // allowed element types and surfaces them as datapoints on the discovered asset.
+            _volumeFlowRateNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "VolumeFlowRate", defaultValue: 50.0);
+            _ratedDifferentialPressureNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "RatedDifferentialPressure", defaultValue: 2.0);
+            _maximumOutletPressureNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "MaximumOutletPressure", defaultValue: 3.0);
+            _maximumInletPressureNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "MaximumInletPressure", defaultValue: 1.0);
 
             // Link the pump under the DI DeviceSet folder and register it in the address space.
             _plcNodeManager.AddNodeToDeviceSet(pumpObject);
@@ -211,6 +225,35 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
         return telemetry;
     }
 
+    /// <summary>
+    /// Adds a variable whose BrowseName matches a real PumpType member (in the Pumps namespace)
+    /// so that type-based asset discovery surfaces it as a datapoint. The NodeId stays in the
+    /// application namespace so it remains unique per pump instance.
+    /// </summary>
+    private BaseDataVariableState AddPumpTypeMember(BaseObjectState pumpObject, string pumpName, string memberBrowseName, double defaultValue)
+    {
+        ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+
+        var node = new BaseDataVariableState(pumpObject) {
+            NodeId = new NodeId($"{pumpName}_{memberBrowseName}", appNamespaceIndex),
+            BrowseName = new QualifiedName(memberBrowseName, _pumpsNamespaceIndex),
+            DisplayName = new LocalizedText("en", memberBrowseName),
+            ReferenceTypeId = ReferenceTypeIds.HasComponent,
+            TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+            DataType = DataTypeIds.Double,
+            ValueRank = ValueRanks.Scalar,
+            AccessLevel = AccessLevels.CurrentRead,
+            UserAccessLevel = AccessLevels.CurrentRead,
+            Value = defaultValue,
+            StatusCode = StatusCodes.Good,
+            Timestamp = _timeService.UtcNow(),
+        };
+
+        pumpObject.AddChild(node);
+
+        return node;
+    }
+
     private void UpdatePumps(object state, ElapsedEventArgs elapsedEventArgs)
     {
         for (int i = 0; i < PumpCount; i++)
@@ -224,6 +267,12 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
             SetValue(_pressureNodes[i], pressure);
             SetValue(_rotationalSpeedNodes[i], rotationalSpeed);
             SetValue(_motorTemperatureNodes[i], motorTemperature);
+
+            // Update the type-conformant PumpType-member variables.
+            SetValue(_volumeFlowRateNodes[i], flowRate);
+            SetValue(_ratedDifferentialPressureNodes[i], pressure);
+            SetValue(_maximumOutletPressureNodes[i], pressure + 0.5);
+            SetValue(_maximumInletPressureNodes[i], pressure - 0.5);
 
             RaisePumpEvent(i, flowRate, pressure);
         }
