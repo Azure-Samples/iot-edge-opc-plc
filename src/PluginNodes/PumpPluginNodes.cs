@@ -43,6 +43,8 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
     private readonly BaseDataVariableState[] _maximumOutletPressureNodes = new BaseDataVariableState[PumpCount];
     private readonly BaseDataVariableState[] _maximumInletPressureNodes = new BaseDataVariableState[PumpCount];
 
+    private readonly BaseObjectState[] _pumpEventsFolders = new BaseObjectState[PumpCount];
+
     private readonly Random _random = new();
     private uint _eventCounter;
 
@@ -108,7 +110,6 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
                 Description = new LocalizedText("en", $"Pump #{i + 1}"),
                 ReferenceTypeId = ReferenceTypes.Organizes,
                 TypeDefinitionId = new NodeId(PumpTypeId, _pumpsNamespaceIndex),
-                EventNotifier = EventNotifiers.SubscribeToEvents,
             };
 
             AddIdentification(pumpObject, pumpName, i);
@@ -126,6 +127,9 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
             _ratedDifferentialPressureNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "RatedDifferentialPressure", defaultValue: 2.0);
             _maximumOutletPressureNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "MaximumOutletPressure", defaultValue: 3.0);
             _maximumInletPressureNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "MaximumInletPressure", defaultValue: 1.0);
+
+            // Events folder: the event notifier that generates PumpEventType (mirrors PumpType.Events).
+            _pumpEventsFolders[i] = AddEventsFolder(pumpObject, pumpName);
 
             // Link the pump under the DI DeviceSet folder and register it in the address space.
             _plcNodeManager.AddNodeToDeviceSet(pumpObject);
@@ -254,6 +258,38 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
         return node;
     }
 
+    /// <summary>
+    /// Adds an Events folder under the pump that acts as the event notifier and declares (via a
+    /// GeneratesEvent reference) that it generates PumpEventType, mirroring the PumpType.Events
+    /// functional group in the Pumps companion specification.
+    /// </summary>
+    private BaseObjectState AddEventsFolder(BaseObjectState pumpObject, string pumpName)
+    {
+        ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+
+        var eventsFolder = new BaseObjectState(pumpObject) {
+            NodeId = new NodeId($"{pumpName}_Events", appNamespaceIndex),
+            BrowseName = new QualifiedName("Events", _pumpsNamespaceIndex),
+            DisplayName = new LocalizedText("en", "Events"),
+            Description = new LocalizedText("en", "States, alarms, and conditions of a pump."),
+            ReferenceTypeId = ReferenceTypeIds.HasComponent,
+            TypeDefinitionId = ObjectTypeIds.BaseObjectType,
+            EventNotifier = EventNotifiers.SubscribeToEvents,
+        };
+
+        // Declare that this folder generates PumpEventType (mirrors the GeneratesEvent reference
+        // on PumpType.Events in the NodeSet).
+        eventsFolder.AddReference(ReferenceTypeIds.GeneratesEvent, isInverse: false, new NodeId(PumpEventTypeId, _pumpsNamespaceIndex));
+
+        pumpObject.AddChild(eventsFolder);
+
+        // Link the pump root to the Events folder as an event source so event discovery can
+        // propagate from the device root (HasEventSource) to the folder that owns the events.
+        pumpObject.AddReference(ReferenceTypeIds.HasEventSource, isInverse: false, eventsFolder.NodeId);
+
+        return eventsFolder;
+    }
+
     private void UpdatePumps(object state, ElapsedEventArgs elapsedEventArgs)
     {
         for (int i = 0; i < PumpCount; i++)
@@ -288,7 +324,8 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
     private void RaisePumpEvent(int index, double flowRate, double pressure)
     {
         BaseObjectState pumpObject = _pumpObjects[index];
-        if (pumpObject is null)
+        BaseObjectState eventsFolder = _pumpEventsFolders[index];
+        if (pumpObject is null || eventsFolder is null)
         {
             return;
         }
@@ -297,10 +334,10 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
 
         var pumpEventTypeId = new NodeId(PumpEventTypeId, _pumpsNamespaceIndex);
 
-        var pumpEvent = new BaseEventState(pumpObject);
+        var pumpEvent = new BaseEventState(eventsFolder);
         pumpEvent.Initialize(
             _plcNodeManager.SystemContext,
-            source: pumpObject,
+            source: eventsFolder,
             EventSeverity.Medium,
             new LocalizedText("en", $"{pumpId} telemetry: flow={flowRate:F1}, pressure={pressure:F2}"));
 
@@ -308,7 +345,7 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
         pumpEvent.TypeDefinitionId = pumpEventTypeId;
 
         pumpEvent.SetChildValue(_plcNodeManager.SystemContext, BrowseNames.EventType, pumpEventTypeId, copy: false);
-        pumpEvent.SetChildValue(_plcNodeManager.SystemContext, BrowseNames.SourceNode, pumpObject.NodeId, copy: false);
+        pumpEvent.SetChildValue(_plcNodeManager.SystemContext, BrowseNames.SourceNode, eventsFolder.NodeId, copy: false);
         pumpEvent.SetChildValue(_plcNodeManager.SystemContext, BrowseNames.SourceName, pumpId, copy: false);
 
         AddEventField(pumpEvent, "PumpId", DataTypeIds.String, pumpId);
