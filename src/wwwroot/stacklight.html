@@ -33,7 +33,6 @@
 
         .container {
             text-align: center;
-            width: min(92vw, 720px);
         }
 
         h1 {
@@ -163,12 +162,6 @@
         .lamp.blinking {
             animation: blink 0.7s steps(1, end) infinite;
         }
-        .lamp-red { top: 79px; background: radial-gradient(circle at 50% 40%, rgba(255,120,160,0.98), rgba(255,32,96,0.9) 58%, rgba(120,0,28,0.72) 100%); }
-        .lamp-red.on { box-shadow: 0 0 20px rgba(255,60,110,0.92), 0 0 48px rgba(255,20,80,0.45); }
-        .lamp-yellow { top: 143px; background: radial-gradient(circle at 50% 40%, rgba(255,196,110,0.98), rgba(255,136,20,0.9) 58%, rgba(110,56,0,0.72) 100%); }
-        .lamp-yellow.on { box-shadow: 0 0 20px rgba(255,170,40,0.92), 0 0 48px rgba(255,140,10,0.45); }
-        .lamp-green { top: 207px; background: radial-gradient(circle at 50% 40%, rgba(100,255,145,0.98), rgba(16,180,78,0.9) 58%, rgba(0,72,28,0.72) 100%); }
-        .lamp-green.on { box-shadow: 0 0 20px rgba(50,255,120,0.92), 0 0 48px rgba(10,210,90,0.42); }
 
         @keyframes blink {
 
@@ -209,19 +202,6 @@
             flex-direction: column;
             align-items: center;
         }
-        .status {
-            font-size: 1.1rem;
-            font-weight: 600;
-            padding: 8px 24px;
-            border-radius: 8px;
-            background: #2a2a3e;
-            border: 1px solid #3a3a5e;
-        }
-        .status-normal   { color: #6bff6b; border-color: #00cc00; }
-        .status-warning  { color: #ffd93d; border-color: #cc9900; }
-        .status-alarm    { color: #ff6b6b; border-color: #cc0000; }
-        .status-critical { color: #ff3333; border-color: #cc0000; animation: blink 0.8s ease-in-out infinite; }
-        .status-idle     { color: #8892b0; }
 
         .error {
             color: #ff7b7b;
@@ -247,10 +227,6 @@
             h1 {
                 font-size: 1.2rem;
             }
-            .lamp { left: 73px; width: 64px; height: 47px; }
-            .lamp-red { top: 66px; }
-            .lamp-yellow { top: 120px; }
-            .lamp-green { top: 173px; }
         }
     </style>
 </head>
@@ -271,7 +247,6 @@
         </div>
 
         <div class="status-wrap">
-                <div id="status" class="status status-idle">Connecting...</div>
             <div id="error" class="error"></div>
             <div class="info">Polling /stacklight API every 500 ms</div>
         </div>
@@ -314,10 +289,7 @@
             for (const lamp of data.lamps) {
                 renderLamp(lamp.name, lamp.signalOn, lamp.signalMode);
             }
-                } else {
-                    el.classList.add('off');
         }
-            });
 
         async function fetchState() {
             const controller = new AbortController();
