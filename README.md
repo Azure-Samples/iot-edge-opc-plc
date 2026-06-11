@@ -219,8 +219,8 @@ More information about this feature can be found [here](deterministic-alarms.md)
 
 ## Stacklight
 
-### Address space
-The server always exposes a stacklight in the OPC UA address space using proper OPC UA Industrial Automation (IA) companion specification type definitions. The stacklight is **DI-discoverable**: the `StacklightType` (from the IA spec) implements `IDeviceHealthType` from the DI companion spec.
+### Address space and simulation (`--sl`)
+The option `--sl` (or `--stacklight`) adds a stacklight to the OPC UA address space using proper OPC UA Industrial Automation (IA) companion specification type definitions. The stacklight is **DI-discoverable**: the `StacklightType` (from the IA spec) implements `IDeviceHealthType` from the DI companion spec.
 
 The `Stacklight` object (typed as `StacklightType`) is located under the DI `DeviceSet` folder, so you can browse to it at **Objects → DeviceSet → Stacklight**. It contains:
 - A writable `StacklightMode` property (data type: `StacklightOperationMode`) that controls which lamp is currently active (`0` = Red, `1` = Yellow, `2` = Green). **To change the active color, write the corresponding value to `StacklightMode`** — the lamp switches immediately.
@@ -230,16 +230,13 @@ The `Stacklight` object (typed as `StacklightType`) is located under the DI `Dev
   - `SignalMode` (data type: `SignalModeLight`) — the lamp behaviour when on (Continuous, Blinking, etc.).
   - `NumberInList` (UInteger) — the lamp's position in the stack (1, 2, 3).
 
-OPC UA clients can read and write these nodes at any time, regardless of whether the simulation is active.
-
-### Simulation (`--sl`)
-The option `--sl` (or `--stacklight`) activates the stacklight simulation. When enabled, a timer fires once per second and updates the lamp `SignalOn` states to mirror the current `StacklightMode` value, allowing OPC UA clients to subscribe to and visualize stacklight transitions. Writing a new value to `StacklightMode` immediately switches the active lamp.
+A timer fires once per second and updates the lamp `SignalOn` states to mirror the current `StacklightMode` value, allowing OPC UA clients to subscribe to and visualize stacklight transitions. Writing a new value to `StacklightMode` immediately switches the active lamp.
 
 A simple HTML viewer is also available at `/stacklight.html` on the OPC PLC web endpoint.
 
 ## Pumps
 
-### Address space (`--pu`)
+### Address space and simulation (`--pu`)
 The option `--pu` (or `--pumps`) adds two pumps to the OPC UA address space using the full OPC UA Pumps companion specification (which in turn loads the DI and Machinery companion specifications). The pumps are **DI-discoverable** and **type-discoverable**: each pump is an instance of `PumpType` and carries a DI `Identification` object, so it is reachable via the standard device topology.
 
 The pump objects (`Pump1`, `Pump2`) are located under the DI `DeviceSet` folder, so you can browse to them at **Objects → DeviceSet → Pump1 / Pump2**. Each pump contains:
