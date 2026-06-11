@@ -345,7 +345,10 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
         pumpEvent.TypeDefinitionId = pumpEventTypeId;
 
         pumpEvent.SetChildValue(_plcNodeManager.SystemContext, BrowseNames.EventType, pumpEventTypeId, copy: false);
-        pumpEvent.SetChildValue(_plcNodeManager.SystemContext, BrowseNames.SourceNode, eventsFolder.NodeId, copy: false);
+
+        // SourceNode and SourceName must refer to the same node: the pump that raised the event.
+        // The Events folder is only the notifier that propagates the event, not its source.
+        pumpEvent.SetChildValue(_plcNodeManager.SystemContext, BrowseNames.SourceNode, pumpObject.NodeId, copy: false);
         pumpEvent.SetChildValue(_plcNodeManager.SystemContext, BrowseNames.SourceName, pumpId, copy: false);
 
         AddEventField(pumpEvent, "PumpId", DataTypeIds.String, pumpId);
