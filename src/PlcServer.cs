@@ -6,6 +6,7 @@ using Opc.Ua;
 using Opc.Ua.Server;
 using OpcPlc.CompanionSpecs.DI;
 using OpcPlc.CompanionSpecs.IA;
+using OpcPlc.CompanionSpecs.Pumps;
 using OpcPlc.Configuration;
 using OpcPlc.DeterministicAlarms;
 using OpcPlc.PluginNodes.Models;
@@ -608,6 +609,18 @@ public partial class PlcServer : StandardServer
         {
             var iaNodeManager = new IaNodeManager(server, configuration);
             nodeManagers.Add(iaNodeManager);
+        }
+
+        // Pumps node manager, depends on DI and Machinery and includes Pump types.
+        var pumpsEnabled = _pluginNodes.OfType<PluginNodes.PumpPluginNodes>().FirstOrDefault()?.IsEnabled == true;
+        if (pumpsEnabled)
+        {
+            // Machinery is a required model of the Pumps companion spec, so load it first.
+            var machineryNodeManager = new CompanionSpecs.Machinery.MachineryNodeManager(server, configuration);
+            nodeManagers.Add(machineryNodeManager);
+
+            var pumpNodeManager = new PumpNodeManager(server, configuration);
+            nodeManagers.Add(pumpNodeManager);
         }
 
         var masterNodeManager = new MasterNodeManager(server, configuration, dynamicNamespaceUri: null, nodeManagers.ToArray());
