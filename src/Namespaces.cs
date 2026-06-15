@@ -59,4 +59,14 @@ public static partial class Namespaces
     /// The namespace for IA (Industrial Automation) nodes, including Stacklight.
     /// </summary>
     public const string IA = "http://opcfoundation.org/UA/IA/";
+
+    /// <summary>
+    /// The namespace for the OPC UA Machinery companion spec nodes (required by Pumps).
+    /// </summary>
+    public const string Machinery = "http://opcfoundation.org/UA/Machinery/";
+
+    /// <summary>
+    /// The namespace for the OPC UA Pumps companion spec nodes.
+    /// </summary>
+    public const string Pumps = "http://opcfoundation.org/UA/Pumps/";
 }
