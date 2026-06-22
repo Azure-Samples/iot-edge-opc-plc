@@ -102,6 +102,9 @@
     <None Update="CompanionSpecs\Pumps\Opc.Ua.Pumps.NodeSet2.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="CompanionSpecs\WotCon\Opc.Ua.WotCon.NodeSet2.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="wwwroot\stacklight.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
