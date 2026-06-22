@@ -232,6 +232,7 @@ public static class CliOptions
             // Special nodes
             { "alm|alarms", $"add alarm simulation to address space.\nDefault: {plcSimulation.AddAlarmSimulation}", (s) => plcSimulation.AddAlarmSimulation = s != null },
             { "ses|simpleevents", $"add simple events simulation to address space.\nDefault: {plcSimulation.AddSimpleEventsSimulation}", (s) => plcSimulation.AddSimpleEventsSimulation = s != null },
+            { "wotcon", $"add WoT-Con (Web of Things Connectivity) companion spec to address space.\nDefault: {plcSimulation.AddWotConSimulation}", (s) => plcSimulation.AddWotConSimulation = s != null },
             { "dalm|deterministicalarms=", $"add deterministic alarm simulation to address space.\nProvide a script file for controlling deterministic alarms.", (s) => plcSimulation.DeterministicAlarmSimulationFile = s },
 
             // misc
