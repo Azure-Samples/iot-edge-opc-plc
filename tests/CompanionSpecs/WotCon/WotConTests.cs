@@ -174,6 +174,50 @@ public class WotConTests : SimulatorTestsBase
             "writing on a released handle must fail with BadInvalidArgument");
     }
 
+    [Test]
+    public async Task CreateAsset_NewAssetIsBrowseableFromManagementObject()
+    {
+        // Per OPC 10100-1 §6.3.2: "CreateAsset … adds an Organizes Reference from the
+        // WoTAssetConnectionManagement Object." So the new asset must show up when we
+        // browse forward Organizes from i=31.
+        var assetName = "BrowseAsset_" + Guid.NewGuid().ToString("N")[..8];
+
+        var (createStatus, outputs) = await CallAsync(
+            objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
+            methodId: WotConNodeId(CreateAssetMethodInstanceId),
+            arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
+        StatusCode.IsGood(createStatus).Should().BeTrue("CreateAsset should succeed, got status {0}", createStatus);
+        var assetId = outputs[0].Value as NodeId;
+        assetId.Should().NotBeNull();
+
+        var browseDescription = new BrowseDescription
+        {
+            NodeId = WotConNodeId(WotAssetConnectionManagementObjectId),
+            BrowseDirection = BrowseDirection.Forward,
+            ReferenceTypeId = ReferenceTypeIds.Organizes,
+            IncludeSubtypes = true,
+            NodeClassMask = (uint)NodeClass.Object,
+            ResultMask = (uint)BrowseResultMask.All,
+        };
+
+        var results = await Session.BrowseAsync(
+            null,
+            null,
+            0,
+            new BrowseDescriptionCollection { browseDescription },
+            CancellationToken.None).ConfigureAwait(false);
+
+        results.Results.Should().ContainSingle();
+        var references = results.Results[0].References;
+        references.Should().Contain(
+            r => r.BrowseName.Name == assetName,
+            "the new asset must be reachable via Organizes from WoTAssetConnectionManagement");
+
+        var match = references.Single(r => r.BrowseName.Name == assetName);
+        ExpandedNodeId.ToNodeId(match.NodeId, Session.NamespaceUris)
+            .Should().Be(assetId, "browsed NodeId should match the AssetId returned by CreateAsset");
+    }
+
     /// <summary>
     /// Issues a single Call service request and returns the resulting status code and output arguments.
     /// </summary>

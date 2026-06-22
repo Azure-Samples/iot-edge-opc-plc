@@ -734,6 +734,15 @@ public partial class WotConNodeManager : CustomNodeManager2
                 TypeDefinitionId = ObjectTypeIds.BaseObjectType,
             };
 
+            // Per OPC 10100-1 §6.3.2: link the new asset to WoTAssetConnectionManagement (i=31)
+            // with a forward Organizes reference so the asset is browseable from the entry point.
+            // We add the inverse on the asset side now (cheap, the node is fresh) and the forward
+            // on the (already-loaded) management object below.
+            assetNode.AddReference(
+                ReferenceTypeIds.Organizes,
+                isInverse: true,
+                new NodeId(WotAssetConnectionManagementObjectId, NamespaceIndex));
+
             // WoTFile — instead of giving each asset its own FileState (and re-wiring all
             // 6 File methods + args per asset), cross-reference the singleton WoTFile (i=144)
             // that ships in the WotCon NodeSet. Commander resolves it via
@@ -772,6 +781,23 @@ public partial class WotConNodeManager : CustomNodeManager2
 
             // Add the asset to the server's address space
             AddPredefinedNode(context, assetNode);
+
+            // Forward Organizes ref on the management object (already loaded from NodeSet).
+            // Pair to the inverse added on the asset above; together they make the asset
+            // browseable from WoTAssetConnectionManagement per OPC 10100-1 §6.3.2.
+            var managementNodeId = new NodeId(WotAssetConnectionManagementObjectId, NamespaceIndex);
+            var managementObject = FindPredefinedNode<BaseObjectState>(managementNodeId);
+            if (managementObject != null)
+            {
+                managementObject.AddReference(ReferenceTypeIds.Organizes, isInverse: false, assetNodeId);
+            }
+            else
+            {
+                _logger?.LogWarning(
+                    "[WotCon] WoTAssetConnectionManagement (i={NodeId}) not found; asset {AssetId} will not be browseable from entry point",
+                    WotAssetConnectionManagementObjectId,
+                    assetNodeId);
+            }
 
             return assetNodeId;
         }
