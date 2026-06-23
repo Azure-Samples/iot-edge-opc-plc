@@ -768,21 +768,47 @@ public partial class WotConNodeManager : CustomNodeManager2
         fileNode.GetPosition.OnCallMethod = (c, m, i, o) => OnPerAssetFileGetPosition(asset, i, o);
         fileNode.SetPosition.OnCallMethod = (c, m, i, o) => OnPerAssetFileSetPosition(asset, i);
 
-        // Defensive: remap NS=0 FileType type-method IDs onto this instance's method NodeIds
-        // for clients that call the type-method instead of browsing for the instance method.
-        asset.FileMethodMap[new NodeId(Methods.FileType_Open, 0)] = fileNode.Open.NodeId;
-        asset.FileMethodMap[new NodeId(Methods.FileType_Close, 0)] = fileNode.Close.NodeId;
-        asset.FileMethodMap[new NodeId(Methods.FileType_Read, 0)] = fileNode.Read.NodeId;
-        asset.FileMethodMap[new NodeId(Methods.FileType_Write, 0)] = fileNode.Write.NodeId;
-        asset.FileMethodMap[new NodeId(Methods.FileType_GetPosition, 0)] = fileNode.GetPosition.NodeId;
-        asset.FileMethodMap[new NodeId(Methods.FileType_SetPosition, 0)] = fileNode.SetPosition.NodeId;
-
         // WoT-Con-specific CloseAndUpdate (OPC 10100-1 §6.3.10) — added alongside Close, not
         // a replacement for it. Spec defines a single FileHandle UInt32 input argument.
         var closeAndUpdate = CreateFileMethod(fileNode, "CloseAndUpdate",
             FileCloseAndUpdateTypeMethodId, namespaceIndex: NamespaceIndex,
             inputArgs: new[] { MakeArg("FileHandle", DataTypes.UInt32) }, outputArgs: null,
             handler: (c, m, i, o) => OnPerAssetFileCloseAndUpdate(asset, fileNode, i));
+
+        // Reassign per-instance NodeIds to every child after they have all been wired up.
+        // Passing assignNodeIds:true to Create() is too early — FileState's standard children
+        // are not populated yet, so AssignNodeIds finds nothing to rewrite and the children
+        // (Open, Close, Read, Write, Size, MaxByteStringLength, ...) keep the type-definition
+        // NodeIds (NS=0). That makes them shared across all assets and causes reads on
+        // optional Properties to hit the standard type-definition node (value 0) instead of
+        // the per-asset value we set. Reassigning here gives every child a fresh GUID in our
+        // namespace, isolating the per-asset state. We enumerate the FileState typed children
+        // explicitly because the SDK's GetChildren on the auto-generated FileState does not
+        // expose them, so AssignNodeIds(ctx, mappingTable) alone does nothing for them.
+        ReassignChildNodeId(fileNode.Size);
+        ReassignChildNodeId(fileNode.Writable);
+        ReassignChildNodeId(fileNode.UserWritable);
+        ReassignChildNodeId(fileNode.OpenCount);
+        ReassignChildNodeId(fileNode.MimeType);
+        ReassignChildNodeId(fileNode.MaxByteStringLength);
+        ReassignChildNodeId(fileNode.LastModifiedTime);
+        ReassignMethodNodeIds(fileNode.Open);
+        ReassignMethodNodeIds(fileNode.Close);
+        ReassignMethodNodeIds(fileNode.Read);
+        ReassignMethodNodeIds(fileNode.Write);
+        ReassignMethodNodeIds(fileNode.GetPosition);
+        ReassignMethodNodeIds(fileNode.SetPosition);
+
+        // Defensive: remap NS=0 FileType type-method IDs onto this instance's method NodeIds
+        // for clients that call the type-method instead of browsing for the instance method.
+        // Must be populated AFTER AssignNodeIds so the values reflect the freshly assigned
+        // per-instance NodeIds.
+        asset.FileMethodMap[new NodeId(Methods.FileType_Open, 0)] = fileNode.Open.NodeId;
+        asset.FileMethodMap[new NodeId(Methods.FileType_Close, 0)] = fileNode.Close.NodeId;
+        asset.FileMethodMap[new NodeId(Methods.FileType_Read, 0)] = fileNode.Read.NodeId;
+        asset.FileMethodMap[new NodeId(Methods.FileType_Write, 0)] = fileNode.Write.NodeId;
+        asset.FileMethodMap[new NodeId(Methods.FileType_GetPosition, 0)] = fileNode.GetPosition.NodeId;
+        asset.FileMethodMap[new NodeId(Methods.FileType_SetPosition, 0)] = fileNode.SetPosition.NodeId;
         asset.FileMethodMap[new NodeId(FileCloseAndUpdateTypeMethodId, NamespaceIndex)] = closeAndUpdate.NodeId;
 
         assetNode.AddChild(fileNode);
@@ -795,6 +821,33 @@ public partial class WotConNodeManager : CustomNodeManager2
         DataType = new NodeId(dataTypeId, 0),
         ValueRank = ValueRanks.Scalar,
     };
+
+    private void ReassignChildNodeId(BaseInstanceState child)
+    {
+        if (child != null)
+        {
+            child.NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
+        }
+    }
+
+    private void ReassignMethodNodeIds(MethodState method)
+    {
+        if (method == null)
+        {
+            return;
+        }
+
+        method.NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
+        if (method.InputArguments != null)
+        {
+            method.InputArguments.NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
+        }
+
+        if (method.OutputArguments != null)
+        {
+            method.OutputArguments.NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
+        }
+    }
 
     private MethodState CreateFileMethod(
         BaseObjectState parent,
