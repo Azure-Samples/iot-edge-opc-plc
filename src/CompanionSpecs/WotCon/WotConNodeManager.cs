@@ -1032,12 +1032,13 @@ public partial class WotConNodeManager : CustomNodeManager2
             asset.ThingDescription = json;
             asset.ParsedThingDescription = parsed;
 
-            // Per OPC 10100-1 §6.3.2 + §6.3.8: a successful TD upload materializes the asset's
-            // information model. Today: WoT Properties → OPC UA Variables under the asset.
-            // Actions → Methods land with a later plan item.
+            // Per OPC 10100-1 §6.3.2 + §6.3.8 + §6.3.9: a successful TD upload materializes
+            // the asset's information model. Today: WoT Properties → OPC UA Variables and WoT
+            // Actions → OPC UA Methods under the asset.
             try
             {
                 MaterializeAssetProperties(SystemContext, asset, parsed);
+                MaterializeAssetActions(SystemContext, asset, parsed);
             }
             catch (Exception ex)
             {
@@ -1046,12 +1047,13 @@ public partial class WotConNodeManager : CustomNodeManager2
             }
 
             _logger?.LogInformation(
-                "[WotCon] {Asset}.CloseAndUpdate handle={Handle} payload {Bytes} bytes; parsed TD title='{Title}' properties={PropertyCount}",
+                "[WotCon] {Asset}.CloseAndUpdate handle={Handle} payload {Bytes} bytes; parsed TD title='{Title}' properties={PropertyCount} actions={ActionCount}",
                 asset.Name,
                 handle,
                 payload.Length,
                 parsed.Name,
-                parsed.Properties.Count);
+                parsed.Properties.Count,
+                parsed.Actions.Count);
             return ServiceResult.Good;
         }
         catch (Exception ex)
@@ -1173,5 +1175,155 @@ public partial class WotConNodeManager : CustomNodeManager2
                 UnitId = 0,
             },
         };
+    }
+
+    /// <summary>
+    /// Materializes the WoT Actions from <paramref name="td"/> as OPC UA Methods under the
+    /// asset. Implements OPC 10100-1 §6.3.9: each TD <c>actions[*]</c> entry becomes a
+    /// <see cref="MethodState"/> child of the asset with <c>InputArguments</c> /
+    /// <c>OutputArguments</c> synthesised from the action's <c>input</c> / <c>output</c> JSON
+    /// Schemas (one <see cref="Argument"/> per property; top-level primitive schemas surface
+    /// as a single <c>value</c> argument). The handler is mock-only — it logs the call and
+    /// returns zero / empty values shaped from the output schema.
+    /// <para>
+    /// Re-upload semantics: any previously materialized Method for this asset is removed
+    /// before the new generation is created, so the visible actions always reflect the
+    /// most recently uploaded TD.
+    /// </para>
+    /// </summary>
+    private void MaterializeAssetActions(ISystemContext context, WotAsset asset, ThingDescriptionInfo td)
+    {
+        var assetNode = FindPredefinedNode<BaseObjectState>(asset.AssetId);
+        if (assetNode == null)
+        {
+            _logger?.LogWarning("[WotCon] {Asset}: asset object node {AssetId} not found; skipping action materialization", asset.Name, asset.AssetId);
+            return;
+        }
+
+        foreach (var staleId in asset.MaterializedActionNodeIds.Values)
+        {
+            DeleteNode(SystemContext, staleId);
+        }
+
+        asset.MaterializedActionNodeIds.Clear();
+
+        foreach (var action in td.Actions.Values)
+        {
+            var inputArgs = BuildArgumentArray(action.Input);
+            var outputArgs = BuildArgumentArray(action.Output);
+
+            var methodNode = new MethodState(assetNode)
+            {
+                NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+                BrowseName = new QualifiedName(action.Name, NamespaceIndex),
+                DisplayName = action.Name,
+                SymbolicName = action.Name,
+                Description = action.Description ?? string.Empty,
+                ReferenceTypeId = ReferenceTypeIds.HasComponent,
+                Executable = true,
+                UserExecutable = true,
+            };
+
+            // Capture by-value snapshot so each handler closure sees its own argument list.
+            var capturedAction = action;
+            methodNode.OnCallMethod = (c, m, i, o) => OnTdActionInvoked(asset, capturedAction, i, o);
+
+            if (inputArgs != null)
+            {
+                methodNode.InputArguments = new PropertyState<Argument[]>(methodNode)
+                {
+                    NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+                    BrowseName = BrowseNames.InputArguments,
+                    DisplayName = BrowseNames.InputArguments,
+                    TypeDefinitionId = VariableTypeIds.PropertyType,
+                    ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                    DataType = DataTypeIds.Argument,
+                    ValueRank = ValueRanks.OneDimension,
+                    Value = inputArgs,
+                };
+            }
+
+            if (outputArgs != null)
+            {
+                methodNode.OutputArguments = new PropertyState<Argument[]>(methodNode)
+                {
+                    NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+                    BrowseName = BrowseNames.OutputArguments,
+                    DisplayName = BrowseNames.OutputArguments,
+                    TypeDefinitionId = VariableTypeIds.PropertyType,
+                    ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                    DataType = DataTypeIds.Argument,
+                    ValueRank = ValueRanks.OneDimension,
+                    Value = outputArgs,
+                };
+            }
+
+            assetNode.AddChild(methodNode);
+            AddPredefinedNode(context, methodNode);
+            asset.MaterializedActionNodeIds[action.Name] = methodNode.NodeId;
+        }
+
+        _logger?.LogInformation(
+            "[WotCon] {Asset}: materialized {Count} TD actions",
+            asset.Name, td.Actions.Count);
+    }
+
+    /// <summary>
+    /// Converts a list of TD action arguments into the SDK's <see cref="Argument"/> array
+    /// shape. Returns <c>null</c> for an empty list so the caller can leave the corresponding
+    /// <c>InputArguments</c> / <c>OutputArguments</c> property absent — clients then know the
+    /// action has no input or no output rather than an empty argument list.
+    /// </summary>
+    private static Argument[] BuildArgumentArray(List<ThingArgumentInfo> arguments)
+    {
+        if (arguments == null || arguments.Count == 0)
+        {
+            return null;
+        }
+
+        var result = new Argument[arguments.Count];
+        for (int i = 0; i < arguments.Count; i++)
+        {
+            var argInfo = arguments[i];
+            var (dataType, valueRank) = ThingDescriptionParser.GetUaType(argInfo);
+            result[i] = new Argument
+            {
+                Name = argInfo.Name,
+                Description = argInfo.Description ?? string.Empty,
+                DataType = dataType,
+                ValueRank = valueRank,
+            };
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Default handler for a materialized TD action. Logs the invocation and populates each
+    /// output argument with a mock value shaped from the action's output schema.
+    /// </summary>
+    private ServiceResult OnTdActionInvoked(
+        WotAsset asset,
+        ThingActionInfo action,
+        IList<object> inputArguments,
+        IList<object> outputArguments)
+    {
+        _logger?.LogInformation(
+            "[WotCon] {Asset}.{Action}: invoked with {InputCount} input(s); returning {OutputCount} canned output(s)",
+            asset.Name, action.Name, inputArguments?.Count ?? 0, outputArguments?.Count ?? 0);
+
+        if (outputArguments == null || action.Output == null)
+        {
+            return ServiceResult.Good;
+        }
+
+        int count = Math.Min(outputArguments.Count, action.Output.Count);
+        for (int i = 0; i < count; i++)
+        {
+            var (dataType, valueRank) = ThingDescriptionParser.GetUaType(action.Output[i]);
+            outputArguments[i] = WotMockValueGenerator.Generate(dataType, valueRank);
+        }
+
+        return ServiceResult.Good;
     }
 }

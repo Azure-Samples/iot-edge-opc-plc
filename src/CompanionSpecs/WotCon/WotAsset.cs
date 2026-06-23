@@ -61,4 +61,11 @@ internal sealed class WotAsset
     /// of nodes before writing the new one.
     /// </summary>
     public Dictionary<string, NodeId> MaterializedPropertyNodeIds { get; } = new();
+
+    /// <summary>
+    /// TD-action-name → materialized OPC UA Method NodeId. Populated by the
+    /// MaterializeAssetActions pass so re-uploads can drop the previous generation
+    /// of methods before writing the new one.
+    /// </summary>
+    public Dictionary<string, NodeId> MaterializedActionNodeIds { get; } = new();
 }
