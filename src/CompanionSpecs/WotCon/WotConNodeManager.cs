@@ -25,6 +25,9 @@ public partial class WotConNodeManager : CustomNodeManager2
     private const uint CreateAssetMethodInstanceId = 32;
     private const uint CreateAssetInputArgumentsId = 33;
     private const uint CreateAssetOutputArgumentsId = 34;
+    private const uint DeleteAssetMethodTypeId = 29;
+    private const uint DeleteAssetMethodInstanceId = 35;
+    private const uint DeleteAssetInputArgumentsId = 36;
 
     // Per OPC 10100-1 §6.3.10: WoTAssetFileType (ns=WotCon;i=110) is a subtype of standard
     // FileType that adds a CloseAndUpdate method (type-method i=111). Each created asset
@@ -117,17 +120,24 @@ public partial class WotConNodeManager : CustomNodeManager2
         {
             ushort nsIdx = (ushort)Server.NamespaceUris.GetIndex(OpcPlc.Namespaces.WotCon);
             var mgmtObjectId = new NodeId(WotAssetConnectionManagementObjectId, nsIdx);
-            var typeMethodId = new NodeId(CreateAssetMethodTypeId, nsIdx);
-            var instanceMethodId = new NodeId(CreateAssetMethodInstanceId, nsIdx);
+            var createTypeMethodId = new NodeId(CreateAssetMethodTypeId, nsIdx);
+            var createInstanceMethodId = new NodeId(CreateAssetMethodInstanceId, nsIdx);
+            var deleteTypeMethodId = new NodeId(DeleteAssetMethodTypeId, nsIdx);
+            var deleteInstanceMethodId = new NodeId(DeleteAssetMethodInstanceId, nsIdx);
 
             for (int i = 0; i < methodsToCall.Count; i++)
             {
                 var req = methodsToCall[i];
                 _logger?.LogInformation("[WotCon] Call request[{Idx}]: ObjectId={ObjectId} MethodId={MethodId}", i, req.ObjectId, req.MethodId);
-                if (req.ObjectId == mgmtObjectId && req.MethodId == typeMethodId)
+                if (req.ObjectId == mgmtObjectId && req.MethodId == createTypeMethodId)
                 {
-                    _logger?.LogInformation("[WotCon] Remapping CreateAsset type MethodId {From} -> instance {To}", req.MethodId, instanceMethodId);
-                    req.MethodId = instanceMethodId;
+                    _logger?.LogInformation("[WotCon] Remapping CreateAsset type MethodId {From} -> instance {To}", req.MethodId, createInstanceMethodId);
+                    req.MethodId = createInstanceMethodId;
+                }
+                else if (req.ObjectId == mgmtObjectId && req.MethodId == deleteTypeMethodId)
+                {
+                    _logger?.LogInformation("[WotCon] Remapping DeleteAsset type MethodId {From} -> instance {To}", req.MethodId, deleteInstanceMethodId);
+                    req.MethodId = deleteInstanceMethodId;
                 }
                 else if (_filesByNodeId.TryGetValue(req.ObjectId, out var fileAsset)
                     && fileAsset.FileMethodMap.TryGetValue(req.MethodId, out var instMethod))
@@ -216,7 +226,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             // 2. Parent BaseObjectState.GetChildren() returns 0 because HasComponent references
             //    are not materialized into m_children, so FindMethod can't locate the method.
             // Rehydrate both links manually.
-            RehydrateMethodArguments(createAssetMethod);
+            RehydrateMethodArguments(createAssetMethod, CreateAssetInputArgumentsId, CreateAssetOutputArgumentsId);
             RehydrateChildLink(managementObject, createAssetMethod);
 
             // Register handler on the instance method
@@ -235,6 +245,31 @@ public partial class WotConNodeManager : CustomNodeManager2
             else
             {
                 _logger?.LogInformation("[WotCon] CreateAsset method type (i={MethodId}) not found in predefined nodes", CreateAssetMethodTypeId);
+            }
+
+            // DeleteAsset (§6.3.3) — same NodeSet importer workaround: rehydrate the
+            // InputArguments property (single AssetId : NodeId) and register the handler on
+            // both the instance (i=35) and type (i=29) declarations.
+            var deleteAssetInstanceId = new NodeId(DeleteAssetMethodInstanceId, wotConNamespaceIndex);
+            var deleteAssetMethod = FindPredefinedNode<MethodState>(deleteAssetInstanceId);
+            if (deleteAssetMethod != null)
+            {
+                RehydrateMethodArguments(deleteAssetMethod, DeleteAssetInputArgumentsId, outputArgumentsId: 0);
+                RehydrateChildLink(managementObject, deleteAssetMethod);
+                deleteAssetMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnDeleteAsset);
+
+                var deleteAssetTypeId = new NodeId(DeleteAssetMethodTypeId, wotConNamespaceIndex);
+                var deleteAssetTypeMethod = FindPredefinedNode<MethodState>(deleteAssetTypeId);
+                if (deleteAssetTypeMethod != null)
+                {
+                    deleteAssetTypeMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnDeleteAsset);
+                }
+
+                _logger?.LogInformation("[WotCon] Registered OnDeleteAsset handler on instance (i={InstanceMethodId})", DeleteAssetMethodInstanceId);
+            }
+            else
+            {
+                _logger?.LogWarning("[WotCon] DeleteAsset method instance (ns={NamespaceIndex};i={MethodId}) not found", wotConNamespaceIndex, DeleteAssetMethodInstanceId);
             }
 
             _logger?.LogInformation("[WotCon] WoT-Con method handlers registered successfully (ns={NamespaceIndex})", wotConNamespaceIndex);
@@ -272,19 +307,26 @@ public partial class WotConNodeManager : CustomNodeManager2
 
     /// <summary>
     /// Finds the <c>InputArguments</c> / <c>OutputArguments</c> PropertyState siblings of
-    /// <paramref name="method"/> in the predefined-nodes table (via the method's HasProperty
-    /// references) and assigns them to the strongly-typed MethodState properties so the
-    /// SDK's argument-count validator sees the expected signature.
+    /// <paramref name="method"/> in the predefined-nodes table by NodeId and assigns them to
+    /// the strongly-typed MethodState properties so the SDK's argument-count validator sees
+    /// the expected signature. Pass <c>0</c> for either ID to skip wiring that side.
     /// </summary>
-    private void RehydrateMethodArguments(MethodState method)
+    private void RehydrateMethodArguments(MethodState method, uint inputArgumentsId, uint outputArgumentsId)
     {
         // The NodeSet2 importer in 1.5.378 also leaves the method's HasProperty references
         // and the args' .Parent fields unpopulated, so we can't traverse from method to args
         // (or vice versa) through the SDK graph. Look the args up directly by NodeId — the
         // XML pins them with stable identifiers.
         ushort nsIdx = (ushort)Server.NamespaceUris.GetIndex(OpcPlc.Namespaces.WotCon);
-        WireArgProperty(method, new NodeId(CreateAssetInputArgumentsId, nsIdx), input: true);
-        WireArgProperty(method, new NodeId(CreateAssetOutputArgumentsId, nsIdx), input: false);
+        if (inputArgumentsId != 0)
+        {
+            WireArgProperty(method, new NodeId(inputArgumentsId, nsIdx), input: true);
+        }
+
+        if (outputArgumentsId != 0)
+        {
+            WireArgProperty(method, new NodeId(outputArgumentsId, nsIdx), input: false);
+        }
     }
 
     /// <summary>
@@ -418,6 +460,95 @@ public partial class WotConNodeManager : CustomNodeManager2
         catch (Exception ex)
         {
             _logger?.LogError(ex, "[WotCon] Exception in OnCreateAsset");
+            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Handles DeleteAsset method calls per OPC 10100-1 §6.3.3. Removes the asset object,
+    /// its per-asset WoTAssetFileType instance, materialized properties, and the
+    /// <c>Organizes</c> reference from WoTAssetConnectionManagement. Closes any open file
+    /// handles for the asset.
+    /// </summary>
+    private ServiceResult OnDeleteAsset(
+        ISystemContext context,
+        MethodState method,
+        IList<object> inputArguments,
+        IList<object> outputArguments)
+    {
+        if (inputArguments.Count < 1)
+        {
+            _logger?.LogWarning("[WotCon] DeleteAsset called with insufficient arguments");
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
+        try
+        {
+            var assetId = inputArguments[0] as NodeId;
+            if (NodeId.IsNull(assetId))
+            {
+                return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetId cannot be null");
+            }
+
+            // Locate the asset by its root NodeId. Small N — linear scan is fine.
+            string assetName = null;
+            WotAsset asset = null;
+            foreach (var kvp in _assets)
+            {
+                if (kvp.Value.AssetId == assetId)
+                {
+                    assetName = kvp.Key;
+                    asset = kvp.Value;
+                    break;
+                }
+            }
+
+            if (asset == null)
+            {
+                _logger?.LogInformation("[WotCon] DeleteAsset: AssetId {AssetId} not found", assetId);
+                return new ServiceResult(StatusCodes.BadNotFound);
+            }
+
+            // Close any open file handles for this asset so MemoryStreams don't leak.
+            lock (asset.FileLock)
+            {
+                foreach (var stream in asset.FileBuffers.Values)
+                {
+                    stream.Dispose();
+                }
+
+                asset.FileBuffers.Clear();
+            }
+
+            // Remove the forward Organizes ref from WoTAssetConnectionManagement so the asset
+            // stops being browseable from the entry point. The inverse on the asset goes away
+            // with DeleteNode below.
+            var managementNodeId = new NodeId(WotAssetConnectionManagementObjectId, NamespaceIndex);
+            var managementObject = FindPredefinedNode<BaseObjectState>(managementNodeId);
+            managementObject?.RemoveReference(ReferenceTypeIds.Organizes, isInverse: false, assetId);
+
+            // DeleteNode recursively removes the asset and all HasComponent children
+            // (the per-asset WoTFile + its standard FileType properties and methods,
+            // plus any materialized TD properties).
+            bool deleted = DeleteNode(SystemContext, assetId);
+
+            _assets.Remove(assetName);
+            if (asset.FileNodeId != null)
+            {
+                _filesByNodeId.Remove(asset.FileNodeId);
+            }
+
+            if (!deleted)
+            {
+                _logger?.LogWarning("[WotCon] DeleteAsset: DeleteNode returned false for {AssetId}", assetId);
+            }
+
+            _logger?.LogInformation("[WotCon] Deleted WoT asset '{AssetName}' AssetId={AssetId}", assetName, assetId);
+            return ServiceResult.Good;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[WotCon] Exception in OnDeleteAsset");
             return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
         }
     }
