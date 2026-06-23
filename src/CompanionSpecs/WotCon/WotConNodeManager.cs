@@ -26,35 +26,17 @@ public partial class WotConNodeManager : CustomNodeManager2
     private const uint CreateAssetInputArgumentsId = 33;
     private const uint CreateAssetOutputArgumentsId = 34;
 
-    // The NodeSet ships a fully-fleshed WoTFile placeholder (i=144) hanging off the
-    // <WoTAssetName> template, complete with Open/Close/Read/Write/GetPosition/
-    // SetPosition/CloseAndUpdate instance methods. We reuse this singleton across all
-    // created assets — sufficient for the single-asset E2E test path.
-    private const uint WoTFileObjectId = 144;
-    private const uint FileOpenMethodId = 152;
-    private const uint FileOpenInputArgsId = 153;
-    private const uint FileOpenOutputArgsId = 154;
-    private const uint FileCloseMethodId = 155;
-    private const uint FileCloseInputArgsId = 156;
-    private const uint FileReadMethodId = 157;
-    private const uint FileReadInputArgsId = 158;
-    private const uint FileReadOutputArgsId = 159;
-    private const uint FileWriteMethodId = 160;
-    private const uint FileWriteInputArgsId = 161;
-    private const uint FileGetPositionMethodId = 162;
-    private const uint FileGetPositionInputArgsId = 163;
-    private const uint FileGetPositionOutputArgsId = 164;
-    private const uint FileSetPositionMethodId = 165;
-    private const uint FileSetPositionInputArgsId = 166;
-    private const uint FileCloseAndUpdateMethodId = 167;
-    private const uint FileCloseAndUpdateInputArgsId = 168;
+    // Per OPC 10100-1 §6.3.10: WoTAssetFileType (ns=WotCon;i=110) is a subtype of standard
+    // FileType that adds a CloseAndUpdate method (type-method i=111). Each created asset
+    // owns its own WoTAssetFileType instance; the singleton WoTFile node (i=144) shipped
+    // in the NodeSet as a placeholder under <WoTAssetName> (i=2) is intentionally left
+    // unreferenced.
+    private const uint WoTAssetFileTypeId = 110;
     private const uint FileCloseAndUpdateTypeMethodId = 111;
 
     private readonly ILogger _logger;
     private readonly Dictionary<string, WotAsset> _assets;
-    private readonly Dictionary<uint, MemoryStream> _openFileHandles = new();
-    private readonly object _fileLock = new();
-    private uint _nextFileHandle = 1;
+    private readonly Dictionary<NodeId, WotAsset> _filesByNodeId = new();
 
     public WotConNodeManager(IServerInternal server, ApplicationConfiguration configuration, ILogger logger = null)
         : base(server, configuration)
@@ -137,21 +119,6 @@ public partial class WotConNodeManager : CustomNodeManager2
             var mgmtObjectId = new NodeId(WotAssetConnectionManagementObjectId, nsIdx);
             var typeMethodId = new NodeId(CreateAssetMethodTypeId, nsIdx);
             var instanceMethodId = new NodeId(CreateAssetMethodInstanceId, nsIdx);
-            var wotFileId = new NodeId(WoTFileObjectId, nsIdx);
-
-            // Remap NS=0 FileType type-method IDs (e.g. i=11580 Open) to our wired instance
-            // method NodeIds on the singleton WoTFile (i=144). The Commander's source-generated
-            // FileTypeClient proxy always sends the type-method ID.
-            var fileTypeToInstance = new Dictionary<NodeId, NodeId>
-            {
-                [new NodeId(Opc.Ua.Methods.FileType_Open, 0)] = new NodeId(FileOpenMethodId, nsIdx),
-                [new NodeId(Opc.Ua.Methods.FileType_Close, 0)] = new NodeId(FileCloseMethodId, nsIdx),
-                [new NodeId(Opc.Ua.Methods.FileType_Read, 0)] = new NodeId(FileReadMethodId, nsIdx),
-                [new NodeId(Opc.Ua.Methods.FileType_Write, 0)] = new NodeId(FileWriteMethodId, nsIdx),
-                [new NodeId(Opc.Ua.Methods.FileType_GetPosition, 0)] = new NodeId(FileGetPositionMethodId, nsIdx),
-                [new NodeId(Opc.Ua.Methods.FileType_SetPosition, 0)] = new NodeId(FileSetPositionMethodId, nsIdx),
-                [new NodeId(FileCloseAndUpdateTypeMethodId, nsIdx)] = new NodeId(FileCloseAndUpdateMethodId, nsIdx),
-            };
 
             for (int i = 0; i < methodsToCall.Count; i++)
             {
@@ -159,12 +126,16 @@ public partial class WotConNodeManager : CustomNodeManager2
                 _logger?.LogInformation("[WotCon] Call request[{Idx}]: ObjectId={ObjectId} MethodId={MethodId}", i, req.ObjectId, req.MethodId);
                 if (req.ObjectId == mgmtObjectId && req.MethodId == typeMethodId)
                 {
-                    _logger?.LogInformation("[WotCon] Remapping type MethodId {From} -> instance {To}", req.MethodId, instanceMethodId);
+                    _logger?.LogInformation("[WotCon] Remapping CreateAsset type MethodId {From} -> instance {To}", req.MethodId, instanceMethodId);
                     req.MethodId = instanceMethodId;
                 }
-                else if (req.ObjectId == wotFileId && fileTypeToInstance.TryGetValue(req.MethodId, out var instMethod))
+                else if (_filesByNodeId.TryGetValue(req.ObjectId, out var fileAsset)
+                    && fileAsset.FileMethodMap.TryGetValue(req.MethodId, out var instMethod))
                 {
-                    _logger?.LogInformation("[WotCon] Remapping File type MethodId {From} -> instance {To}", req.MethodId, instMethod);
+                    // Per-asset WoTAssetFileType: rewrite NS=0 FileType type-method IDs (and the
+                    // WoT-Con CloseAndUpdate type-method ns=WotCon;i=111) to the per-asset instance.
+                    _logger?.LogInformation("[WotCon] Remapping File type MethodId {From} -> instance {To} for asset {Asset}",
+                        req.MethodId, instMethod, fileAsset.Name);
                     req.MethodId = instMethod;
                 }
             }
@@ -266,200 +237,11 @@ public partial class WotConNodeManager : CustomNodeManager2
                 _logger?.LogInformation("[WotCon] CreateAsset method type (i={MethodId}) not found in predefined nodes", CreateAssetMethodTypeId);
             }
 
-            // Wire the singleton WoTFile (i=144) — its method instances ship in the NodeSet
-            // but the 1.5.378 importer leaves child/argument links unmaterialized.
-            SetupFileMethodHandlers(context, wotConNamespaceIndex);
-
             _logger?.LogInformation("[WotCon] WoT-Con method handlers registered successfully (ns={NamespaceIndex})", wotConNamespaceIndex);
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "[WotCon] Failed to setup method handlers");
-        }
-    }
-
-    /// <summary>
-    /// Wires OnCall handlers for the singleton WoTFile (i=144) instance methods.
-    /// Open/Write/Close/CloseAndUpdate are sufficient for the Commander TD-upload path;
-    /// Read/GetPosition/SetPosition are not exercised by the test.
-    /// </summary>
-    private void SetupFileMethodHandlers(ISystemContext context, ushort nsIdx)
-    {
-        var wotFile = FindPredefinedNode<BaseObjectState>(new NodeId(WoTFileObjectId, nsIdx));
-        if (wotFile == null)
-        {
-            _logger?.LogWarning("[WotCon] WoTFile object (ns={Ns};i={Id}) not found", nsIdx, WoTFileObjectId);
-            return;
-        }
-
-        WireFileMethod(wotFile, nsIdx, FileOpenMethodId, FileOpenInputArgsId, FileOpenOutputArgsId, OnFileOpen);
-        WireFileMethod(wotFile, nsIdx, FileWriteMethodId, FileWriteInputArgsId, null, OnFileWrite);
-        WireFileMethod(wotFile, nsIdx, FileCloseMethodId, FileCloseInputArgsId, null, OnFileClose);
-        WireFileMethod(wotFile, nsIdx, FileCloseAndUpdateMethodId, FileCloseAndUpdateInputArgsId, null, OnFileCloseAndUpdate);
-    }
-
-    private void WireFileMethod(
-        BaseObjectState fileObject,
-        ushort nsIdx,
-        uint methodId,
-        uint inputArgsId,
-        uint? outputArgsId,
-        GenericMethodCalledEventHandler handler)
-    {
-        var method = FindPredefinedNode<MethodState>(new NodeId(methodId, nsIdx));
-        if (method == null)
-        {
-            _logger?.LogWarning("[WotCon] File method ns={Ns};i={Id} not found", nsIdx, methodId);
-            return;
-        }
-
-        WireArgProperty(method, new NodeId(inputArgsId, nsIdx), input: true);
-        if (outputArgsId.HasValue)
-        {
-            WireArgProperty(method, new NodeId(outputArgsId.Value, nsIdx), input: false);
-        }
-
-        RehydrateChildLink(fileObject, method);
-        method.OnCallMethod = handler;
-        _logger?.LogInformation("[WotCon] Wired File method i={Id} on WoTFile i={WoTFile}", methodId, WoTFileObjectId);
-    }
-
-    private ServiceResult OnFileOpen(
-        ISystemContext context,
-        MethodState method,
-        IList<object> inputArguments,
-        IList<object> outputArguments)
-    {
-        try
-        {
-            // mode byte is informational for the in-memory backing.
-            uint handle;
-            lock (_fileLock)
-            {
-                handle = _nextFileHandle++;
-                _openFileHandles[handle] = new MemoryStream();
-            }
-
-            outputArguments[0] = handle;
-            _logger?.LogInformation("[WotCon] FileType.Open -> handle {Handle}", handle);
-            return ServiceResult.Good;
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "[WotCon] Exception in OnFileOpen");
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
-        }
-    }
-
-    private ServiceResult OnFileWrite(
-        ISystemContext context,
-        MethodState method,
-        IList<object> inputArguments,
-        IList<object> outputArguments)
-    {
-        if (inputArguments.Count < 2)
-        {
-            return new ServiceResult(StatusCodes.BadArgumentsMissing);
-        }
-
-        try
-        {
-            uint handle = Convert.ToUInt32(inputArguments[0]);
-            byte[] data = inputArguments[1] as byte[] ?? Array.Empty<byte>();
-
-            MemoryStream stream;
-            lock (_fileLock)
-            {
-                if (!_openFileHandles.TryGetValue(handle, out stream))
-                {
-                    return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
-                }
-            }
-
-            stream.Write(data, 0, data.Length);
-            _logger?.LogInformation("[WotCon] FileType.Write handle={Handle} wrote {Bytes} bytes (total {Total})",
-                handle, data.Length, stream.Length);
-            return ServiceResult.Good;
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "[WotCon] Exception in OnFileWrite");
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
-        }
-    }
-
-    private ServiceResult OnFileClose(
-        ISystemContext context,
-        MethodState method,
-        IList<object> inputArguments,
-        IList<object> outputArguments)
-    {
-        if (inputArguments.Count < 1)
-        {
-            return new ServiceResult(StatusCodes.BadArgumentsMissing);
-        }
-
-        try
-        {
-            uint handle = Convert.ToUInt32(inputArguments[0]);
-            CloseHandle(handle);
-            _logger?.LogInformation("[WotCon] FileType.Close handle={Handle}", handle);
-            return ServiceResult.Good;
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "[WotCon] Exception in OnFileClose");
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
-        }
-    }
-
-    private ServiceResult OnFileCloseAndUpdate(
-        ISystemContext context,
-        MethodState method,
-        IList<object> inputArguments,
-        IList<object> outputArguments)
-    {
-        if (inputArguments.Count < 1)
-        {
-            return new ServiceResult(StatusCodes.BadArgumentsMissing);
-        }
-
-        try
-        {
-            uint handle = Convert.ToUInt32(inputArguments[0]);
-            byte[] payload = null;
-            lock (_fileLock)
-            {
-                if (_openFileHandles.TryGetValue(handle, out var stream))
-                {
-                    payload = stream.ToArray();
-                }
-            }
-
-            CloseHandle(handle);
-            _logger?.LogInformation("[WotCon] FileType.CloseAndUpdate handle={Handle} payload {Bytes} bytes",
-                handle, payload?.Length ?? 0);
-
-            // TD parsing / per-property materialization is intentionally not done here —
-            // the E2E test only asserts the upload round-trip succeeds.
-            return ServiceResult.Good;
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "[WotCon] Exception in OnFileCloseAndUpdate");
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
-        }
-    }
-
-    private void CloseHandle(uint handle)
-    {
-        lock (_fileLock)
-        {
-            if (_openFileHandles.TryGetValue(handle, out var stream))
-            {
-                stream.Dispose();
-                _openFileHandles.Remove(handle);
-            }
         }
     }
 
@@ -617,21 +399,20 @@ public partial class WotConNodeManager : CustomNodeManager2
             // Create a placeholder asset node. Property materialization happens later when the
             // client uploads the Thing Description through the WoTFile File API.
             var placeholder = new ThingDescriptionInfo { Name = assetName };
-            var assetId = CreateAssetNode(context, placeholder);
-            if (assetId == null)
+            var asset = CreateAssetNode(context, placeholder);
+            if (asset == null)
             {
                 return new ServiceResult(StatusCodes.BadInternalError, "Failed to create asset node");
             }
 
-            _assets[assetName] = new WotAsset
+            _assets[assetName] = asset;
+            if (asset.FileNodeId != null)
             {
-                Name = assetName,
-                AssetId = assetId,
-                ThingDescription = null,
-            };
+                _filesByNodeId[asset.FileNodeId] = asset;
+            }
 
-            outputArguments[0] = assetId;
-            _logger?.LogInformation("[WotCon] Created WoT asset '{AssetName}' with AssetId {AssetId}", assetName, assetId);
+            outputArguments[0] = asset.AssetId;
+            _logger?.LogInformation("[WotCon] Created WoT asset '{AssetName}' with AssetId {AssetId} and WoTFile {FileId}", assetName, asset.AssetId, asset.FileNodeId);
             return ServiceResult.Good;
         }
         catch (Exception ex)
@@ -719,9 +500,12 @@ public partial class WotConNodeManager : CustomNodeManager2
     }
 
     /// <summary>
-    /// Creates an OPC UA asset node with properties from the Thing Description.
+    /// Creates an OPC UA asset node with properties from the Thing Description, plus a
+    /// per-asset WoTAssetFileType instance for TD upload. Returns a populated
+    /// <see cref="WotAsset"/> with AssetId, FileNodeId and the type-method to instance-method
+    /// remap table the <see cref="Call"/> override needs.
     /// </summary>
-    private NodeId CreateAssetNode(ISystemContext context, ThingDescriptionInfo assetInfo)
+    private WotAsset CreateAssetNode(ISystemContext context, ThingDescriptionInfo assetInfo)
     {
         try
         {
@@ -752,15 +536,18 @@ public partial class WotConNodeManager : CustomNodeManager2
                 isInverse: false,
                 new NodeId(IWoTAssetTypeId, NamespaceIndex));
 
-            // WoTFile — instead of giving each asset its own FileState (and re-wiring all
-            // 6 File methods + args per asset), cross-reference the singleton WoTFile (i=144)
-            // that ships in the WotCon NodeSet. Commander resolves it via
-            // TranslateBrowsePathsToNodeIds(asset / HasComponent / WoTFile) and then calls
-            // the File API methods on i=144 directly. Adequate for single-asset E2E.
-            assetNode.AddReference(
-                ReferenceTypeIds.HasComponent,
-                isInverse: false,
-                new NodeId(WoTFileObjectId, NamespaceIndex));
+            var asset = new WotAsset
+            {
+                Name = assetInfo.Name,
+                AssetId = assetNodeId,
+                ThingDescription = null,
+            };
+
+            // Per OPC 10100-1 §6.3.10: each asset owns a WoTAssetFileType instance (HasComponent
+            // child), carrying its own Open/Read/Write/Close/GetPosition/SetPosition + the
+            // WoT-Con CloseAndUpdate extension. The instance and its method NodeIds are unique
+            // per asset so concurrent uploads do not collide.
+            CreateAssetFileNode(context, assetNode, asset);
 
             // Create property variables based on Thing Description
             foreach (var property in assetInfo.Properties.Values)
@@ -808,7 +595,7 @@ public partial class WotConNodeManager : CustomNodeManager2
                     assetNodeId);
             }
 
-            return assetNodeId;
+            return asset;
         }
         catch (Exception ex)
         {
@@ -857,6 +644,375 @@ public partial class WotConNodeManager : CustomNodeManager2
     }
 
     /// <summary>
+    /// Creates a per-asset WoTAssetFileType instance (ns=WotCon;i=110) as a HasComponent
+    /// child of <paramref name="assetNode"/>. Uses the SDK's <see cref="FileState"/> so the
+    /// full standard FileType layout (Size, Writable, UserWritable, OpenCount, MimeType,
+    /// MaxByteStringLength, LastModifiedTime + Open/Close/Read/Write/GetPosition/SetPosition)
+    /// is materialized automatically per OPC 10000-5 §10. The WoT-Con-specific CloseAndUpdate
+    /// method (type-method ns=WotCon;i=111) is added as an additional HasComponent child.
+    /// Populates <see cref="WotAsset.FileNodeId"/> and <see cref="WotAsset.FileMethodMap"/>
+    /// so the Call override can rewrite incoming type-method IDs onto this instance.
+    /// </summary>
+    private void CreateAssetFileNode(ISystemContext context, BaseObjectState assetNode, WotAsset asset)
+    {
+        var fileNodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
+        var fileNode = new FileState(assetNode)
+        {
+            ReferenceTypeId = ReferenceTypeIds.HasComponent,
+            TypeDefinitionId = new NodeId(WoTAssetFileTypeId, NamespaceIndex),
+        };
+        fileNode.Create(context, fileNodeId, new QualifiedName("WoTFile", NamespaceIndex), new Opc.Ua.LocalizedText("WoTFile"), assignNodeIds: true);
+
+        // Mandatory FileType properties.
+        fileNode.Size.Value = 0UL;
+        fileNode.Writable.Value = true;
+        fileNode.UserWritable.Value = true;
+        fileNode.OpenCount.Value = 0;
+
+        // Optional FileType properties (materialized by InitializeOptionalChildren).
+        if (fileNode.MimeType != null)
+        {
+            fileNode.MimeType.Value = "application/td+json";
+        }
+
+        if (fileNode.MaxByteStringLength != null)
+        {
+            fileNode.MaxByteStringLength.Value = 16U * 1024U * 1024U;
+        }
+
+        if (fileNode.LastModifiedTime != null)
+        {
+            fileNode.LastModifiedTime.Value = DateTime.UtcNow;
+        }
+
+        // Wire per-asset handlers onto the auto-generated standard FileType methods.
+        fileNode.Open.OnCallMethod = (c, m, i, o) => OnPerAssetFileOpen(asset, fileNode, i, o);
+        fileNode.Close.OnCallMethod = (c, m, i, o) => OnPerAssetFileClose(asset, fileNode, i);
+        fileNode.Read.OnCallMethod = (c, m, i, o) => OnPerAssetFileRead(asset, i, o);
+        fileNode.Write.OnCallMethod = (c, m, i, o) => OnPerAssetFileWrite(asset, fileNode, i);
+        fileNode.GetPosition.OnCallMethod = (c, m, i, o) => OnPerAssetFileGetPosition(asset, i, o);
+        fileNode.SetPosition.OnCallMethod = (c, m, i, o) => OnPerAssetFileSetPosition(asset, i);
+
+        // Defensive: remap NS=0 FileType type-method IDs onto this instance's method NodeIds
+        // for clients that call the type-method instead of browsing for the instance method.
+        asset.FileMethodMap[new NodeId(Methods.FileType_Open, 0)] = fileNode.Open.NodeId;
+        asset.FileMethodMap[new NodeId(Methods.FileType_Close, 0)] = fileNode.Close.NodeId;
+        asset.FileMethodMap[new NodeId(Methods.FileType_Read, 0)] = fileNode.Read.NodeId;
+        asset.FileMethodMap[new NodeId(Methods.FileType_Write, 0)] = fileNode.Write.NodeId;
+        asset.FileMethodMap[new NodeId(Methods.FileType_GetPosition, 0)] = fileNode.GetPosition.NodeId;
+        asset.FileMethodMap[new NodeId(Methods.FileType_SetPosition, 0)] = fileNode.SetPosition.NodeId;
+
+        // WoT-Con-specific CloseAndUpdate (OPC 10100-1 §6.3.10) — added alongside Close, not
+        // a replacement for it. Spec defines a single FileHandle UInt32 input argument.
+        var closeAndUpdate = CreateFileMethod(fileNode, "CloseAndUpdate",
+            FileCloseAndUpdateTypeMethodId, namespaceIndex: NamespaceIndex,
+            inputArgs: new[] { MakeArg("FileHandle", DataTypes.UInt32) }, outputArgs: null,
+            handler: (c, m, i, o) => OnPerAssetFileCloseAndUpdate(asset, fileNode, i));
+        asset.FileMethodMap[new NodeId(FileCloseAndUpdateTypeMethodId, NamespaceIndex)] = closeAndUpdate.NodeId;
+
+        assetNode.AddChild(fileNode);
+        asset.FileNodeId = fileNode.NodeId;
+    }
+
+    private Argument MakeArg(string name, uint dataTypeId) => new()
+    {
+        Name = name,
+        DataType = new NodeId(dataTypeId, 0),
+        ValueRank = ValueRanks.Scalar,
+    };
+
+    private MethodState CreateFileMethod(
+        BaseObjectState parent,
+        string browseName,
+        uint methodDeclarationId,
+        ushort namespaceIndex,
+        Argument[] inputArgs,
+        Argument[] outputArgs,
+        GenericMethodCalledEventHandler handler)
+    {
+        var method = new MethodState(parent)
+        {
+            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+            BrowseName = new QualifiedName(browseName, NamespaceIndex),
+            DisplayName = browseName,
+            SymbolicName = browseName,
+            ReferenceTypeId = ReferenceTypeIds.HasComponent,
+            MethodDeclarationId = new NodeId(methodDeclarationId, namespaceIndex),
+            Executable = true,
+            UserExecutable = true,
+            OnCallMethod = handler,
+        };
+
+        if (inputArgs != null)
+        {
+            method.InputArguments = new PropertyState<Argument[]>(method)
+            {
+                NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+                BrowseName = BrowseNames.InputArguments,
+                DisplayName = BrowseNames.InputArguments,
+                TypeDefinitionId = VariableTypeIds.PropertyType,
+                ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                DataType = DataTypeIds.Argument,
+                ValueRank = ValueRanks.OneDimension,
+                Value = inputArgs,
+            };
+        }
+
+        if (outputArgs != null)
+        {
+            method.OutputArguments = new PropertyState<Argument[]>(method)
+            {
+                NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+                BrowseName = BrowseNames.OutputArguments,
+                DisplayName = BrowseNames.OutputArguments,
+                TypeDefinitionId = VariableTypeIds.PropertyType,
+                ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                DataType = DataTypeIds.Argument,
+                ValueRank = ValueRanks.OneDimension,
+                Value = outputArgs,
+            };
+        }
+
+        parent.AddChild(method);
+        return method;
+    }
+
+    private ServiceResult OnPerAssetFileOpen(WotAsset asset, FileState fileNode, IList<object> inputArguments, IList<object> outputArguments)
+    {
+        try
+        {
+            uint handle;
+            lock (asset.FileLock)
+            {
+                handle = asset.NextFileHandle++;
+                asset.FileBuffers[handle] = new MemoryStream();
+            }
+
+            outputArguments[0] = handle;
+            if (fileNode.OpenCount != null)
+            {
+                fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, asset.FileBuffers.Count);
+            }
+
+            _logger?.LogInformation("[WotCon] {Asset}.Open -> handle {Handle}", asset.Name, handle);
+            return ServiceResult.Good;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileOpen failed", asset.Name);
+            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+        }
+    }
+
+    private ServiceResult OnPerAssetFileWrite(WotAsset asset, FileState fileNode, IList<object> inputArguments)
+    {
+        if (inputArguments.Count < 2)
+        {
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
+        try
+        {
+            uint handle = Convert.ToUInt32(inputArguments[0]);
+            byte[] data = inputArguments[1] as byte[] ?? Array.Empty<byte>();
+
+            MemoryStream stream;
+            lock (asset.FileLock)
+            {
+                if (!asset.FileBuffers.TryGetValue(handle, out stream))
+                {
+                    return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
+                }
+            }
+
+            stream.Write(data, 0, data.Length);
+            fileNode.Size.Value = (ulong)stream.Length;
+            _logger?.LogInformation("[WotCon] {Asset}.Write handle={Handle} wrote {Bytes} bytes (total {Total})",
+                asset.Name, handle, data.Length, stream.Length);
+            return ServiceResult.Good;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileWrite failed", asset.Name);
+            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+        }
+    }
+
+    private ServiceResult OnPerAssetFileRead(WotAsset asset, IList<object> inputArguments, IList<object> outputArguments)
+    {
+        if (inputArguments.Count < 2)
+        {
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
+        try
+        {
+            uint handle = Convert.ToUInt32(inputArguments[0]);
+            int length = Convert.ToInt32(inputArguments[1]);
+
+            MemoryStream stream;
+            lock (asset.FileLock)
+            {
+                if (!asset.FileBuffers.TryGetValue(handle, out stream))
+                {
+                    return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
+                }
+            }
+
+            var buffer = new byte[Math.Max(0, length)];
+            int read = length > 0 ? stream.Read(buffer, 0, length) : 0;
+            var result = new byte[read];
+            Array.Copy(buffer, result, read);
+            outputArguments[0] = result;
+            return ServiceResult.Good;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileRead failed", asset.Name);
+            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+        }
+    }
+
+    private ServiceResult OnPerAssetFileClose(WotAsset asset, FileState fileNode, IList<object> inputArguments)
+    {
+        if (inputArguments.Count < 1)
+        {
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
+        try
+        {
+            uint handle = Convert.ToUInt32(inputArguments[0]);
+            CloseAssetHandle(asset, handle);
+            if (fileNode.OpenCount != null)
+            {
+                fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, asset.FileBuffers.Count);
+            }
+
+            _logger?.LogInformation("[WotCon] {Asset}.Close handle={Handle}", asset.Name, handle);
+            return ServiceResult.Good;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileClose failed", asset.Name);
+            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+        }
+    }
+
+    private ServiceResult OnPerAssetFileGetPosition(WotAsset asset, IList<object> inputArguments, IList<object> outputArguments)
+    {
+        if (inputArguments.Count < 1)
+        {
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
+        try
+        {
+            uint handle = Convert.ToUInt32(inputArguments[0]);
+            MemoryStream stream;
+            lock (asset.FileLock)
+            {
+                if (!asset.FileBuffers.TryGetValue(handle, out stream))
+                {
+                    return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
+                }
+            }
+
+            outputArguments[0] = (ulong)stream.Position;
+            return ServiceResult.Good;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileGetPosition failed", asset.Name);
+            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+        }
+    }
+
+    private ServiceResult OnPerAssetFileSetPosition(WotAsset asset, IList<object> inputArguments)
+    {
+        if (inputArguments.Count < 2)
+        {
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
+        try
+        {
+            uint handle = Convert.ToUInt32(inputArguments[0]);
+            ulong position = Convert.ToUInt64(inputArguments[1]);
+            MemoryStream stream;
+            lock (asset.FileLock)
+            {
+                if (!asset.FileBuffers.TryGetValue(handle, out stream))
+                {
+                    return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
+                }
+            }
+
+            stream.Position = (long)position;
+            return ServiceResult.Good;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileSetPosition failed", asset.Name);
+            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+        }
+    }
+
+    private ServiceResult OnPerAssetFileCloseAndUpdate(WotAsset asset, FileState fileNode, IList<object> inputArguments)
+    {
+        if (inputArguments.Count < 1)
+        {
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
+        try
+        {
+            uint handle = Convert.ToUInt32(inputArguments[0]);
+            byte[] payload = null;
+            lock (asset.FileLock)
+            {
+                if (asset.FileBuffers.TryGetValue(handle, out var stream))
+                {
+                    payload = stream.ToArray();
+                }
+            }
+
+            CloseAssetHandle(asset, handle);
+            asset.LastFinalizedPayload = payload;
+            if (fileNode.OpenCount != null)
+            {
+                fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, asset.FileBuffers.Count);
+            }
+
+            if (fileNode.LastModifiedTime != null)
+            {
+                fileNode.LastModifiedTime.Value = DateTime.UtcNow;
+            }
+
+            _logger?.LogInformation("[WotCon] {Asset}.CloseAndUpdate handle={Handle} payload {Bytes} bytes",
+                asset.Name, handle, payload?.Length ?? 0);
+            return ServiceResult.Good;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileCloseAndUpdate failed", asset.Name);
+            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+        }
+    }
+
+    private void CloseAssetHandle(WotAsset asset, uint handle)
+    {
+        lock (asset.FileLock)
+        {
+            if (asset.FileBuffers.TryGetValue(handle, out var stream))
+            {
+                stream.Dispose();
+                asset.FileBuffers.Remove(handle);
+            }
+        }
+    }
+
+    /// <summary>
     /// Internal model for Thing Description metadata.
     /// </summary>
     private class ThingDescriptionInfo
@@ -881,12 +1037,32 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// <summary>
     /// Internal model for a managed asset.
     /// </summary>
-    private class WotAsset
+    private sealed class WotAsset
     {
         public string Name { get; set; }
 
         public NodeId AssetId { get; set; }
 
         public string ThingDescription { get; set; }
+
+        // Per-asset WoTAssetFileType instance NodeId (HasComponent child of the asset).
+        public NodeId FileNodeId { get; set; }
+
+        // Type-method NodeId → per-asset instance-method NodeId. Used by the Call
+        // override to rewrite NS=0 FileType_Open/Close/Read/Write/GetPosition/SetPosition
+        // and the WoT-Con CloseAndUpdate type-method (ns=WotCon;i=111) onto this asset's
+        // instance methods.
+        public Dictionary<NodeId, NodeId> FileMethodMap { get; } = new();
+
+        // Active upload buffers keyed by file handle returned from Open.
+        public Dictionary<uint, MemoryStream> FileBuffers { get; } = new();
+
+        public object FileLock { get; } = new();
+
+        public uint NextFileHandle { get; set; } = 1;
+
+        // Most recent payload finalized via CloseAndUpdate. Kept for diagnostics and to
+        // support TD materialization later in the plan.
+        public byte[] LastFinalizedPayload { get; set; }
     }
 }
