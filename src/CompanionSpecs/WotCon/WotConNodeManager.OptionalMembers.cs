@@ -264,8 +264,28 @@ public partial class WotConNodeManager
         IList<object> inputArguments,
         IList<object> outputArguments)
     {
-        // OPC 10100-1 §6.3.4 — not implemented.
-        return new ServiceResult(StatusCodes.BadNotImplemented);
+        // OPC 10100-1 §6.3.4: return the list of asset endpoints currently known to the
+        // server. We populate that from each managed asset's AssetEndpoint Property
+        // (§6.3.8 / IWoTAssetType.AssetEndpoint), which in turn is derived from the TD's
+        // top-level `base` URI on upload. Assets whose TD omits `base` simply don't
+        // contribute. De-dup is case-sensitive Ordinal — the spec doesn't define
+        // endpoint syntax (§6.3.8 calls it "vendor-specific"), and URIs are
+        // case-sensitive in their path / query components.
+        var endpoints = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var asset in _assets.Values)
+        {
+            if (!string.IsNullOrEmpty(asset.AssetEndpoint))
+            {
+                endpoints.Add(asset.AssetEndpoint);
+            }
+        }
+
+        var result = new string[endpoints.Count];
+        endpoints.CopyTo(result);
+        outputArguments[0] = result;
+
+        _logger?.LogDebug("[WotCon] DiscoverAssets returning {Count} endpoint(s)", result.Length);
+        return ServiceResult.Good;
     }
 
     private ServiceResult OnCreateAssetForEndpoint(

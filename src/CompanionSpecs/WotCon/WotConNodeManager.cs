@@ -1063,12 +1063,14 @@ public partial class WotConNodeManager : CustomNodeManager2
             // (for later materialization). Re-uploads overwrite both.
             asset.ThingDescription = json;
             asset.ParsedThingDescription = parsed;
+            asset.AssetEndpoint = string.IsNullOrWhiteSpace(parsed.Base) ? null : parsed.Base;
 
             // Per OPC 10100-1 §6.3.2 + §6.3.8 + §6.3.9: a successful TD upload materializes
             // the asset's information model. Today: WoT Properties → OPC UA Variables and WoT
             // Actions → OPC UA Methods under the asset.
             try
             {
+                MaterializeAssetEndpoint(SystemContext, asset);
                 MaterializeAssetProperties(SystemContext, asset, parsed);
                 MaterializeAssetActions(SystemContext, asset, parsed);
             }
@@ -1117,6 +1119,55 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// always reflect the most recently uploaded TD.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Materializes the optional <c>AssetEndpoint</c> Property on the asset object per
+    /// OPC 10100-1 §6.3.8 when the TD carries a top-level <c>base</c>. Shape mirrors
+    /// <c>IWoTAssetType.AssetEndpoint</c> (i=122): String, scalar, HasProperty reference,
+    /// PropertyType type definition. On re-upload, the previous generation is dropped
+    /// first; when the new TD omits <c>base</c>, no Property is re-created so the asset
+    /// simply does not contribute to <see cref="OnDiscoverAssets"/>.
+    /// </summary>
+    private void MaterializeAssetEndpoint(ISystemContext context, WotAsset asset)
+    {
+        var assetNode = FindPredefinedNode<BaseObjectState>(asset.AssetId);
+        if (assetNode == null)
+        {
+            _logger?.LogWarning("[WotCon] {Asset}: asset object node {AssetId} not found; skipping AssetEndpoint materialization", asset.Name, asset.AssetId);
+            return;
+        }
+
+        if (asset.AssetEndpointNodeId != null)
+        {
+            DeleteNode(SystemContext, asset.AssetEndpointNodeId);
+            asset.AssetEndpointNodeId = null;
+        }
+
+        if (string.IsNullOrEmpty(asset.AssetEndpoint))
+        {
+            return;
+        }
+
+        var endpointProp = new PropertyState<string>(assetNode)
+        {
+            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+            BrowseName = new QualifiedName("AssetEndpoint", NamespaceIndex),
+            DisplayName = "AssetEndpoint",
+            ReferenceTypeId = ReferenceTypeIds.HasProperty,
+            TypeDefinitionId = VariableTypeIds.PropertyType,
+            DataType = DataTypeIds.String,
+            ValueRank = ValueRanks.Scalar,
+            AccessLevel = AccessLevels.CurrentRead,
+            UserAccessLevel = AccessLevels.CurrentRead,
+            Value = asset.AssetEndpoint,
+            StatusCode = StatusCodes.Good,
+            Timestamp = DateTime.UtcNow,
+        };
+
+        assetNode.AddChild(endpointProp);
+        AddPredefinedNode(context, endpointProp);
+        asset.AssetEndpointNodeId = endpointProp.NodeId;
+    }
+
     private void MaterializeAssetProperties(ISystemContext context, WotAsset asset, ThingDescriptionInfo td)
     {
         var assetNode = FindPredefinedNode<BaseObjectState>(asset.AssetId);

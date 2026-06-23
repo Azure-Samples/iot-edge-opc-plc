@@ -25,18 +25,6 @@ public partial class WotConTests
     private const uint WoTAssetConfigurationTypeId = 105;
 
     [Test]
-    public async Task OptionalMethod_DiscoverAssets_ReturnsBadNotImplemented()
-    {
-        var (status, _) = await CallAsync(
-            objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
-            methodId: WotConNodeId(DiscoverAssetsTypeMethodId),
-            arguments: new VariantCollection()).ConfigureAwait(false);
-
-        status.Code.Should().Be(StatusCodes.BadNotImplemented,
-            "DiscoverAssets is a stub per OPC 10100-1 §6.3.4, got {0}", status);
-    }
-
-    [Test]
     public async Task OptionalMethod_CreateAssetForEndpoint_ReturnsBadNotImplemented()
     {
         var (status, _) = await CallAsync(

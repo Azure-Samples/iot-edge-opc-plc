@@ -22,6 +22,15 @@ internal sealed class ThingDescriptionInfo
     /// </summary>
     public List<string> Contexts { get; set; } = new();
 
+    /// <summary>
+    /// TD's top-level <c>base</c> URI (W3C WoT TD 1.1 §5.3.1.1). Treated as the asset's
+    /// endpoint hint; surfaced on <c>IWoTAssetType.AssetEndpoint</c> and listed by
+    /// <c>DiscoverAssets</c> (OPC 10100-1 §6.3.4 / §6.3.8). <c>null</c> when the TD omits
+    /// <c>base</c>; per OPC 10100-1 §6.3.8 <c>AssetEndpoint</c> is Optional, so a
+    /// missing <c>base</c> simply leaves the asset out of <c>DiscoverAssets</c>.
+    /// </summary>
+    public string Base { get; set; }
+
     public Dictionary<string, ThingPropertyInfo> Properties { get; set; } = new();
 
     public Dictionary<string, ThingActionInfo> Actions { get; set; } = new();
@@ -125,6 +134,16 @@ internal static class ThingDescriptionParser
         {
             logger?.LogWarning("[WotCon] Thing Description title is empty");
             return null;
+        }
+
+        string baseUri = null;
+        if (root.TryGetProperty("base", out var baseElement) && baseElement.ValueKind == JsonValueKind.String)
+        {
+            var b = baseElement.GetString();
+            if (!string.IsNullOrWhiteSpace(b))
+            {
+                baseUri = b;
+            }
         }
 
         var contexts = new List<string>();
@@ -257,6 +276,7 @@ internal static class ThingDescriptionParser
         {
             Name = assetName,
             Contexts = contexts,
+            Base = baseUri,
             Properties = properties,
             Actions = actions,
         };

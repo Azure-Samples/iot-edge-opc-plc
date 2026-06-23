@@ -28,6 +28,22 @@ internal sealed class WotAsset
     public ThingDescriptionInfo ParsedThingDescription { get; set; }
 
     /// <summary>
+    /// Asset endpoint URI derived from the TD's top-level <c>base</c>. Surfaced on the
+    /// asset's <c>AssetEndpoint</c> Property (<c>IWoTAssetType</c>, OPC 10100-1 §6.3.8)
+    /// and enumerated by <c>DiscoverAssets</c> (§6.3.4). <c>null</c> when the TD omits
+    /// <c>base</c>; in that case the Property is not materialized and the asset is not
+    /// listed by <c>DiscoverAssets</c>.
+    /// </summary>
+    public string AssetEndpoint { get; set; }
+
+    /// <summary>
+    /// NodeId of the materialized <c>AssetEndpoint</c> Property when one is present.
+    /// Tracked so re-uploads can drop the previous generation before a new one is
+    /// created.
+    /// </summary>
+    public NodeId AssetEndpointNodeId { get; set; }
+
+    /// <summary>
     /// Per-asset WoTAssetFileType instance NodeId (HasComponent child of the asset).
     /// </summary>
     public NodeId FileNodeId { get; set; }
