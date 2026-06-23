@@ -54,4 +54,11 @@ internal sealed class WotAsset
     /// support TD materialization later in the plan.
     /// </summary>
     public byte[] LastFinalizedPayload { get; set; }
+
+    /// <summary>
+    /// TD-property-name → materialized OPC UA Variable NodeId. Populated by the
+    /// MaterializeAssetProperties pass so re-uploads can drop the previous generation
+    /// of nodes before writing the new one.
+    /// </summary>
+    public Dictionary<string, NodeId> MaterializedPropertyNodeIds { get; } = new();
 }

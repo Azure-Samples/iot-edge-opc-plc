@@ -25,9 +25,28 @@ internal sealed class ThingPropertyInfo
 {
     public string Name { get; set; }
 
+    /// <summary>JSON Schema primitive type ("string", "number", "integer", "boolean", "array", "object").</summary>
     public string Type { get; set; }
 
+    /// <summary>Optional JSON Schema format hint, e.g. "date-time" for ISO-8601 timestamps.</summary>
+    public string Format { get; set; }
+
     public string Description { get; set; }
+
+    /// <summary>TD <c>unit</c> field — surfaces as an OPC UA <c>EngineeringUnits</c> property.</summary>
+    public string Unit { get; set; }
+
+    /// <summary>True when TD declares <c>readOnly: true</c> — maps to <c>AccessLevel.CurrentRead</c> only.</summary>
+    public bool ReadOnly { get; set; }
+
+    /// <summary>True when TD declares <c>writeOnly: true</c> — maps to <c>AccessLevel.CurrentWrite</c> only.</summary>
+    public bool WriteOnly { get; set; }
+
+    /// <summary>TD <c>observable</c> field (defaults to <c>true</c> per WoT spec).</summary>
+    public bool Observable { get; set; } = true;
+
+    /// <summary>For TD <c>type: "array"</c>, the JSON type of the element from <c>items.type</c>.</summary>
+    public string ItemsType { get; set; }
 }
 
 /// <summary>
@@ -82,9 +101,43 @@ internal static class ThingDescriptionParser
                     propertyInfo.Type = typeElement.GetString();
                 }
 
+                if (propValue.TryGetProperty("format", out var formatElement) && formatElement.ValueKind == JsonValueKind.String)
+                {
+                    propertyInfo.Format = formatElement.GetString();
+                }
+
                 if (propValue.TryGetProperty("description", out var descElement) && descElement.ValueKind == JsonValueKind.String)
                 {
                     propertyInfo.Description = descElement.GetString();
+                }
+
+                if (propValue.TryGetProperty("unit", out var unitElement) && unitElement.ValueKind == JsonValueKind.String)
+                {
+                    propertyInfo.Unit = unitElement.GetString();
+                }
+
+                if (propValue.TryGetProperty("readOnly", out var roElement) && roElement.ValueKind == JsonValueKind.True)
+                {
+                    propertyInfo.ReadOnly = true;
+                }
+
+                if (propValue.TryGetProperty("writeOnly", out var woElement) && woElement.ValueKind == JsonValueKind.True)
+                {
+                    propertyInfo.WriteOnly = true;
+                }
+
+                // TD "observable" defaults to true; only flip it off when the payload explicitly says false.
+                if (propValue.TryGetProperty("observable", out var obsElement) && obsElement.ValueKind == JsonValueKind.False)
+                {
+                    propertyInfo.Observable = false;
+                }
+
+                if (propValue.TryGetProperty("items", out var itemsElement) &&
+                    itemsElement.ValueKind == JsonValueKind.Object &&
+                    itemsElement.TryGetProperty("type", out var itemsTypeElement) &&
+                    itemsTypeElement.ValueKind == JsonValueKind.String)
+                {
+                    propertyInfo.ItemsType = itemsTypeElement.GetString();
                 }
 
                 properties[propName] = propertyInfo;
@@ -113,5 +166,29 @@ internal static class ThingDescriptionParser
             "string" => DataTypeIds.String,
             _ => DataTypeIds.String,
         };
+    }
+
+    /// <summary>
+    /// Resolves an OPC UA (DataType, ValueRank) pair for a TD property. Honours <c>type: "array"</c>
+    /// (one-dimensional, element type from <c>items.type</c>) and <c>type: "string", format: "date-time"</c>
+    /// (mapped to <see cref="DataTypeIds.DateTime"/>). Everything else falls through to
+    /// <see cref="GetBuiltInTypeFromJson"/> at scalar rank.
+    /// </summary>
+    public static (NodeId DataType, int ValueRank) GetUaType(ThingPropertyInfo property)
+    {
+        var jsonType = property?.Type?.ToLowerInvariant();
+
+        if (string.Equals(jsonType, "array", System.StringComparison.Ordinal))
+        {
+            return (GetBuiltInTypeFromJson(property?.ItemsType), ValueRanks.OneDimension);
+        }
+
+        if (string.Equals(jsonType, "string", System.StringComparison.Ordinal) &&
+            string.Equals(property?.Format, "date-time", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return (DataTypeIds.DateTime, ValueRanks.Scalar);
+        }
+
+        return (GetBuiltInTypeFromJson(jsonType), ValueRanks.Scalar);
     }
 }

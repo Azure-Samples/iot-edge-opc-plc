@@ -608,33 +608,9 @@ public partial class WotConNodeManager : CustomNodeManager2
             // per asset so concurrent uploads do not collide.
             CreateAssetFileNode(context, assetNode, asset);
 
-            // Create property variables based on Thing Description
-            foreach (var property in assetInfo.Properties.Values)
-            {
-                var propertyNodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
-                var builtInType = ThingDescriptionParser.GetBuiltInTypeFromJson(property.Type);
-
-                var propertyNode = new BaseDataVariableState(assetNode)
-                {
-                    NodeId = propertyNodeId,
-                    BrowseName = new QualifiedName(property.Name, NamespaceIndex),
-                    DisplayName = property.Name,
-                    Description = property.Description ?? string.Empty,
-                    DataType = builtInType,
-                    ValueRank = ValueRanks.Scalar,
-                    AccessLevel = AccessLevels.CurrentRead,
-                };
-
-                // Initialize with a simulated value
-                propertyNode.Value = WotMockValueGenerator.Generate(builtInType);
-                propertyNode.StatusCode = StatusCodes.Good;
-                propertyNode.Timestamp = DateTime.UtcNow;
-
-                // Add property to asset
-                assetNode.AddChild(propertyNode);
-            }
-
-            // Add the asset to the server's address space
+            // Add the asset to the server's address space. TD-driven Variables are materialized
+            // later when the client uploads the Thing Description via CloseAndUpdate — see
+            // MaterializeAssetProperties + OnPerAssetFileCloseAndUpdate.
             AddPredefinedNode(context, assetNode);
 
             // Forward Organizes ref on the management object (already loaded from NodeSet).
@@ -1056,6 +1032,19 @@ public partial class WotConNodeManager : CustomNodeManager2
             asset.ThingDescription = json;
             asset.ParsedThingDescription = parsed;
 
+            // Per OPC 10100-1 §6.3.2 + §6.3.8: a successful TD upload materializes the asset's
+            // information model. Today: WoT Properties → OPC UA Variables under the asset.
+            // Actions → Methods land with a later plan item.
+            try
+            {
+                MaterializeAssetProperties(SystemContext, asset, parsed);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "[WotCon] {Asset}.CloseAndUpdate materialization failed", asset.Name);
+                return new ServiceResult(StatusCodes.BadInternalError, "Failed to materialize Thing Description.");
+            }
+
             _logger?.LogInformation(
                 "[WotCon] {Asset}.CloseAndUpdate handle={Handle} payload {Bytes} bytes; parsed TD title='{Title}' properties={PropertyCount}",
                 asset.Name,
@@ -1082,5 +1071,107 @@ public partial class WotConNodeManager : CustomNodeManager2
                 asset.FileBuffers.Remove(handle);
             }
         }
+    }
+
+    /// <summary>
+    /// Materializes the WoT Properties from <paramref name="td"/> as OPC UA Variables under
+    /// the asset. Implements OPC 10100-1 §6.3.8 Table 14 (primitives only — nested objects /
+    /// structured types are deferred to a later plan item).
+    /// <para>
+    /// Re-upload semantics: any previously materialized Variable for this asset is removed
+    /// from the address space before the new generation is created, so the visible properties
+    /// always reflect the most recently uploaded TD.
+    /// </para>
+    /// </summary>
+    private void MaterializeAssetProperties(ISystemContext context, WotAsset asset, ThingDescriptionInfo td)
+    {
+        var assetNode = FindPredefinedNode<BaseObjectState>(asset.AssetId);
+        if (assetNode == null)
+        {
+            _logger?.LogWarning("[WotCon] {Asset}: asset object node {AssetId} not found; skipping materialization", asset.Name, asset.AssetId);
+            return;
+        }
+
+        // Drop the previous generation of materialized properties. DeleteNode removes the
+        // node from PredefinedNodes and tears down the HasComponent references on both ends.
+        foreach (var staleId in asset.MaterializedPropertyNodeIds.Values)
+        {
+            DeleteNode(SystemContext, staleId);
+        }
+
+        asset.MaterializedPropertyNodeIds.Clear();
+
+        foreach (var property in td.Properties.Values)
+        {
+            var (dataType, valueRank) = ThingDescriptionParser.GetUaType(property);
+
+            // TD readOnly / writeOnly → AccessLevel. When neither is set the property is R/W.
+            byte accessLevel = property.WriteOnly
+                ? AccessLevels.CurrentWrite
+                : property.ReadOnly
+                    ? AccessLevels.CurrentRead
+                    : AccessLevels.CurrentReadOrWrite;
+
+            var propertyNode = new BaseDataVariableState(assetNode)
+            {
+                NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+                BrowseName = new QualifiedName(property.Name, NamespaceIndex),
+                DisplayName = property.Name,
+                Description = property.Description ?? string.Empty,
+                ReferenceTypeId = ReferenceTypeIds.HasComponent,
+                TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+                DataType = dataType,
+                ValueRank = valueRank,
+                AccessLevel = accessLevel,
+                UserAccessLevel = accessLevel,
+                // observable=true (TD default) lets the SDK accept MonitoredItems on the variable.
+                // observable=false leaves MinimumSamplingInterval at -1 (Indeterminate) so clients
+                // requesting a subscription get a clear sampling-not-supported signal.
+                MinimumSamplingInterval = property.Observable ? 1000.0 : -1.0,
+                Value = WotMockValueGenerator.Generate(dataType, valueRank),
+                StatusCode = StatusCodes.Good,
+                Timestamp = DateTime.UtcNow,
+            };
+
+            // TD `unit` → standard EngineeringUnits property on the variable.
+            if (!string.IsNullOrEmpty(property.Unit))
+            {
+                propertyNode.AddChild(BuildEngineeringUnitsProperty(propertyNode, property.Unit));
+            }
+
+            assetNode.AddChild(propertyNode);
+            AddPredefinedNode(context, propertyNode);
+            asset.MaterializedPropertyNodeIds[property.Name] = propertyNode.NodeId;
+        }
+
+        _logger?.LogInformation(
+            "[WotCon] {Asset}: materialized {Count} TD properties",
+            asset.Name, td.Properties.Count);
+    }
+
+    /// <summary>
+    /// Builds the standard OPC UA <c>EngineeringUnits</c> PropertyState carrying the TD unit
+    /// string. NamespaceUri / UnitId are intentionally left empty — the WoT TD only carries a
+    /// free-form unit label, and the UNECE Common Code lookup is out of scope for mock-mode.
+    /// </summary>
+    private PropertyState<EUInformation> BuildEngineeringUnitsProperty(BaseDataVariableState parent, string unit)
+    {
+        return new PropertyState<EUInformation>(parent)
+        {
+            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+            BrowseName = new QualifiedName(BrowseNames.EngineeringUnits, 0),
+            DisplayName = BrowseNames.EngineeringUnits,
+            ReferenceTypeId = ReferenceTypeIds.HasProperty,
+            TypeDefinitionId = VariableTypeIds.PropertyType,
+            DataType = DataTypeIds.EUInformation,
+            ValueRank = ValueRanks.Scalar,
+            Value = new EUInformation
+            {
+                DisplayName = unit,
+                Description = unit,
+                NamespaceUri = string.Empty,
+                UnitId = 0,
+            },
+        };
     }
 }
