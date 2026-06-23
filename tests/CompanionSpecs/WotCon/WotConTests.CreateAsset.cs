@@ -10,8 +10,8 @@ using System.Threading.Tasks;
 
 /// <summary>
 /// Tests for the <c>CreateAsset</c> mRPC and the resulting asset node — return shape,
-/// idempotency, browseability via <c>Organizes</c>, and the <c>HasInterface</c> wiring
-/// to <c>IWoTAssetType</c>.
+/// duplicate-name rejection per §6.3.2, browseability via <c>Organizes</c>, and the
+/// <c>HasInterface</c> wiring to <c>IWoTAssetType</c>.
 /// </summary>
 public partial class WotConTests
 {
@@ -33,8 +33,10 @@ public partial class WotConTests
     }
 
     [Test]
-    public async Task CreateAsset_DuplicateName_IsIdempotent()
+    public async Task CreateAsset_DuplicateName_ReturnsBadBrowseNameDuplicated()
     {
+        // Per OPC 10100-1 §6.3.2: "If an Asset with the AssetName already exists the
+        // result Bad_BrowseNameDuplicated will be returned."
         var assetName = "DupAsset_" + Guid.NewGuid().ToString("N")[..8];
 
         var (status1, outputs1) = await CallAsync(
@@ -43,16 +45,15 @@ public partial class WotConTests
             arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
         StatusCode.IsGood(status1).Should().BeTrue();
         var firstId = outputs1[0].Value as NodeId;
+        firstId.Should().NotBeNull();
 
-        var (status2, outputs2) = await CallAsync(
+        var (status2, _) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetMethodInstanceId),
             arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
-        StatusCode.IsGood(status2).Should().BeTrue();
-        var secondId = outputs2[0].Value as NodeId;
 
-        secondId.Should().Be(firstId,
-            "CreateAsset is idempotent — a second call with the same name returns the same AssetId");
+        status2.Code.Should().Be(StatusCodes.BadBrowseNameDuplicated,
+            "a second CreateAsset with the same AssetName must be rejected per §6.3.2, got {0}", status2);
     }
 
     [Test]

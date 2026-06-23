@@ -441,12 +441,14 @@ public partial class WotConNodeManager : CustomNodeManager2
                 return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetName cannot be empty");
             }
 
-            // Idempotency: return existing AssetId if the asset has already been created.
-            if (_assets.TryGetValue(assetName, out var existingAsset))
+            // Per OPC 10100-1 §6.3.2: "If an Asset with the AssetName already exists the
+            // result Bad_BrowseNameDuplicated will be returned." The previous behaviour
+            // (silent idempotent reuse) was a deliberate deviation; switched to strict
+            // spec compliance.
+            if (_assets.ContainsKey(assetName))
             {
-                outputArguments[0] = existingAsset.AssetId;
-                _logger?.LogInformation("[WotCon] Asset '{AssetName}' already exists; returned existing AssetId {AssetId}", assetName, existingAsset.AssetId);
-                return ServiceResult.Good;
+                _logger?.LogInformation("[WotCon] CreateAsset rejected: AssetName '{AssetName}' already exists", assetName);
+                return new ServiceResult(StatusCodes.BadBrowseNameDuplicated, $"An asset named '{assetName}' already exists");
             }
 
             // Create a placeholder asset node. Property materialization happens later when the
