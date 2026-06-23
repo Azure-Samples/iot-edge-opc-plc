@@ -150,6 +150,16 @@ public partial class WotConNodeManager : CustomNodeManager2
                     _logger?.LogInformation("[WotCon] Remapping DeleteAsset type MethodId {From} -> instance {To}", req.MethodId, deleteInstanceMethodId);
                     req.MethodId = deleteInstanceMethodId;
                 }
+                else if (req.ObjectId == mgmtObjectId
+                    && _optionalMethodRemap.TryGetValue(req.MethodId, out var optionalInstMethod))
+                {
+                    // Optional management members materialized on i=31 (Phase 1a): clients
+                    // calling the type-side method (i=41 / i=49 / i=75) get remapped onto the
+                    // runtime-allocated instance method that carries the stub handler.
+                    _logger?.LogInformation("[WotCon] Remapping optional MethodId {From} -> instance {To}",
+                        req.MethodId, optionalInstMethod);
+                    req.MethodId = optionalInstMethod;
+                }
                 else if (_filesByNodeId.TryGetValue(req.ObjectId, out var fileAsset)
                     && fileAsset.FileMethodMap.TryGetValue(req.MethodId, out var instMethod))
                 {
@@ -282,6 +292,11 @@ public partial class WotConNodeManager : CustomNodeManager2
             {
                 _logger?.LogWarning("[WotCon] DeleteAsset method instance (ns={NamespaceIndex};i={MethodId}) not found", wotConNamespaceIndex, DeleteAssetMethodInstanceId);
             }
+
+            // OPC 10100-1 §6.3.1 / §6.3.4 / §6.3.5 / §6.3.6 / §6.3.7 — materialize the
+            // optional members of WoTAssetConnectionManagementType on i=31. See
+            // WotConNodeManager.OptionalMembers.cs.
+            SetupOptionalManagementMembers(context, wotConNamespaceIndex, managementObject);
 
             _logger?.LogInformation("[WotCon] WoT-Con method handlers registered successfully (ns={NamespaceIndex})", wotConNamespaceIndex);
         }

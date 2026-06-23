@@ -1,0 +1,289 @@
+// Copyright (c) OPC Foundation and contributors. All rights reserved.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
+
+namespace OpcPlc.CompanionSpecs.WotCon;
+
+using Microsoft.Extensions.Logging;
+using Opc.Ua;
+using Opc.Ua.Server;
+using System;
+using System.Collections.Generic;
+
+/// <summary>
+/// Phase 1a of OPC 10100-1 §6.3.1 / §6.3.4 / §6.3.5 / §6.3.6 / §6.3.7: materialize the
+/// optional members of <c>WoTAssetConnectionManagementType</c> (i=1) on the standard
+/// instance <c>WoTAssetConnectionManagement</c> (i=31). The NodeSet importer drops them
+/// because they carry modelling rule <c>Optional</c> (i=80), so clients calling them today
+/// hit <c>Bad_NodeIdUnknown</c> instead of a meaningful reply.
+/// <para>
+/// In this phase the property and the configuration object are wired with empty values and
+/// the three methods are backed by handlers that return <c>Bad_NotImplemented</c>
+/// (0x80700000). Real behaviour ships in Phase 1b.
+/// </para>
+/// </summary>
+public partial class WotConNodeManager
+{
+    // Type-side NodeIds from the bundled NodeSet (Opc.Ua.WotCon.NodeSet2.xml).
+    private const uint SupportedWoTBindingsTypeVariableId = 40;
+    private const uint DiscoverAssetsTypeMethodId = 41;
+    private const uint DiscoverAssetsOutputArgumentsId = 48;
+    private const uint CreateAssetForEndpointTypeMethodId = 49;
+    private const uint CreateAssetForEndpointInputArgumentsId = 50;
+    private const uint CreateAssetForEndpointOutputArgumentsId = 170;
+    private const uint ConnectionTestTypeMethodId = 75;
+    private const uint ConnectionTestInputArgumentsId = 76;
+    private const uint ConnectionTestOutputArgumentsId = 77;
+    private const uint ConfigurationTypeObjectId = 78;
+    private const uint WoTAssetConfigurationTypeId = 105;
+
+    // OPC UA Part 5 §12.20: UriString (subtype of String) — backing DataType for
+    // WoTBindingType in the WoT-Con NodeSet (DataType="i=23751" on i=40).
+    private const uint UriStringDataTypeId = 23751;
+
+    /// <summary>
+    /// Maps the type-side method NodeIds of the optional management members (i=41 / i=49 /
+    /// i=75) to the runtime-allocated instance method NodeIds we materialize on i=31. The
+    /// <see cref="Call"/> override consults this dict to remap incoming type-method calls
+    /// onto the instance method, mirroring the workaround already used for CreateAsset /
+    /// DeleteAsset.
+    /// </summary>
+    private readonly Dictionary<NodeId, NodeId> _optionalMethodRemap = new();
+
+    /// <summary>
+    /// Materializes the optional members of <c>WoTAssetConnectionManagementType</c> on the
+    /// standard instance <c>WoTAssetConnectionManagement</c> (i=31): one Property
+    /// (<c>SupportedWoTBindings</c>), one Object (<c>Configuration</c>), and three Methods
+    /// (<c>DiscoverAssets</c>, <c>CreateAssetForEndpoint</c>, <c>ConnectionTest</c>). The
+    /// method handlers all return <c>Bad_NotImplemented</c> in Phase 1a.
+    /// </summary>
+    private void SetupOptionalManagementMembers(ISystemContext context, ushort nsIdx, BaseObjectState managementObject)
+    {
+        try
+        {
+            MaterializeSupportedWoTBindings(context, nsIdx, managementObject);
+            MaterializeConfigurationObject(context, nsIdx, managementObject);
+
+            MaterializeOptionalMethod(
+                context,
+                nsIdx,
+                managementObject,
+                typeMethodId: DiscoverAssetsTypeMethodId,
+                browseName: "DiscoverAssets",
+                inputArgs: null,
+                outputArgs: new[] { MakeArgArray("AssetEndpoints", DataTypes.String) },
+                handler: OnDiscoverAssets);
+
+            MaterializeOptionalMethod(
+                context,
+                nsIdx,
+                managementObject,
+                typeMethodId: CreateAssetForEndpointTypeMethodId,
+                browseName: "CreateAssetForEndpoint",
+                inputArgs: new[]
+                {
+                    MakeArg("AssetName", DataTypes.String),
+                    MakeArg("AssetEndpoint", DataTypes.String),
+                },
+                outputArgs: new[] { MakeArg("AssetId", DataTypes.NodeId) },
+                handler: OnCreateAssetForEndpoint);
+
+            MaterializeOptionalMethod(
+                context,
+                nsIdx,
+                managementObject,
+                typeMethodId: ConnectionTestTypeMethodId,
+                browseName: "ConnectionTest",
+                inputArgs: new[] { MakeArg("AssetEndpoint", DataTypes.String) },
+                outputArgs: new[]
+                {
+                    MakeArg("Success", DataTypes.Boolean),
+                    MakeArg("Status", DataTypes.String),
+                },
+                handler: OnConnectionTest);
+
+            _logger?.LogInformation("[WotCon] Materialized {Count} optional management members on i={Mgmt}",
+                2 + _optionalMethodRemap.Count, WotAssetConnectionManagementObjectId);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[WotCon] Failed to set up optional management members");
+        }
+    }
+
+    private void MaterializeSupportedWoTBindings(ISystemContext context, ushort nsIdx, BaseObjectState managementObject)
+    {
+        var prop = new PropertyState<string[]>(managementObject)
+        {
+            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+            BrowseName = new QualifiedName("SupportedWoTBindings", NamespaceIndex),
+            DisplayName = "SupportedWoTBindings",
+            ReferenceTypeId = ReferenceTypeIds.HasProperty,
+            TypeDefinitionId = VariableTypeIds.PropertyType,
+            DataType = new NodeId(UriStringDataTypeId, 0),
+            ValueRank = ValueRanks.OneDimension,
+            ArrayDimensions = new[] { 0u },
+            AccessLevel = AccessLevels.CurrentRead,
+            UserAccessLevel = AccessLevels.CurrentRead,
+            Value = Array.Empty<string>(),
+            StatusCode = StatusCodes.Good,
+            Timestamp = DateTime.UtcNow,
+        };
+
+        managementObject.AddChild(prop);
+        AddPredefinedNode(context, prop);
+        _logger?.LogDebug("[WotCon] Materialized SupportedWoTBindings property NodeId={NodeId} (type-side i={TypeId})",
+            prop.NodeId, SupportedWoTBindingsTypeVariableId);
+    }
+
+    private void MaterializeConfigurationObject(ISystemContext context, ushort nsIdx, BaseObjectState managementObject)
+    {
+        var configObject = new BaseObjectState(managementObject)
+        {
+            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+            BrowseName = new QualifiedName("Configuration", NamespaceIndex),
+            DisplayName = "Configuration",
+            ReferenceTypeId = ReferenceTypeIds.HasComponent,
+            TypeDefinitionId = new NodeId(WoTAssetConfigurationTypeId, nsIdx),
+        };
+
+        // OPC 10100-1 §6.3.7 Table 16: WoTAssetConfigurationType exposes a License Property
+        // (i=109, String, modelling rule Optional). Phase 1a surfaces it as an empty string.
+        // The <WoTConfigurationParameterName> placeholder (i=108, modelling rule
+        // OptionalPlaceholder) is deliberately omitted — no configuration parameters are
+        // defined yet.
+        var license = new PropertyState<string>(configObject)
+        {
+            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+            BrowseName = new QualifiedName("License", NamespaceIndex),
+            DisplayName = "License",
+            ReferenceTypeId = ReferenceTypeIds.HasProperty,
+            TypeDefinitionId = VariableTypeIds.PropertyType,
+            DataType = DataTypeIds.String,
+            ValueRank = ValueRanks.Scalar,
+            AccessLevel = AccessLevels.CurrentRead,
+            UserAccessLevel = AccessLevels.CurrentRead,
+            Value = string.Empty,
+            StatusCode = StatusCodes.Good,
+            Timestamp = DateTime.UtcNow,
+        };
+
+        configObject.AddChild(license);
+        managementObject.AddChild(configObject);
+        AddPredefinedNode(context, configObject);
+        AddPredefinedNode(context, license);
+    }
+
+    /// <summary>
+    /// Materializes an optional method on i=31 as a fresh <see cref="MethodState"/> with its
+    /// own NodeId and rehydrated <c>InputArguments</c> / <c>OutputArguments</c> properties,
+    /// then registers <paramref name="handler"/> on both the new instance and the type-side
+    /// method (i=<paramref name="typeMethodId"/>) and records the type-to-instance remap so
+    /// the <see cref="Call"/> override can route either invocation form.
+    /// </summary>
+    private void MaterializeOptionalMethod(
+        ISystemContext context,
+        ushort nsIdx,
+        BaseObjectState managementObject,
+        uint typeMethodId,
+        string browseName,
+        Argument[] inputArgs,
+        Argument[] outputArgs,
+        GenericMethodCalledEventHandler handler)
+    {
+        var typeMethodNodeId = new NodeId(typeMethodId, nsIdx);
+        var method = new MethodState(managementObject)
+        {
+            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+            BrowseName = new QualifiedName(browseName, NamespaceIndex),
+            DisplayName = browseName,
+            SymbolicName = browseName,
+            ReferenceTypeId = ReferenceTypeIds.HasComponent,
+            MethodDeclarationId = typeMethodNodeId,
+            Executable = true,
+            UserExecutable = true,
+            OnCallMethod = handler,
+        };
+
+        if (inputArgs != null)
+        {
+            method.InputArguments = new PropertyState<Argument[]>(method)
+            {
+                NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+                BrowseName = BrowseNames.InputArguments,
+                DisplayName = BrowseNames.InputArguments,
+                ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                TypeDefinitionId = VariableTypeIds.PropertyType,
+                DataType = DataTypeIds.Argument,
+                ValueRank = ValueRanks.OneDimension,
+                Value = inputArgs,
+            };
+        }
+
+        if (outputArgs != null)
+        {
+            method.OutputArguments = new PropertyState<Argument[]>(method)
+            {
+                NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
+                BrowseName = BrowseNames.OutputArguments,
+                DisplayName = BrowseNames.OutputArguments,
+                ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                TypeDefinitionId = VariableTypeIds.PropertyType,
+                DataType = DataTypeIds.Argument,
+                ValueRank = ValueRanks.OneDimension,
+                Value = outputArgs,
+            };
+        }
+
+        managementObject.AddChild(method);
+        AddPredefinedNode(context, method);
+
+        // Wire the handler onto the type-side method as well so direct type-method calls
+        // (the form the Call-override remap rewrites) still reach the same body even before
+        // the remap fires.
+        var typeMethodNode = FindPredefinedNode<MethodState>(typeMethodNodeId);
+        if (typeMethodNode != null)
+        {
+            typeMethodNode.OnCallMethod = handler;
+        }
+
+        _optionalMethodRemap[typeMethodNodeId] = method.NodeId;
+    }
+
+    private Argument MakeArgArray(string name, uint dataTypeId) => new()
+    {
+        Name = name,
+        DataType = new NodeId(dataTypeId, 0),
+        ValueRank = ValueRanks.OneDimension,
+        ArrayDimensions = new[] { 0u },
+    };
+
+    private ServiceResult OnDiscoverAssets(
+        ISystemContext context,
+        MethodState method,
+        IList<object> inputArguments,
+        IList<object> outputArguments)
+    {
+        // Phase 1a stub — see plan.md item §1, OPC 10100-1 §6.3.4.
+        return new ServiceResult(StatusCodes.BadNotImplemented);
+    }
+
+    private ServiceResult OnCreateAssetForEndpoint(
+        ISystemContext context,
+        MethodState method,
+        IList<object> inputArguments,
+        IList<object> outputArguments)
+    {
+        // Phase 1a stub — see plan.md item §1, OPC 10100-1 §6.3.5.
+        return new ServiceResult(StatusCodes.BadNotImplemented);
+    }
+
+    private ServiceResult OnConnectionTest(
+        ISystemContext context,
+        MethodState method,
+        IList<object> inputArguments,
+        IList<object> outputArguments)
+    {
+        // Phase 1a stub — see plan.md item §1, OPC 10100-1 §6.3.6.
+        return new ServiceResult(StatusCodes.BadNotImplemented);
+    }
+}
