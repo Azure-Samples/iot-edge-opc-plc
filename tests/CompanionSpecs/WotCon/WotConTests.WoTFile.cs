@@ -4,7 +4,9 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using System;
+using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -132,5 +134,101 @@ public partial class WotConTests
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
             arguments: new VariantCollection { new Variant(handleA) }).ConfigureAwait(false);
         StatusCode.IsGood(closeAStatus).Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Per-asset WoTFile address-space audit (regression). The per-asset
+    /// <c>WoTAssetFileType</c> instance must expose the full OPC 10000-5 §10 FileType
+    /// layout — every mandatory and SDK-optional Variable + every method — plus the
+    /// WoT-Con <c>CloseAndUpdate</c> extension method. A previous bug forgot to set
+    /// <c>ReferenceTypeId = HasComponent</c> on the per-asset file instance, so handler
+    /// invocations still worked (the SDK routes by NodeId) but the address space showed
+    /// an empty FileType node. Browse-based assertions like this one would have caught
+    /// that regression; the handler-call tests didn't.
+    /// </summary>
+    [Test]
+    public async Task WoTFile_AddressSpace_ExposesFullFileTypeLayoutPlusCloseAndUpdate()
+    {
+        var (_, fileId) = await CreateAssetAndResolveFileAsync("WoTFileAudit_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+
+        // Properties on FileType are wired via HasProperty; methods via HasComponent.
+        // Both descend from HierarchicalReferences \u2014 one browse with IncludeSubtypes=true
+        // covers the whole audit, with the NodeClass on each reference telling us which
+        // side we're looking at.
+        var bd = new BrowseDescription
+        {
+            NodeId = fileId,
+            BrowseDirection = BrowseDirection.Forward,
+            ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences,
+            IncludeSubtypes = true,
+            NodeClassMask = (uint)(NodeClass.Variable | NodeClass.Method),
+            ResultMask = (uint)BrowseResultMask.All,
+        };
+
+        var resp = await Session.BrowseAsync(
+            null, null, 0,
+            new BrowseDescriptionCollection { bd },
+            CancellationToken.None).ConfigureAwait(false);
+        resp.Results.Should().ContainSingle();
+        var children = resp.Results[0].References;
+
+        var variableNames = children
+            .Where(r => r.NodeClass == NodeClass.Variable)
+            .Select(r => r.BrowseName.Name)
+            .ToHashSet(StringComparer.Ordinal);
+        var methodChildren = children
+            .Where(r => r.NodeClass == NodeClass.Method)
+            .ToList();
+        var methodNames = methodChildren
+            .Select(r => r.BrowseName.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        // OPC 10000-5 \u00a710 FileType Variables. Mandatory: Size, Writable, UserWritable,
+        // OpenCount. Optional (SDK FileState.Create wires them by default and we light
+        // them up in WotConNodeManager.CreateAssetNode): MimeType, MaxByteStringLength,
+        // LastModifiedTime.
+        variableNames.Should().BeEquivalentTo(
+            new[]
+            {
+                BrowseNames.Size,
+                BrowseNames.Writable,
+                BrowseNames.UserWritable,
+                BrowseNames.OpenCount,
+                BrowseNames.MimeType,
+                BrowseNames.MaxByteStringLength,
+                BrowseNames.LastModifiedTime,
+            },
+            "per-asset WoTFile must surface all seven OPC 10000-5 \u00a710 FileType Variables");
+
+        // OPC 10000-5 \u00a710 methods inherited from FileType, plus the WoT-Con extension.
+        methodNames.Should().BeEquivalentTo(
+            new[]
+            {
+                BrowseNames.Open,
+                BrowseNames.Close,
+                BrowseNames.Read,
+                BrowseNames.Write,
+                BrowseNames.GetPosition,
+                BrowseNames.SetPosition,
+                "CloseAndUpdate",
+            },
+            "per-asset WoTFile must expose the six inherited FileType methods plus the WoT-Con CloseAndUpdate extension (\u00a76.3.10)");
+
+        // The six inherited methods live in NS=0; CloseAndUpdate is declared in the WoT-Con
+        // companion namespace. Pinning this boundary catches a future regression where the
+        // CloseAndUpdate node accidentally gets reparented onto NS=0 (or vice versa).
+        var wotConNs = WotConNamespaceIndex;
+        foreach (var inherited in new[]
+        {
+            BrowseNames.Open, BrowseNames.Close, BrowseNames.Read, BrowseNames.Write,
+            BrowseNames.GetPosition, BrowseNames.SetPosition,
+        })
+        {
+            methodChildren.Single(r => r.BrowseName.Name == inherited).BrowseName.NamespaceIndex
+                .Should().Be(0, "{0} is inherited from the standard FileType in NS=0", inherited);
+        }
+
+        methodChildren.Single(r => r.BrowseName.Name == "CloseAndUpdate").BrowseName.NamespaceIndex
+            .Should().Be(wotConNs, "CloseAndUpdate is declared by the WoT-Con companion spec");
     }
 }
