@@ -22,6 +22,7 @@ public class WotConTests : SimulatorTestsBase
     // index is server-assigned at runtime.
     private const uint WotAssetConnectionManagementObjectId = 31;
     private const uint CreateAssetMethodInstanceId = 32;
+    private const uint IWoTAssetTypeId = 42;
     private const uint WoTFileObjectId = 144;
     private const uint FileCloseAndUpdateTypeMethodId = 111;
 
@@ -216,6 +217,46 @@ public class WotConTests : SimulatorTestsBase
         var match = references.Single(r => r.BrowseName.Name == assetName);
         ExpandedNodeId.ToNodeId(match.NodeId, Session.NamespaceUris)
             .Should().Be(assetId, "browsed NodeId should match the AssetId returned by CreateAsset");
+    }
+
+    [Test]
+    public async Task CreateAsset_NewAssetHasInterfaceToIWoTAssetType()
+    {
+        // Per OPC 10100-1 §6.3.8: the new asset implements the IWoTAssetType Interface.
+        // The NodeSet's <WoTAssetName> placeholder models this as BaseObjectType +
+        // HasInterface → IWoTAssetType (ns=WotCon;i=42). Mirror that for created assets.
+        var assetName = "InterfaceAsset_" + Guid.NewGuid().ToString("N")[..8];
+
+        var (createStatus, outputs) = await CallAsync(
+            objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
+            methodId: WotConNodeId(CreateAssetMethodInstanceId),
+            arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
+        StatusCode.IsGood(createStatus).Should().BeTrue("CreateAsset should succeed, got status {0}", createStatus);
+        var assetId = outputs[0].Value as NodeId;
+        assetId.Should().NotBeNull();
+
+        var browseDescription = new BrowseDescription
+        {
+            NodeId = assetId,
+            BrowseDirection = BrowseDirection.Forward,
+            ReferenceTypeId = ReferenceTypeIds.HasInterface,
+            IncludeSubtypes = false,
+            NodeClassMask = (uint)NodeClass.ObjectType,
+            ResultMask = (uint)BrowseResultMask.All,
+        };
+
+        var results = await Session.BrowseAsync(
+            null,
+            null,
+            0,
+            new BrowseDescriptionCollection { browseDescription },
+            CancellationToken.None).ConfigureAwait(false);
+
+        results.Results.Should().ContainSingle();
+        var references = results.Results[0].References;
+        references.Should().ContainSingle(
+            r => ExpandedNodeId.ToNodeId(r.NodeId, Session.NamespaceUris) == WotConNodeId(IWoTAssetTypeId),
+            "the new asset must have a HasInterface reference to IWoTAssetType per \u00a76.3.8");
     }
 
     /// <summary>

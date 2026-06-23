@@ -20,6 +20,7 @@ using System.Text.Json;
 public partial class WotConNodeManager : CustomNodeManager2
 {
     private const uint WotAssetConnectionManagementObjectId = 31;
+    private const uint IWoTAssetTypeId = 42;
     private const uint CreateAssetMethodTypeId = 26;
     private const uint CreateAssetMethodInstanceId = 32;
     private const uint CreateAssetInputArgumentsId = 33;
@@ -742,6 +743,14 @@ public partial class WotConNodeManager : CustomNodeManager2
                 ReferenceTypeIds.Organizes,
                 isInverse: true,
                 new NodeId(WotAssetConnectionManagementObjectId, NamespaceIndex));
+
+            // Per OPC 10100-1 §6.3.8: the new Object implements the IWoTAssetType Interface.
+            // The NodeSet's <WoTAssetName> placeholder (ns=1;i=2) follows the same pattern:
+            // TypeDefinition=BaseObjectType plus HasInterface to IWoTAssetType (ns=1;i=42).
+            assetNode.AddReference(
+                ReferenceTypeIds.HasInterface,
+                isInverse: false,
+                new NodeId(IWoTAssetTypeId, NamespaceIndex));
 
             // WoTFile — instead of giving each asset its own FileState (and re-wiring all
             // 6 File methods + args per asset), cross-reference the singleton WoTFile (i=144)
