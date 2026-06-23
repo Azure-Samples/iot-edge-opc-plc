@@ -11,6 +11,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Text;
+using System.Text.Json;
 
 /// <summary>
 /// Node manager for the OPC UA WoT-Con (Web of Things Connectivity) companion specification.
@@ -35,6 +37,10 @@ public partial class WotConNodeManager : CustomNodeManager2
     // unreferenced.
     private const uint WoTAssetFileTypeId = 110;
     private const uint FileCloseAndUpdateTypeMethodId = 111;
+
+    // Strict UTF-8 decoder: throws DecoderFallbackException on malformed byte sequences
+    // instead of silently substituting U+FFFD. Used to validate uploaded TD payloads.
+    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     private readonly ILogger _logger;
     private readonly Dictionary<string, WotAsset> _assets;
@@ -1003,8 +1009,60 @@ public partial class WotConNodeManager : CustomNodeManager2
                 fileNode.LastModifiedTime.Value = DateTime.UtcNow;
             }
 
-            _logger?.LogInformation("[WotCon] {Asset}.CloseAndUpdate handle={Handle} payload {Bytes} bytes",
-                asset.Name, handle, payload?.Length ?? 0);
+            // Per OPC 10100-1 §6.3.2 + §6.3.8 the upload finalization is the trigger to
+            // materialize the asset's information model from the Thing Description. For now
+            // (plan item 1) we only decode + parse + persist; Variable/Method materialization
+            // lands with plan items 2 and 3.
+            //
+            // TODO: validate against the WoT-Con TD JSON Schema (Annex A.2). The lightweight
+            // "well-formed JSON + non-empty title" gate below is sufficient for mock-mode
+            // round-trips today.
+            if (payload == null || payload.Length == 0)
+            {
+                _logger?.LogWarning("[WotCon] {Asset}.CloseAndUpdate handle={Handle} produced an empty payload", asset.Name, handle);
+                return new ServiceResult(StatusCodes.BadDecodingError, "Thing Description payload is empty.");
+            }
+
+            string json;
+            try
+            {
+                // Strict UTF-8: reject malformed byte sequences instead of silently substituting U+FFFD.
+                json = StrictUtf8.GetString(payload);
+            }
+            catch (DecoderFallbackException ex)
+            {
+                _logger?.LogWarning(ex, "[WotCon] {Asset}.CloseAndUpdate handle={Handle} payload is not valid UTF-8", asset.Name, handle);
+                return new ServiceResult(StatusCodes.BadDecodingError, "Thing Description payload is not valid UTF-8.");
+            }
+
+            ThingDescriptionInfo parsed;
+            try
+            {
+                parsed = ThingDescriptionParser.Parse(json, _logger);
+            }
+            catch (JsonException ex)
+            {
+                _logger?.LogWarning(ex, "[WotCon] {Asset}.CloseAndUpdate handle={Handle} payload is malformed JSON", asset.Name, handle);
+                return new ServiceResult(StatusCodes.BadDecodingError, "Thing Description payload is not valid JSON.");
+            }
+
+            if (parsed == null)
+            {
+                return new ServiceResult(StatusCodes.BadInvalidArgument, "Thing Description is missing a non-empty 'title'.");
+            }
+
+            // Persist both the raw JSON (for diagnostics / re-export) and the parsed form
+            // (for later materialization). Re-uploads overwrite both.
+            asset.ThingDescription = json;
+            asset.ParsedThingDescription = parsed;
+
+            _logger?.LogInformation(
+                "[WotCon] {Asset}.CloseAndUpdate handle={Handle} payload {Bytes} bytes; parsed TD title='{Title}' properties={PropertyCount}",
+                asset.Name,
+                handle,
+                payload.Length,
+                parsed.Name,
+                parsed.Properties.Count);
             return ServiceResult.Good;
         }
         catch (Exception ex)

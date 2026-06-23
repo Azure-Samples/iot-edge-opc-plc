@@ -21,6 +21,13 @@ internal sealed class WotAsset
     public string ThingDescription { get; set; }
 
     /// <summary>
+    /// Parsed form of <see cref="ThingDescription"/> populated by <c>CloseAndUpdate</c>
+    /// once the upload validates. Consumed by the Variable / Method materialization
+    /// steps in later plan items.
+    /// </summary>
+    public ThingDescriptionInfo ParsedThingDescription { get; set; }
+
+    /// <summary>
     /// Per-asset WoTAssetFileType instance NodeId (HasComponent child of the asset).
     /// </summary>
     public NodeId FileNodeId { get; set; }
