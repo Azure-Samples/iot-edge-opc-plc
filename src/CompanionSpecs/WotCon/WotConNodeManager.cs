@@ -1057,17 +1057,27 @@ public partial class WotConNodeManager : CustomNodeManager2
             // Snapshot + dispose under one lock acquisition so a concurrent Read/Write
             // can't observe the buffer between ToArray and Dispose.
             byte[] payload = null;
+            bool handleKnown = false;
             int openCount;
             lock (asset.FileLock)
             {
                 if (asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
+                    handleKnown = true;
                     payload = stream.ToArray();
                     stream.Dispose();
                     asset.FileBuffers.Remove(handle);
                 }
 
                 openCount = asset.FileBuffers.Count;
+            }
+
+            // §6.3.10.2: an unknown / not-open-for-writing handle must surface as
+            // Bad_InvalidState — bail before mutating any per-asset state.
+            if (!handleKnown)
+            {
+                _logger?.LogWarning("[WotCon] {Asset}.CloseAndUpdate received unknown handle={Handle}", asset.Name, handle);
+                return new ServiceResult(StatusCodes.BadInvalidState, "FileHandle is not open for writing.");
             }
 
             asset.LastFinalizedPayload = payload;
@@ -1120,7 +1130,8 @@ public partial class WotConNodeManager : CustomNodeManager2
 
             if (parsed == null)
             {
-                return new ServiceResult(StatusCodes.BadInvalidArgument, "Thing Description is missing a non-empty 'title'.");
+                // §6.3.10.2: a TD that omits a mandatory member fails to parse as a valid TD.
+                return new ServiceResult(StatusCodes.BadDecodingError, "Thing Description is missing a non-empty 'title'.");
             }
 
             // OPC 10100-1 §6.3.1: reject TDs that reference a WoT binding outside the

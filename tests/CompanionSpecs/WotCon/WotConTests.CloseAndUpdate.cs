@@ -36,11 +36,11 @@ public partial class WotConTests
     }
 
     [Test]
-    public async Task CloseAndUpdate_MissingTitle_ReturnsBadInvalidArgument()
+    public async Task CloseAndUpdate_MissingTitle_ReturnsBadDecodingError()
     {
-        // The Thing Description spec marks `title` as mandatory. A well-formed JSON
-        // payload that omits `title` is a semantic failure (Bad_InvalidArgument), not
-        // a decoding failure.
+        // OPC 10100-1 §6.3.10.2 lists Bad_DecodingError for a TD that cannot be parsed.
+        // The Thing Description spec marks `title` as mandatory, so a payload that omits
+        // it fails TD parsing and must surface as Bad_DecodingError (not Bad_InvalidArgument).
         var (_, fileId) = await CreateAssetAndResolveFileAsync("MissingTitleAsset_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
 
         byte[] payload = Encoding.UTF8.GetBytes(@"{""@context"":""https://www.w3.org/2022/wot/td/v1.1""}");
@@ -51,8 +51,24 @@ public partial class WotConTests
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
             arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
 
-        closeStatus.Code.Should().Be(StatusCodes.BadInvalidArgument,
-            "a TD without a non-empty 'title' must be rejected with Bad_InvalidArgument");
+        closeStatus.Code.Should().Be(StatusCodes.BadDecodingError,
+            "a TD without a non-empty 'title' must be rejected with Bad_DecodingError");
+    }
+
+    [Test]
+    public async Task CloseAndUpdate_UnknownHandle_ReturnsBadInvalidState()
+    {
+        // OPC 10100-1 §6.3.10.2 lists Bad_InvalidState for "the file was not opened for
+        // writing". An unknown / never-opened FileHandle is the simplest case of that.
+        var (_, fileId) = await CreateAssetAndResolveFileAsync("UnknownHandleAsset_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+
+        var (closeStatus, _) = await CallAsync(
+            objectId: fileId,
+            methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
+            arguments: new VariantCollection { new Variant((uint)9999) }).ConfigureAwait(false);
+
+        closeStatus.Code.Should().Be(StatusCodes.BadInvalidState,
+            "CloseAndUpdate against an unknown FileHandle must be rejected with Bad_InvalidState");
     }
 
     [Test]
