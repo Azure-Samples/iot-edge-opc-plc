@@ -41,6 +41,10 @@ public partial class WotConNodeManager
     // WoTBindingType in the WoT-Con NodeSet (DataType="i=23751" on i=40).
     private const uint UriStringDataTypeId = 23751;
 
+    // SPDX short identifier for the OPC PLC simulator's license (LICENSE in repo root).
+    // Surfaced verbatim via Configuration/License per OPC 10100-1 §6.3.7.
+    internal const string ServerLicenseSpdx = "MIT";
+
     /// <summary>
     /// Maps the type-side method NodeIds of the optional management members (i=41 / i=49 /
     /// i=75) to the runtime-allocated instance method NodeIds we materialize on i=31. The
@@ -147,8 +151,10 @@ public partial class WotConNodeManager
             TypeDefinitionId = new NodeId(WoTAssetConfigurationTypeId, nsIdx),
         };
 
-        // OPC 10100-1 §6.3.7 Table 16: WoTAssetConfigurationType exposes a License Property
-        // (i=109, String, modelling rule Optional). Surfaced as an empty string for now.
+        // OPC 10100-1 §6.3.7 Table 16: WoTAssetConfigurationType exposes a License
+        // Property (i=109, String, modelling rule Optional). The OPC PLC simulator ships
+        // under the MIT license (see LICENSE in the repo root); surface that as an SPDX
+        // identifier so clients can interpret it programmatically without parsing prose.
         // The <WoTConfigurationParameterName> placeholder (i=108, modelling rule
         // OptionalPlaceholder) is deliberately omitted — no configuration parameters are
         // defined yet.
@@ -163,7 +169,7 @@ public partial class WotConNodeManager
             ValueRank = ValueRanks.Scalar,
             AccessLevel = AccessLevels.CurrentRead,
             UserAccessLevel = AccessLevels.CurrentRead,
-            Value = string.Empty,
+            Value = ServerLicenseSpdx,
             StatusCode = StatusCodes.Good,
             Timestamp = DateTime.UtcNow,
         };
@@ -288,24 +294,93 @@ public partial class WotConNodeManager
         return ServiceResult.Good;
     }
 
+    /// <summary>
+    /// OPC 10100-1 §6.3.5: create an asset and stamp the supplied <c>AssetEndpoint</c>
+    /// onto it in a single call. Equivalent to <c>CreateAsset(AssetName)</c> followed by
+    /// an upload of a TD whose top-level <c>base</c> equals <paramref name="AssetEndpoint"
+    /// /> — but skips the FileType round-trip for the endpoint-first onboarding flow.
+    /// The per-asset <c>WoTAssetFileType</c> instance is still wired, so a later TD
+    /// upload can populate Properties / Actions; if that TD carries a different
+    /// <c>base</c>, it wins (TD is the authoritative source of the model).
+    /// </summary>
     private ServiceResult OnCreateAssetForEndpoint(
         ISystemContext context,
         MethodState method,
         IList<object> inputArguments,
         IList<object> outputArguments)
     {
-        // OPC 10100-1 §6.3.5 — not implemented.
-        return new ServiceResult(StatusCodes.BadNotImplemented);
+        if (inputArguments.Count < 2)
+        {
+            _logger?.LogWarning("[WotCon] CreateAssetForEndpoint called with insufficient arguments");
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
+        var assetName = inputArguments[0] as string;
+        var endpoint = inputArguments[1] as string;
+        if (string.IsNullOrWhiteSpace(assetName))
+        {
+            return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetName cannot be empty");
+        }
+
+        if (string.IsNullOrWhiteSpace(endpoint))
+        {
+            // §6.3.5 doesn't define a status for this. Bad_InvalidArgument is the closest
+            // match — the method's whole point is the endpoint, so an empty one is a
+            // malformed request, not a missing optional argument.
+            return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetEndpoint cannot be empty");
+        }
+
+        var (result, assetId) = CreateAssetInternal(context, assetName, endpoint);
+        if (ServiceResult.IsBad(result))
+        {
+            return result;
+        }
+
+        outputArguments[0] = assetId;
+        return ServiceResult.Good;
     }
 
+    /// <summary>
+    /// OPC 10100-1 §6.3.6: probe whether an <c>AssetEndpoint</c> is reachable. The
+    /// simulator never opens a southbound connection, so reachability collapses to
+    /// "is this endpoint registered with any asset?". Returns
+    /// <c>(Success=true, Status="Simulated")</c> on a hit and
+    /// <c>(Success=false, Status="UnknownEndpoint")</c> otherwise; the method itself
+    /// returns <c>Good</c> because the outcome travels on the output arguments — the
+    /// spec defines no failure StatusCodes for this method.
+    /// </summary>
     private ServiceResult OnConnectionTest(
         ISystemContext context,
         MethodState method,
         IList<object> inputArguments,
         IList<object> outputArguments)
     {
-        // OPC 10100-1 §6.3.6 — not implemented.
-        return new ServiceResult(StatusCodes.BadNotImplemented);
+        if (inputArguments.Count < 1)
+        {
+            _logger?.LogWarning("[WotCon] ConnectionTest called with insufficient arguments");
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
+        var endpoint = inputArguments[0] as string;
+        if (string.IsNullOrWhiteSpace(endpoint))
+        {
+            return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetEndpoint cannot be empty");
+        }
+
+        var known = false;
+        foreach (var asset in _assets.Values)
+        {
+            if (string.Equals(asset.AssetEndpoint, endpoint, StringComparison.Ordinal))
+            {
+                known = true;
+                break;
+            }
+        }
+
+        outputArguments[0] = known;
+        outputArguments[1] = known ? "Simulated" : "UnknownEndpoint";
+        _logger?.LogDebug("[WotCon] ConnectionTest endpoint='{Endpoint}' known={Known}", endpoint, known);
+        return ServiceResult.Good;
     }
 
     /// <summary>

@@ -3,6 +3,7 @@ namespace OpcPlc.Tests.CompanionSpecs.WotCon;
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,31 +26,123 @@ public partial class WotConTests
     private const uint WoTAssetConfigurationTypeId = 105;
 
     [Test]
-    public async Task OptionalMethod_CreateAssetForEndpoint_ReturnsBadNotImplemented()
+    public async Task CreateAssetForEndpoint_RegistersAssetAndMaterializesEndpoint()
     {
-        var (status, _) = await CallAsync(
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var assetName = "CreateAFE_" + suffix;
+        var endpoint = $"opc.tcp://endpoint-first-{suffix}.invalid:4840";
+
+        var (status, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetForEndpointTypeMethodId),
             arguments: new VariantCollection
             {
-                new Variant("StubAsset"),
-                new Variant("opc.tcp://example.invalid:4840"),
+                new Variant(assetName),
+                new Variant(endpoint),
             }).ConfigureAwait(false);
 
-        status.Code.Should().Be(StatusCodes.BadNotImplemented,
-            "CreateAssetForEndpoint is a stub per OPC 10100-1 §6.3.5, got {0}", status);
+        StatusCode.IsGood(status).Should().BeTrue(
+            "CreateAssetForEndpoint must succeed for fresh inputs (§6.3.5), got {0}", status);
+        outputs.Should().ContainSingle("§6.3.5 declares a single AssetId output argument");
+        var assetId = outputs[0].Value as NodeId;
+        NodeId.IsNull(assetId).Should().BeFalse("AssetId output must be a non-null NodeId");
+
+        // The supplied endpoint must surface via DiscoverAssets immediately — no TD upload
+        // round-trip required for the endpoint-first onboarding flow.
+        var endpoints = await CallDiscoverAssetsAsync().ConfigureAwait(false);
+        endpoints.Should().Contain(endpoint,
+            "CreateAssetForEndpoint must make the endpoint visible to DiscoverAssets without a TD upload");
+
+        // §6.3.8 AssetEndpoint Property must be materialized under the new asset.
+        var endpointPropId = await ResolveChildByBrowseNameAsync(
+            parent: assetId,
+            childBrowseName: "AssetEndpoint",
+            isProperty: true).ConfigureAwait(false);
+        var read = await Session.ReadAsync(
+            null, 0, TimestampsToReturn.Neither,
+            new ReadValueIdCollection
+            {
+                new ReadValueId { NodeId = endpointPropId, AttributeId = Attributes.Value },
+            },
+            CancellationToken.None).ConfigureAwait(false);
+        read.Results[0].Value.Should().Be(endpoint, "AssetEndpoint Property must carry the supplied URI verbatim");
     }
 
     [Test]
-    public async Task OptionalMethod_ConnectionTest_ReturnsBadNotImplemented()
+    public async Task CreateAssetForEndpoint_DuplicateName_ReturnsBadBrowseNameDuplicated()
     {
-        var (status, _) = await CallAsync(
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var assetName = "CreateAFEDup_" + suffix;
+
+        var (status1, _) = await CallAsync(
+            objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
+            methodId: WotConNodeId(CreateAssetForEndpointTypeMethodId),
+            arguments: new VariantCollection
+            {
+                new Variant(assetName),
+                new Variant($"opc.tcp://first-{suffix}.invalid:4840"),
+            }).ConfigureAwait(false);
+        StatusCode.IsGood(status1).Should().BeTrue("first CreateAssetForEndpoint must succeed, got {0}", status1);
+
+        var (status2, _) = await CallAsync(
+            objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
+            methodId: WotConNodeId(CreateAssetForEndpointTypeMethodId),
+            arguments: new VariantCollection
+            {
+                new Variant(assetName),
+                new Variant($"opc.tcp://second-{suffix}.invalid:4840"),
+            }).ConfigureAwait(false);
+        status2.Code.Should().Be(StatusCodes.BadBrowseNameDuplicated,
+            "§6.3.5 inherits the §6.3.2 duplicate-name rule — a second create with the same AssetName must fail, got {0}", status2);
+    }
+
+    [Test]
+    public async Task ConnectionTest_KnownEndpoint_ReturnsSimulated()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var endpoint = $"modbus+tcp://known-{suffix}.invalid:502/1";
+
+        // Onboard an asset against this endpoint via CreateAssetForEndpoint so the
+        // simulator considers it "known".
+        var (createStatus, _) = await CallAsync(
+            objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
+            methodId: WotConNodeId(CreateAssetForEndpointTypeMethodId),
+            arguments: new VariantCollection
+            {
+                new Variant("ConnTestKnown_" + suffix),
+                new Variant(endpoint),
+            }).ConfigureAwait(false);
+        StatusCode.IsGood(createStatus).Should().BeTrue("setup CreateAssetForEndpoint must succeed, got {0}", createStatus);
+
+        var (status, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(ConnectionTestTypeMethodId),
-            arguments: new VariantCollection { new Variant("opc.tcp://example.invalid:4840") }).ConfigureAwait(false);
+            arguments: new VariantCollection { new Variant(endpoint) }).ConfigureAwait(false);
 
-        status.Code.Should().Be(StatusCodes.BadNotImplemented,
-            "ConnectionTest is a stub per OPC 10100-1 §6.3.6, got {0}", status);
+        StatusCode.IsGood(status).Should().BeTrue(
+            "ConnectionTest method itself must return Good; the verdict travels on the outputs (§6.3.6), got {0}", status);
+        outputs.Should().HaveCount(2, "§6.3.6 declares two output arguments (Success, Status)");
+        outputs[0].Value.Should().Be(true, "Success must be true for a known endpoint");
+        outputs[1].Value.Should().Be("Simulated",
+            "the simulator never opens a real southbound connection — a hit on the endpoint table reports 'Simulated'");
+    }
+
+    [Test]
+    public async Task ConnectionTest_UnknownEndpoint_ReturnsUnknownEndpoint()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var endpoint = $"opc.tcp://never-onboarded-{suffix}.invalid:4840";
+
+        var (status, outputs) = await CallAsync(
+            objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
+            methodId: WotConNodeId(ConnectionTestTypeMethodId),
+            arguments: new VariantCollection { new Variant(endpoint) }).ConfigureAwait(false);
+
+        StatusCode.IsGood(status).Should().BeTrue(
+            "ConnectionTest method itself must return Good even for unknown endpoints (§6.3.6), got {0}", status);
+        outputs[0].Value.Should().Be(false, "Success must be false for an unknown endpoint");
+        outputs[1].Value.Should().Be("UnknownEndpoint",
+            "Status reports the failure category in a clientreadable form");
     }
 
     [Test]
@@ -128,8 +221,8 @@ public partial class WotConTests
         var result = resp.Results[0];
         StatusCode.IsGood(result.StatusCode).Should().BeTrue(
             "Configuration/License must be readable, got {0}", result.StatusCode);
-        result.Value.Should().Be(string.Empty,
-            "License is surfaced as an empty string until populated from build metadata");
+        result.Value.Should().Be("MIT",
+            "License surfaces the SPDX identifier of the simulator's license per §6.3.7");
     }
 
     /// <summary>

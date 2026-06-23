@@ -448,31 +448,49 @@ public partial class WotConNodeManager : CustomNodeManager2
             return new ServiceResult(StatusCodes.BadArgumentsMissing);
         }
 
+        var assetName = inputArguments[0] as string;
+        if (string.IsNullOrWhiteSpace(assetName))
+        {
+            return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetName cannot be empty");
+        }
+
+        var (result, assetId) = CreateAssetInternal(context, assetName, endpoint: null);
+        if (ServiceResult.IsBad(result))
+        {
+            return result;
+        }
+
+        outputArguments[0] = assetId;
+        return ServiceResult.Good;
+    }
+
+    /// <summary>
+    /// Shared create-asset path used by both <see cref="OnCreateAsset"/> (\u00a76.3.2) and
+    /// <c>OnCreateAssetForEndpoint</c> (\u00a76.3.5). Enforces the \u00a76.3.2 duplicate-name rule
+    /// (<c>Bad_BrowseNameDuplicated</c>), creates the asset object + per-asset
+    /// <c>WoTAssetFileType</c> instance, and \u2014 when <paramref name="endpoint"/> is
+    /// non-empty \u2014 stamps it onto <see cref="WotAsset.AssetEndpoint"/> and materializes
+    /// the \u00a76.3.8 <c>AssetEndpoint</c> Property the same way a TD upload with a
+    /// top-level <c>base</c> would.
+    /// </summary>
+    private (ServiceResult Result, NodeId AssetId) CreateAssetInternal(
+        ISystemContext context,
+        string assetName,
+        string endpoint)
+    {
         try
         {
-            var assetName = inputArguments[0] as string;
-            if (string.IsNullOrWhiteSpace(assetName))
-            {
-                return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetName cannot be empty");
-            }
-
-            // Per OPC 10100-1 §6.3.2: "If an Asset with the AssetName already exists the
-            // result Bad_BrowseNameDuplicated will be returned." The previous behaviour
-            // (silent idempotent reuse) was a deliberate deviation; switched to strict
-            // spec compliance.
             if (_assets.ContainsKey(assetName))
             {
                 _logger?.LogInformation("[WotCon] CreateAsset rejected: AssetName '{AssetName}' already exists", assetName);
-                return new ServiceResult(StatusCodes.BadBrowseNameDuplicated, $"An asset named '{assetName}' already exists");
+                return (new ServiceResult(StatusCodes.BadBrowseNameDuplicated, $"An asset named '{assetName}' already exists"), null);
             }
 
-            // Create a placeholder asset node. Property materialization happens later when the
-            // client uploads the Thing Description through the WoTFile File API.
             var placeholder = new ThingDescriptionInfo { Name = assetName };
             var asset = CreateAssetNode(context, placeholder);
             if (asset == null)
             {
-                return new ServiceResult(StatusCodes.BadInternalError, "Failed to create asset node");
+                return (new ServiceResult(StatusCodes.BadInternalError, "Failed to create asset node"), null);
             }
 
             _assets[assetName] = asset;
@@ -481,14 +499,22 @@ public partial class WotConNodeManager : CustomNodeManager2
                 _filesByNodeId[asset.FileNodeId] = asset;
             }
 
-            outputArguments[0] = asset.AssetId;
-            _logger?.LogInformation("[WotCon] Created WoT asset '{AssetName}' with AssetId {AssetId} and WoTFile {FileId}", assetName, asset.AssetId, asset.FileNodeId);
-            return ServiceResult.Good;
+            if (!string.IsNullOrWhiteSpace(endpoint))
+            {
+                asset.AssetEndpoint = endpoint;
+                MaterializeAssetEndpoint(context, asset);
+            }
+
+            _logger?.LogInformation(
+                "[WotCon] Created WoT asset '{AssetName}' with AssetId {AssetId} and WoTFile {FileId}{EndpointSuffix}",
+                assetName, asset.AssetId, asset.FileNodeId,
+                string.IsNullOrWhiteSpace(endpoint) ? string.Empty : $" (endpoint={endpoint})");
+            return (ServiceResult.Good, asset.AssetId);
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "[WotCon] Exception in OnCreateAsset");
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+            _logger?.LogError(ex, "[WotCon] Exception in CreateAssetInternal for '{AssetName}'", assetName);
+            return (new ServiceResult(StatusCodes.BadInternalError, ex.Message), null);
         }
     }
 
