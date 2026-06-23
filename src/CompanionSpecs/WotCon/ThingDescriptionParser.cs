@@ -15,6 +15,13 @@ internal sealed class ThingDescriptionInfo
 {
     public string Name { get; set; }
 
+    /// <summary>
+    /// String entries from the TD's top-level <c>@context</c>. Used by the WoT-Con
+    /// binding validator to detect which protocol bindings the TD relies on.
+    /// Non-string entries (prefix maps) are not included.
+    /// </summary>
+    public List<string> Contexts { get; set; } = new();
+
     public Dictionary<string, ThingPropertyInfo> Properties { get; set; } = new();
 
     public Dictionary<string, ThingActionInfo> Actions { get; set; } = new();
@@ -120,6 +127,33 @@ internal static class ThingDescriptionParser
             return null;
         }
 
+        var contexts = new List<string>();
+        if (root.TryGetProperty("@context", out var contextElement))
+        {
+            if (contextElement.ValueKind == JsonValueKind.String)
+            {
+                var s = contextElement.GetString();
+                if (!string.IsNullOrWhiteSpace(s))
+                {
+                    contexts.Add(s);
+                }
+            }
+            else if (contextElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in contextElement.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.String)
+                    {
+                        var s = item.GetString();
+                        if (!string.IsNullOrWhiteSpace(s))
+                        {
+                            contexts.Add(s);
+                        }
+                    }
+                }
+            }
+        }
+
         var properties = new Dictionary<string, ThingPropertyInfo>();
 
         if (root.TryGetProperty("properties", out var propertiesElement) && propertiesElement.ValueKind == JsonValueKind.Object)
@@ -222,6 +256,7 @@ internal static class ThingDescriptionParser
         return new ThingDescriptionInfo
         {
             Name = assetName,
+            Contexts = contexts,
             Properties = properties,
             Actions = actions,
         };

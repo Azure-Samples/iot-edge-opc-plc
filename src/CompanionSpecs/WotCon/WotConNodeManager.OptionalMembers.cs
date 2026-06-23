@@ -10,15 +10,16 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Phase 1a of OPC 10100-1 §6.3.1 / §6.3.4 / §6.3.5 / §6.3.6 / §6.3.7: materialize the
-/// optional members of <c>WoTAssetConnectionManagementType</c> (i=1) on the standard
-/// instance <c>WoTAssetConnectionManagement</c> (i=31). The NodeSet importer drops them
-/// because they carry modelling rule <c>Optional</c> (i=80), so clients calling them today
-/// hit <c>Bad_NodeIdUnknown</c> instead of a meaningful reply.
+/// Materializes the optional members of <c>WoTAssetConnectionManagementType</c> (i=1) on
+/// the standard instance <c>WoTAssetConnectionManagement</c> (i=31) per OPC 10100-1
+/// §6.3.1 / §6.3.4 / §6.3.5 / §6.3.6 / §6.3.7. The NodeSet importer drops them because they
+/// carry modelling rule <c>Optional</c> (i=80), so clients calling them today hit
+/// <c>Bad_NodeIdUnknown</c> instead of a meaningful reply.
 /// <para>
-/// In this phase the property and the configuration object are wired with empty values and
-/// the three methods are backed by handlers that return <c>Bad_NotImplemented</c>
-/// (0x80700000). Real behaviour ships in Phase 1b.
+/// <c>SupportedWoTBindings</c> advertises the bindings catalog (see
+/// <see cref="WotConBindings"/>) and <see cref="ValidateThingDescriptionBindings"/> is
+/// consulted at upload time to reject TDs that reference an unsupported binding. The
+/// three optional methods and the <c>Configuration</c> object still return stubs.
 /// </para>
 /// </summary>
 public partial class WotConNodeManager
@@ -54,7 +55,7 @@ public partial class WotConNodeManager
     /// standard instance <c>WoTAssetConnectionManagement</c> (i=31): one Property
     /// (<c>SupportedWoTBindings</c>), one Object (<c>Configuration</c>), and three Methods
     /// (<c>DiscoverAssets</c>, <c>CreateAssetForEndpoint</c>, <c>ConnectionTest</c>). The
-    /// method handlers all return <c>Bad_NotImplemented</c> in Phase 1a.
+    /// method handlers return <c>Bad_NotImplemented</c>.
     /// </summary>
     private void SetupOptionalManagementMembers(ISystemContext context, ushort nsIdx, BaseObjectState managementObject)
     {
@@ -124,15 +125,15 @@ public partial class WotConNodeManager
             ArrayDimensions = new[] { 0u },
             AccessLevel = AccessLevels.CurrentRead,
             UserAccessLevel = AccessLevels.CurrentRead,
-            Value = Array.Empty<string>(),
+            Value = (string[])WotConBindings.SupportedBindings.Clone(),
             StatusCode = StatusCodes.Good,
             Timestamp = DateTime.UtcNow,
         };
 
         managementObject.AddChild(prop);
         AddPredefinedNode(context, prop);
-        _logger?.LogDebug("[WotCon] Materialized SupportedWoTBindings property NodeId={NodeId} (type-side i={TypeId})",
-            prop.NodeId, SupportedWoTBindingsTypeVariableId);
+        _logger?.LogDebug("[WotCon] Materialized SupportedWoTBindings property NodeId={NodeId} (type-side i={TypeId}) with {Count} binding(s)",
+            prop.NodeId, SupportedWoTBindingsTypeVariableId, WotConBindings.SupportedBindings.Length);
     }
 
     private void MaterializeConfigurationObject(ISystemContext context, ushort nsIdx, BaseObjectState managementObject)
@@ -147,7 +148,7 @@ public partial class WotConNodeManager
         };
 
         // OPC 10100-1 §6.3.7 Table 16: WoTAssetConfigurationType exposes a License Property
-        // (i=109, String, modelling rule Optional). Phase 1a surfaces it as an empty string.
+        // (i=109, String, modelling rule Optional). Surfaced as an empty string for now.
         // The <WoTConfigurationParameterName> placeholder (i=108, modelling rule
         // OptionalPlaceholder) is deliberately omitted — no configuration parameters are
         // defined yet.
@@ -263,7 +264,7 @@ public partial class WotConNodeManager
         IList<object> inputArguments,
         IList<object> outputArguments)
     {
-        // Phase 1a stub — see plan.md item §1, OPC 10100-1 §6.3.4.
+        // OPC 10100-1 §6.3.4 — not implemented.
         return new ServiceResult(StatusCodes.BadNotImplemented);
     }
 
@@ -273,7 +274,7 @@ public partial class WotConNodeManager
         IList<object> inputArguments,
         IList<object> outputArguments)
     {
-        // Phase 1a stub — see plan.md item §1, OPC 10100-1 §6.3.5.
+        // OPC 10100-1 §6.3.5 — not implemented.
         return new ServiceResult(StatusCodes.BadNotImplemented);
     }
 
@@ -283,7 +284,48 @@ public partial class WotConNodeManager
         IList<object> inputArguments,
         IList<object> outputArguments)
     {
-        // Phase 1a stub — see plan.md item §1, OPC 10100-1 §6.3.6.
+        // OPC 10100-1 §6.3.6 — not implemented.
         return new ServiceResult(StatusCodes.BadNotImplemented);
+    }
+
+    /// <summary>
+    /// Walks the TD's <c>@context</c> (OPC 10100-1 §6.3.1), treats any entry that
+    /// exact-matches an URI in <see cref="WotConBindings.KnownBindings"/> as a binding
+    /// declaration, and rejects those not in <see cref="WotConBindings.SupportedBindings"/>.
+    /// URIs unrecognised as bindings (W3C TD base context, semantic vocabularies, vendor
+    /// extensions we don't model) are ignored so unrelated TDs keep round-tripping.
+    /// Returns <c>Bad_NotSupported</c> with a diagnostic message naming the offending URI.
+    /// </summary>
+    internal ServiceResult ValidateThingDescriptionBindings(ThingDescriptionInfo td)
+    {
+        if (td?.Contexts == null)
+        {
+            return ServiceResult.Good;
+        }
+
+        foreach (var ctx in td.Contexts)
+        {
+            if (string.IsNullOrEmpty(ctx))
+            {
+                continue;
+            }
+
+            if (!WotConBindings.KnownBindings.Contains(ctx))
+            {
+                continue;
+            }
+
+            if (Array.IndexOf(WotConBindings.SupportedBindings, ctx) < 0)
+            {
+                _logger?.LogWarning(
+                    "[WotCon] TD references unsupported binding '{Binding}'. Supported: {Supported}",
+                    ctx, string.Join(", ", WotConBindings.SupportedBindings));
+                return new ServiceResult(
+                    StatusCodes.BadNotSupported,
+                    $"WoT binding '{ctx}' is not supported by this server. Supported bindings: {string.Join(", ", WotConBindings.SupportedBindings)}.");
+            }
+        }
+
+        return ServiceResult.Good;
     }
 }

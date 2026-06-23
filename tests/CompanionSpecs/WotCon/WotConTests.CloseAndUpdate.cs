@@ -78,4 +78,48 @@ public partial class WotConTests
             arguments: new VariantCollection { new Variant(secondHandle) }).ConfigureAwait(false);
         StatusCode.IsGood(secondStatus).Should().BeTrue("re-upload CloseAndUpdate must succeed, got {0}", secondStatus);
     }
+
+    [Test]
+    public async Task CloseAndUpdate_UnknownBinding_ReturnsBadNotSupported()
+    {
+        // OPC 10100-1 §6.3.1: a TD whose @context references a W3C-registered binding
+        // template URI that is not advertised on SupportedWoTBindings must be rejected
+        // with Bad_NotSupported. URIs we do not recognise as bindings (W3C TD base
+        // context, semantic vocabularies) are ignored — see the existing CloseAndUpdate_*
+        // tests that succeed with only the W3C TD context.
+        var (_, fileId) = await CreateAssetAndResolveFileAsync("UnknownBindingAsset_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+
+        byte[] payload = Encoding.UTF8.GetBytes(
+            "{\"@context\":[\"https://www.w3.org/2022/wot/td/v1.1\",\"https://www.w3.org/2019/wot/modbus\"],\"title\":\"UnknownBindingTd\"}");
+        uint handle = await OpenWriteAsync(fileId, payload).ConfigureAwait(false);
+
+        var (closeStatus, _) = await CallAsync(
+            objectId: fileId,
+            methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
+            arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
+
+        closeStatus.Code.Should().Be(StatusCodes.BadNotSupported,
+            "TDs that declare a binding outside SupportedWoTBindings must be rejected with Bad_NotSupported");
+    }
+
+    [Test]
+    public async Task CloseAndUpdate_SimulatorBinding_Accepted()
+    {
+        // The OPC PLC simulator binding is the one we advertise on SupportedWoTBindings,
+        // so a TD whose @context array includes it (alongside the W3C TD base) must be
+        // accepted with Good.
+        var (_, fileId) = await CreateAssetAndResolveFileAsync("SimBindingAsset_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+
+        byte[] payload = Encoding.UTF8.GetBytes(
+            "{\"@context\":[\"https://www.w3.org/2022/wot/td/v1.1\",\"https://opcfoundation.org/OpcPlc/simulator\"],\"title\":\"SimBindingTd\"}");
+        uint handle = await OpenWriteAsync(fileId, payload).ConfigureAwait(false);
+
+        var (closeStatus, _) = await CallAsync(
+            objectId: fileId,
+            methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
+            arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
+
+        StatusCode.IsGood(closeStatus).Should().BeTrue(
+            "TDs that opt into the simulator binding must round-trip CloseAndUpdate, got {0}", closeStatus);
+    }
 }

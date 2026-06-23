@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 /// <summary>
 /// Tests for the optional members of <c>WoTAssetConnectionManagementType</c> materialized
-/// on the standard instance <c>WoTAssetConnectionManagement</c> (i=31). Phase 1a:
-/// <c>SupportedWoTBindings</c> reads as an empty array, <c>Configuration</c> is browseable
-/// with an empty <c>License</c>, and the three optional methods return
+/// on the standard instance <c>WoTAssetConnectionManagement</c> (i=31):
+/// <c>SupportedWoTBindings</c> advertises the bindings catalog, <c>Configuration</c> is
+/// browseable with an empty <c>License</c>, and the three optional methods return
 /// <c>Bad_NotImplemented</c>. See OPC 10100-1 §6.3.1 / §6.3.4 / §6.3.5 / §6.3.6 / §6.3.7.
 /// </summary>
 public partial class WotConTests
@@ -33,7 +33,7 @@ public partial class WotConTests
             arguments: new VariantCollection()).ConfigureAwait(false);
 
         status.Code.Should().Be(StatusCodes.BadNotImplemented,
-            "DiscoverAssets is a Phase-1a stub per OPC 10100-1 §6.3.4, got {0}", status);
+            "DiscoverAssets is a stub per OPC 10100-1 §6.3.4, got {0}", status);
     }
 
     [Test]
@@ -49,7 +49,7 @@ public partial class WotConTests
             }).ConfigureAwait(false);
 
         status.Code.Should().Be(StatusCodes.BadNotImplemented,
-            "CreateAssetForEndpoint is a Phase-1a stub per OPC 10100-1 §6.3.5, got {0}", status);
+            "CreateAssetForEndpoint is a stub per OPC 10100-1 §6.3.5, got {0}", status);
     }
 
     [Test]
@@ -61,15 +61,18 @@ public partial class WotConTests
             arguments: new VariantCollection { new Variant("opc.tcp://example.invalid:4840") }).ConfigureAwait(false);
 
         status.Code.Should().Be(StatusCodes.BadNotImplemented,
-            "ConnectionTest is a Phase-1a stub per OPC 10100-1 §6.3.6, got {0}", status);
+            "ConnectionTest is a stub per OPC 10100-1 §6.3.6, got {0}", status);
     }
 
     [Test]
-    public async Task SupportedWoTBindings_IsReadableAndEmpty()
+    public async Task SupportedWoTBindings_AdvertisesSimulatorBinding()
     {
         // OPC 10100-1 §6.3.1: Property on WoTAssetConnectionManagementType. Materialized at
         // runtime under i=31 with a fresh NodeId; resolve by BrowseName under the management
-        // object rather than by the type-side i=40.
+        // object rather than by the type-side i=40. The server advertises the OPC PLC
+        // simulator binding so CloseAndUpdate can validate TD bindings against it.
+        const string SimulatorBindingUri = "https://opcfoundation.org/OpcPlc/simulator";
+
         var fileId = await ResolveChildByBrowseNameAsync(
             parent: WotConNodeId(WotAssetConnectionManagementObjectId),
             childBrowseName: "SupportedWoTBindings",
@@ -86,16 +89,16 @@ public partial class WotConTests
             "SupportedWoTBindings must be readable, got {0}", result.StatusCode);
         result.Value.Should().BeAssignableTo<string[]>(
             "SupportedWoTBindings is declared as WoTBindingType[] which the NodeSet backs with UriString[]");
-        ((string[])result.Value).Should().BeEmpty(
-            "Phase 1a returns an empty list; populated in Phase 1b from registered protocol bindings");
+        ((string[])result.Value).Should().Contain(SimulatorBindingUri,
+            "the server advertises the OPC PLC simulator binding so TDs can target it");
     }
 
     [Test]
     public async Task Configuration_ObjectIsBrowseable()
     {
         // OPC 10100-1 §6.3.7: Configuration : WoTAssetConfigurationType is an Optional child
-        // of WoTAssetConnectionManagementType. Phase 1a exposes it with a single empty
-        // License property; the <WoTConfigurationParameterName> placeholder is omitted.
+        // of WoTAssetConnectionManagementType. Exposes a single empty License property; the
+        // <WoTConfigurationParameterName> placeholder is omitted.
         var configId = await ResolveChildByBrowseNameAsync(
             parent: WotConNodeId(WotAssetConnectionManagementObjectId),
             childBrowseName: "Configuration",
@@ -138,7 +141,7 @@ public partial class WotConTests
         StatusCode.IsGood(result.StatusCode).Should().BeTrue(
             "Configuration/License must be readable, got {0}", result.StatusCode);
         result.Value.Should().Be(string.Empty,
-            "Phase 1a surfaces License as an empty string; populated from build metadata in Phase 1b");
+            "License is surfaced as an empty string until populated from build metadata");
     }
 
     /// <summary>

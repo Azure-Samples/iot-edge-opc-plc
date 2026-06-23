@@ -153,8 +153,8 @@ public partial class WotConNodeManager : CustomNodeManager2
                 else if (req.ObjectId == mgmtObjectId
                     && _optionalMethodRemap.TryGetValue(req.MethodId, out var optionalInstMethod))
                 {
-                    // Optional management members materialized on i=31 (Phase 1a): clients
-                    // calling the type-side method (i=41 / i=49 / i=75) get remapped onto the
+                    // Optional management members materialized on i=31: clients calling
+                    // the type-side method (i=41 / i=49 / i=75) get remapped onto the
                     // runtime-allocated instance method that carries the stub handler.
                     _logger?.LogInformation("[WotCon] Remapping optional MethodId {From} -> instance {To}",
                         req.MethodId, optionalInstMethod);
@@ -1048,6 +1048,15 @@ public partial class WotConNodeManager : CustomNodeManager2
             if (parsed == null)
             {
                 return new ServiceResult(StatusCodes.BadInvalidArgument, "Thing Description is missing a non-empty 'title'.");
+            }
+
+            // OPC 10100-1 §6.3.1: reject TDs that reference a WoT binding outside the
+            // server's advertised SupportedWoTBindings catalog. Returns Bad_NotSupported
+            // with a diagnostic message naming the offending binding URI.
+            var bindingResult = ValidateThingDescriptionBindings(parsed);
+            if (ServiceResult.IsBad(bindingResult))
+            {
+                return bindingResult;
             }
 
             // Persist both the raw JSON (for diagnostics / re-export) and the parsed form
