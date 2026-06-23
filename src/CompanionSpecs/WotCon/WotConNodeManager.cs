@@ -38,6 +38,12 @@ public partial class WotConNodeManager : CustomNodeManager2
     private const uint WoTAssetFileTypeId = 110;
     private const uint FileCloseAndUpdateTypeMethodId = 111;
 
+    // Per OPC 10100-1 §6.3.11: HasWoTComponent (ns=WotCon;i=142) is a subtype of
+    // HasComponent (i=47) used to link an asset to its materialized WoT affordances
+    // (Variables for Properties, Methods for Actions). Generic HasComponent stays in
+    // use for non-affordance plumbing such as the per-asset WoTFile.
+    private const uint HasWoTComponentReferenceTypeId = 142;
+
     // Strict UTF-8 decoder: throws DecoderFallbackException on malformed byte sequences
     // instead of silently substituting U+FFFD. Used to validate uploaded TD payloads.
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
@@ -1120,7 +1126,7 @@ public partial class WotConNodeManager : CustomNodeManager2
                 BrowseName = new QualifiedName(property.Name, NamespaceIndex),
                 DisplayName = property.Name,
                 Description = property.Description ?? string.Empty,
-                ReferenceTypeId = ReferenceTypeIds.HasComponent,
+                ReferenceTypeId = new NodeId(HasWoTComponentReferenceTypeId, NamespaceIndex),
                 TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
                 DataType = dataType,
                 ValueRank = valueRank,
@@ -1219,7 +1225,7 @@ public partial class WotConNodeManager : CustomNodeManager2
                 DisplayName = action.Name,
                 SymbolicName = action.Name,
                 Description = action.Description ?? string.Empty,
-                ReferenceTypeId = ReferenceTypeIds.HasComponent,
+                ReferenceTypeId = new NodeId(HasWoTComponentReferenceTypeId, NamespaceIndex),
                 Executable = true,
                 UserExecutable = true,
             };
