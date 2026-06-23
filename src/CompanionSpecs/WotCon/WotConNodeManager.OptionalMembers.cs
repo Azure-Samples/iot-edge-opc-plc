@@ -248,9 +248,11 @@ public partial class WotConNodeManager
         managementObject.AddChild(method);
         AddPredefinedNode(context, method);
 
-        // Wire the handler onto the type-side method as well so direct type-method calls
-        // (the form the Call-override remap rewrites) still reach the same body even before
-        // the remap fires.
+        // Belt-and-braces: under normal operation the Call override remaps the type-method
+        // NodeId to the instance method above before dispatch, so this second wire is
+        // redundant. It's kept as a backstop for any path that resolves the type method
+        // directly (e.g. a client that bypasses the remap, or a future SDK change in the
+        // Call pipeline) so the same handler still fires.
         var typeMethodNode = FindPredefinedNode<MethodState>(typeMethodNodeId);
         if (typeMethodNode != null)
         {
@@ -324,7 +326,9 @@ public partial class WotConNodeManager
         var endpoint = inputArguments[1] as string;
         if (string.IsNullOrWhiteSpace(assetName))
         {
-            return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetName cannot be empty");
+            // Mirrors §6.3.2's Bad_BrowseNameInvalid for an invalid AssetName; the
+            // AssetName flows into the asset's BrowseName the same way as in CreateAsset.
+            return new ServiceResult(StatusCodes.BadBrowseNameInvalid, "AssetName cannot be empty");
         }
 
         if (string.IsNullOrWhiteSpace(endpoint))

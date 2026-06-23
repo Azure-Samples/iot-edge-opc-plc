@@ -457,7 +457,8 @@ public partial class WotConNodeManager : CustomNodeManager2
         var assetName = inputArguments[0] as string;
         if (string.IsNullOrWhiteSpace(assetName))
         {
-            return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetName cannot be empty");
+            // §6.3.2 specifies Bad_BrowseNameInvalid for an invalid AssetName.
+            return new ServiceResult(StatusCodes.BadBrowseNameInvalid, "AssetName cannot be empty");
         }
 
         var (result, assetId) = CreateAssetInternal(context, assetName, endpoint: null);
@@ -1344,7 +1345,6 @@ public partial class WotConNodeManager : CustomNodeManager2
             Value = new EUInformation
             {
                 DisplayName = unit,
-                Description = unit,
                 NamespaceUri = string.Empty,
                 UnitId = 0,
             },
