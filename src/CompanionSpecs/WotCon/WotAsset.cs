@@ -63,6 +63,23 @@ internal sealed class WotAsset
 
     public object FileLock { get; } = new();
 
+    /// <summary>
+    /// Serializes the asset's lifecycle transitions — specifically the materialization
+    /// performed by <c>OnPerAssetFileCloseAndUpdate</c> versus the teardown performed by
+    /// <c>OnDeleteAsset</c>, and any two concurrent <c>CloseAndUpdate</c> calls on the
+    /// same asset. Independent of <see cref="FileLock"/>, which guards the per-handle
+    /// file buffers only.
+    /// </summary>
+    public object LifecycleLock { get; } = new();
+
+    /// <summary>
+    /// Set under <see cref="LifecycleLock"/> once <c>OnDeleteAsset</c> has begun. A
+    /// concurrent <c>CloseAndUpdate</c> that wins the lock after a delete observes this
+    /// and aborts instead of materializing into an address-space subtree that's about
+    /// to disappear (which would leak orphan nodes or trip duplicate-NodeId errors).
+    /// </summary>
+    public bool IsDeleted { get; set; }
+
     public uint NextFileHandle { get; set; } = 1;
 
     /// <summary>

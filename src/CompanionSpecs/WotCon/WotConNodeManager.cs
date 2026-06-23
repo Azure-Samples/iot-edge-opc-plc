@@ -8,6 +8,7 @@ using Opc.Ua;
 using Opc.Ua.Export;
 using Opc.Ua.Server;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -49,14 +50,19 @@ public partial class WotConNodeManager : CustomNodeManager2
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     private readonly ILogger _logger;
-    private readonly Dictionary<string, WotAsset> _assets;
-    private readonly Dictionary<NodeId, WotAsset> _filesByNodeId = new();
+
+    // ConcurrentDictionary closes the check-then-act race in CreateAssetInternal
+    // (two concurrent CreateAsset calls with the same name). CustomNodeManager2
+    // does not serialize method handlers across sessions, so the registry has to
+    // be its own synchronization boundary; the per-asset FileLock continues to
+    // guard intra-asset state.
+    private readonly ConcurrentDictionary<string, WotAsset> _assets = new();
+    private readonly ConcurrentDictionary<NodeId, WotAsset> _filesByNodeId = new();
 
     public WotConNodeManager(IServerInternal server, ApplicationConfiguration configuration, ILogger logger = null)
         : base(server, configuration)
     {
         _logger = logger;
-        _assets = new Dictionary<string, WotAsset>();
 
         SetNamespaces(new[] { OpcPlc.Namespaces.WotCon });
 
@@ -493,7 +499,18 @@ public partial class WotConNodeManager : CustomNodeManager2
                 return (new ServiceResult(StatusCodes.BadInternalError, "Failed to create asset node"), null);
             }
 
-            _assets[assetName] = asset;
+            // Atomic insert closes the check-then-act race against a concurrent
+            // CreateAsset for the same name. If we lose, roll back the address-space
+            // nodes we just created so an orphan tree can't leak. DeleteNode is
+            // recursive (see OnDeleteAsset), so dropping the asset root also drops
+            // the per-asset WoTFile and its FileType children.
+            if (!_assets.TryAdd(assetName, asset))
+            {
+                DeleteNode(SystemContext, asset.AssetId);
+                _logger?.LogInformation("[WotCon] CreateAsset rejected: AssetName '{AssetName}' created concurrently by another caller", assetName);
+                return (new ServiceResult(StatusCodes.BadBrowseNameDuplicated, $"An asset named '{assetName}' already exists"), null);
+            }
+
             if (asset.FileNodeId != null)
             {
                 _filesByNodeId[asset.FileNodeId] = asset;
@@ -563,38 +580,47 @@ public partial class WotConNodeManager : CustomNodeManager2
                 return new ServiceResult(StatusCodes.BadNotFound);
             }
 
-            // Close any open file handles for this asset so MemoryStreams don't leak.
-            lock (asset.FileLock)
+            // LifecycleLock serializes against an in-flight CloseAndUpdate materialization.
+            // Setting IsDeleted under the lock means a CloseAndUpdate that wins the lock
+            // after we release will short-circuit instead of writing into the address-space
+            // subtree we're about to remove.
+            lock (asset.LifecycleLock)
             {
-                foreach (var stream in asset.FileBuffers.Values)
+                asset.IsDeleted = true;
+
+                // Close any open file handles for this asset so MemoryStreams don't leak.
+                lock (asset.FileLock)
                 {
-                    stream.Dispose();
+                    foreach (var stream in asset.FileBuffers.Values)
+                    {
+                        stream.Dispose();
+                    }
+
+                    asset.FileBuffers.Clear();
                 }
 
-                asset.FileBuffers.Clear();
-            }
+                // Remove the forward Organizes ref from WoTAssetConnectionManagement so the asset
+                // stops being browseable from the entry point. The inverse on the asset goes away
+                // with DeleteNode below.
+                var managementNodeId = new NodeId(WotAssetConnectionManagementObjectId, NamespaceIndex);
+                var managementObject = FindPredefinedNode<BaseObjectState>(managementNodeId);
+                managementObject?.RemoveReference(ReferenceTypeIds.Organizes, isInverse: false, assetId);
 
-            // Remove the forward Organizes ref from WoTAssetConnectionManagement so the asset
-            // stops being browseable from the entry point. The inverse on the asset goes away
-            // with DeleteNode below.
-            var managementNodeId = new NodeId(WotAssetConnectionManagementObjectId, NamespaceIndex);
-            var managementObject = FindPredefinedNode<BaseObjectState>(managementNodeId);
-            managementObject?.RemoveReference(ReferenceTypeIds.Organizes, isInverse: false, assetId);
+                // DeleteNode recursively removes the asset and all HasComponent children
+                // (the per-asset WoTFile + its standard FileType properties and methods,
+                // plus any materialized TD properties).
+                bool deleted = DeleteNode(SystemContext, assetId);
 
-            // DeleteNode recursively removes the asset and all HasComponent children
-            // (the per-asset WoTFile + its standard FileType properties and methods,
-            // plus any materialized TD properties).
-            bool deleted = DeleteNode(SystemContext, assetId);
+                _assets.TryRemove(assetName, out _);
+                if (asset.FileNodeId != null)
+                {
+                    _filesByNodeId.TryRemove(asset.FileNodeId, out _);
+                }
 
-            _assets.Remove(assetName);
-            if (asset.FileNodeId != null)
-            {
-                _filesByNodeId.Remove(asset.FileNodeId);
-            }
-
-            if (!deleted)
-            {
-                _logger?.LogWarning("[WotCon] DeleteAsset: DeleteNode returned false for {AssetId}", assetId);
+                if (!deleted)
+                {
+                    _logger?.LogWarning("[WotCon] DeleteAsset: DeleteNode returned false for {AssetId}", assetId);
+                }
             }
 
             _logger?.LogInformation("[WotCon] Deleted WoT asset '{AssetName}' AssetId={AssetId}", assetName, assetId);
@@ -827,16 +853,18 @@ public partial class WotConNodeManager : CustomNodeManager2
         try
         {
             uint handle;
+            int openCount;
             lock (asset.FileLock)
             {
                 handle = asset.NextFileHandle++;
                 asset.FileBuffers[handle] = new MemoryStream();
+                openCount = asset.FileBuffers.Count;
             }
 
             outputArguments[0] = handle;
             if (fileNode.OpenCount != null)
             {
-                fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, asset.FileBuffers.Count);
+                fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, openCount);
             }
 
             _logger?.LogInformation("[WotCon] {Asset}.Open -> handle {Handle}", asset.Name, handle);
@@ -861,19 +889,24 @@ public partial class WotConNodeManager : CustomNodeManager2
             uint handle = Convert.ToUInt32(inputArguments[0]);
             byte[] data = inputArguments[1] as byte[] ?? Array.Empty<byte>();
 
-            MemoryStream stream;
+            // FileLock has to cover the stream write itself: MemoryStream is not
+            // thread-safe and a concurrent Close/CloseAndUpdate could dispose the
+            // stream mid-write.
+            long totalLength;
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out stream))
+                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
                     return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
                 }
+
+                stream.Write(data, 0, data.Length);
+                totalLength = stream.Length;
             }
 
-            stream.Write(data, 0, data.Length);
-            fileNode.Size.Value = (ulong)stream.Length;
+            fileNode.Size.Value = (ulong)totalLength;
             _logger?.LogInformation("[WotCon] {Asset}.Write handle={Handle} wrote {Bytes} bytes (total {Total})",
-                asset.Name, handle, data.Length, stream.Length);
+                asset.Name, handle, data.Length, totalLength);
             return ServiceResult.Good;
         }
         catch (Exception ex)
@@ -895,19 +928,23 @@ public partial class WotConNodeManager : CustomNodeManager2
             uint handle = Convert.ToUInt32(inputArguments[0]);
             int length = Convert.ToInt32(inputArguments[1]);
 
-            MemoryStream stream;
+            // FileLock has to cover the stream read itself: MemoryStream is not
+            // thread-safe and a concurrent Close/CloseAndUpdate could dispose the
+            // stream mid-read.
+            byte[] result;
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out stream))
+                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
                     return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
                 }
+
+                var buffer = new byte[Math.Max(0, length)];
+                int read = length > 0 ? stream.Read(buffer, 0, length) : 0;
+                result = new byte[read];
+                Array.Copy(buffer, result, read);
             }
 
-            var buffer = new byte[Math.Max(0, length)];
-            int read = length > 0 ? stream.Read(buffer, 0, length) : 0;
-            var result = new byte[read];
-            Array.Copy(buffer, result, read);
             outputArguments[0] = result;
             return ServiceResult.Good;
         }
@@ -928,10 +965,10 @@ public partial class WotConNodeManager : CustomNodeManager2
         try
         {
             uint handle = Convert.ToUInt32(inputArguments[0]);
-            CloseAssetHandle(asset, handle);
+            int openCount = CloseAssetHandle(asset, handle);
             if (fileNode.OpenCount != null)
             {
-                fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, asset.FileBuffers.Count);
+                fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, openCount);
             }
 
             _logger?.LogInformation("[WotCon] {Asset}.Close handle={Handle}", asset.Name, handle);
@@ -954,16 +991,18 @@ public partial class WotConNodeManager : CustomNodeManager2
         try
         {
             uint handle = Convert.ToUInt32(inputArguments[0]);
-            MemoryStream stream;
+            ulong position;
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out stream))
+                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
                     return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
                 }
+
+                position = (ulong)stream.Position;
             }
 
-            outputArguments[0] = (ulong)stream.Position;
+            outputArguments[0] = position;
             return ServiceResult.Good;
         }
         catch (Exception ex)
@@ -984,16 +1023,16 @@ public partial class WotConNodeManager : CustomNodeManager2
         {
             uint handle = Convert.ToUInt32(inputArguments[0]);
             ulong position = Convert.ToUInt64(inputArguments[1]);
-            MemoryStream stream;
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out stream))
+                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
                     return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
                 }
+
+                stream.Position = (long)position;
             }
 
-            stream.Position = (long)position;
             return ServiceResult.Good;
         }
         catch (Exception ex)
@@ -1013,20 +1052,27 @@ public partial class WotConNodeManager : CustomNodeManager2
         try
         {
             uint handle = Convert.ToUInt32(inputArguments[0]);
+
+            // Snapshot + dispose under one lock acquisition so a concurrent Read/Write
+            // can't observe the buffer between ToArray and Dispose.
             byte[] payload = null;
+            int openCount;
             lock (asset.FileLock)
             {
                 if (asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
                     payload = stream.ToArray();
+                    stream.Dispose();
+                    asset.FileBuffers.Remove(handle);
                 }
+
+                openCount = asset.FileBuffers.Count;
             }
 
-            CloseAssetHandle(asset, handle);
             asset.LastFinalizedPayload = payload;
             if (fileNode.OpenCount != null)
             {
-                fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, asset.FileBuffers.Count);
+                fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, openCount);
             }
 
             if (fileNode.LastModifiedTime != null)
@@ -1094,16 +1140,30 @@ public partial class WotConNodeManager : CustomNodeManager2
             // Per OPC 10100-1 §6.3.2 + §6.3.8 + §6.3.9: a successful TD upload materializes
             // the asset's information model. Today: WoT Properties → OPC UA Variables and WoT
             // Actions → OPC UA Methods under the asset.
-            try
+            //
+            // LifecycleLock + IsDeleted gate closes the upload-vs-delete race: a concurrent
+            // DeleteAsset that beat us to the lock has already torn the asset down, and a
+            // second concurrent CloseAndUpdate is serialized so the last writer's
+            // materialization fully replaces the prior generation instead of interleaving.
+            lock (asset.LifecycleLock)
             {
-                MaterializeAssetEndpoint(SystemContext, asset);
-                MaterializeAssetProperties(SystemContext, asset, parsed);
-                MaterializeAssetActions(SystemContext, asset, parsed);
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError(ex, "[WotCon] {Asset}.CloseAndUpdate materialization failed", asset.Name);
-                return new ServiceResult(StatusCodes.BadInternalError, "Failed to materialize Thing Description.");
+                if (asset.IsDeleted)
+                {
+                    _logger?.LogInformation("[WotCon] {Asset}.CloseAndUpdate aborted: asset was deleted concurrently", asset.Name);
+                    return new ServiceResult(StatusCodes.BadObjectDeleted, "Asset was deleted before the upload could be materialized.");
+                }
+
+                try
+                {
+                    MaterializeAssetEndpoint(SystemContext, asset);
+                    MaterializeAssetProperties(SystemContext, asset, parsed);
+                    MaterializeAssetActions(SystemContext, asset, parsed);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "[WotCon] {Asset}.CloseAndUpdate materialization failed", asset.Name);
+                    return new ServiceResult(StatusCodes.BadInternalError, "Failed to materialize Thing Description.");
+                }
             }
 
             _logger?.LogInformation(
@@ -1123,7 +1183,10 @@ public partial class WotConNodeManager : CustomNodeManager2
         }
     }
 
-    private void CloseAssetHandle(WotAsset asset, uint handle)
+    // Disposes the buffer for <paramref name="handle"/> if present and returns the
+    // post-close open-handle count so the caller can publish OpenCount without taking
+    // FileLock a second time. Idempotent: an unknown handle is a no-op.
+    private int CloseAssetHandle(WotAsset asset, uint handle)
     {
         lock (asset.FileLock)
         {
@@ -1132,6 +1195,8 @@ public partial class WotConNodeManager : CustomNodeManager2
                 stream.Dispose();
                 asset.FileBuffers.Remove(handle);
             }
+
+            return asset.FileBuffers.Count;
         }
     }
 

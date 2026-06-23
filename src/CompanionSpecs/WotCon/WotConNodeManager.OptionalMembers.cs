@@ -8,6 +8,7 @@ using Opc.Ua;
 using Opc.Ua.Server;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Materializes the optional members of <c>WoTAssetConnectionManagementType</c> (i=1) on
@@ -279,7 +280,9 @@ public partial class WotConNodeManager
         // top-level `base` URI on upload. Assets whose TD omits `base` simply don't
         // contribute. De-dup is case-sensitive Ordinal — the spec doesn't define
         // endpoint syntax (§6.3.8 calls it "vendor-specific"), and URIs are
-        // case-sensitive in their path / query components.
+        // case-sensitive in their path / query components. Output is sorted so two
+        // calls against the same population return identical arrays regardless of
+        // dictionary insertion order (ConcurrentDictionary doesn't preserve it).
         var endpoints = new HashSet<string>(StringComparer.Ordinal);
         foreach (var asset in _assets.Values)
         {
@@ -289,8 +292,7 @@ public partial class WotConNodeManager
             }
         }
 
-        var result = new string[endpoints.Count];
-        endpoints.CopyTo(result);
+        var result = endpoints.OrderBy(x => x, StringComparer.Ordinal).ToArray();
         outputArguments[0] = result;
 
         _logger?.LogDebug("[WotCon] DiscoverAssets returning {Count} endpoint(s)", result.Length);
