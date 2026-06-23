@@ -749,7 +749,10 @@ public partial class WotConNodeManager : CustomNodeManager2
 
         if (fileNode.MaxByteStringLength != null)
         {
-            fileNode.MaxByteStringLength.Value = 16U * 1024U * 1024U;
+            // 64 KiB is comfortably above any realistic Thing Description JSON-LD payload
+            // (typical TDs are a few KiB) and well below the OPC UA transport's default
+            // MaxMessageSize, so the limit is actually enforceable end-to-end.
+            fileNode.MaxByteStringLength.Value = 64U * 1024U;
         }
 
         if (fileNode.LastModifiedTime != null)
@@ -899,6 +902,15 @@ public partial class WotConNodeManager : CustomNodeManager2
                 if (!asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
                     return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
+                }
+
+                // Enforce the limit advertised on MaxByteStringLength so clients can trust
+                // the property instead of being able to grow the in-memory buffer unbounded.
+                uint maxBytes = fileNode.MaxByteStringLength?.Value ?? 0;
+                if (maxBytes > 0 && stream.Length + data.LongLength > maxBytes)
+                {
+                    return new ServiceResult(StatusCodes.BadRequestTooLarge,
+                        $"Write would exceed MaxByteStringLength ({maxBytes} bytes).");
                 }
 
                 stream.Write(data, 0, data.Length);

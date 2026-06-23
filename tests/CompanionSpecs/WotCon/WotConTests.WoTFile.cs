@@ -88,6 +88,40 @@ public partial class WotConTests
     }
 
     [Test]
+    public async Task WoTFile_WriteExceedsMaxByteStringLength_ReturnsBadRequestTooLarge()
+    {
+        // The per-asset WoTFile advertises MaxByteStringLength = 64 KiB in CreateAssetFileNode
+        // (sized for realistic TD JSON-LD payloads and below the OPC UA transport's default
+        // MaxMessageSize so the cap is actually enforceable). A Write whose data would push
+        // total length past that limit must be rejected with Bad_RequestTooLarge so clients
+        // can trust the advertised cap (and the simulator is not DoS-able by an unauthenticated
+        // Write loop).
+        const int MaxByteStringLength = 64 * 1024;
+
+        var (_, fileId) = await CreateAssetAndResolveFileAsync("WriteTooLargeAsset_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+
+        var (_, openOutputs) = await CallAsync(
+            objectId: fileId,
+            methodId: new NodeId(Methods.FileType_Open, 0),
+            arguments: new VariantCollection { new Variant((byte)6) }).ConfigureAwait(false);
+        uint handle = Convert.ToUInt32(openOutputs[0].Value);
+
+        byte[] tooLarge = new byte[MaxByteStringLength + 1];
+
+        var (writeStatus, _) = await CallAsync(
+            objectId: fileId,
+            methodId: new NodeId(Methods.FileType_Write, 0),
+            arguments: new VariantCollection
+            {
+                new Variant(handle),
+                new Variant(tooLarge),
+            }).ConfigureAwait(false);
+
+        writeStatus.Code.Should().Be(StatusCodes.BadRequestTooLarge,
+            "Write past MaxByteStringLength must be rejected with Bad_RequestTooLarge");
+    }
+
+    [Test]
     public async Task CreateAsset_PerAssetWoTFileNodesAreDistinctAndIsolated()
     {
         // Per OPC 10100-1 §6.3.10: each asset owns its own WoTAssetFileType instance.
