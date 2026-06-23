@@ -1136,16 +1136,6 @@ public partial class WotConNodeManager : CustomNodeManager2
     }
 
     /// <summary>
-    /// Materializes the WoT Properties from <paramref name="td"/> as OPC UA Variables under
-    /// the asset. Implements OPC 10100-1 §6.3.8 Table 14 (primitives only — nested objects /
-    /// structured types are deferred to a later plan item).
-    /// <para>
-    /// Re-upload semantics: any previously materialized Variable for this asset is removed
-    /// from the address space before the new generation is created, so the visible properties
-    /// always reflect the most recently uploaded TD.
-    /// </para>
-    /// </summary>
-    /// <summary>
     /// Materializes the optional <c>AssetEndpoint</c> Property on the asset object per
     /// OPC 10100-1 §6.3.8 when the TD carries a top-level <c>base</c>. Shape mirrors
     /// <c>IWoTAssetType.AssetEndpoint</c> (i=122): String, scalar, HasProperty reference,
@@ -1194,6 +1184,16 @@ public partial class WotConNodeManager : CustomNodeManager2
         asset.AssetEndpointNodeId = endpointProp.NodeId;
     }
 
+    /// <summary>
+    /// Materializes the WoT Properties from <paramref name="td"/> as OPC UA Variables under
+    /// the asset. Implements OPC 10100-1 §6.3.8 Table 14 (primitives only — nested objects /
+    /// structured types are deferred to a later plan item).
+    /// <para>
+    /// Re-upload semantics: any previously materialized Variable for this asset is removed
+    /// from the address space before the new generation is created, so the visible properties
+    /// always reflect the most recently uploaded TD.
+    /// </para>
+    /// </summary>
     private void MaterializeAssetProperties(ISystemContext context, WotAsset asset, ThingDescriptionInfo td)
     {
         var assetNode = FindPredefinedNode<BaseObjectState>(asset.AssetId);

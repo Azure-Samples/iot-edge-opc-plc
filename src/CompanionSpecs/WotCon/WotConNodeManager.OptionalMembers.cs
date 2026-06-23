@@ -18,8 +18,10 @@ using System.Collections.Generic;
 /// <para>
 /// <c>SupportedWoTBindings</c> advertises the bindings catalog (see
 /// <see cref="WotConBindings"/>) and <see cref="ValidateThingDescriptionBindings"/> is
-/// consulted at upload time to reject TDs that reference an unsupported binding. The
-/// three optional methods and the <c>Configuration</c> object still return stubs.
+/// consulted at upload time to reject TDs that reference an unsupported binding.
+/// <c>DiscoverAssets</c>, <c>CreateAssetForEndpoint</c>, and <c>ConnectionTest</c> are
+/// implemented (mock); <c>Configuration/License</c> surfaces the simulator's SPDX
+/// identifier.
 /// </para>
 /// </summary>
 public partial class WotConNodeManager
@@ -58,8 +60,9 @@ public partial class WotConNodeManager
     /// Materializes the optional members of <c>WoTAssetConnectionManagementType</c> on the
     /// standard instance <c>WoTAssetConnectionManagement</c> (i=31): one Property
     /// (<c>SupportedWoTBindings</c>), one Object (<c>Configuration</c>), and three Methods
-    /// (<c>DiscoverAssets</c>, <c>CreateAssetForEndpoint</c>, <c>ConnectionTest</c>). The
-    /// method handlers return <c>Bad_NotImplemented</c>.
+    /// (<c>DiscoverAssets</c>, <c>CreateAssetForEndpoint</c>, <c>ConnectionTest</c>). All
+    /// three methods are wired with real handlers; the <c>Configuration</c> object exposes
+    /// the simulator's SPDX <c>License</c>.
     /// </summary>
     private void SetupOptionalManagementMembers(ISystemContext context, ushort nsIdx, BaseObjectState managementObject)
     {

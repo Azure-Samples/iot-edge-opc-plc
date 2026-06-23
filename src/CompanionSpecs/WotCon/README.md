@@ -47,7 +47,6 @@ default**.
 | [`WotConBindings.cs`](./WotConBindings.cs)                                        | Catalog of WoT protocol bindings the server understands. `SupportedBindings` is surfaced on `SupportedWoTBindings`; `KnownBindings` lists W3C binding URIs the validator recognises as binding declarations.                                       |
 | [`WotMockValueGenerator.cs`](./WotMockValueGenerator.cs)                          | Seeds initial values for materialized Variables. Static fixed values today; the per-tick simulation engine is deferred (see [Deferred](#deferred--pending-commander-support)).                                                                      |
 | [`WotAsset.cs`](./WotAsset.cs)                                                    | Internal runtime model for one managed asset: NodeIds, parsed TD, type-method → instance-method remap table, open file handles, materialized property / action / endpoint NodeIds.                                                                |
-| [`plan.md`](./plan.md)                                                            | Working journal — append-only history of what was implemented when. The README is the durable artefact; `plan.md` exists to record context that doesn't belong in commit messages.                                                                |
 
 ### `tests/CompanionSpecs/WotCon/`
 
