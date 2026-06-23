@@ -11,7 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Text.Json;
 
 /// <summary>
 /// Node manager for the OPC UA WoT-Con (Web of Things Connectivity) companion specification.
@@ -554,83 +553,6 @@ public partial class WotConNodeManager : CustomNodeManager2
     }
 
     /// <summary>
-    /// Parses a Thing Description JSON-LD and extracts asset information.
-    /// </summary>
-    private ThingDescriptionInfo ParseThingDescription(string json)
-    {
-        try
-        {
-            using (var doc = JsonDocument.Parse(json))
-            {
-                var root = doc.RootElement;
-
-                // Extract title as asset name
-                if (!root.TryGetProperty("title", out var titleElement) || titleElement.ValueKind != JsonValueKind.String)
-                {
-                    _logger?.LogWarning("[WotCon] Thing Description missing 'title' field");
-                    return null;
-                }
-
-                var assetName = titleElement.GetString();
-                if (string.IsNullOrWhiteSpace(assetName))
-                {
-                    _logger?.LogWarning("[WotCon] Thing Description title is empty");
-                    return null;
-                }
-
-                // Extract properties and their metadata
-                var properties = new Dictionary<string, PropertyInfo>();
-
-                if (root.TryGetProperty("properties", out var propertiesElement) && propertiesElement.ValueKind == JsonValueKind.Object)
-                {
-                    foreach (var prop in propertiesElement.EnumerateObject())
-                    {
-                        var propName = prop.Name;
-                        var propValue = prop.Value;
-
-                        if (propValue.ValueKind != JsonValueKind.Object)
-                        {
-                            continue;
-                        }
-
-                        var propertyInfo = new PropertyInfo { Name = propName };
-
-                        // Extract type
-                        if (propValue.TryGetProperty("type", out var typeElement) && typeElement.ValueKind == JsonValueKind.String)
-                        {
-                            propertyInfo.Type = typeElement.GetString();
-                        }
-
-                        // Extract description
-                        if (propValue.TryGetProperty("description", out var descElement) && descElement.ValueKind == JsonValueKind.String)
-                        {
-                            propertyInfo.Description = descElement.GetString();
-                        }
-
-                        properties[propName] = propertyInfo;
-                    }
-                }
-
-                return new ThingDescriptionInfo
-                {
-                    Name = assetName,
-                    Properties = properties,
-                };
-            }
-        }
-        catch (JsonException ex)
-        {
-            _logger?.LogWarning(ex, "[WotCon] Failed to parse Thing Description JSON");
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "[WotCon] Exception parsing Thing Description");
-            return null;
-        }
-    }
-
-    /// <summary>
     /// Creates an OPC UA asset node with properties from the Thing Description, plus a
     /// per-asset WoTAssetFileType instance for TD upload. Returns a populated
     /// <see cref="WotAsset"/> with AssetId, FileNodeId and the type-method to instance-method
@@ -684,7 +606,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             foreach (var property in assetInfo.Properties.Values)
             {
                 var propertyNodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
-                var builtInType = GetBuiltInTypeFromJson(property.Type);
+                var builtInType = ThingDescriptionParser.GetBuiltInTypeFromJson(property.Type);
 
                 var propertyNode = new BaseDataVariableState(assetNode)
                 {
@@ -698,7 +620,7 @@ public partial class WotConNodeManager : CustomNodeManager2
                 };
 
                 // Initialize with a simulated value
-                propertyNode.Value = GenerateSimulatedValue(builtInType);
+                propertyNode.Value = WotMockValueGenerator.Generate(builtInType);
                 propertyNode.StatusCode = StatusCodes.Good;
                 propertyNode.Timestamp = DateTime.UtcNow;
 
@@ -733,45 +655,6 @@ public partial class WotConNodeManager : CustomNodeManager2
             _logger?.LogError(ex, "[WotCon] Failed to create asset node for '{AssetName}'", assetInfo.Name);
             return null;
         }
-    }
-
-    /// <summary>
-    /// Maps JSON type names to OPC UA built-in data types.
-    /// </summary>
-    private NodeId GetBuiltInTypeFromJson(string jsonType)
-    {
-        return jsonType?.ToLowerInvariant() switch
-        {
-            "number" => DataTypeIds.Double,
-            "integer" => DataTypeIds.Int32,
-            "boolean" => DataTypeIds.Boolean,
-            "string" => DataTypeIds.String,
-            _ => DataTypeIds.String,
-        };
-    }
-
-    /// <summary>
-    /// Generates a simulated value for a property based on its data type.
-    /// </summary>
-    private object GenerateSimulatedValue(NodeId dataTypeId)
-    {
-        if (dataTypeId == DataTypeIds.Double)
-        {
-            return 42.0; // Simulate a sensor reading
-        }
-
-        if (dataTypeId == DataTypeIds.Int32)
-        {
-            return 100; // Simulate a counter
-        }
-
-        if (dataTypeId == DataTypeIds.Boolean)
-        {
-            return true; // Simulate a switch
-        }
-
-        // Default to empty string
-        return string.Empty;
     }
 
     /// <summary>
@@ -1141,59 +1024,5 @@ public partial class WotConNodeManager : CustomNodeManager2
                 asset.FileBuffers.Remove(handle);
             }
         }
-    }
-
-    /// <summary>
-    /// Internal model for Thing Description metadata.
-    /// </summary>
-    private class ThingDescriptionInfo
-    {
-        public string Name { get; set; }
-
-        public Dictionary<string, PropertyInfo> Properties { get; set; } = new();
-    }
-
-    /// <summary>
-    /// Internal model for a property from a Thing Description.
-    /// </summary>
-    private class PropertyInfo
-    {
-        public string Name { get; set; }
-
-        public string Type { get; set; }
-
-        public string Description { get; set; }
-    }
-
-    /// <summary>
-    /// Internal model for a managed asset.
-    /// </summary>
-    private sealed class WotAsset
-    {
-        public string Name { get; set; }
-
-        public NodeId AssetId { get; set; }
-
-        public string ThingDescription { get; set; }
-
-        // Per-asset WoTAssetFileType instance NodeId (HasComponent child of the asset).
-        public NodeId FileNodeId { get; set; }
-
-        // Type-method NodeId → per-asset instance-method NodeId. Used by the Call
-        // override to rewrite NS=0 FileType_Open/Close/Read/Write/GetPosition/SetPosition
-        // and the WoT-Con CloseAndUpdate type-method (ns=WotCon;i=111) onto this asset's
-        // instance methods.
-        public Dictionary<NodeId, NodeId> FileMethodMap { get; } = new();
-
-        // Active upload buffers keyed by file handle returned from Open.
-        public Dictionary<uint, MemoryStream> FileBuffers { get; } = new();
-
-        public object FileLock { get; } = new();
-
-        public uint NextFileHandle { get; set; } = 1;
-
-        // Most recent payload finalized via CloseAndUpdate. Kept for diagnostics and to
-        // support TD materialization later in the plan.
-        public byte[] LastFinalizedPayload { get; set; }
     }
 }
