@@ -21,29 +21,34 @@ using System.Text.Json;
 /// </summary>
 public partial class WotConNodeManager : CustomNodeManager2
 {
-    private const uint WotAssetConnectionManagementObjectId = 31;
-    private const uint IWoTAssetTypeId = 42;
-    private const uint CreateAssetMethodTypeId = 26;
-    private const uint CreateAssetMethodInstanceId = 32;
-    private const uint CreateAssetInputArgumentsId = 33;
-    private const uint CreateAssetOutputArgumentsId = 34;
-    private const uint DeleteAssetMethodTypeId = 29;
-    private const uint DeleteAssetMethodInstanceId = 35;
-    private const uint DeleteAssetInputArgumentsId = 36;
+    // Local aliases bound to the source-generated NodeIds in Opc.Ua.WotCon.Constants.cs
+    // (produced by ModelCompiler from WotConnection.xml). They keep the readable, intent-
+    // revealing names used throughout this file while ensuring a compile-time link to the
+    // canonical NodeSet — a NodeSet regeneration that renames or removes any of these
+    // breaks the build immediately instead of silently mismatching at runtime.
+    private const uint WotAssetConnectionManagementObjectId = Opc.Ua.WotCon.Objects.WoTAssetConnectionManagement;
+    private const uint IWoTAssetTypeId = Opc.Ua.WotCon.ObjectTypes.IWoTAssetType;
+    private const uint CreateAssetMethodTypeId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagementType_CreateAsset;
+    private const uint CreateAssetMethodInstanceId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagement_CreateAsset;
+    private const uint CreateAssetInputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagement_CreateAsset_InputArguments;
+    private const uint CreateAssetOutputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagement_CreateAsset_OutputArguments;
+    private const uint DeleteAssetMethodTypeId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagementType_DeleteAsset;
+    private const uint DeleteAssetMethodInstanceId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagement_DeleteAsset;
+    private const uint DeleteAssetInputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagement_DeleteAsset_InputArguments;
 
     // Per OPC 10100-1 §6.3.10: WoTAssetFileType (ns=WotCon;i=110) is a subtype of standard
     // FileType that adds a CloseAndUpdate method (type-method i=111). Each created asset
     // owns its own WoTAssetFileType instance; the singleton WoTFile node (i=144) shipped
     // in the NodeSet as a placeholder under <WoTAssetName> (i=2) is intentionally left
     // unreferenced.
-    private const uint WoTAssetFileTypeId = 110;
-    private const uint FileCloseAndUpdateTypeMethodId = 111;
+    private const uint WoTAssetFileTypeId = Opc.Ua.WotCon.ObjectTypes.WoTAssetFileType;
+    private const uint FileCloseAndUpdateTypeMethodId = Opc.Ua.WotCon.Methods.WoTAssetFileType_CloseAndUpdate;
 
     // Per OPC 10100-1 §6.3.11: HasWoTComponent (ns=WotCon;i=142) is a subtype of
     // HasComponent (i=47) used to link an asset to its materialized WoT affordances
     // (Variables for Properties, Methods for Actions). Generic HasComponent stays in
     // use for non-affordance plumbing such as the per-asset WoTFile.
-    private const uint HasWoTComponentReferenceTypeId = 142;
+    private const uint HasWoTComponentReferenceTypeId = Opc.Ua.WotCon.ReferenceTypes.HasWoTComponent;
 
     // Strict UTF-8 decoder: throws DecoderFallbackException on malformed byte sequences
     // instead of silently substituting U+FFFD. Used to validate uploaded TD payloads.
@@ -733,7 +738,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             ReferenceTypeId = ReferenceTypeIds.HasComponent,
             TypeDefinitionId = new NodeId(WoTAssetFileTypeId, NamespaceIndex),
         };
-        fileNode.Create(context, fileNodeId, new QualifiedName("WoTFile", NamespaceIndex), new Opc.Ua.LocalizedText("WoTFile"), assignNodeIds: true);
+        fileNode.Create(context, fileNodeId, new QualifiedName(Opc.Ua.WotCon.BrowseNames.WoTFile, NamespaceIndex), new Opc.Ua.LocalizedText(Opc.Ua.WotCon.BrowseNames.WoTFile), assignNodeIds: true);
 
         // Mandatory FileType properties.
         fileNode.Size.Value = 0UL;
@@ -770,7 +775,7 @@ public partial class WotConNodeManager : CustomNodeManager2
 
         // WoT-Con-specific CloseAndUpdate (OPC 10100-1 §6.3.10) — added alongside Close, not
         // a replacement for it. Spec defines a single FileHandle UInt32 input argument.
-        var closeAndUpdate = CreateFileMethod(fileNode, "CloseAndUpdate",
+        var closeAndUpdate = CreateFileMethod(fileNode, Opc.Ua.WotCon.BrowseNames.CloseAndUpdate,
             FileCloseAndUpdateTypeMethodId, namespaceIndex: NamespaceIndex,
             inputArgs: new[] { MakeArg("FileHandle", DataTypes.UInt32) }, outputArgs: null,
             handler: (c, m, i, o) => OnPerAssetFileCloseAndUpdate(asset, fileNode, i));
@@ -1308,8 +1313,8 @@ public partial class WotConNodeManager : CustomNodeManager2
         var endpointProp = new PropertyState<string>(assetNode)
         {
             NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-            BrowseName = new QualifiedName("AssetEndpoint", NamespaceIndex),
-            DisplayName = "AssetEndpoint",
+            BrowseName = new QualifiedName(Opc.Ua.WotCon.BrowseNames.AssetEndpoint, NamespaceIndex),
+            DisplayName = Opc.Ua.WotCon.BrowseNames.AssetEndpoint,
             ReferenceTypeId = ReferenceTypeIds.HasProperty,
             TypeDefinitionId = VariableTypeIds.PropertyType,
             DataType = DataTypeIds.String,

@@ -77,7 +77,7 @@ public partial class WotConNodeManager
                 nsIdx,
                 managementObject,
                 typeMethodId: DiscoverAssetsTypeMethodId,
-                browseName: "DiscoverAssets",
+                browseName: Opc.Ua.WotCon.BrowseNames.DiscoverAssets,
                 inputArgs: null,
                 outputArgs: new[] { MakeArgArray("AssetEndpoints", DataTypes.String) },
                 handler: OnDiscoverAssets);
@@ -87,7 +87,7 @@ public partial class WotConNodeManager
                 nsIdx,
                 managementObject,
                 typeMethodId: CreateAssetForEndpointTypeMethodId,
-                browseName: "CreateAssetForEndpoint",
+                browseName: Opc.Ua.WotCon.BrowseNames.CreateAssetForEndpoint,
                 inputArgs: new[]
                 {
                     MakeArg("AssetName", DataTypes.String),
@@ -101,7 +101,7 @@ public partial class WotConNodeManager
                 nsIdx,
                 managementObject,
                 typeMethodId: ConnectionTestTypeMethodId,
-                browseName: "ConnectionTest",
+                browseName: Opc.Ua.WotCon.BrowseNames.ConnectionTest,
                 inputArgs: new[] { MakeArg("AssetEndpoint", DataTypes.String) },
                 outputArgs: new[]
                 {
@@ -124,8 +124,8 @@ public partial class WotConNodeManager
         var prop = new PropertyState<string[]>(managementObject)
         {
             NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-            BrowseName = new QualifiedName("SupportedWoTBindings", NamespaceIndex),
-            DisplayName = "SupportedWoTBindings",
+            BrowseName = new QualifiedName(Opc.Ua.WotCon.BrowseNames.SupportedWoTBindings, NamespaceIndex),
+            DisplayName = Opc.Ua.WotCon.BrowseNames.SupportedWoTBindings,
             ReferenceTypeId = ReferenceTypeIds.HasProperty,
             TypeDefinitionId = VariableTypeIds.PropertyType,
             DataType = new NodeId(UriStringDataTypeId, 0),
@@ -149,8 +149,8 @@ public partial class WotConNodeManager
         var configObject = new BaseObjectState(managementObject)
         {
             NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-            BrowseName = new QualifiedName("Configuration", NamespaceIndex),
-            DisplayName = "Configuration",
+            BrowseName = new QualifiedName(Opc.Ua.WotCon.BrowseNames.Configuration, NamespaceIndex),
+            DisplayName = Opc.Ua.WotCon.BrowseNames.Configuration,
             ReferenceTypeId = ReferenceTypeIds.HasComponent,
             TypeDefinitionId = new NodeId(WoTAssetConfigurationTypeId, nsIdx),
         };
@@ -165,8 +165,8 @@ public partial class WotConNodeManager
         var license = new PropertyState<string>(configObject)
         {
             NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-            BrowseName = new QualifiedName("License", NamespaceIndex),
-            DisplayName = "License",
+            BrowseName = new QualifiedName(Opc.Ua.WotCon.BrowseNames.License, NamespaceIndex),
+            DisplayName = Opc.Ua.WotCon.BrowseNames.License,
             ReferenceTypeId = ReferenceTypeIds.HasProperty,
             TypeDefinitionId = VariableTypeIds.PropertyType,
             DataType = DataTypeIds.String,
