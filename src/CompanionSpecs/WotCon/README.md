@@ -36,17 +36,56 @@ default**.
 
 ## Files
 
-### `src/CompanionSpecs/WotCon/`
+### `src/CompanionSpecs/WotCon/` — hand-written
 
 | File                                                                              | Role                                                                                                                                                                                                                                              |
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`Opc.Ua.WotCon.NodeSet2.xml`](./Opc.Ua.WotCon.NodeSet2.xml)                      | Bundled WoT-Con NodeSet2 declaring `WoTAssetConnectionManagementType`, `IWoTAssetType`, `WoTAssetFileType`, `CloseAndUpdate`, `HasWoTComponent`, and the management `WoTAssetConnectionManagement` instance. Loaded via `LoadPredefinedNodes`.     |
-| [`WotConNodeManager.cs`](./WotConNodeManager.cs)                                  | Main `CustomNodeManager2` partial: NodeSet load, `Call` override (NodeId remap for type-method calls), `CreateAsset` / `DeleteAsset` handlers, per-asset `WoTAssetFileType` wiring, `CloseAndUpdate` handler, property / action materialization. |
+| [`WotConNodeManager.cs`](./WotConNodeManager.cs)                                  | Main `CustomNodeManager2` partial: NodeSet load, `Call` override (NodeId remap for type-method calls), `CreateAsset` / `DeleteAsset` handlers, per-asset `WoTAssetFileState` wiring, `CloseAndUpdate` handler, property / action materialization. |
 | [`WotConNodeManager.OptionalMembers.cs`](./WotConNodeManager.OptionalMembers.cs)  | Materializes the optional members of `WoTAssetConnectionManagementType` that the NodeSet importer drops (modelling rule `Optional`): `SupportedWoTBindings`, `Configuration` / `License`, `DiscoverAssets`, `CreateAssetForEndpoint`, `ConnectionTest`. Also hosts `ValidateThingDescriptionBindings`. |
 | [`ThingDescriptionParser.cs`](./ThingDescriptionParser.cs)                        | Pure JSON-LD parser. Extracts TD `title`, `base`, `@context`, properties, and actions; maps JSON Schema primitives to OPC UA built-in types and value ranks.                                                                                       |
 | [`WotConBindings.cs`](./WotConBindings.cs)                                        | Catalog of WoT protocol bindings the server understands. `SupportedBindings` is surfaced on `SupportedWoTBindings`; `KnownBindings` lists W3C binding URIs the validator recognises as binding declarations.                                       |
 | [`WotMockValueGenerator.cs`](./WotMockValueGenerator.cs)                          | Seeds initial values for materialized Variables. Static fixed values today; the per-tick simulation engine is deferred (see [Deferred](#deferred--pending-commander-support)).                                                                      |
 | [`WotAsset.cs`](./WotAsset.cs)                                                    | Internal runtime model for one managed asset: NodeIds, parsed TD, type-method → instance-method remap table, open file handles, materialized property / action / endpoint NodeIds.                                                                |
+
+### `src/CompanionSpecs/WotCon/` — generated from the model
+
+Inputs to the [OPC UA Model Compiler](https://github.com/OPCFoundation/UA-ModelCompiler):
+
+| File                                                  | Role                                                                                                                                                                  |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`WotConnection.xml`](./WotConnection.xml)            | ModelDesign XML — declares the WoT-Con address space (types, instances, methods, references). Kept in sync with `UA-.NETStandard/Libraries/Opc.Ua.WotCon/Design`.     |
+| [`WotConnection.csv`](./WotConnection.csv)            | Stable NodeId allocation table (`<BrowseName>,<NumericId>,<NodeClass>`). Re-using the same CSV across regens keeps NodeIds stable for clients.                        |
+| [`Build_ModelDesign.bat`](./Build_ModelDesign.bat)    | Regen entry point — pulls `ghcr.io/opcfoundation/ua-modelcompiler:latest`, invokes `compile -version v105`, and prunes generator outputs we don't consume.            |
+
+Outputs consumed at build / runtime:
+
+| File                                                                              | Role                                                                                                                                                                                                |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`Opc.Ua.WotCon.NodeSet2.xml`](./Opc.Ua.WotCon.NodeSet2.xml)                      | The bundled WoT-Con NodeSet2. Loaded by `WotConNodeManager.LoadPredefinedNodes` at startup; also embedded as `<None Update>` in `opc-plc.csproj` so it's copied next to the assembly.               |
+| [`Opc.Ua.WotCon.Classes.cs`](./Opc.Ua.WotCon.Classes.cs)                          | Strongly-typed `NodeState` subclasses (e.g. `WoTAssetFileState`, `WoTAssetConnectionManagementState`). `WoTAssetFileState : FileState` is instantiated directly by `WotConNodeManager` per asset.   |
+| [`Opc.Ua.WotCon.Constants.cs`](./Opc.Ua.WotCon.Constants.cs)                      | `Opc.Ua.WotCon.{Methods,Objects,ObjectTypes,Variables,ReferenceTypes,BrowseNames,DataTypes,Namespaces}` constants. Used as compile-time-checked NodeId / BrowseName bindings throughout the partials. |
+| [`Opc.Ua.WotCon.NodeIds.csv`](./Opc.Ua.WotCon.NodeIds.csv)                        | Flat index of every emitted NodeId. Not loaded at runtime — kept as a diff-friendly review aid for the generated address space.                                                                     |
+| [`Opc.Ua.WotCon.DataTypes.cs`](./Opc.Ua.WotCon.DataTypes.cs)                      | Generated DataType enum / struct definitions. Empty today (the model declares no structured DataTypes) but kept so the next regen doesn't surprise reviewers.                                       |
+
+`PredefinedNodes.{cs,xml,uanodes}`, `NodeIds.permissions.csv`, and
+`Types.{bsd,xsd}` are emitted by the compiler but pruned by
+`Build_ModelDesign.bat` — they're unused once you load `NodeSet2.xml`
+directly, or are empty stubs.
+
+### Regenerating from the model
+
+After editing `WotConnection.xml` or `WotConnection.csv`:
+
+```powershell
+cd src/CompanionSpecs/WotCon
+.\Build_ModelDesign.bat
+```
+
+The script targets `-version v105` (required for OPC UA v1.05 base types
+used by the WoT-Con design, e.g. `ua:SemanticVersionString`) instead of the
+v104 default of the shared `../../ModelCompiler.cmd`. It also deletes the
+per-language `Constants/` folder and the unused PredefinedNodes / permissions /
+Types outputs so regens stay minimal.
 
 ### `tests/CompanionSpecs/WotCon/`
 
