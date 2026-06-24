@@ -722,23 +722,27 @@ public partial class WotConNodeManager : CustomNodeManager2
 
     /// <summary>
     /// Creates a per-asset WoTAssetFileType instance (ns=WotCon;i=110) as a HasComponent
-    /// child of <paramref name="assetNode"/>. Uses the SDK's <see cref="FileState"/> so the
-    /// full standard FileType layout (Size, Writable, UserWritable, OpenCount, MimeType,
+    /// child of <paramref name="assetNode"/>. Uses the generated <see cref="Opc.Ua.WotCon.WoTAssetFileState"/>
+    /// so the full standard FileType layout (Size, Writable, UserWritable, OpenCount, MimeType,
     /// MaxByteStringLength, LastModifiedTime + Open/Close/Read/Write/GetPosition/SetPosition)
-    /// is materialized automatically per OPC 10000-5 §10. The WoT-Con-specific CloseAndUpdate
-    /// method (type-method ns=WotCon;i=111) is added as an additional HasComponent child.
+    /// and the WoT-Con-specific CloseAndUpdate method (type-method ns=WotCon;i=111) are both
+    /// materialized automatically from the model-compiler-generated initialization string.
     /// Populates <see cref="WotAsset.FileNodeId"/> and <see cref="WotAsset.FileMethodMap"/>
     /// so the Call override can rewrite incoming type-method IDs onto this instance.
     /// </summary>
     private void CreateAssetFileNode(ISystemContext context, BaseObjectState assetNode, WotAsset asset)
     {
         var fileNodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
-        var fileNode = new FileState(assetNode)
+        var fileNode = new Opc.Ua.WotCon.WoTAssetFileState(assetNode)
         {
             ReferenceTypeId = ReferenceTypeIds.HasComponent,
-            TypeDefinitionId = new NodeId(WoTAssetFileTypeId, NamespaceIndex),
         };
-        fileNode.Create(context, fileNodeId, new QualifiedName(Opc.Ua.WotCon.BrowseNames.WoTFile, NamespaceIndex), new Opc.Ua.LocalizedText(Opc.Ua.WotCon.BrowseNames.WoTFile), assignNodeIds: true);
+        fileNode.Create(
+            context,
+            fileNodeId,
+            new QualifiedName(Opc.Ua.WotCon.BrowseNames.WoTFile, NamespaceIndex),
+            new Opc.Ua.LocalizedText(Opc.Ua.WotCon.BrowseNames.WoTFile),
+            assignNodeIds: true);
 
         // Mandatory FileType properties.
         fileNode.Size.Value = 0UL;
@@ -773,12 +777,11 @@ public partial class WotConNodeManager : CustomNodeManager2
         fileNode.GetPosition.OnCallMethod = (c, m, i, o) => OnPerAssetFileGetPosition(asset, i, o);
         fileNode.SetPosition.OnCallMethod = (c, m, i, o) => OnPerAssetFileSetPosition(asset, i);
 
-        // WoT-Con-specific CloseAndUpdate (OPC 10100-1 §6.3.10) — added alongside Close, not
-        // a replacement for it. Spec defines a single FileHandle UInt32 input argument.
-        var closeAndUpdate = CreateFileMethod(fileNode, Opc.Ua.WotCon.BrowseNames.CloseAndUpdate,
-            FileCloseAndUpdateTypeMethodId, namespaceIndex: NamespaceIndex,
-            inputArgs: new[] { MakeArg("FileHandle", DataTypes.UInt32) }, outputArgs: null,
-            handler: (c, m, i, o) => OnPerAssetFileCloseAndUpdate(asset, fileNode, i));
+        // WoT-Con-specific CloseAndUpdate (OPC 10100-1 §6.3.10) is materialized as a typed
+        // child of WoTAssetFileState by the generator (see Opc.Ua.WotCon.WoTAssetFileState
+        // initialization string). Wire its per-asset handler; InputArguments are already
+        // populated from the model.
+        fileNode.CloseAndUpdate.OnCallMethod = (c, m, i, o) => OnPerAssetFileCloseAndUpdate(asset, fileNode, i);
 
         // Reassign per-instance NodeIds to every child after they have all been wired up.
         // Passing assignNodeIds:true to Create() is too early — FileState's standard children
@@ -803,6 +806,7 @@ public partial class WotConNodeManager : CustomNodeManager2
         ReassignMethodNodeIds(fileNode.Write);
         ReassignMethodNodeIds(fileNode.GetPosition);
         ReassignMethodNodeIds(fileNode.SetPosition);
+        ReassignMethodNodeIds(fileNode.CloseAndUpdate);
 
         // Defensive: remap NS=0 FileType type-method IDs onto this instance's method NodeIds
         // for clients that call the type-method instead of browsing for the instance method.
@@ -814,7 +818,7 @@ public partial class WotConNodeManager : CustomNodeManager2
         asset.FileMethodMap[new NodeId(Methods.FileType_Write, 0)] = fileNode.Write.NodeId;
         asset.FileMethodMap[new NodeId(Methods.FileType_GetPosition, 0)] = fileNode.GetPosition.NodeId;
         asset.FileMethodMap[new NodeId(Methods.FileType_SetPosition, 0)] = fileNode.SetPosition.NodeId;
-        asset.FileMethodMap[new NodeId(FileCloseAndUpdateTypeMethodId, NamespaceIndex)] = closeAndUpdate.NodeId;
+        asset.FileMethodMap[new NodeId(FileCloseAndUpdateTypeMethodId, NamespaceIndex)] = fileNode.CloseAndUpdate.NodeId;
 
         assetNode.AddChild(fileNode);
         asset.FileNodeId = fileNode.NodeId;
@@ -852,62 +856,6 @@ public partial class WotConNodeManager : CustomNodeManager2
         {
             method.OutputArguments.NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
         }
-    }
-
-    private MethodState CreateFileMethod(
-        BaseObjectState parent,
-        string browseName,
-        uint methodDeclarationId,
-        ushort namespaceIndex,
-        Argument[] inputArgs,
-        Argument[] outputArgs,
-        GenericMethodCalledEventHandler handler)
-    {
-        var method = new MethodState(parent)
-        {
-            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-            BrowseName = new QualifiedName(browseName, NamespaceIndex),
-            DisplayName = browseName,
-            SymbolicName = browseName,
-            ReferenceTypeId = ReferenceTypeIds.HasComponent,
-            MethodDeclarationId = new NodeId(methodDeclarationId, namespaceIndex),
-            Executable = true,
-            UserExecutable = true,
-            OnCallMethod = handler,
-        };
-
-        if (inputArgs != null)
-        {
-            method.InputArguments = new PropertyState<Argument[]>(method)
-            {
-                NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-                BrowseName = BrowseNames.InputArguments,
-                DisplayName = BrowseNames.InputArguments,
-                TypeDefinitionId = VariableTypeIds.PropertyType,
-                ReferenceTypeId = ReferenceTypeIds.HasProperty,
-                DataType = DataTypeIds.Argument,
-                ValueRank = ValueRanks.OneDimension,
-                Value = inputArgs,
-            };
-        }
-
-        if (outputArgs != null)
-        {
-            method.OutputArguments = new PropertyState<Argument[]>(method)
-            {
-                NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-                BrowseName = BrowseNames.OutputArguments,
-                DisplayName = BrowseNames.OutputArguments,
-                TypeDefinitionId = VariableTypeIds.PropertyType,
-                ReferenceTypeId = ReferenceTypeIds.HasProperty,
-                DataType = DataTypeIds.Argument,
-                ValueRank = ValueRanks.OneDimension,
-                Value = outputArgs,
-            };
-        }
-
-        parent.AddChild(method);
-        return method;
     }
 
     private ServiceResult OnPerAssetFileOpen(WotAsset asset, FileState fileNode, IList<object> inputArguments, IList<object> outputArguments)

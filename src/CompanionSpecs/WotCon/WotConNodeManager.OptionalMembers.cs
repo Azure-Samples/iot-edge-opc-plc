@@ -27,22 +27,26 @@ using System.Linq;
 /// </summary>
 public partial class WotConNodeManager
 {
-    // Type-side NodeIds from the bundled NodeSet (Opc.Ua.WotCon.NodeSet2.xml).
-    private const uint SupportedWoTBindingsTypeVariableId = 40;
-    private const uint DiscoverAssetsTypeMethodId = 41;
-    private const uint DiscoverAssetsOutputArgumentsId = 48;
-    private const uint CreateAssetForEndpointTypeMethodId = 49;
-    private const uint CreateAssetForEndpointInputArgumentsId = 50;
-    private const uint CreateAssetForEndpointOutputArgumentsId = 170;
-    private const uint ConnectionTestTypeMethodId = 75;
-    private const uint ConnectionTestInputArgumentsId = 76;
-    private const uint ConnectionTestOutputArgumentsId = 77;
-    private const uint ConfigurationTypeObjectId = 78;
-    private const uint WoTAssetConfigurationTypeId = 105;
+    // Type-side NodeIds from the bundled NodeSet (Opc.Ua.WotCon.NodeSet2.xml),
+    // bound to the model-compiler-generated constants in Opc.Ua.WotCon.{Methods,Objects,
+    // ObjectTypes,Variables} so a future NodeSet regeneration that renames any of these
+    // fails the compile rather than mismatching silently at runtime.
+    private const uint SupportedWoTBindingsTypeVariableId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_SupportedWoTBindings;
+    private const uint DiscoverAssetsTypeMethodId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagementType_DiscoverAssets;
+    private const uint DiscoverAssetsOutputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_DiscoverAssets_OutputArguments;
+    private const uint CreateAssetForEndpointTypeMethodId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagementType_CreateAssetForEndpoint;
+    private const uint CreateAssetForEndpointInputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_CreateAssetForEndpoint_InputArguments;
+    private const uint CreateAssetForEndpointOutputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_CreateAssetForEndpoint_OutputArguments;
+    private const uint ConnectionTestTypeMethodId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagementType_ConnectionTest;
+    private const uint ConnectionTestInputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_ConnectionTest_InputArguments;
+    private const uint ConnectionTestOutputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_ConnectionTest_OutputArguments;
+    private const uint ConfigurationTypeObjectId = Opc.Ua.WotCon.Objects.WoTAssetConnectionManagementType_Configuration;
+    private const uint WoTAssetConfigurationTypeId = Opc.Ua.WotCon.ObjectTypes.WoTAssetConfigurationType;
 
     // OPC UA Part 5 §12.20: UriString (subtype of String) — backing DataType for
-    // WoTBindingType in the WoT-Con NodeSet (DataType="i=23751" on i=40).
-    private const uint UriStringDataTypeId = 23751;
+    // WoTBindingType in the WoT-Con NodeSet (DataType="i=23751" on i=40). Lives in
+    // the standard namespace, so use the SDK's own constant.
+    private const uint UriStringDataTypeId = Opc.Ua.DataTypes.UriString;
 
     // SPDX short identifier for the OPC PLC simulator's license (LICENSE in repo root).
     // Surfaced verbatim via Configuration/License per OPC 10100-1 §6.3.7.
