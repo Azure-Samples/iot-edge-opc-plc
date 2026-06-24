@@ -623,6 +623,13 @@ public partial class PlcServer : StandardServer
             nodeManagers.Add(pumpNodeManager);
         }
 
+        // WoT-Con node manager for Web of Things connectivity and asset management.
+        if (PlcSimulation.AddWotConSimulation)
+        {
+            var wotConNodeManager = new CompanionSpecs.WotCon.WotConNodeManager(server, configuration, _logger);
+            nodeManagers.Add(wotConNodeManager);
+        }
+
         var masterNodeManager = new MasterNodeManager(server, configuration, dynamicNamespaceUri: null, nodeManagers.ToArray());
 
         return masterNodeManager;

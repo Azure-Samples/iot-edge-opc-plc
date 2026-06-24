@@ -21,7 +21,7 @@ As an OPC Foundation Corporate Member, Microsoft distributes any code dual licen
 
 ---------------------------------------------------------
 
-OPCFoundation.NetStandard.Opc.Ua.Core 1.4.368.53 - OTHER
+OPCFoundation.NetStandard.Opc.Ua.Core 1.5.378.145 - OTHER
 
 
 https://opcfoundation.org/license/redistributables/1.3/

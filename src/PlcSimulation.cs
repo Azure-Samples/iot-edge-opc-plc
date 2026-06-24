@@ -30,6 +30,11 @@ public class PlcSimulation
     // ref|referencetest
     // Add reference test simulation node manager to address space.
     public bool AddReferenceTestSimulation { get; set; } = true;
+
+    // wotcon
+    // Add WoT-Con (Web of Things Connectivity) companion spec node manager to address space.
+    public bool AddWotConSimulation { get; set; }
+
     public string DeterministicAlarmSimulationFile { get; set; }
 
     public uint EventInstanceCount { get; set; }

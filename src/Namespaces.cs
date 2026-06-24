@@ -69,4 +69,9 @@ public static partial class Namespaces
     /// The namespace for the OPC UA Pumps companion spec nodes.
     /// </summary>
     public const string Pumps = "http://opcfoundation.org/UA/Pumps/";
+
+    /// <summary>
+    /// The namespace for the OPC UA WoT-Con (Web of Things Connectivity) companion spec nodes.
+    /// </summary>
+    public const string WotCon = "http://opcfoundation.org/UA/WoT-Con/";
 }
