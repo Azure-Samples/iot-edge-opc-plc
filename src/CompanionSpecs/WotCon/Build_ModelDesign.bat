@@ -40,3 +40,17 @@ REM Opc.Ua.WotCon.WebApi namespace and are not consumed by OPC PLC.
 IF EXIST Constants (
     rmdir /S /Q Constants
 )
+
+REM Drop generator outputs we don't consume:
+REM   - PredefinedNodes.{cs,xml,uanodes}: WotConNodeManager loads NodeSet2.xml
+REM     directly, so the stack-internal NodeStateCollection serializations are
+REM     dead weight.
+REM   - NodeIds.permissions.csv: empty stub (no role-permission rules defined).
+REM   - Types.bsd / Types.xsd: empty type-dictionary/schema stubs (no
+REM     structured DataTypes in the model).
+IF EXIST Opc.Ua.WotCon.PredefinedNodes.cs       del /Q Opc.Ua.WotCon.PredefinedNodes.cs
+IF EXIST Opc.Ua.WotCon.PredefinedNodes.xml      del /Q Opc.Ua.WotCon.PredefinedNodes.xml
+IF EXIST Opc.Ua.WotCon.PredefinedNodes.uanodes  del /Q Opc.Ua.WotCon.PredefinedNodes.uanodes
+IF EXIST Opc.Ua.WotCon.NodeIds.permissions.csv  del /Q Opc.Ua.WotCon.NodeIds.permissions.csv
+IF EXIST Opc.Ua.WotCon.Types.bsd                del /Q Opc.Ua.WotCon.Types.bsd
+IF EXIST Opc.Ua.WotCon.Types.xsd                del /Q Opc.Ua.WotCon.Types.xsd
