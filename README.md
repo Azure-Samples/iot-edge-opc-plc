@@ -249,6 +249,23 @@ The pump objects (`Pump1`, `Pump2`) are located under the DI `DeviceSet` folder,
 
 A timer fires once per second and updates the telemetry variables with new random values, and each pump raises a custom `PumpEventType` event — carrying the current `PumpId`, `FlowRate` and `Pressure` — sourced from the pump's `Events` folder. OPC UA clients can subscribe to the pump's `Events` folder to receive these events.
 
+## WoT-Con (OPC 10100-1)
+
+### Address space and simulation (`--wotcon`)
+
+The option `--wotcon` enables a **mock-only** implementation of the [OPC UA Web of Things Connectivity (WoT-Con) companion specification, v1.02](https://reference.opcfoundation.org/specs/OPC-10100-1/v1.02/6.3). It is **off by default**.
+
+When enabled, the server exposes a `WoTAssetConnectionManagement` entry point that accepts W3C [Thing Description](https://www.w3.org/TR/wot-thing-description11/) JSON-LD uploads over the OPC UA File API and materializes each TD's properties / actions as OPC UA Variables / Methods linked by `HasWoTComponent`. There is no real southbound protocol binding — materialized values are seeded by a mock value generator and action handlers return canned outputs.
+
+Browseable entry points (namespace `http://opcfoundation.org/UA/WoT-Con/`):
+
+- `WoTAssetConnectionManagement` — top-level management object
+- `CreateAsset` — uploads a TD and materializes a new asset
+- `DeleteAsset` — removes a previously created asset
+- `DiscoverAssets`, `CreateAssetForEndpoint`, `ConnectionTest`, `Configuration` / `License`, `SupportedWoTBindings` — optional members from the spec
+
+See [`src/CompanionSpecs/WotCon/README.md`](src/CompanionSpecs/WotCon/README.md) for the full spec-mapping table, architecture diagram, design notes, and the list of deferred items.
+
 ## Chaos mode
 Randomly injects errors, closes subscriptions or sessions, expires subscriptions and more. You can use it to test the resiliency of OPC UA clients. To enable start the server with the option `--chaos=True`.
 
@@ -663,6 +680,9 @@ Options:
                                Default: False
       --pu, --pumps          add pump simulation (2 pumps based on the OPC UA
                                Pumps companion spec) to address space.
+                               Default: False
+      --wotcon               add WoT-Con (Web of Things Connectivity)
+                               companion spec to address space.
                                Default: False
       --ses, --simpleevents  add simple events simulation to address space.
                                Default: False

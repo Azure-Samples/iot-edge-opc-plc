@@ -1,6 +1,8 @@
 @echo off
 setlocal
 set modelName=%1
+set modelVersion=%2
+IF "%modelVersion%"=="" set modelVersion=v104
 
 REM If docker is not available, ensure that Opc.Ua.ModelCompiler.exe is in the PATH environment variable
 set MODELCOMPILER=Opc.Ua.ModelCompiler.exe
@@ -15,12 +17,12 @@ IF ERRORLEVEL 1 (
 ) ELSE (
     echo Successfully pulled the latest docker container for ModelCompiler
     set MODELROOT=/model
-    set MODELCOMPILER=docker run -v "%CD%:/model" -it --rm --name ua-modelcompiler %MODELCOMPILERIMAGE%
+    set MODELCOMPILER=docker run -v "%CD%:/model" -i --rm --name ua-modelcompiler-%modelName% %MODELCOMPILERIMAGE%
 )
 
 echo:
-echo Building %modelName%.xml ...
-%MODELCOMPILER% compile -version v104 -d2 "%MODELROOT%/%modelName%.xml" -cg "%MODELROOT%/%modelName%.csv" -o2 "%MODELROOT%/"
+echo Building %modelName%.xml (%modelVersion%) ...
+%MODELCOMPILER% compile -version %modelVersion% -d2 "%MODELROOT%/%modelName%.xml" -cg "%MODELROOT%/%modelName%.csv" -o2 "%MODELROOT%/"
 
 echo:
 IF ERRORLEVEL 1 (
