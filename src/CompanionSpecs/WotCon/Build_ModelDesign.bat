@@ -4,35 +4,13 @@ setlocal
 REM Regenerates the WoT-Con NodeSet2 + .cs artefacts from WotConnection.xml/.csv.
 REM WotConnection.xml and WotConnection.csv are kept in sync with
 REM UA-.NETStandard / Libraries / Opc.Ua.WotCon / Design and rely on
-REM OPC UA v1.05 types (e.g. ua:SemanticVersionString), so this script
-REM targets -version v105 instead of the v104 default used by the shared
-REM ../../ModelCompiler.cmd.
+REM OPC UA v1.05 types (e.g. ua:SemanticVersionString), so we invoke the
+REM shared ModelCompiler.cmd with version v105 instead of its v104 default.
 
-set MODELCOMPILER=Opc.Ua.ModelCompiler.exe
-set MODELCOMPILERIMAGE=ghcr.io/opcfoundation/ua-modelcompiler:latest
-set MODELROOT=.
+call "%~dp0..\..\ModelCompiler.cmd" WotConnection v105
+IF ERRORLEVEL 1 exit /b 1
 
-echo Pulling latest ModelCompiler from the GitHub container registry ...
-docker pull %MODELCOMPILERIMAGE%
-IF ERRORLEVEL 1 (
-    echo The docker command to download ModelCompiler failed, using local PATH instead
-) ELSE (
-    echo Successfully pulled the latest docker container for ModelCompiler
-    set MODELROOT=/model
-    set MODELCOMPILER=docker run -v "%CD%:/model" -i --rm --name ua-modelcompiler-wotcon %MODELCOMPILERIMAGE%
-)
-
-echo:
-echo Building WotConnection.xml (v105) ...
-%MODELCOMPILER% compile -version v105 -d2 "%MODELROOT%/WotConnection.xml" -cg "%MODELROOT%/WotConnection.csv" -o2 "%MODELROOT%/"
-
-echo:
-IF ERRORLEVEL 1 (
-    echo ModelCompiler failed!
-    exit /b 1
-) ELSE (
-    echo ModelCompiler succeeded!
-)
+pushd "%~dp0"
 
 REM Drop the per-language Constants/ folder the v105 compiler emits (CSharp/
 REM JavaScript/Python/TypeScript). The C# variants live under a separate
@@ -54,3 +32,5 @@ IF EXIST Opc.Ua.WotCon.PredefinedNodes.uanodes  del /Q Opc.Ua.WotCon.PredefinedN
 IF EXIST Opc.Ua.WotCon.NodeIds.permissions.csv  del /Q Opc.Ua.WotCon.NodeIds.permissions.csv
 IF EXIST Opc.Ua.WotCon.Types.bsd                del /Q Opc.Ua.WotCon.Types.bsd
 IF EXIST Opc.Ua.WotCon.Types.xsd                del /Q Opc.Ua.WotCon.Types.xsd
+
+popd
