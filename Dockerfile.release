@@ -34,10 +34,11 @@ FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Shield the self-contained .NET runtime from host-level FIPS OpenSSL configs.
-# On FIPS-locked hosts the host config activates a FIPS provider (fips.so) that is
-# not present in this image, which crashes cert creation at startup (SIGSEGV / exit
-# 139). This minimal config forces the default provider.
+# Force the default OpenSSL provider for the self-contained .NET runtime.
+# On FIPS-enabled hosts the active FIPS provider rejects SHA-1, which the OPC UA
+# startup certificate uses for its thumbprint, crashing cert creation at startup
+# (error:0308010C ... unsupported, exit 139). This minimal config re-enables the
+# default provider where the SHA-1 digest works.
 COPY docker/openssl.cnf /etc/ssl/opcplc-openssl.cnf
 ENV OPENSSL_CONF=/etc/ssl/opcplc-openssl.cnf
 

@@ -1,16 +1,16 @@
 # Minimal OpenSSL configuration that always activates the default provider.
 #
-# opc-plc ships as a self-contained .NET app on an Ubuntu base that does
-# NOT include the OpenSSL FIPS provider module (fips.so). On FIPS-locked hosts
-# the host OpenSSL config activates a FIPS provider whose
-# fips.so is absent from this image. When the self-contained .NET runtime performs
-# its first crypto operation (the startup self-signed certificate / thumbprint),
-# the missing provider fails to load and the process aborts with SIGSEGV / exit 139.
+# opc-plc ships as a self-contained .NET app whose Linux crypto delegates to the
+# system OpenSSL. On FIPS-enabled hosts the active OpenSSL FIPS provider rejects
+# SHA-1, and the OPC UA startup certificate uses a SHA-1 thumbprint
+# (X509Certificate.GetCertHashString). That first crypto call fails with
+# "error:0308010C:digital envelope routines::unsupported" and the process aborts
+# (exit 139), crash-looping the container.
 #
-# Pointing OPENSSL_CONF at this file (see Dockerfile) shields the container from any
-# host-level FIPS config and forces the default provider, so certificate creation
-# works regardless of the host state. Note: opc-plc is a test/simulator tool; this
-# makes the image FIPS-tolerant, not FIPS-validated.
+# Pointing OPENSSL_CONF at this file (see Dockerfile) forces the default provider,
+# where the SHA-1 digest is available, so certificate creation works regardless of
+# the host FIPS state. Note: opc-plc is a test/simulator tool; this makes the image
+# FIPS-tolerant, not FIPS-validated.
 openssl_conf = openssl_init
 
 [openssl_init]
