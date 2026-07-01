@@ -35,7 +35,7 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # Install debugger
-RUN tdnf install -y curl procps-ng unzip tar \
+RUN tdnf install -y curl procps-ng unzip tar gawk \
     && tdnf clean all \
     && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
 ENV PATH=$PATH:/root/vsdbg/vsdbg
