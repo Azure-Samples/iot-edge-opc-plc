@@ -34,6 +34,13 @@ FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
+# Shield the self-contained .NET runtime from host-level FIPS OpenSSL configs.
+# On FIPS-locked hosts the host config activates a FIPS provider (fips.so) that is
+# not present in this image, which crashes cert creation at startup (SIGSEGV / exit
+# 139). This minimal config forces the default provider.
+COPY docker/openssl.cnf /etc/ssl/opcplc-openssl.cnf
+ENV OPENSSL_CONF=/etc/ssl/opcplc-openssl.cnf
+
 # Install debugger
 RUN apt-get update && apt-get install -y --no-install-recommends curl procps unzip \
     && rm -rf /var/lib/apt/lists/* \
