@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0 AS build
 ARG TARGETARCH
 WORKDIR /app
 
@@ -30,21 +30,13 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
     /p:TargetLatestRuntimePatch=true
 
 # Final stage
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble AS final
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-azurelinux3.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Force the default OpenSSL provider for the self-contained .NET runtime.
-# On FIPS-enabled hosts the active FIPS provider rejects SHA-1, which the OPC UA
-# startup certificate uses for its thumbprint, crashing cert creation at startup
-# (error:0308010C ... unsupported, exit 139). This minimal config re-enables the
-# default provider where the SHA-1 digest works.
-COPY docker/openssl.cnf /etc/ssl/opcplc-openssl.cnf
-ENV OPENSSL_CONF=/etc/ssl/opcplc-openssl.cnf
-
 # Install debugger
-RUN apt-get update && apt-get install -y --no-install-recommends curl procps unzip \
-    && rm -rf /var/lib/apt/lists/* \
+RUN tdnf install -y curl procps-ng unzip tar \
+    && tdnf clean all \
     && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg
 ENV PATH=$PATH:/root/vsdbg/vsdbg
 
