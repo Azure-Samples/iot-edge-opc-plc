@@ -2,6 +2,7 @@ namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
+using OpcPlc.CompanionSpecs.Pumps;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
@@ -22,6 +23,12 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
     private const uint PumpTypeId = 1052;
     private const uint PumpIdentificationTypeId = 1005;
     private const uint PumpEventTypeId = 1100;
+
+    // NodeIds of the pump Configuration group types (Pumps namespace).
+    private const uint ConfigurationGroupTypeId = 1024;
+    private const uint DesignTypeId = 1020;
+    private const uint ImplementationTypeId = 1023;
+    private const uint SystemRequirementsTypeId = 1022;
 
     private bool _isEnabled;
     private PlcNodeManager _plcNodeManager;
@@ -115,6 +122,10 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
             AddIdentification(pumpObject, pumpName, i);
             _deviceHealthNodes[i] = AddDeviceHealth(pumpObject, pumpName);
 
+            // Static Configuration group (Design, Implementation, SystemRequirements) mirroring
+            // the PumpType.Configuration functional group in the Pumps companion specification.
+            AddConfiguration(pumpObject, pumpName);
+
             _flowRateNodes[i] = AddTelemetry(pumpObject, pumpName, "FlowRate", appNamespaceIndex, defaultValue: 50.0);
             _pressureNodes[i] = AddTelemetry(pumpObject, pumpName, "Pressure", appNamespaceIndex, defaultValue: 2.0);
             _rotationalSpeedNodes[i] = AddTelemetry(pumpObject, pumpName, "RotationalSpeed", appNamespaceIndex, defaultValue: 1500.0);
@@ -159,6 +170,122 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
         AddProperty(identification, $"{pumpName}_SerialNumber", Opc.Ua.DI.BrowseNames.SerialNumber, DataTypeIds.String, $"SN-{index + 1:D6}");
 
         pumpObject.AddChild(identification);
+    }
+
+    /// <summary>
+    /// Adds the static Configuration functional group (typed as ConfigurationGroupType) with the
+    /// Design, Implementation and SystemRequirements sub-groups, mirroring PumpType.Configuration
+    /// in the Pumps companion specification. Only SystemRequirements is populated with members;
+    /// Design and Implementation are exposed as (empty) group folders since their members are
+    /// optional in the specification.
+    /// </summary>
+    private void AddConfiguration(BaseObjectState pumpObject, string pumpName)
+    {
+        ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+
+        var configuration = new BaseObjectState(pumpObject) {
+            NodeId = new NodeId($"{pumpName}_Configuration", appNamespaceIndex),
+            BrowseName = new QualifiedName("Configuration", _diNamespaceIndex),
+            DisplayName = new LocalizedText("en", "Configuration"),
+            Description = new LocalizedText("en", "Static design, system requirements, and implementation data of the pump."),
+            ReferenceTypeId = ReferenceTypeIds.HasComponent,
+            TypeDefinitionId = new NodeId(ConfigurationGroupTypeId, _pumpsNamespaceIndex),
+        };
+
+        AddConfigurationGroup(configuration, pumpName, "Design", DesignTypeId);
+        AddConfigurationGroup(configuration, pumpName, "Implementation", ImplementationTypeId);
+
+        BaseObjectState systemRequirements = AddConfigurationGroup(configuration, pumpName, "SystemRequirements", SystemRequirementsTypeId);
+        AddSystemRequirements(systemRequirements, pumpName);
+
+        pumpObject.AddChild(configuration);
+    }
+
+    /// <summary>
+    /// Adds a Configuration sub-group (Design, Implementation or SystemRequirements) under the
+    /// Configuration object and returns it so members can be attached.
+    /// </summary>
+    private BaseObjectState AddConfigurationGroup(BaseObjectState configuration, string pumpName, string groupName, uint typeId)
+    {
+        ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+
+        var group = new BaseObjectState(configuration) {
+            NodeId = new NodeId($"{pumpName}_{groupName}", appNamespaceIndex),
+            BrowseName = new QualifiedName(groupName, _pumpsNamespaceIndex),
+            DisplayName = new LocalizedText("en", groupName),
+            ReferenceTypeId = ReferenceTypeIds.HasComponent,
+            TypeDefinitionId = new NodeId(typeId, _pumpsNamespaceIndex),
+        };
+
+        configuration.AddChild(group);
+
+        return group;
+    }
+
+    /// <summary>
+    /// Adds the SystemRequirements members (BrowseNames in the Pumps namespace) as defined by
+    /// SystemRequirementsType in the Pumps companion specification. The member list (BrowseName and
+    /// DataType) is imported directly from the Pumps NodeSet2 rather than hardcoded here.
+    /// </summary>
+    private void AddSystemRequirements(BaseObjectState systemRequirements, string pumpName)
+    {
+        foreach (PumpTypeMember member in PumpNodeManager.GetSystemRequirementsMembers())
+        {
+            NodeId dataType = ExpandedNodeId.ToNodeId(member.DataType, _plcNodeManager.Server.NamespaceUris);
+            AddSystemRequirement(systemRequirements, pumpName, member.BrowseName, dataType, member.ValueRank);
+        }
+    }
+
+    /// <summary>
+    /// Adds a single SystemRequirements member variable. The NodeId stays in the application
+    /// namespace so it is unique per pump instance, while the BrowseName is in the Pumps namespace
+    /// to match the SystemRequirementsType member of the companion specification.
+    /// </summary>
+    private void AddSystemRequirement(BaseObjectState parent, string pumpName, string browseName, NodeId dataType, int valueRank)
+    {
+        ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+
+        var node = new BaseDataVariableState(parent) {
+            NodeId = new NodeId($"{pumpName}_SystemRequirements_{browseName}", appNamespaceIndex),
+            BrowseName = new QualifiedName(browseName, _pumpsNamespaceIndex),
+            DisplayName = new LocalizedText("en", browseName),
+            ReferenceTypeId = ReferenceTypeIds.HasComponent,
+            TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+            DataType = dataType,
+            ValueRank = valueRank,
+            AccessLevel = AccessLevels.CurrentRead,
+            UserAccessLevel = AccessLevels.CurrentRead,
+            Value = GetDefaultValue(dataType),
+            StatusCode = StatusCodes.Good,
+            Timestamp = _timeService.UtcNow(),
+        };
+
+        parent.AddChild(node);
+    }
+
+    /// <summary>
+    /// Returns a sensible default value for a SystemRequirements member based on its data type.
+    /// Pumps-namespace data types (enums and option sets) and non-trivial types are left unset (null).
+    /// </summary>
+    private object GetDefaultValue(NodeId dataType)
+    {
+        if (dataType.NamespaceIndex != 0)
+        {
+            // Enum/option-set/structure data types defined in the Pumps namespace: leave unset.
+            return null;
+        }
+
+        if (dataType == DataTypeIds.Double)
+        {
+            return 0.0;
+        }
+
+        if (dataType == DataTypeIds.Boolean)
+        {
+            return false;
+        }
+
+        return null;
     }
 
     private void AddProperty(BaseObjectState parent, string nodeId, string browseName, NodeId dataType, object value)

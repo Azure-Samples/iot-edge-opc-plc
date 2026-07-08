@@ -80,6 +80,67 @@ public class PumpTests : SimulatorTestsBase
         ExpandedNodeId.ToNodeId(variableNode.DataType, Session.NamespaceUris).Should().Be(DataTypeIds.Double);
     }
 
+    [TestCase("Pump1")]
+    [TestCase("Pump2")]
+    public async Task Pump_HasConfigurationWithSystemRequirements(string pumpName)
+    {
+        var configurationNodeId = await BrowseChildByBrowseNameAsync(
+            GetOpcPlcNodeId(pumpName),
+            new QualifiedName("Configuration", DiNamespaceIndex)).ConfigureAwait(false);
+
+        configurationNodeId.Should().NotBeNull("the pump should expose a Configuration functional group");
+
+        foreach (var groupName in new[] { "Design", "Implementation", "SystemRequirements" })
+        {
+            var groupNodeId = await BrowseChildByBrowseNameAsync(
+                configurationNodeId,
+                new QualifiedName(groupName, PumpsNamespaceIndex)).ConfigureAwait(false);
+
+            groupNodeId.Should().NotBeNull($"the Configuration group should contain a {groupName} sub-group");
+        }
+    }
+
+    [TestCase("CompressionRatio")]
+    [TestCase("Fluid")]
+    [TestCase("MaximumOutletPressure")]
+    [TestCase("WorkingTemperature")]
+    public async Task Pump_SystemRequirements_HasMember(string memberName)
+    {
+        var configurationNodeId = await BrowseChildByBrowseNameAsync(
+            GetOpcPlcNodeId("Pump1"),
+            new QualifiedName("Configuration", DiNamespaceIndex)).ConfigureAwait(false);
+
+        var systemRequirementsNodeId = await BrowseChildByBrowseNameAsync(
+            configurationNodeId,
+            new QualifiedName("SystemRequirements", PumpsNamespaceIndex)).ConfigureAwait(false);
+
+        var memberNodeId = await BrowseChildByBrowseNameAsync(
+            systemRequirementsNodeId,
+            new QualifiedName(memberName, PumpsNamespaceIndex)).ConfigureAwait(false);
+
+        memberNodeId.Should().NotBeNull($"SystemRequirements should expose the {memberName} member");
+    }
+
+    [Test]
+    public async Task Pump_SystemRequirements_FluidHasStringDataType()
+    {
+        var configurationNodeId = await BrowseChildByBrowseNameAsync(
+            GetOpcPlcNodeId("Pump1"),
+            new QualifiedName("Configuration", DiNamespaceIndex)).ConfigureAwait(false);
+
+        var systemRequirementsNodeId = await BrowseChildByBrowseNameAsync(
+            configurationNodeId,
+            new QualifiedName("SystemRequirements", PumpsNamespaceIndex)).ConfigureAwait(false);
+
+        var fluidNodeId = await BrowseChildByBrowseNameAsync(
+            systemRequirementsNodeId,
+            new QualifiedName("Fluid", PumpsNamespaceIndex)).ConfigureAwait(false);
+
+        var node = await Session.ReadNodeAsync(fluidNodeId).ConfigureAwait(false);
+        var variableNode = node.Should().BeOfType<VariableNode>().Subject;
+        ExpandedNodeId.ToNodeId(variableNode.DataType, Session.NamespaceUris).Should().Be(DataTypeIds.String);
+    }
+
     private async Task<NodeId> BrowseTypeDefinitionAsync(NodeId nodeId)
     {
         var browseDescription = new BrowseDescription
