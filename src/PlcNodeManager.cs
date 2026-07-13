@@ -114,6 +114,24 @@ public partial class PlcNodeManager : CustomNodeManager2
     }
 
     /// <summary>
+    /// Registers a top-level node and links it directly under the standard Objects folder using an
+    /// Organizes reference. Must be called during <see cref="CreateAddressSpace"/> while external
+    /// references are available.
+    /// </summary>
+    public void AddNodeToObjects(NodeState node)
+    {
+        if (!_externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
+        {
+            _externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
+        }
+
+        references.Add(new NodeStateReference(ReferenceTypes.Organizes, isInverse: false, node.NodeId));
+        node.AddReference(ReferenceTypes.Organizes, isInverse: true, ObjectIds.ObjectsFolder);
+
+        AddPredefinedNode(SystemContext, node);
+    }
+
+    /// <summary>
     /// Links an already-registered node under the DI DeviceSet folder (Objects/DeviceSet) using an
     /// additional Organizes reference, without changing its existing parent. Unlike
     /// <see cref="AddNodeToDeviceSet"/>, this does NOT reparent the node and does NOT call

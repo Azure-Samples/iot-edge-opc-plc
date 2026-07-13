@@ -5,6 +5,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
+using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,6 +29,8 @@ public abstract class SimulatorTestsBase
     protected static readonly Faker Fake = new();
 
     private readonly PlcSimulatorFixture _simulator;
+
+    protected IReadOnlyCollection<IPluginNodes> PluginNodes => _simulator.PluginNodes;
 
     protected SimulatorTestsBase(string[] args = default)
     {

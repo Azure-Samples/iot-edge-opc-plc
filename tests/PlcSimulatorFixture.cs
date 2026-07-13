@@ -10,6 +10,7 @@ using Opc.Ua.Configuration;
 using OpcPlc;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
+using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -70,6 +71,8 @@ public class PlcSimulatorFixture
     public ApplicationConfiguration ClientConfiguration => _config;
 
     public string EndpointUrl => _serverEndpoint?.EndpointUrl?.ToString();
+
+    public IReadOnlyCollection<IPluginNodes> PluginNodes => _opcPlcServer.PluginNodes;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PlcSimulatorFixture"/> class.
