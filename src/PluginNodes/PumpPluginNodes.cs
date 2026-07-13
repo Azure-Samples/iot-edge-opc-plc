@@ -124,20 +124,8 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
 
             // Static Configuration group (Design, Implementation, SystemRequirements) mirroring
             // the PumpType.Configuration functional group in the Pumps companion specification.
-            AddConfiguration(pumpObject, pumpName);
-
-            _flowRateNodes[i] = AddTelemetry(pumpObject, pumpName, "FlowRate", appNamespaceIndex, defaultValue: 50.0);
-            _pressureNodes[i] = AddTelemetry(pumpObject, pumpName, "Pressure", appNamespaceIndex, defaultValue: 2.0);
-            _rotationalSpeedNodes[i] = AddTelemetry(pumpObject, pumpName, "RotationalSpeed", appNamespaceIndex, defaultValue: 1500.0);
-            _motorTemperatureNodes[i] = AddTelemetry(pumpObject, pumpName, "MotorTemperature", appNamespaceIndex, defaultValue: 40.0);
-
-            // Type-conformant variables: their BrowseNames match real PumpType members (in the
-            // Pumps namespace), so the connector's type-based asset discovery collects them as
-            // allowed element types and surfaces them as datapoints on the discovered asset.
-            _volumeFlowRateNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "VolumeFlowRate", defaultValue: 50.0);
-            _ratedDifferentialPressureNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "RatedDifferentialPressure", defaultValue: 2.0);
-            _maximumOutletPressureNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "MaximumOutletPressure", defaultValue: 3.0);
-            _maximumInletPressureNodes[i] = AddPumpTypeMember(pumpObject, pumpName, "MaximumInletPressure", defaultValue: 1.0);
+            // The simulated pump variables live inside Configuration/SystemRequirements.
+            AddConfiguration(pumpObject, pumpName, i);
 
             // Events folder: the event notifier that generates PumpEventType (mirrors PumpType.Events).
             _pumpEventsFolders[i] = AddEventsFolder(pumpObject, pumpName);
@@ -179,7 +167,7 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
     /// Design and Implementation are exposed as (empty) group folders since their members are
     /// optional in the specification.
     /// </summary>
-    private void AddConfiguration(BaseObjectState pumpObject, string pumpName)
+    private void AddConfiguration(BaseObjectState pumpObject, string pumpName, int index)
     {
         ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
 
@@ -196,7 +184,21 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
         AddConfigurationGroup(configuration, pumpName, "Implementation", ImplementationTypeId);
 
         BaseObjectState systemRequirements = AddConfigurationGroup(configuration, pumpName, "SystemRequirements", SystemRequirementsTypeId);
-        AddSystemRequirements(systemRequirements, pumpName);
+        Dictionary<string, BaseDataVariableState> members = AddSystemRequirements(systemRequirements, pumpName);
+
+        // The simulated pump variables live inside SystemRequirements. Variables whose BrowseName
+        // already exists there (imported from the Pumps NodeSet, e.g. MaximumInletPressure and
+        // MaximumOutletPressure) are reused instead of being added again, to avoid duplication.
+        _flowRateNodes[index] = GetOrAddSystemRequirement(systemRequirements, members, pumpName, "FlowRate", appNamespaceIndex, defaultValue: 50.0);
+        _pressureNodes[index] = GetOrAddSystemRequirement(systemRequirements, members, pumpName, "Pressure", appNamespaceIndex, defaultValue: 2.0);
+        _rotationalSpeedNodes[index] = GetOrAddSystemRequirement(systemRequirements, members, pumpName, "RotationalSpeed", appNamespaceIndex, defaultValue: 1500.0);
+        _motorTemperatureNodes[index] = GetOrAddSystemRequirement(systemRequirements, members, pumpName, "MotorTemperature", appNamespaceIndex, defaultValue: 40.0);
+
+        // Type-conformant variables whose BrowseNames match real PumpType members (Pumps namespace).
+        _volumeFlowRateNodes[index] = GetOrAddSystemRequirement(systemRequirements, members, pumpName, "VolumeFlowRate", _pumpsNamespaceIndex, defaultValue: 50.0);
+        _ratedDifferentialPressureNodes[index] = GetOrAddSystemRequirement(systemRequirements, members, pumpName, "RatedDifferentialPressure", _pumpsNamespaceIndex, defaultValue: 2.0);
+        _maximumOutletPressureNodes[index] = GetOrAddSystemRequirement(systemRequirements, members, pumpName, "MaximumOutletPressure", _pumpsNamespaceIndex, defaultValue: 3.0);
+        _maximumInletPressureNodes[index] = GetOrAddSystemRequirement(systemRequirements, members, pumpName, "MaximumInletPressure", _pumpsNamespaceIndex, defaultValue: 1.0);
 
         pumpObject.AddChild(configuration);
     }
@@ -227,13 +229,17 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
     /// SystemRequirementsType in the Pumps companion specification. The member list (BrowseName and
     /// DataType) is imported directly from the Pumps NodeSet2 rather than hardcoded here.
     /// </summary>
-    private void AddSystemRequirements(BaseObjectState systemRequirements, string pumpName)
+    private Dictionary<string, BaseDataVariableState> AddSystemRequirements(BaseObjectState systemRequirements, string pumpName)
     {
+        var members = new Dictionary<string, BaseDataVariableState>();
+
         foreach (PumpTypeMember member in PumpNodeManager.GetSystemRequirementsMembers())
         {
             NodeId dataType = ExpandedNodeId.ToNodeId(member.DataType, _plcNodeManager.Server.NamespaceUris);
-            AddSystemRequirement(systemRequirements, pumpName, member.BrowseName, dataType, member.ValueRank);
+            members[member.BrowseName] = AddSystemRequirement(systemRequirements, pumpName, member.BrowseName, dataType, member.ValueRank);
         }
+
+        return members;
     }
 
     /// <summary>
@@ -241,7 +247,7 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
     /// namespace so it is unique per pump instance, while the BrowseName is in the Pumps namespace
     /// to match the SystemRequirementsType member of the companion specification.
     /// </summary>
-    private void AddSystemRequirement(BaseObjectState parent, string pumpName, string browseName, NodeId dataType, int valueRank)
+    private BaseDataVariableState AddSystemRequirement(BaseObjectState parent, string pumpName, string browseName, NodeId dataType, int valueRank)
     {
         ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
 
@@ -261,6 +267,43 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
         };
 
         parent.AddChild(node);
+
+        return node;
+    }
+
+    /// <summary>
+    /// Returns the SystemRequirements member with the given BrowseName if it already exists (imported
+    /// from the Pumps NodeSet), otherwise creates a new simulated Double variable under
+    /// SystemRequirements. This avoids duplicating members that the companion specification defines.
+    /// </summary>
+    private BaseDataVariableState GetOrAddSystemRequirement(BaseObjectState systemRequirements, Dictionary<string, BaseDataVariableState> members, string pumpName, string browseName, ushort namespaceIndex, double defaultValue)
+    {
+        if (members.TryGetValue(browseName, out BaseDataVariableState existing))
+        {
+            return existing;
+        }
+
+        ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+
+        var node = new BaseDataVariableState(systemRequirements) {
+            NodeId = new NodeId($"{pumpName}_{browseName}", appNamespaceIndex),
+            BrowseName = new QualifiedName(browseName, namespaceIndex),
+            DisplayName = new LocalizedText("en", browseName),
+            ReferenceTypeId = ReferenceTypeIds.HasComponent,
+            TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+            DataType = DataTypeIds.Double,
+            ValueRank = ValueRanks.Scalar,
+            AccessLevel = AccessLevels.CurrentRead,
+            UserAccessLevel = AccessLevels.CurrentRead,
+            Value = defaultValue,
+            StatusCode = StatusCodes.Good,
+            Timestamp = _timeService.UtcNow(),
+        };
+
+        systemRequirements.AddChild(node);
+        members[browseName] = node;
+
+        return node;
     }
 
     /// <summary>
@@ -334,57 +377,6 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
         return deviceHealth;
     }
 
-    private BaseDataVariableState AddTelemetry(BaseObjectState pumpObject, string pumpName, string name, ushort appNamespaceIndex, double defaultValue)
-    {
-        var telemetry = new BaseDataVariableState(pumpObject) {
-            NodeId = new NodeId($"{pumpName}_{name}", appNamespaceIndex),
-            BrowseName = new QualifiedName(name, appNamespaceIndex),
-            DisplayName = new LocalizedText("en", name),
-            ReferenceTypeId = ReferenceTypeIds.HasComponent,
-            TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
-            DataType = DataTypeIds.Double,
-            ValueRank = ValueRanks.Scalar,
-            AccessLevel = AccessLevels.CurrentRead,
-            UserAccessLevel = AccessLevels.CurrentRead,
-            Value = defaultValue,
-            StatusCode = StatusCodes.Good,
-            Timestamp = _timeService.UtcNow(),
-        };
-
-        pumpObject.AddChild(telemetry);
-
-        return telemetry;
-    }
-
-    /// <summary>
-    /// Adds a variable whose BrowseName matches a real PumpType member (in the Pumps namespace)
-    /// so that type-based asset discovery surfaces it as a datapoint. The NodeId stays in the
-    /// application namespace so it remains unique per pump instance.
-    /// </summary>
-    private BaseDataVariableState AddPumpTypeMember(BaseObjectState pumpObject, string pumpName, string memberBrowseName, double defaultValue)
-    {
-        ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
-
-        var node = new BaseDataVariableState(pumpObject) {
-            NodeId = new NodeId($"{pumpName}_{memberBrowseName}", appNamespaceIndex),
-            BrowseName = new QualifiedName(memberBrowseName, _pumpsNamespaceIndex),
-            DisplayName = new LocalizedText("en", memberBrowseName),
-            ReferenceTypeId = ReferenceTypeIds.HasComponent,
-            TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
-            DataType = DataTypeIds.Double,
-            ValueRank = ValueRanks.Scalar,
-            AccessLevel = AccessLevels.CurrentRead,
-            UserAccessLevel = AccessLevels.CurrentRead,
-            Value = defaultValue,
-            StatusCode = StatusCodes.Good,
-            Timestamp = _timeService.UtcNow(),
-        };
-
-        pumpObject.AddChild(node);
-
-        return node;
-    }
-
     /// <summary>
     /// Adds an Events folder under the pump that acts as the event notifier and declares (via a
     /// GeneratesEvent reference) that it generates PumpEventType, mirroring the PumpType.Events
@@ -437,11 +429,41 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
             SetValue(_maximumOutletPressureNodes[i], pressure + 0.5);
             SetValue(_maximumInletPressureNodes[i], pressure - 0.5);
 
+            // Derive DeviceHealth from the motor temperature (mirrors the Boiler2 approach).
+            SetDeviceHealth(i, motorTemperature);
+
             RaisePumpEvent(i, flowRate, pressure);
         }
     }
 
+    /// <summary>
+    /// Maps the current motor temperature to a DeviceHealthEnumeration value and publishes it on the
+    /// pump's DeviceHealth variable, mirroring the temperature-based logic used by Boiler2.
+    /// </summary>
+    private void SetDeviceHealth(int index, double motorTemperature)
+    {
+        const double baseTemperature = 38.0;
+        const double targetTemperature = 48.0;
+        const double overheatedTemperature = 52.0;
+
+        Opc.Ua.DI.DeviceHealthEnumeration deviceHealth = motorTemperature switch {
+            _ when motorTemperature >= baseTemperature && motorTemperature <= targetTemperature => Opc.Ua.DI.DeviceHealthEnumeration.NORMAL,
+            _ when motorTemperature > targetTemperature && motorTemperature < overheatedTemperature => Opc.Ua.DI.DeviceHealthEnumeration.CHECK_FUNCTION,
+            _ when motorTemperature >= overheatedTemperature => Opc.Ua.DI.DeviceHealthEnumeration.FAILURE,
+            _ => Opc.Ua.DI.DeviceHealthEnumeration.OFF_SPEC,
+        };
+
+        SetDeviceHealthValue(_deviceHealthNodes[index], deviceHealth);
+    }
+
     private void SetValue(BaseDataVariableState node, double value)
+    {
+        node.Value = value;
+        node.Timestamp = _timeService.Now();
+        node.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
+    }
+
+    private void SetDeviceHealthValue(BaseDataVariableState node, Opc.Ua.DI.DeviceHealthEnumeration value)
     {
         node.Value = value;
         node.Timestamp = _timeService.Now();

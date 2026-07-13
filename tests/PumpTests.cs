@@ -141,6 +141,90 @@ public class PumpTests : SimulatorTestsBase
         ExpandedNodeId.ToNodeId(variableNode.DataType, Session.NamespaceUris).Should().Be(DataTypeIds.String);
     }
 
+    [Test]
+    public async Task Pump_SystemRequirements_ContainsSimulatedVariablesWithoutDuplication()
+    {
+        var systemRequirementsNodeId = await BrowseSystemRequirementsAsync("Pump1").ConfigureAwait(false);
+        var childNames = (await BrowseChildrenAsync(systemRequirementsNodeId).ConfigureAwait(false))
+            .Select(r => r.BrowseName.Name)
+            .ToList();
+
+        // The simulated variables moved from the pump root into SystemRequirements.
+        childNames.Should().Contain(["FlowRate", "Pressure", "RotationalSpeed", "MotorTemperature", "VolumeFlowRate", "RatedDifferentialPressure"]);
+
+        // Members already defined by the Pumps NodeSet are reused, not duplicated.
+        childNames.Count(n => n == "MaximumInletPressure").Should().Be(1, "the NodeSet member should be reused, not duplicated");
+        childNames.Count(n => n == "MaximumOutletPressure").Should().Be(1, "the NodeSet member should be reused, not duplicated");
+    }
+
+    [TestCase("Pump1")]
+    [TestCase("Pump2")]
+    public async Task Pump_Root_ExposesOnlyConfigurationDeviceHealthEventsAndIdentification(string pumpName)
+    {
+        // The Events folder is referenced both as a component and as an event source, so use the
+        // distinct set of browse names to describe the pump root's children.
+        var childNames = (await BrowseChildrenAsync(GetOpcPlcNodeId(pumpName)).ConfigureAwait(false))
+            .Select(r => r.BrowseName.Name)
+            .Distinct()
+            .ToList();
+
+        childNames.Should().BeEquivalentTo(["Configuration", "DeviceHealth", "Events", "Identification"]);
+    }
+
+    [Test]
+    public async Task Pump_DeviceHealth_IsPopulatedFromSimulation()
+    {
+        var deviceHealthNodeId = GetOpcPlcNodeId("Pump1_DeviceHealth");
+
+        // The initial DeviceHealth value is NORMAL.
+        var initial = (Opc.Ua.DI.DeviceHealthEnumeration)(await ReadDataValueAsync(deviceHealthNodeId).ConfigureAwait(false)).Value;
+        initial.Should().Be(Opc.Ua.DI.DeviceHealthEnumeration.NORMAL);
+
+        // After the simulation timer fires, DeviceHealth is set to a valid enum value derived from
+        // the motor temperature (mirrors the Boiler2 behavior).
+        FireTimersWithPeriod(FromMilliseconds(1000), numberOfTimes: 1);
+
+        var deviceHealth = (Opc.Ua.DI.DeviceHealthEnumeration)(await ReadDataValueAsync(deviceHealthNodeId).ConfigureAwait(false)).Value;
+        deviceHealth.Should().BeOneOf(
+            Opc.Ua.DI.DeviceHealthEnumeration.NORMAL,
+            Opc.Ua.DI.DeviceHealthEnumeration.CHECK_FUNCTION,
+            Opc.Ua.DI.DeviceHealthEnumeration.FAILURE,
+            Opc.Ua.DI.DeviceHealthEnumeration.OFF_SPEC);
+    }
+
+    private async Task<NodeId> BrowseSystemRequirementsAsync(string pumpName)
+    {
+        var configurationNodeId = await BrowseChildByBrowseNameAsync(
+            GetOpcPlcNodeId(pumpName),
+            new QualifiedName("Configuration", DiNamespaceIndex)).ConfigureAwait(false);
+
+        return await BrowseChildByBrowseNameAsync(
+            configurationNodeId,
+            new QualifiedName("SystemRequirements", PumpsNamespaceIndex)).ConfigureAwait(false);
+    }
+
+    private async Task<ReferenceDescriptionCollection> BrowseChildrenAsync(NodeId nodeId)
+    {
+        var browseDescription = new BrowseDescription
+        {
+            NodeId = nodeId,
+            BrowseDirection = BrowseDirection.Forward,
+            ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences,
+            IncludeSubtypes = true,
+            NodeClassMask = (uint)NodeClass.Object | (uint)NodeClass.Variable,
+            ResultMask = (uint)BrowseResultMask.All,
+        };
+
+        var results = await Session.BrowseAsync(
+            null,
+            null,
+            0,
+            new BrowseDescriptionCollection { browseDescription },
+            CancellationToken.None).ConfigureAwait(false);
+
+        return results.Results[0].References;
+    }
+
     private async Task<NodeId> BrowseTypeDefinitionAsync(NodeId nodeId)
     {
         var browseDescription = new BrowseDescription
