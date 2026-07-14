@@ -73,7 +73,7 @@ public class PumpTests : SimulatorTestsBase
     [Test]
     public async Task Pump_HasFlowRateTelemetry()
     {
-        var flowRateNodeId = GetOpcPlcNodeId("Pump1_FlowRate");
+        var flowRateNodeId = await BrowseSystemRequirementsChildAsync("Pump1", "NormalFlow").ConfigureAwait(false);
         var node = await Session.ReadNodeAsync(flowRateNodeId).ConfigureAwait(false);
 
         var variableNode = node.Should().BeOfType<VariableNode>().Subject;
@@ -139,6 +139,91 @@ public class PumpTests : SimulatorTestsBase
         var node = await Session.ReadNodeAsync(fluidNodeId).ConfigureAwait(false);
         var variableNode = node.Should().BeOfType<VariableNode>().Subject;
         ExpandedNodeId.ToNodeId(variableNode.DataType, Session.NamespaceUris).Should().Be(DataTypeIds.String);
+    }
+
+    [Test]
+    public async Task Pump_SystemRequirements_ContainsSimulatedVariablesWithoutDuplication()
+    {
+        var systemRequirementsNodeId = await BrowseSystemRequirementsAsync("Pump1").ConfigureAwait(false);
+        var childNames = (await BrowseChildrenAsync(systemRequirementsNodeId).ConfigureAwait(false))
+            .Select(r => r.BrowseName.Name)
+            .ToList();
+
+        // Simulation reuses declared SystemRequirements members only.
+        childNames.Should().Contain(["NormalFlow", "MaximumOutletPressure", "RequiredTime", "WorkingTemperature"]);
+
+        // No additional placeholder-like children should be created by the simulator.
+        childNames.Should().NotContain(["FlowRate", "Pressure", "RotationalSpeed", "MotorTemperature", "VolumeFlowRate", "RatedDifferentialPressure"]);
+
+        // Members already defined by the Pumps NodeSet are reused, not duplicated.
+        childNames.Count(n => n == "MaximumInletPressure").Should().Be(1, "the NodeSet member should be reused, not duplicated");
+        childNames.Count(n => n == "MaximumOutletPressure").Should().Be(1, "the NodeSet member should be reused, not duplicated");
+    }
+
+    [TestCase("Pump1")]
+    [TestCase("Pump2")]
+    public async Task Pump_Root_ExposesOnlyConfigurationDeviceHealthEventsAndIdentification(string pumpName)
+    {
+        var childNames = (await BrowseChildrenAsync(GetOpcPlcNodeId(pumpName)).ConfigureAwait(false))
+            .Select(r => r.BrowseName.Name)
+            .ToList();
+
+        childNames.Should().BeEquivalentTo(["Configuration", "DeviceHealth", "Events", "Identification"]);
+    }
+
+    [Test]
+    public async Task Pump_DeviceHealth_IsFunctionalGroup()
+    {
+        var deviceHealthGroupNodeId = await BrowseChildByBrowseNameAsync(
+            GetOpcPlcNodeId("Pump1"),
+            new QualifiedName(Opc.Ua.DI.BrowseNames.DeviceHealth, DiNamespaceIndex)).ConfigureAwait(false);
+
+        deviceHealthGroupNodeId.Should().NotBeNull();
+
+        var typeDefNodeId = await BrowseTypeDefinitionAsync(deviceHealthGroupNodeId).ConfigureAwait(false);
+        typeDefNodeId.Should().Be(new NodeId(Opc.Ua.DI.ObjectTypes.FunctionalGroupType, DiNamespaceIndex));
+    }
+
+    private async Task<NodeId> BrowseSystemRequirementsAsync(string pumpName)
+    {
+        var configurationNodeId = await BrowseChildByBrowseNameAsync(
+            GetOpcPlcNodeId(pumpName),
+            new QualifiedName("Configuration", DiNamespaceIndex)).ConfigureAwait(false);
+
+        return await BrowseChildByBrowseNameAsync(
+            configurationNodeId,
+            new QualifiedName("SystemRequirements", PumpsNamespaceIndex)).ConfigureAwait(false);
+    }
+
+    private async Task<NodeId> BrowseSystemRequirementsChildAsync(string pumpName, string browseName)
+    {
+        var systemRequirementsNodeId = await BrowseSystemRequirementsAsync(pumpName).ConfigureAwait(false);
+
+        return await BrowseChildByBrowseNameAsync(
+            systemRequirementsNodeId,
+            new QualifiedName(browseName, PumpsNamespaceIndex)).ConfigureAwait(false);
+    }
+
+    private async Task<ReferenceDescriptionCollection> BrowseChildrenAsync(NodeId nodeId)
+    {
+        var browseDescription = new BrowseDescription
+        {
+            NodeId = nodeId,
+            BrowseDirection = BrowseDirection.Forward,
+            ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences,
+            IncludeSubtypes = true,
+            NodeClassMask = (uint)NodeClass.Object | (uint)NodeClass.Variable,
+            ResultMask = (uint)BrowseResultMask.All,
+        };
+
+        var results = await Session.BrowseAsync(
+            null,
+            null,
+            0,
+            new BrowseDescriptionCollection { browseDescription },
+            CancellationToken.None).ConfigureAwait(false);
+
+        return results.Results[0].References;
     }
 
     private async Task<NodeId> BrowseTypeDefinitionAsync(NodeId nodeId)
