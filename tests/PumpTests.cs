@@ -73,7 +73,7 @@ public class PumpTests : SimulatorTestsBase
     [Test]
     public async Task Pump_HasFlowRateTelemetry()
     {
-        var flowRateNodeId = GetOpcPlcNodeId("Pump1_FlowRate");
+        var flowRateNodeId = await BrowseSystemRequirementsChildAsync("Pump1", "NormalFlow").ConfigureAwait(false);
         var node = await Session.ReadNodeAsync(flowRateNodeId).ConfigureAwait(false);
 
         var variableNode = node.Should().BeOfType<VariableNode>().Subject;
@@ -149,8 +149,11 @@ public class PumpTests : SimulatorTestsBase
             .Select(r => r.BrowseName.Name)
             .ToList();
 
-        // The simulated variables moved from the pump root into SystemRequirements.
-        childNames.Should().Contain(["FlowRate", "Pressure", "RotationalSpeed", "MotorTemperature", "VolumeFlowRate", "RatedDifferentialPressure"]);
+        // Simulation reuses declared SystemRequirements members only.
+        childNames.Should().Contain(["NormalFlow", "MaximumOutletPressure", "RequiredTime", "WorkingTemperature"]);
+
+        // No additional placeholder-like children should be created by the simulator.
+        childNames.Should().NotContain(["FlowRate", "Pressure", "RotationalSpeed", "MotorTemperature", "VolumeFlowRate", "RatedDifferentialPressure"]);
 
         // Members already defined by the Pumps NodeSet are reused, not duplicated.
         childNames.Count(n => n == "MaximumInletPressure").Should().Be(1, "the NodeSet member should be reused, not duplicated");
@@ -161,35 +164,24 @@ public class PumpTests : SimulatorTestsBase
     [TestCase("Pump2")]
     public async Task Pump_Root_ExposesOnlyConfigurationDeviceHealthEventsAndIdentification(string pumpName)
     {
-        // The Events folder is referenced both as a component and as an event source, so use the
-        // distinct set of browse names to describe the pump root's children.
         var childNames = (await BrowseChildrenAsync(GetOpcPlcNodeId(pumpName)).ConfigureAwait(false))
             .Select(r => r.BrowseName.Name)
-            .Distinct()
             .ToList();
 
         childNames.Should().BeEquivalentTo(["Configuration", "DeviceHealth", "Events", "Identification"]);
     }
 
     [Test]
-    public async Task Pump_DeviceHealth_IsPopulatedFromSimulation()
+    public async Task Pump_DeviceHealth_IsFunctionalGroup()
     {
-        var deviceHealthNodeId = GetOpcPlcNodeId("Pump1_DeviceHealth");
+        var deviceHealthGroupNodeId = await BrowseChildByBrowseNameAsync(
+            GetOpcPlcNodeId("Pump1"),
+            new QualifiedName(Opc.Ua.DI.BrowseNames.DeviceHealth, DiNamespaceIndex)).ConfigureAwait(false);
 
-        // The initial DeviceHealth value is NORMAL.
-        var initial = (Opc.Ua.DI.DeviceHealthEnumeration)(await ReadDataValueAsync(deviceHealthNodeId).ConfigureAwait(false)).Value;
-        initial.Should().Be(Opc.Ua.DI.DeviceHealthEnumeration.NORMAL);
+        deviceHealthGroupNodeId.Should().NotBeNull();
 
-        // After the simulation timer fires, DeviceHealth is set to a valid enum value derived from
-        // the motor temperature (mirrors the Boiler2 behavior).
-        FireTimersWithPeriod(FromMilliseconds(1000), numberOfTimes: 1);
-
-        var deviceHealth = (Opc.Ua.DI.DeviceHealthEnumeration)(await ReadDataValueAsync(deviceHealthNodeId).ConfigureAwait(false)).Value;
-        deviceHealth.Should().BeOneOf(
-            Opc.Ua.DI.DeviceHealthEnumeration.NORMAL,
-            Opc.Ua.DI.DeviceHealthEnumeration.CHECK_FUNCTION,
-            Opc.Ua.DI.DeviceHealthEnumeration.FAILURE,
-            Opc.Ua.DI.DeviceHealthEnumeration.OFF_SPEC);
+        var typeDefNodeId = await BrowseTypeDefinitionAsync(deviceHealthGroupNodeId).ConfigureAwait(false);
+        typeDefNodeId.Should().Be(new NodeId(Opc.Ua.DI.ObjectTypes.FunctionalGroupType, DiNamespaceIndex));
     }
 
     private async Task<NodeId> BrowseSystemRequirementsAsync(string pumpName)
@@ -201,6 +193,15 @@ public class PumpTests : SimulatorTestsBase
         return await BrowseChildByBrowseNameAsync(
             configurationNodeId,
             new QualifiedName("SystemRequirements", PumpsNamespaceIndex)).ConfigureAwait(false);
+    }
+
+    private async Task<NodeId> BrowseSystemRequirementsChildAsync(string pumpName, string browseName)
+    {
+        var systemRequirementsNodeId = await BrowseSystemRequirementsAsync(pumpName).ConfigureAwait(false);
+
+        return await BrowseChildByBrowseNameAsync(
+            systemRequirementsNodeId,
+            new QualifiedName(browseName, PumpsNamespaceIndex)).ConfigureAwait(false);
     }
 
     private async Task<ReferenceDescriptionCollection> BrowseChildrenAsync(NodeId nodeId)

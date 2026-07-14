@@ -116,6 +116,7 @@ public sealed class PumpNodeManager : CustomNodeManager2
                 members.Add(new PumpTypeMember(
                     StripNamespacePrefix(variable.BrowseName),
                     ResolveDataType(variable.DataType, aliases, nodeSet.NamespaceUris),
+                    ResolveTypeDefinition(variable.References, aliases, nodeSet.NamespaceUris),
                     variable.ValueRank));
             }
         }
@@ -134,6 +135,19 @@ public sealed class PumpNodeManager : CustomNodeManager2
         return separator < 0 ? browseName : browseName[(separator + 1)..];
     }
 
+    private static ExpandedNodeId ResolveTypeDefinition(Reference[] references, Dictionary<string, string> aliases, string[] modelNamespaceUris)
+    {
+        foreach (Reference reference in references ?? [])
+        {
+            if (ResolveAlias(reference.ReferenceType, aliases) == "i=40")
+            {
+                return ResolveExpandedNodeId(reference.Value, aliases, modelNamespaceUris);
+            }
+        }
+
+        return ExpandedNodeId.Null;
+    }
+
     /// <summary>
     /// Resolves a DataType attribute value (alias or NodeId string) into an <see cref="ExpandedNodeId"/>
     /// carrying the namespace URI, so it can be mapped onto the running server's namespace table.
@@ -141,6 +155,13 @@ public sealed class PumpNodeManager : CustomNodeManager2
     private static ExpandedNodeId ResolveDataType(string dataType, Dictionary<string, string> aliases, string[] modelNamespaceUris)
     {
         string idString = ResolveAlias(dataType, aliases);
+
+        return ResolveExpandedNodeId(idString, aliases, modelNamespaceUris);
+    }
+
+    private static ExpandedNodeId ResolveExpandedNodeId(string value, Dictionary<string, string> aliases, string[] modelNamespaceUris)
+    {
+        string idString = ResolveAlias(value, aliases);
 
         int modelNamespaceIndex = 0;
         string identifierPart = idString;
@@ -167,5 +188,5 @@ public sealed class PumpNodeManager : CustomNodeManager2
 /// <summary>
 /// Describes an instance-declaration member of a Pumps companion-spec type, extracted from the NodeSet.
 /// </summary>
-public sealed record PumpTypeMember(string BrowseName, ExpandedNodeId DataType, int ValueRank);
+public sealed record PumpTypeMember(string BrowseName, ExpandedNodeId DataType, ExpandedNodeId TypeDefinition, int ValueRank);
 
