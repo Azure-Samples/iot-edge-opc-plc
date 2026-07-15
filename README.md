@@ -221,16 +221,12 @@ More information about this feature can be found [here](deterministic-alarms.md)
 
 The option `--hb` (or `--heartbeats`) adds client-managed heartbeat values to the OPC UA address space. The feature is disabled by default.
 
-```shell
-dotnet opcplc.dll --hb
-```
-
 The `heartbeats` folder is located directly under **Objects** and contains two readable and writable scalar `UInt32` variables, both initialized to `0`:
 
 - `connectionKeepalive`
 - `datasetWriteCounter`
 
-OPC UA clients can write these values to publish a connection keepalive and dataset write counter. OPC UA `UInt32` corresponds to the unsigned 32-bit `DWORD` type used by PLCs. When OPC Publisher configuration output is enabled with `--showpnjson` or `--showpnjsonph`, both variables are included in the generated node list.
+OPC UA clients can write these values to publish a connection keepalive and dataset write counter.
 
 ## Stacklight
 
