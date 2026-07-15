@@ -492,7 +492,7 @@ Options:
                                Default: 50 cycles
       --ct, --cycletime=VALUE
                              length of one cycle time in milliseconds.
-                               Default: 100 msec
+                               Default: 100 ms
       --ei, --eventinstances=VALUE
                              number of event instances.
                                Default: 0
@@ -688,17 +688,10 @@ Options:
                                Default: password
       --alm, --alarms        add alarm simulation to address space.
                                Default: False
-      --hb, --heartbeats     add heartbeat nodes to the address space.
-                               Default: False
-      --sl, --stacklight     add stacklight simulation to address space.
-                               Default: False
-      --pu, --pumps          add pump simulation (2 pumps based on the OPC UA
-                               Pumps companion spec) to address space.
-                               Default: False
-      --wotcon               add WoT-Con (Web of Things Connectivity)
-                               companion spec to address space.
-                               Default: False
       --ses, --simpleevents  add simple events simulation to address space.
+                               Default: False
+      --wotcon               add WoT-Con (Web of Things Connectivity) companion
+                               spec to address space.
                                Default: False
       --dalm, --deterministicalarms=VALUE
                              add deterministic alarm simulation to address
@@ -737,11 +730,9 @@ Options:
                                Default: 10
       --b2tt, --boiler2targettemp=VALUE
                              Boiler #2 target temperature to reach when heating.
-
                                Default: 80
       --b2mi, --boiler2maintinterval=VALUE
                              Boiler #2 required maintenance interval in seconds.
-
                                Default: 300
       --b2oi, --boiler2overheatinterval=VALUE
                              Boiler #2 overheat interval in seconds.
@@ -780,6 +771,8 @@ Options:
       --vfr, --veryfastrate=VALUE
                              rate in milliseconds to change fast nodes.
                                Default: 1000
+      --hb, --heartbeats     add heartbeat nodes to the address space.
+                               Default: False
       --nn, --nonegtrend     do not generate negative trend data.
                                Default: False
       --ns2, --nodeset2file=VALUE
@@ -787,6 +780,9 @@ Options:
                                be created in the OPC UA address space (multiple
                                comma separated filenames supported).
       --np, --nopostrend     do not generate positive trend data.
+                               Default: False
+      --pu, --pumps          add pump simulation (2 pumps based on the OPC UA
+                               Pumps companion spec) to address space.
                                Default: False
       --sn, --slownodes=VALUE
                              number of slow nodes.
@@ -813,6 +809,8 @@ Options:
                                slow nodes.
                                Default: 0
       --ns, --nospikes       do not generate spike data.
+                               Default: False
+      --sl, --stacklight     add stacklight simulation to address space.
                                Default: False
       --unf, --uanodesfile=VALUE
                              the binary *.PredefinedNodes.uanodes file that
