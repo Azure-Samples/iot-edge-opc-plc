@@ -217,6 +217,21 @@ The option `--dalm=<file>` enables deterministic testing of Alarms and Condition
 
 More information about this feature can be found [here](deterministic-alarms.md).
 
+## Heartbeats
+
+The option `--hb` (or `--heartbeats`) adds client-managed heartbeat values to the OPC UA address space. The feature is disabled by default.
+
+```shell
+dotnet opcplc.dll --hb
+```
+
+The `heartbeats` folder is located directly under **Objects** and contains two readable and writable scalar `UInt32` variables, both initialized to `0`:
+
+- `connectionKeepalive`
+- `datasetWriteCounter`
+
+OPC UA clients can write these values to publish a connection keepalive and dataset write counter. OPC UA `UInt32` corresponds to the unsigned 32-bit `DWORD` type used by PLCs. When OPC Publisher configuration output is enabled with `--showpnjson` or `--showpnjsonph`, both variables are included in the generated node list.
+
 ## Stacklight
 
 ### Address space and simulation (`--sl`)
@@ -676,6 +691,8 @@ Options:
                              the password of the default user.
                                Default: password
       --alm, --alarms        add alarm simulation to address space.
+                               Default: False
+      --hb, --heartbeats     add heartbeat nodes to the address space.
                                Default: False
       --sl, --stacklight     add stacklight simulation to address space.
                                Default: False
