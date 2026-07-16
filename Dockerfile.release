@@ -19,6 +19,12 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
 # Copy source code
 COPY src/ src/
 
+# Copy git metadata and version file so Nerdbank.GitVersioning can compute the
+# real version. Without these, the version falls back to 0.0.0.
+# Requires a full (non-shallow) git history in the build context.
+COPY .git/ .git/
+COPY version.json .
+
 # Publish
 WORKDIR /app/src
 RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
