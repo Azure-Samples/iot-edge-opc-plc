@@ -290,7 +290,7 @@ Reverse connect is disabled by default and is enabled by specifying one or more 
 dotnet opcplc.dll --pn=50000 --autoaccept --rcc=opc.tcp://client:65300
 ```
 
-Multiple clients are supported as a comma separated list (no spaces):
+Multiple clients are supported as a comma separated list:
 
 ```bash
 dotnet opcplc.dll --pn=50000 --autoaccept --rcc=opc.tcp://client1:65300,opc.tcp://client2:65300
@@ -562,8 +562,7 @@ Options:
       --rcc, --reverseconnectclients=VALUE
                              enable reverse connect (ReverseHello) and dial out
                                to the given client endpoint URLs, e.g. 'opc.tcp:
-                               //client:65300' (comma separated values; no
-                               spaces allowed).
+                               //client:65300' (comma separated values).
                                Default: reverse connect is disabled
       --rci, --reverseconnectinterval=VALUE
                              the interval in ms between reverse connect

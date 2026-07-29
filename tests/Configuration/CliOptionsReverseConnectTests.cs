@@ -63,6 +63,9 @@ public class CliOptionsReverseConnectTests
     [TestCase("not-a-valid-url")]
     [TestCase("http://client:65300")]
     [TestCase("opc.tcp://client1:65300,bogus")]
+    [TestCase("opc.tcp://client")]
+    [TestCase("opc.tcp://:65300")]
+    [TestCase("opc.tcp://")]
     public void Parse_ReverseConnectClients_InvalidUrl_Throws(string value)
     {
         // Arrange
@@ -74,7 +77,37 @@ public class CliOptionsReverseConnectTests
 
         // Assert
         act.Should().Throw<Mono.Options.OptionException>()
-            .WithMessage("*is invalid, expected format: opc.tcp://<host>:<port>*");
+            .WithMessage("*expected format: opc.tcp://<host>:<port>*");
+    }
+
+    [TestCase("")]
+    [TestCase("   ")]
+    public void Parse_ReverseConnectClients_EmptyValue_ThrowsOptionException(string value)
+    {
+        // Arrange
+        var config = new OpcPlcConfiguration();
+        var args = new[] { $"--rcc={value}" };
+
+        // Act
+        var act = () => CliOptions.InitConfiguration(args, config, NoPluginNodes);
+
+        // Assert
+        act.Should().Throw<Mono.Options.OptionException>("an empty value must not escape as an IndexOutOfRangeException");
+    }
+
+    [Test]
+    public void Parse_ReverseConnectClients_TrimsSpacesAroundUrls()
+    {
+        // Arrange
+        var config = new OpcPlcConfiguration();
+        var args = new[] { "--rcc=opc.tcp://client1:65300, opc.tcp://client2:65301" };
+
+        // Act
+        _ = CliOptions.InitConfiguration(args, config, NoPluginNodes);
+
+        // Assert
+        config.OpcUa.ReverseConnectClientUrls.Should()
+            .Equal("opc.tcp://client1:65300", "opc.tcp://client2:65301");
     }
 
     [Test]

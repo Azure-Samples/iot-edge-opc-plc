@@ -93,7 +93,7 @@ public static class CliOptions
             { "aa|autoaccept", $"all certs are trusted when a connection is established.\nDefault: {config.OpcUa.AutoAcceptCerts}", (s) => config.OpcUa.AutoAcceptCerts = s != null },
 
             // reverse connect configuration
-            { "rcc|reverseconnectclients=", "enable reverse connect (ReverseHello) and dial out to the given client endpoint URLs, e.g. 'opc.tcp://client:65300' (comma separated values; no spaces allowed).\nDefault: reverse connect is disabled", (s) => config.OpcUa.ReverseConnectClientUrls = ParseReverseConnectUrls(s) },
+            { "rcc|reverseconnectclients=", "enable reverse connect (ReverseHello) and dial out to the given client endpoint URLs, e.g. 'opc.tcp://client:65300' (comma separated values).\nDefault: reverse connect is disabled", (s) => config.OpcUa.ReverseConnectClientUrls = ParseReverseConnectUrls(s) },
             { "rci|reverseconnectinterval=", $"the interval in ms between reverse connect attempts.\nDefault: {config.OpcUa.ReverseConnectInterval}", (int i) => {
                     if (i > 0)
                     {
@@ -372,12 +372,20 @@ public static class CliOptions
     /// </summary>
     private static List<string> ParseReverseConnectUrls(string list)
     {
+        // ParseListOfStrings indexes into the value, so an empty option value has to be rejected up front.
+        if (string.IsNullOrWhiteSpace(list))
+        {
+            throw new OptionException("The reverseconnectclients option requires at least one client endpoint URL, expected format: opc.tcp://<host>:<port>", "reverseconnectclients");
+        }
+
         var urls = ParseListOfStrings(list);
 
         foreach (string url in urls)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri) ||
-                !uri.Scheme.Equals(Utils.UriSchemeOpcTcp, StringComparison.OrdinalIgnoreCase))
+                !uri.Scheme.Equals(Utils.UriSchemeOpcTcp, StringComparison.OrdinalIgnoreCase) ||
+                string.IsNullOrEmpty(uri.Host) ||
+                uri.Port <= 0)
             {
                 throw new OptionException($"The reverse connect client endpoint URL '{url}' is invalid, expected format: opc.tcp://<host>:<port>", "reverseconnectclients");
             }

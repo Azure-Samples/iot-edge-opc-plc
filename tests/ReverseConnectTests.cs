@@ -59,7 +59,7 @@ public class ReverseConnectTests
 
             var buffer = new byte[8];
             int read = await connection.GetStream()
-                .ReadAtLeastAsync(buffer, ReverseHelloMessageType.Length, throwOnEndOfStream: false, timeoutCts.Token)
+                .ReadAtLeastAsync(buffer, ReverseHelloMessageType.Length, throwOnEndOfStream: false, cancellationToken: timeoutCts.Token)
                 .ConfigureAwait(false);
 
             // Assert
