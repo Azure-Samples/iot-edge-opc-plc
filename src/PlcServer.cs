@@ -22,7 +22,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-public partial class PlcServer : StandardServer
+public partial class PlcServer : ReverseConnectServer
 {
     private const uint PlcShutdownWaitSeconds = 10;
     private const int PeriodicLoggingTimerSeconds = 60;

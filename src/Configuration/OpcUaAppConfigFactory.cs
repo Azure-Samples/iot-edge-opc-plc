@@ -140,6 +140,8 @@ public partial class OpcUaAppConfigFactory(
 
         LogLdsRegistrationInterval(_config.OpcUa.LdsRegistrationInterval);
 
+        ConfigureReverseConnect();
+
         // Determine if custom certificate was provided via command line
         bool customCertificateProvided = !string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) ||
                                          !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName);
@@ -202,6 +204,44 @@ public partial class OpcUaAppConfigFactory(
             _config.OpcUa.ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount);
 
         return _config.OpcUa.ApplicationConfiguration;
+    }
+
+    /// <summary>
+    /// Configures reverse connect (ReverseHello) if at least one client endpoint URL is configured.
+    /// </summary>
+    private void ConfigureReverseConnect()
+    {
+        List<string> clientUrls = _config.OpcUa.ReverseConnectClientUrls;
+
+        if (clientUrls is null || clientUrls.Count == 0)
+        {
+            return;
+        }
+
+        var reverseConnect = new ReverseConnectServerConfiguration {
+            ConnectInterval = _config.OpcUa.ReverseConnectInterval,
+            ConnectTimeout = _config.OpcUa.ReverseConnectTimeout,
+            RejectTimeout = _config.OpcUa.ReverseConnectRejectTimeout,
+            Clients = [],
+        };
+
+        foreach (string clientUrl in clientUrls)
+        {
+            reverseConnect.Clients.Add(new ReverseConnectClient {
+                EndpointUrl = clientUrl,
+                Timeout = _config.OpcUa.ReverseConnectTimeout,
+                MaxSessionCount = _config.OpcUa.ReverseConnectMaxSessionCount,
+                Enabled = true,
+            });
+        }
+
+        _config.OpcUa.ApplicationConfiguration.ServerConfiguration.ReverseConnect = reverseConnect;
+
+        LogReverseConnectEnabled(
+            clientUrls,
+            _config.OpcUa.ReverseConnectInterval,
+            _config.OpcUa.ReverseConnectTimeout,
+            _config.OpcUa.ReverseConnectRejectTimeout);
     }
 
     private void ConfigureUserTokenPolicies(IApplicationConfigurationBuilderServerSelected serverBuilder)
@@ -738,6 +778,9 @@ public partial class OpcUaAppConfigFactory(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "LDS(-ME) registration interval set to {LdsRegistrationInterval} ms (0 means no registration)")]
     partial void LogLdsRegistrationInterval(int ldsRegistrationInterval);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Reverse connect enabled for client endpoints {ClientUrls} with connect interval {ConnectInterval} ms, connect timeout {ConnectTimeout} ms and reject timeout {RejectTimeout} ms")]
+    partial void LogReverseConnectEnabled(IEnumerable<string> clientUrls, int connectInterval, int connectTimeout, int rejectTimeout);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "No existing application certificate found. Creating a self-signed application certificate valid since yesterday for {DefaultLifeTime} months, with a {DefaultKeySize} bit key and {DefaultHashSize} bit hash")]
     partial void LogNoExistingCertificateFound(ushort defaultLifeTime, ushort defaultKeySize, ushort defaultHashSize);

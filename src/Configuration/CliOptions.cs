@@ -92,6 +92,53 @@ public static class CliOptions
             },
             { "aa|autoaccept", $"all certs are trusted when a connection is established.\nDefault: {config.OpcUa.AutoAcceptCerts}", (s) => config.OpcUa.AutoAcceptCerts = s != null },
 
+            // reverse connect configuration
+            { "rcc|reverseconnectclients=", "enable reverse connect (ReverseHello) and dial out to the given client endpoint URLs, e.g. 'opc.tcp://client:65300' (comma separated values; no spaces allowed).\nDefault: reverse connect is disabled", (s) => config.OpcUa.ReverseConnectClientUrls = ParseReverseConnectUrls(s) },
+            { "rci|reverseconnectinterval=", $"the interval in ms between reverse connect attempts.\nDefault: {config.OpcUa.ReverseConnectInterval}", (int i) => {
+                    if (i > 0)
+                    {
+                        config.OpcUa.ReverseConnectInterval = i;
+                    }
+                    else
+                    {
+                        throw new OptionException("The reverseconnectinterval must be larger than 0.", "reverseconnectinterval");
+                    }
+                }
+            },
+            { "rctm|reverseconnecttimeout=", $"the timeout in ms to wait for a response to a reverse connect attempt.\nDefault: {config.OpcUa.ReverseConnectTimeout}", (int i) => {
+                    if (i > 0)
+                    {
+                        config.OpcUa.ReverseConnectTimeout = i;
+                    }
+                    else
+                    {
+                        throw new OptionException("The reverseconnecttimeout must be larger than 0.", "reverseconnecttimeout");
+                    }
+                }
+            },
+            { "rcrt|reverseconnectrejecttimeout=", $"the timeout in ms before retrying a reverse connection that the client rejected.\nDefault: {config.OpcUa.ReverseConnectRejectTimeout}", (int i) => {
+                    if (i > 0)
+                    {
+                        config.OpcUa.ReverseConnectRejectTimeout = i;
+                    }
+                    else
+                    {
+                        throw new OptionException("The reverseconnectrejecttimeout must be larger than 0.", "reverseconnectrejecttimeout");
+                    }
+                }
+            },
+            { "rcms|reverseconnectmaxsessioncount=", $"the maximum number of concurrent reverse connect sessions per client. 0 means unlimited.\nDefault: {config.OpcUa.ReverseConnectMaxSessionCount}", (int i) => {
+                    if (i >= 0)
+                    {
+                        config.OpcUa.ReverseConnectMaxSessionCount = i;
+                    }
+                    else
+                    {
+                        throw new OptionException("The reverseconnectmaxsessioncount must be larger or equal 0.", "reverseconnectmaxsessioncount");
+                    }
+                }
+            },
+
             { "rsha1|rejectsha1", $"reject SHA1 signed certificates.\nDefault: {config.OpcUa.RejectSHA1SignedCertificates}", (s) => config.OpcUa.RejectSHA1SignedCertificates = s != null },
 
             { "mks|mincertkeysize=", $"the minimum certificate key size allowed.\nDefault: {config.OpcUa.MinimumCertificateKeySize}", (ushort i) => config.OpcUa.MinimumCertificateKeySize = i },
@@ -318,5 +365,24 @@ public static class CliOptions
             strings.Add(list);
         }
         return strings;
+    }
+
+    /// <summary>
+    /// Helper to build a validated list of reverse connect client endpoint URLs out of a comma separated list.
+    /// </summary>
+    private static List<string> ParseReverseConnectUrls(string list)
+    {
+        var urls = ParseListOfStrings(list);
+
+        foreach (string url in urls)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri) ||
+                !uri.Scheme.Equals(Utils.UriSchemeOpcTcp, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new OptionException($"The reverse connect client endpoint URL '{url}' is invalid, expected format: opc.tcp://<host>:<port>", "reverseconnectclients");
+            }
+        }
+
+        return urls;
     }
 }

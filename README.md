@@ -281,6 +281,29 @@ See [`src/CompanionSpecs/WotCon/README.md`](src/CompanionSpecs/WotCon/README.md)
 ## Chaos mode
 Randomly injects errors, closes subscriptions or sessions, expires subscriptions and more. You can use it to test the resiliency of OPC UA clients. To enable start the server with the option `--chaos=True`.
 
+## Reverse connect
+The server can establish the TCP connection towards the client (*ReverseHello*, see [OPC UA Part 6](https://reference.opcfoundation.org/Core/Part6/v105/docs/7.1.3)) instead of waiting for the client to connect. This is useful when the server sits behind a firewall or NAT that does not allow inbound connections.
+
+Reverse connect is disabled by default and is enabled by specifying one or more client endpoint URLs:
+
+```bash
+dotnet opcplc.dll --pn=50000 --autoaccept --rcc=opc.tcp://client:65300
+```
+
+Multiple clients are supported as a comma separated list (no spaces):
+
+```bash
+dotnet opcplc.dll --pn=50000 --autoaccept --rcc=opc.tcp://client1:65300,opc.tcp://client2:65300
+```
+
+The timing can be tuned with `--rci` (interval between connection attempts), `--rctm` (timeout waiting for a response), `--rcrt` (delay before retrying after the client rejected the connection) and `--rcms` (maximum number of concurrent sessions per client).
+
+Notes:
+- The client must be configured to accept reverse connections on the given endpoint URL and both applications must trust each other's certificate. Use `--autoaccept` and `--trustowncert` for testing.
+- The server keeps sending *ReverseHello* messages at the configured interval. If the client answers with `BadTcpMessageTypeInvalid`, i.e. it does not support or does not want reverse connections, the connection is marked as rejected and retried after `--rcrt`.
+- Because the client fetches the server certificate and then closes the channel, the first session can take up to one `--rci` interval to be established.
+- The regular server endpoint stays available, so clients can still connect to the server in the usual way.
+
 ## Other features
 - Node with special characters in name and NodeId
 - Node with long ID (3950 bytes)
@@ -536,6 +559,28 @@ Options:
       --aa, --autoaccept     all certs are trusted when a connection is
                                established.
                                Default: False
+      --rcc, --reverseconnectclients=VALUE
+                             enable reverse connect (ReverseHello) and dial out
+                               to the given client endpoint URLs, e.g. 'opc.tcp:
+                               //client:65300' (comma separated values; no
+                               spaces allowed).
+                               Default: reverse connect is disabled
+      --rci, --reverseconnectinterval=VALUE
+                             the interval in ms between reverse connect
+                               attempts.
+                               Default: 15000
+      --rctm, --reverseconnecttimeout=VALUE
+                             the timeout in ms to wait for a response to a
+                               reverse connect attempt.
+                               Default: 30000
+      --rcrt, --reverseconnectrejecttimeout=VALUE
+                             the timeout in ms before retrying a reverse
+                               connection that the client rejected.
+                               Default: 60000
+      --rcms, --reverseconnectmaxsessioncount=VALUE
+                             the maximum number of concurrent reverse connect
+                               sessions per client. 0 means unlimited.
+                               Default: 0
       --rsha1, --rejectsha1  reject SHA1 signed certificates.
                                Default: False
       --mks, --mincertkeysize=VALUE

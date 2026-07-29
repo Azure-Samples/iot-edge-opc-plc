@@ -10,6 +10,7 @@ using OpcPlc.Helpers;
 using Opc.Ua.Security.Certificates;
 using System;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -455,5 +456,95 @@ public class OpcUaAppConfigFactoryTests
         {
             try { Directory.Delete(root, recursive: true); } catch { };
         }
+    }
+
+    [Test]
+    public async Task ConfigureAsync_ReverseConnectNotConfigured_LeavesReverseConnectUnset()
+    {
+        // Arrange
+        string root = Path.Combine(Path.GetTempPath(), "opcplc_test_pki_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var config = CreateConfigWithTempStores(root);
+
+            var loggerMock = new Mock<ILogger>();
+            var loggerFactoryMock = new Mock<ILoggerFactory>();
+            loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+            var telemetryContext = new OpcTelemetryContext(loggerFactoryMock.Object, "Opc.Ua", OpcTelemetryContext.ResolveOpcPlcVersion());
+
+            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext);
+
+            // Act
+            var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+
+            // Assert
+            appConfig.ServerConfiguration.ReverseConnect.Should().BeNull();
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { };
+        }
+    }
+
+    [Test]
+    public async Task ConfigureAsync_ReverseConnectConfigured_PopulatesServerConfiguration()
+    {
+        // Arrange
+        string root = Path.Combine(Path.GetTempPath(), "opcplc_test_pki_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var config = CreateConfigWithTempStores(root);
+            config.OpcUa.ReverseConnectClientUrls = ["opc.tcp://client1:65300", "opc.tcp://client2:65301"];
+            config.OpcUa.ReverseConnectInterval = 1000;
+            config.OpcUa.ReverseConnectTimeout = 2000;
+            config.OpcUa.ReverseConnectRejectTimeout = 3000;
+            config.OpcUa.ReverseConnectMaxSessionCount = 4;
+
+            var loggerMock = new Mock<ILogger>();
+            var loggerFactoryMock = new Mock<ILoggerFactory>();
+            loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+            var telemetryContext = new OpcTelemetryContext(loggerFactoryMock.Object, "Opc.Ua", OpcTelemetryContext.ResolveOpcPlcVersion());
+
+            var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext);
+
+            // Act
+            var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+
+            // Assert
+            var reverseConnect = appConfig.ServerConfiguration.ReverseConnect;
+            reverseConnect.Should().NotBeNull();
+            reverseConnect.ConnectInterval.Should().Be(1000);
+            reverseConnect.ConnectTimeout.Should().Be(2000);
+            reverseConnect.RejectTimeout.Should().Be(3000);
+
+            reverseConnect.Clients.Should().HaveCount(2);
+            reverseConnect.Clients.Select(c => c.EndpointUrl).Should()
+                .Equal("opc.tcp://client1:65300", "opc.tcp://client2:65301");
+            reverseConnect.Clients.Should().OnlyContain(c => c.Enabled);
+            reverseConnect.Clients.Should().OnlyContain(c => c.Timeout == 2000);
+            reverseConnect.Clients.Should().OnlyContain(c => c.MaxSessionCount == 4);
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { };
+        }
+    }
+
+    private static OpcPlcConfiguration CreateConfigWithTempStores(string root)
+    {
+        var config = new OpcPlcConfiguration();
+        config.OpcUa.OpcOwnCertStoreType = FlatDirectoryCertificateStore.StoreTypeName;
+        config.OpcUa.OpcOwnCertStorePath = Path.Combine(root, "own");
+        config.OpcUa.OpcTrustedCertStorePath = Path.Combine(root, "trusted");
+        config.OpcUa.OpcRejectedCertStorePath = Path.Combine(root, "rejected");
+        config.OpcUa.OpcIssuerCertStorePath = Path.Combine(root, "issuer");
+        config.OpcUa.OpcTrustedUserCertStorePath = Path.Combine(root, "trusted-user");
+        config.OpcUa.OpcUserIssuerCertStorePath = Path.Combine(root, "issuer-user");
+
+        Directory.CreateDirectory(config.OpcUa.OpcOwnCertStorePath);
+
+        return config;
     }
 }
