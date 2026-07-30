@@ -151,6 +151,12 @@ public partial class OpcPlcServer
 
             await StartPlcServerAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (Mono.Options.OptionException ex)
+        {
+            LogInvalidOption(ex.Message);
+            LogUsageHelp(CliOptions.GetUsageHelp(Config.ProgramName));
+            Environment.ExitCode = 1;
+        }
         catch (Exception ex)
         {
             LogServerFailedUnexpectedly(ex);
@@ -450,6 +456,9 @@ public partial class OpcPlcServer
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Found one or more invalid command line arguments: {InvalidArgs}")]
     partial void LogInvalidArgs(string invalidArgs);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Invalid command line option: {Message}")]
+    partial void LogInvalidOption(string message);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Min worker threads: {MinWorkerThreads}, min completion port threads: {MinCompletionPortThreads}")]
     partial void LogMinWorkerThreads(int minWorkerThreads, int minCompletionPortThreads);

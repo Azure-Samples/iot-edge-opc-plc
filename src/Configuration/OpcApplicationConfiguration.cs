@@ -1,6 +1,8 @@
 namespace OpcPlc.Configuration;
 
 using Opc.Ua;
+using Opc.Ua.Server;
+using System.Collections.Generic;
 
 /// <summary>
 /// Class for OPC Application configuration.
@@ -50,6 +52,32 @@ public partial class OpcApplicationConfiguration
     /// Sets the LDS registration interval in milliseconds.
     /// </summary>
     public int LdsRegistrationInterval { get; set; }
+
+    /// <summary>
+    /// Client endpoint URLs the server reverse connects (ReverseHello) to.
+    /// An empty list disables reverse connect.
+    /// </summary>
+    public List<string> ReverseConnectClientUrls { get; set; } = [];
+
+    /// <summary>
+    /// Interval in milliseconds between reverse connect attempts.
+    /// </summary>
+    public int ReverseConnectInterval { get; set; } = ReverseConnectServer.DefaultReverseConnectInterval;
+
+    /// <summary>
+    /// Timeout in milliseconds to wait for a response to a reverse connect attempt.
+    /// </summary>
+    public int ReverseConnectTimeout { get; set; } = ReverseConnectServer.DefaultReverseConnectTimeout;
+
+    /// <summary>
+    /// Timeout in milliseconds before retrying a reverse connection that the client rejected.
+    /// </summary>
+    public int ReverseConnectRejectTimeout { get; set; } = ReverseConnectServer.DefaultReverseConnectRejectTimeout;
+
+    /// <summary>
+    /// Maximum number of concurrent reverse connect sessions per client. 0 means unlimited.
+    /// </summary>
+    public int ReverseConnectMaxSessionCount { get; set; }
 
     /// <summary>
     /// Set the max string length the OPC stack supports.
