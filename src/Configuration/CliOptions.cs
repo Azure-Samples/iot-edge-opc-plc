@@ -267,14 +267,14 @@ public static class CliOptions
             },
 
             {"daa|disableanonymousauth", $"flag to disable anonymous authentication.\nDefault: {config.DisableAnonymousAuth}", (s) => config.DisableAnonymousAuth = s != null },
-            {"dua|disableusernamepasswordauth", $"flag to disable username/password authentication.\nDefault: {config.DisableUsernamePasswordAuth}", (s) => config.DisableUsernamePasswordAuth = s != null },
+            {"dua|disableusernamepasswordauth", "flag to disable username/password authentication, even when credentials are configured.\nDefault: username/password authentication is only offered when credentials are supplied via adminuser/adminpassword or defaultuser/defaultpassword.", (s) => config.DisableUsernamePasswordAuth = s != null },
             {"dca|disablecertauth", $"flag to disable certificate authentication.\nDefault: {config.DisableCertAuth}", (s) => config.DisableCertAuth = s != null },
 
             // user management
-            { "au|adminuser=", $"the username of the admin user.\nDefault: {config.AdminUser}", (s) => config.AdminUser = s ?? config.AdminUser},
-            { "ac|adminpassword=", $"the password of the administrator.\nDefault: {config.AdminPassword}", (s) => config.AdminPassword = s ?? config.AdminPassword},
-            { "du|defaultuser=", $"the username of the default user.\nDefault: {config.DefaultUser}", (s) => config.DefaultUser = s ?? config.DefaultUser},
-            { "dc|defaultpassword=", $"the password of the default user.\nDefault: {config.DefaultPassword}", (s) => config.DefaultPassword = s ?? config.DefaultPassword},
+            { "au|adminuser=", "the username of the admin user, which is permitted to configure the server (e.g. GDS push). Requires 'adminpassword'.\nDefault: not set, no admin user exists.", (s) => config.AdminUser = s },
+            { "ac|adminpassword=", "the password of the admin user. Requires 'adminuser'.\nDefault: not set.", (s) => config.AdminPassword = s },
+            { "du|defaultuser=", "the username of the default, non-privileged user. Requires 'defaultpassword'.\nDefault: not set.", (s) => config.DefaultUser = s },
+            { "dc|defaultpassword=", "the password of the default user. Requires 'defaultuser'.\nDefault: not set.", (s) => config.DefaultPassword = s },
 
             // Special nodes
             { "alm|alarms", $"add alarm simulation to address space.\nDefault: {plcSimulation.AddAlarmSimulation}", (s) => plcSimulation.AddAlarmSimulation = s != null },
@@ -303,7 +303,36 @@ public static class CliOptions
         // Parse the command line.
         List<string> extraArgs = _options.Parse(args);
 
+        if (!config.ShowHelp)
+        {
+            ValidateAuthenticationOptions(config);
+        }
+
         return (plcSimulation, extraArgs);
+    }
+
+    /// <summary>
+    /// Rejects incomplete or unusable authentication settings, so that the server never silently
+    /// falls back to an implicit account.
+    /// </summary>
+    private static void ValidateAuthenticationOptions(OpcPlcConfiguration config)
+    {
+        if (string.IsNullOrEmpty(config.AdminUser) != string.IsNullOrEmpty(config.AdminPassword))
+        {
+            throw new OptionException("The options 'adminuser' and 'adminpassword' must be specified together.", "adminuser");
+        }
+
+        if (string.IsNullOrEmpty(config.DefaultUser) != string.IsNullOrEmpty(config.DefaultPassword))
+        {
+            throw new OptionException("The options 'defaultuser' and 'defaultpassword' must be specified together.", "defaultuser");
+        }
+
+        if (config.DisableAnonymousAuth && config.DisableCertAuth && !config.UsernamePasswordAuthEnabled)
+        {
+            throw new OptionException(
+                "No authentication mechanism is enabled. Supply credentials via 'adminuser'/'adminpassword' or 'defaultuser'/'defaultpassword', or enable anonymous or certificate authentication.",
+                "disableanonymousauth");
+        }
     }
 
     /// <summary>

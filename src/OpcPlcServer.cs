@@ -328,7 +328,7 @@ public partial class OpcPlcServer
 
         LogAnonymousAuth(Config.DisableAnonymousAuth ? "Disabled" : "Enabled");
         LogRejectUnknownRevocationStatus(Config.OpcUa.DontRejectUnknownRevocationStatus ? "Disabled" : "Enabled");
-        LogUsernamePasswordAuth(Config.DisableUsernamePasswordAuth ? "Disabled" : "Enabled");
+        LogUsernamePasswordAuth(Config.UsernamePasswordAuthEnabled ? "Enabled" : "Disabled");
         LogCertAuth(Config.DisableCertAuth ? "Disabled" : "Enabled");
 
         // Add simple events, alarms, reference test simulation and deterministic alarms.

@@ -378,10 +378,11 @@ X.509 certificates:
 GDS push service support:
 
 * OPC PLC exposes the standard OPC UA Server Configuration methods used by GDS push (for example `CreateSigningRequest`, `GetRejectedList`, `UpdateCertificate`, and `ApplyChanges`).
-* Access to these methods follows OPC UA security requirements: use a secure endpoint (`Sign & Encrypt`) and administrator credentials (`--au` / `--ac`, defaults: `sysadmin` / `demo`).
+* Access to these methods follows OPC UA security requirements: use a secure endpoint (`Sign & Encrypt`) and administrator credentials. There are no built-in credentials: an admin account only exists when you supply one with `--au` / `--ac`.
 * GDS push works with `Directory`, `FlatDirectory`, and `KubernetesSecret` certificate store modes.
 
-Short example (C# with OPC Foundation GDS client):
+Short example (C# with OPC Foundation GDS client), assuming the server was started with
+`--au myadmin --ac <your-password>`:
 
 ~~~csharp
 using Opc.Ua;
@@ -392,8 +393,8 @@ var client = new ServerPushConfigurationClient(appConfig)
 {
   AdminCredentials = new UserIdentity(new UserNameIdentityToken
   {
-    UserName = "sysadmin",
-    DecryptedPassword = Encoding.UTF8.GetBytes("demo")
+    UserName = "myadmin",
+    DecryptedPassword = Encoding.UTF8.GetBytes("<your-password>")
   })
 };
 
@@ -423,6 +424,13 @@ CLI start example for KubernetesSecret mode:
 ~~~powershell
 dotnet opcplc.dll --at KubernetesSecret --ksns opcplc --ap pki/own --tp pki/trusted --ip pki/issuer --rp pki/rejected --tup pki/trusted-user --uip pki/issuer-user
 ~~~
+
+User authentication:
+
+* Anonymous and X.509 certificate authentication are enabled by default. Username/password authentication is **disabled** by default and there are no built-in credentials.
+* To enable it, supply your own accounts: `--au`/`--ac` for the admin user (granted the SecurityAdmin/ConfigureAdmin roles, required for GDS push) and/or `--du`/`--dc` for a non-privileged user. Each username must be supplied together with its password.
+* The server refuses to start if all authentication mechanisms are disabled, i.e. `--daa` and `--dca` are set and no username/password credentials were supplied.
+* `--dua` suppresses username/password authentication even when credentials are configured.
 
 User certificate-based authentication:
 
@@ -713,23 +721,32 @@ Options:
                              flag to disable anonymous authentication.
                                Default: False
       --dua, --disableusernamepasswordauth
-                             flag to disable username/password authentication.
-                               Default: False
+                             flag to disable username/password authentication,
+                               even when credentials are configured.
+                               Default: username/password authentication is
+                               only offered when credentials are supplied via
+                               adminuser/adminpassword or defaultuser/
+                               defaultpassword.
       --dca, --disablecertauth
                              flag to disable certificate authentication.
                                Default: False
       --au, --adminuser=VALUE
-                             the username of the admin user.
-                               Default: sysadmin
+                             the username of the admin user, which is permitted
+                               to configure the server (e.g. GDS push).
+                               Requires 'adminpassword'.
+                               Default: not set, no admin user exists.
       --ac, --adminpassword=VALUE
-                             the password of the administrator.
-                               Default: demo
+                             the password of the admin user. Requires
+                               'adminuser'.
+                               Default: not set.
       --du, --defaultuser=VALUE
-                             the username of the default user.
-                               Default: user1
+                             the username of the default, non-privileged user.
+                               Requires 'defaultpassword'.
+                               Default: not set.
       --dc, --defaultpassword=VALUE
-                             the password of the default user.
-                               Default: password
+                             the password of the default user. Requires
+                               'defaultuser'.
+                               Default: not set.
       --alm, --alarms        add alarm simulation to address space.
                                Default: False
       --ses, --simpleevents  add simple events simulation to address space.

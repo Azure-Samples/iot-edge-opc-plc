@@ -11,29 +11,50 @@ public class OpcPlcConfiguration
 
     public bool DisableAnonymousAuth { get; set; }
 
+    /// <summary>
+    /// Suppresses username/password authentication even when credentials are configured.
+    /// </summary>
     public bool DisableUsernamePasswordAuth { get; set; }
 
     public bool DisableCertAuth { get; set; }
 
     /// <summary>
-    /// Admin user.
+    /// Admin user, which is granted the SecurityAdmin/ConfigureAdmin roles. Not set by default:
+    /// the server has no built-in admin account.
     /// </summary>
-    public string AdminUser { get; set; } = "sysadmin";
+    public string AdminUser { get; set; }
 
     /// <summary>
-    /// Admin user password.
+    /// Admin user password. Not set by default.
     /// </summary>
-    public string AdminPassword { get; set; } = "demo";
+    public string AdminPassword { get; set; }
 
     /// <summary>
-    /// Default user.
+    /// Default, non-privileged user. Not set by default.
     /// </summary>
-    public string DefaultUser { get; set; } = "user1";
+    public string DefaultUser { get; set; }
 
     /// <summary>
-    /// Default user password.
+    /// Default user password. Not set by default.
     /// </summary>
-    public string DefaultPassword { get; set; } = "password";
+    public string DefaultPassword { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether a privileged admin account is configured.
+    /// </summary>
+    public bool HasAdminCredentials => !string.IsNullOrEmpty(AdminUser) && !string.IsNullOrEmpty(AdminPassword);
+
+    /// <summary>
+    /// Gets a value indicating whether a non-privileged user account is configured.
+    /// </summary>
+    public bool HasDefaultUserCredentials => !string.IsNullOrEmpty(DefaultUser) && !string.IsNullOrEmpty(DefaultPassword);
+
+    /// <summary>
+    /// Gets a value indicating whether the username/password user token policy is offered.
+    /// It is only offered when credentials were explicitly configured, so that the server never
+    /// accepts well-known default credentials.
+    /// </summary>
+    public bool UsernamePasswordAuthEnabled => !DisableUsernamePasswordAuth && (HasAdminCredentials || HasDefaultUserCredentials);
 
     /// <summary>
     /// Gets or sets OTLP reporting endpoint URI.

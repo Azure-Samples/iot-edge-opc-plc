@@ -23,6 +23,10 @@ public class GdsPushConfigurationFlatDirectoryTests
 
         _simulator = new PlcSimulatorFixture(
         [
+            "--au=sysadmin",
+            "--ac=demo",
+            "--du=user1",
+            "--dc=password",
             "--at=FlatDirectory",
             $"--ap={_appStorePath}",
             $"--tp={Path.Combine(_storeRootPath, "trusted")}",
