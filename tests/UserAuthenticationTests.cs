@@ -84,6 +84,24 @@ public class UserAuthenticationTests
     }
 
     [Test]
+    public void SessionManager_ImpersonateUser_RejectsUsernameToken_WhenNoCredentialsAreConfigured()
+    {
+        using var testContext = new TestServerContext(configureCredentials: false);
+
+        var args = CreateImpersonateEventArgs(new UserNameIdentityToken
+        {
+            UserName = "sysadmin",
+            DecryptedPassword = System.Text.Encoding.UTF8.GetBytes("demo")
+        });
+
+        Action act = () => InvokeImpersonateUser(testContext.Server, args);
+
+        act.Should()
+            .Throw<ServiceResultException>()
+            .Where(e => e.StatusCode == StatusCodes.BadUserAccessDenied);
+    }
+
+    [Test]
     public void SessionManager_ImpersonateUser_RejectsUnsupportedTokenType()
     {
         using var testContext = new TestServerContext();
@@ -215,9 +233,18 @@ public class UserAuthenticationTests
         private readonly ILoggerFactory _loggerFactory;
         private readonly OpcTelemetryContext _telemetryContext;
 
-        public TestServerContext()
+        public TestServerContext(bool configureCredentials = true)
         {
             Config = new OpcPlcConfiguration();
+
+            if (configureCredentials)
+            {
+                Config.AdminUser = "test-admin";
+                Config.AdminPassword = "test-admin-password";
+                Config.DefaultUser = "test-user";
+                Config.DefaultPassword = "test-user-password";
+            }
+
             _loggerFactory = LoggerFactory.Create(_ => { });
             ILogger logger = _loggerFactory.CreateLogger<PlcServer>();
             _telemetryContext = new OpcTelemetryContext(_loggerFactory, "OpcPlc", "test");

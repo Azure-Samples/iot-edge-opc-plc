@@ -251,7 +251,7 @@ public partial class OpcUaAppConfigFactory(
             serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.Anonymous));
         }
 
-        if (!_config.DisableUsernamePasswordAuth)
+        if (_config.UsernamePasswordAuthEnabled)
         {
             serverBuilder.AddUserTokenPolicy(new UserTokenPolicy(UserTokenType.UserName));
         }

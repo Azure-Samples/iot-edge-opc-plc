@@ -12,7 +12,12 @@ using System.Threading.Tasks;
 [TestFixture]
 public class GdsPushConfigurationTests
 {
-    private readonly PlcSimulatorFixture _simulator = new([]);
+    private readonly PlcSimulatorFixture _simulator = new([
+        "--au=sysadmin",
+        "--ac=demo",
+        "--du=user1",
+        "--dc=password",
+    ]);
 
     [OneTimeSetUp]
     public async Task SetupAsync()

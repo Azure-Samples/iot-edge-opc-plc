@@ -62,16 +62,21 @@ public partial class PlcServer
                 "Security token is not a valid username token. An empty password is not accepted.");
         }
 
-        // user with permission to configure server
-        if (userName == Config.AdminUser && password == Config.AdminPassword)
+        // User with permission to configure the server. The account only exists when admin
+        // credentials were explicitly configured; there is no built-in admin account.
+        if (Config.HasAdminCredentials &&
+            userName == Config.AdminUser &&
+            password == Config.AdminPassword)
         {
             return new SystemConfigurationIdentity(new UserIdentity(userNameToken));
         }
 
-        // standard users for CTT verification
-        if (!(userName == Config.DefaultUser && password == Config.DefaultPassword))
+        // Standard user, e.g. for CTT verification.
+        if (!Config.HasDefaultUserCredentials ||
+            userName != Config.DefaultUser ||
+            password != Config.DefaultPassword)
         {
-              // create an exception with a vendor defined sub-code.
+            // create an exception with a vendor defined sub-code.
             throw ServiceResultException.Create(
                 StatusCodes.BadUserAccessDenied,
                 "Invalid username or password.");
