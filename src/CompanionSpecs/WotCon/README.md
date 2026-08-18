@@ -8,7 +8,7 @@ JSON-LD uploads over the File API, and materializes each TD's properties /
 actions as OPC UA Variables / Methods linked by `HasWoTComponent`.
 
 This folder is **mock-only**: there is no real southbound protocol binding —
-materialized Variables carry seeded values from
+materialized Variables carry simulated values from
 [`WotMockValueGenerator`](./WotMockValueGenerator.cs) and action handlers return
 canned outputs. Real Modbus / HTTP / OPC DA / etc. translation is out of scope;
 the goal is to give consumers (Commander, dashboards, integration tests) a
@@ -44,7 +44,8 @@ default**.
 | [`WotConNodeManager.OptionalMembers.cs`](./WotConNodeManager.OptionalMembers.cs)  | Materializes the optional members of `WoTAssetConnectionManagementType` that the NodeSet importer drops (modelling rule `Optional`): `SupportedWoTBindings`, `Configuration` / `License`, `DiscoverAssets`, `CreateAssetForEndpoint`, `ConnectionTest`. Also hosts `ValidateThingDescriptionBindings`. |
 | [`ThingDescriptionParser.cs`](./ThingDescriptionParser.cs)                        | Pure JSON-LD parser. Extracts TD `title`, `base`, `@context`, properties, and actions; maps JSON Schema primitives to OPC UA built-in types and value ranks.                                                                                       |
 | [`WotConBindings.cs`](./WotConBindings.cs)                                        | Catalog of WoT protocol bindings the server understands. `SupportedBindings` is surfaced on `SupportedWoTBindings`; `KnownBindings` lists W3C binding URIs the validator recognises as binding declarations.                                       |
-| [`WotMockValueGenerator.cs`](./WotMockValueGenerator.cs)                          | Seeds initial values for materialized Variables. Static fixed values today; the per-tick simulation engine is deferred (see [Deferred](#deferred--pending-commander-support)).                                                                      |
+| [`WotMockValueGenerator.cs`](./WotMockValueGenerator.cs)                          | Seeds materialized Variables and computes their per-tick successor (sine / ramp / toggle / rotation). Pure function of type and tick, so a given tick always yields the same value.                                                                 |
+| [`WotConNodeManager.Simulation.cs`](./WotConNodeManager.Simulation.cs)            | 1 s simulation timer that advances every live asset's materialized property Variables, under the per-asset `LifecycleLock` so it never writes into a generation being re-materialized or deleted.                                                  |
 | [`WotAsset.cs`](./WotAsset.cs)                                                    | Internal runtime model for one managed asset: NodeIds, parsed TD, type-method → instance-method remap table, open file handles, materialized property / action / endpoint NodeIds.                                                                |
 
 ### `src/CompanionSpecs/WotCon/` — generated from the model
@@ -103,6 +104,8 @@ Types outputs so regens stay minimal.
 | [`WotConTests.HasWoTComponent.cs`](../../../tests/CompanionSpecs/WotCon/WotConTests.HasWoTComponent.cs)                             | §6.3.11 — materialized properties/actions on `HasWoTComponent`; per-asset `WoTFile` stays on plain `HasComponent`.    |
 | [`WotConTests.DiscoverAssets.cs`](../../../tests/CompanionSpecs/WotCon/WotConTests.DiscoverAssets.cs)                               | §6.3.4 — endpoint surface sourced from TD `base`, dedup, `AssetEndpoint` Property.                                    |
 | [`WotConTests.OptionalMembers.cs`](../../../tests/CompanionSpecs/WotCon/WotConTests.OptionalMembers.cs)                             | §6.3.1 / §6.3.5 / §6.3.6 / §6.3.7 — `SupportedWoTBindings`, `CreateAssetForEndpoint`, `ConnectionTest`, `Configuration / License`. |
+| [`WotConTests.ValueSimulation.cs`](../../../tests/CompanionSpecs/WotCon/WotConTests.ValueSimulation.cs)                             | Per-tick value drift, `observable: false` stays static, re-uploaded TD generation keeps drifting.                     |
+| [`WotConValueSubscriptionTests.cs`](../../../tests/CompanionSpecs/WotCon/WotConValueSubscriptionTests.cs)                           | A subscription on a materialized Variable receives a data-change notification when the simulation ticks.             |
 
 ## Architecture
 
@@ -141,6 +144,18 @@ work.
 
 ## Design choices worth remembering
 
+- **Materialized values drift on a 1 s tick.** A timer in
+  [`WotConNodeManager.Simulation.cs`](./WotConNodeManager.Simulation.cs) advances every live
+  asset's property Variables so OPC UA subscriptions observe data changes rather than a single
+  seed. The waveform follows the OPC UA data type — Double sine, Int32 wrapping ramp, Boolean
+  toggle, String rotation, DateTime tracking the simulation clock — and arrays apply the same
+  progression per element. Values are a pure function of the type and the tick counter, so tick
+  0 reproduces the materialization seed and a given tick always yields the same value.
+  Variables the TD marks `observable: false` (materialized with
+  `MinimumSamplingInterval = -1`) and write-only Variables are skipped, so the address space
+  never contradicts the Thing Description. The tick runs under the per-asset `LifecycleLock`
+  that `CloseAndUpdate` materialization and `DeleteAsset` teardown already hold, so it can
+  never write into a node generation being replaced or removed.
 - **Per-asset `WoTAssetFileType` instance, not a singleton.** Each
   `CreateAsset` mints a fresh `FileState` as a `HasComponent` child of the
   asset, so concurrent uploads to different assets don't share a file handle
@@ -217,31 +232,16 @@ allocated at startup by the SDK.
 These items are deliberately out of scope for the current pass. They will be
 picked up once OPC UA Commander exercises them end-to-end; until then the
 current behaviour (JSON-as-String fallback for nested schemas; anonymous
-access for `CreateAsset` / `DeleteAsset`; static seed values) is sufficient
+access for `CreateAsset` / `DeleteAsset`) is sufficient
 for mock-mode round-trips and avoids over-engineering ahead of a real
 consumer.
 
-### Mock simulation engine for materialized Variables
+### Per-property simulation control via the TD
 
-A per-tick updater (hooked into the existing `TimeService` / `PlcSimulation`
-loop) that mutates materialized Variable values so OPC UA subscriptions see
-changes:
-
-- Numeric → sine / ramp / random walk (configurable per property via a TD
-  `oc:simulation` extension, optional).
-- Boolean → toggle on interval.
-- String → rotate through a small fixed list.
-- Respect `oc:simulation.period` if present; default 1 s.
-
-Deferred because constants (seeded once at materialization via
-`WotMockValueGenerator`) are sufficient to prove the read / browse / subscribe
-plumbing end-to-end. Adding live drift means plumbing `TimeService` into
-`WotConNodeManager`, synchronising timer mutations against
-`CreateAsset` / `DeleteAsset` / `CloseAndUpdate` re-materialization, and a
-threading model nobody is asking for yet. When this lands, also add a
-"subscription on a materialized Variable fires within 2 simulator ticks"
-test — it was scoped out of the address-space audit pass because there is no
-value drift to subscribe to today.
+The simulation shape is chosen from the OPC UA data type alone. Letting a TD
+pick the waveform and period per property (e.g. an `oc:simulation` extension
+with `kind` / `period`) is deferred until a consumer needs a specific profile;
+the fixed 1 s tick already produces the value drift subscriptions require.
 
 ### Complex / structured types (stretch)
 
