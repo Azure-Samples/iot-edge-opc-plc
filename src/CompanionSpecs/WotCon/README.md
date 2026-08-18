@@ -109,7 +109,7 @@ Types outputs so regens stay minimal.
 
 ## Architecture
 
-```
+```text
 WoTAssetConnectionManagement   (ns=WotCon;i=31)   <-- standard instance, browseable entry point
   ├─ HasComponent → CreateAsset                  (i=34, instance)        [§6.3.2]
   ├─ HasComponent → DeleteAsset                  (i=35, instance)        [§6.3.3]
