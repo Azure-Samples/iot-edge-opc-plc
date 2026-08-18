@@ -53,15 +53,18 @@ public class WotConValueSubscriptionTests : SubscriptionTestsBase
         SetUpMonitoredItem(counterId, NodeClass.Variable, Attributes.Value);
         await AddMonitoredItemAsync().ConfigureAwait(false);
 
-        // Drop the initial-value notification the server sends on subscribe.
-        ReceiveAtMostEvents(1);
-        ClearEvents();
+        // Dequeue the initial-value notification the server sends on subscribe, so the next one
+        // received can only come from a simulation tick.
+        var seedNotification = ReceiveEvents(1).ToList()[0].NotificationValue
+            .Should().BeOfType<MonitoredItemNotification>().Subject;
+        object seedValue = seedNotification.Value.Value;
+        seedValue.Should().BeOfType<int>();
 
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         var notifications = ReceiveEvents(1).ToList();
         var notification = notifications[0].NotificationValue.Should().BeOfType<MonitoredItemNotification>().Subject;
-        notification.Value.Value.Should().BeOfType<int>();
+        notification.Value.Value.Should().BeOfType<int>().And.NotBe(seedValue);
         StatusCode.IsGood(notification.Value.StatusCode).Should().BeTrue();
     }
 

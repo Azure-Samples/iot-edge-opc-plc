@@ -38,6 +38,10 @@ public partial class WotConTests
 
         var nodeIds = await ResolveMaterializedPropertiesAsync(assetId).ConfigureAwait(false);
 
+        // Compare two adjacent ticks rather than seed-vs-tick: the seed is the tick 0 value, and
+        // e.g. the boolean toggle matches it again on every even tick this fixture happens to be at.
+        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
+
         var before = await ReadPropertyValuesAsync(nodeIds, "temperature", "counter", "running", "state", "samples").ConfigureAwait(false);
 
         // A single tick is enough: every generator moves on each tick.

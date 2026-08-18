@@ -6,6 +6,7 @@ namespace OpcPlc.CompanionSpecs.WotCon;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using System;
+using System.Threading;
 
 /// <summary>
 /// Per-tick value simulation for materialized WoT-Con property Variables, so OPC UA
@@ -20,7 +21,8 @@ public partial class WotConNodeManager
     /// </summary>
     internal const uint SimulationIntervalMilliseconds = 1000;
 
-    private ITimer _simulationTimer;
+    // Qualified: System.Threading is in scope here and also declares an ITimer.
+    private OpcPlc.ITimer _simulationTimer;
     private long _simulationTick;
 
     /// <summary>
@@ -45,7 +47,8 @@ public partial class WotConNodeManager
     /// </remarks>
     private void AdvanceMaterializedValues()
     {
-        long tick = ++_simulationTick;
+        // The timer can re-enter if a tick outlives its interval, so the counter must be atomic.
+        long tick = Interlocked.Increment(ref _simulationTick);
         DateTime utcNow = _timeService.UtcNow();
 
         try

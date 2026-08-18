@@ -14,11 +14,16 @@ using System;
 /// </summary>
 /// <remarks>
 /// Both are pure functions of the requested type and the tick counter, so a given tick always
-/// yields the same value. Tick 0 reproduces the seed for every type except String, keeping the
-/// materialized value and the first simulated value continuous.
+/// yields the same value. The seed is by construction the tick 0 value, keeping the materialized
+/// value and the first simulated value continuous.
 /// </remarks>
 internal static class WotMockValueGenerator
 {
+    /// <summary>
+    /// Tick whose values are used as the materialization seed.
+    /// </summary>
+    private const long SeedTick = 0;
+
     /// <summary>
     /// Sine mid-point for Double properties; also the Double seed.
     /// </summary>
@@ -55,20 +60,14 @@ internal static class WotMockValueGenerator
     /// a small typed array. Unknown types fall back to an empty string / empty <c>string[]</c>.
     /// </summary>
     public static object Generate(NodeId dataTypeId, int valueRank)
-    {
-        if (valueRank == ValueRanks.OneDimension)
-        {
-            return GenerateArray(dataTypeId);
-        }
-
-        return GenerateScalar(dataTypeId);
-    }
+        => Advance(dataTypeId, valueRank, SeedTick, DateTime.UtcNow);
 
     /// <summary>
     /// Convenience overload kept for callers that don't track <see cref="ValueRanks"/>;
     /// always returns a scalar seed.
     /// </summary>
-    public static object Generate(NodeId dataTypeId) => GenerateScalar(dataTypeId);
+    public static object Generate(NodeId dataTypeId)
+        => AdvanceScalar(dataTypeId, SeedTick, DateTime.UtcNow);
 
     /// <summary>
     /// Returns the value a property of the given type holds at <paramref name="tick"/>:
@@ -112,7 +111,12 @@ internal static class WotMockValueGenerator
             return utcNow;
         }
 
-        return StringRotation[(int)Modulo(tick, StringRotation.Length)];
+        if (dataTypeId == DataTypeIds.String)
+        {
+            return NextString(tick);
+        }
+
+        return string.Empty;
     }
 
     private static Array AdvanceArray(NodeId elementDataTypeId, long tick, DateTime utcNow)
@@ -137,7 +141,12 @@ internal static class WotMockValueGenerator
             return new[] { utcNow };
         }
 
-        return new[] { StringRotation[(int)Modulo(tick, StringRotation.Length)] };
+        if (elementDataTypeId == DataTypeIds.String)
+        {
+            return new[] { NextString(tick) };
+        }
+
+        return Array.Empty<string>();
     }
 
     // Rounded so the value is stable across the float formatting clients apply.
@@ -148,60 +157,12 @@ internal static class WotMockValueGenerator
 
     private static bool NextBoolean(long tick) => Modulo(tick, 2) == 0;
 
+    private static string NextString(long tick) => StringRotation[(int)Modulo(tick, StringRotation.Length)];
+
     // A tick is never negative today, but % would yield a negative index if that ever changed.
     private static long Modulo(long value, long modulus)
     {
         long remainder = value % modulus;
         return remainder < 0 ? remainder + modulus : remainder;
-    }
-
-    private static object GenerateScalar(NodeId dataTypeId)
-    {
-        if (dataTypeId == DataTypeIds.Double)
-        {
-            return 42.0;
-        }
-
-        if (dataTypeId == DataTypeIds.Int32)
-        {
-            return 100;
-        }
-
-        if (dataTypeId == DataTypeIds.Boolean)
-        {
-            return true;
-        }
-
-        if (dataTypeId == DataTypeIds.DateTime)
-        {
-            return DateTime.UtcNow;
-        }
-
-        return string.Empty;
-    }
-
-    private static Array GenerateArray(NodeId elementDataTypeId)
-    {
-        if (elementDataTypeId == DataTypeIds.Double)
-        {
-            return new[] { 1.0, 2.0, 3.0 };
-        }
-
-        if (elementDataTypeId == DataTypeIds.Int32)
-        {
-            return new[] { 1, 2, 3 };
-        }
-
-        if (elementDataTypeId == DataTypeIds.Boolean)
-        {
-            return new[] { true, false };
-        }
-
-        if (elementDataTypeId == DataTypeIds.DateTime)
-        {
-            return new[] { DateTime.UtcNow };
-        }
-
-        return Array.Empty<string>();
     }
 }
