@@ -103,10 +103,8 @@ public partial class WotConNodeManager : CustomNodeManager2
 
             if (File.Exists(xmlPath))
             {
-                using (var stream = new FileStream(xmlPath, FileMode.Open, FileAccess.Read))
-                {
-                    LoadNodeSetFromStream(context, stream, predefinedNodes);
-                }
+                using var stream = new FileStream(xmlPath, FileMode.Open, FileAccess.Read);
+                LoadNodeSetFromStream(context, stream, predefinedNodes);
             }
             else
             {
