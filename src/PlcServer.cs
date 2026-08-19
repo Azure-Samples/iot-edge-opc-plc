@@ -626,7 +626,7 @@ public partial class PlcServer : ReverseConnectServer
         // WoT-Con node manager for Web of Things connectivity and asset management.
         if (PlcSimulation.AddWotConSimulation)
         {
-            var wotConNodeManager = new CompanionSpecs.WotCon.WotConNodeManager(server, configuration, _logger);
+            var wotConNodeManager = new CompanionSpecs.WotCon.WotConNodeManager(server, configuration, TimeService, _logger);
             nodeManagers.Add(wotConNodeManager);
         }
 

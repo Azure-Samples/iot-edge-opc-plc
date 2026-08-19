@@ -55,6 +55,7 @@ public partial class WotConNodeManager : CustomNodeManager2
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     private readonly ILogger _logger;
+    private readonly TimeService _timeService;
 
     // ConcurrentDictionary closes the check-then-act race in CreateAssetInternal
     // (two concurrent CreateAsset calls with the same name). CustomNodeManager2
@@ -64,9 +65,10 @@ public partial class WotConNodeManager : CustomNodeManager2
     private readonly ConcurrentDictionary<string, WotAsset> _assets = new();
     private readonly ConcurrentDictionary<NodeId, WotAsset> _filesByNodeId = new();
 
-    public WotConNodeManager(IServerInternal server, ApplicationConfiguration configuration, ILogger logger = null)
+    public WotConNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, ILogger logger = null)
         : base(server, configuration)
     {
+        _timeService = timeService ?? new TimeService();
         _logger = logger;
 
         SetNamespaces(new[] { OpcPlc.Namespaces.WotCon });
@@ -101,10 +103,8 @@ public partial class WotConNodeManager : CustomNodeManager2
 
             if (File.Exists(xmlPath))
             {
-                using (var stream = new FileStream(xmlPath, FileMode.Open, FileAccess.Read))
-                {
-                    LoadNodeSetFromStream(context, stream, predefinedNodes);
-                }
+                using var stream = new FileStream(xmlPath, FileMode.Open, FileAccess.Read);
+                LoadNodeSetFromStream(context, stream, predefinedNodes);
             }
             else
             {
@@ -126,6 +126,19 @@ public partial class WotConNodeManager : CustomNodeManager2
     {
         base.CreateAddressSpace(externalReferences);
         SetupMethodHandlers(SystemContext);
+        StartValueSimulation();
+    }
+
+    /// <inheritdoc/>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _simulationTimer?.Dispose();
+            _simulationTimer = null;
+        }
+
+        base.Dispose(disposing);
     }
 
     /// <summary>

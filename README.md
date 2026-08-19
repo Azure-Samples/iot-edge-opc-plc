@@ -267,7 +267,7 @@ A timer fires once per second and updates the simulated variables under `SystemR
 
 The option `--wotcon` enables a **mock-only** implementation of the [OPC UA Web of Things Connectivity (WoT-Con) companion specification, v1.02](https://reference.opcfoundation.org/specs/OPC-10100-1/v1.02/6.3). It is **off by default**.
 
-When enabled, the server exposes a `WoTAssetConnectionManagement` entry point that accepts W3C [Thing Description](https://www.w3.org/TR/wot-thing-description11/) JSON-LD uploads over the OPC UA File API and materializes each TD's properties / actions as OPC UA Variables / Methods linked by `HasWoTComponent`. There is no real southbound protocol binding — materialized values are seeded by a mock value generator and action handlers return canned outputs.
+When enabled, the server exposes a `WoTAssetConnectionManagement` entry point that accepts W3C [Thing Description](https://www.w3.org/TR/wot-thing-description11/) JSON-LD uploads over the OPC UA File API and materializes each TD's properties / actions as OPC UA Variables / Methods linked by `HasWoTComponent`. There is no real southbound protocol binding — materialized values are driven by a mock simulation that advances once per second (sine, ramp, toggle or rotation depending on the data type), and action handlers return canned outputs. Variables the TD marks `observable: false` keep their seed value.
 
 Browseable entry points (namespace `http://opcfoundation.org/UA/WoT-Con/`):
 
