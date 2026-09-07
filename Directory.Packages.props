@@ -20,7 +20,7 @@
 
   <!-- Build / source control tooling -->
   <ItemGroup>
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.400" />
     <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.85" />
     <PackageVersion Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.3" />
   </ItemGroup>
