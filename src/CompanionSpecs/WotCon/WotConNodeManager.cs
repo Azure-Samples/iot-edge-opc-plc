@@ -545,6 +545,7 @@ public partial class WotConNodeManager : CustomNodeManager2
                 "[WotCon] Created WoT asset '{AssetName}' with AssetId {AssetId} and WoTFile {FileId}{EndpointSuffix}",
                 assetName, asset.AssetId, asset.FileNodeId,
                 string.IsNullOrWhiteSpace(endpoint) ? string.Empty : $" (endpoint={endpoint})");
+            ReportAssetModelChange(context, asset.AssetId, ModelChangeStructureVerbMask.NodeAdded);
             return (ServiceResult.Good, asset.AssetId);
         }
         catch (Exception ex)
@@ -603,6 +604,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             // Setting IsDeleted under the lock means a CloseAndUpdate that wins the lock
             // after we release will short-circuit instead of writing into the address-space
             // subtree we're about to remove.
+            bool deleted;
             lock (asset.LifecycleLock)
             {
                 asset.IsDeleted = true;
@@ -628,7 +630,7 @@ public partial class WotConNodeManager : CustomNodeManager2
                 // DeleteNode recursively removes the asset and all HasComponent children
                 // (the per-asset WoTFile + its standard FileType properties and methods,
                 // plus any materialized TD properties).
-                bool deleted = DeleteNode(SystemContext, assetId);
+                deleted = DeleteNode(SystemContext, assetId);
 
                 _assets.TryRemove(assetName, out _);
                 if (asset.FileNodeId != null)
@@ -643,6 +645,11 @@ public partial class WotConNodeManager : CustomNodeManager2
             }
 
             _logger?.LogInformation("[WotCon] Deleted WoT asset '{AssetName}' AssetId={AssetId}", assetName, assetId);
+            if (deleted)
+            {
+                ReportAssetModelChange(context, assetId, ModelChangeStructureVerbMask.NodeDeleted);
+            }
+
             return ServiceResult.Good;
         }
         catch (Exception ex)
@@ -650,6 +657,36 @@ public partial class WotConNodeManager : CustomNodeManager2
             _logger?.LogError(ex, "[WotCon] Exception in OnDeleteAsset");
             return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
         }
+    }
+
+    private void ReportAssetModelChange(
+        ISystemContext context,
+        NodeId assetId,
+        ModelChangeStructureVerbMask verb)
+    {
+        var modelChangeEvent = new GeneralModelChangeEventState(null);
+        modelChangeEvent.Initialize(
+            context,
+            source: null,
+            EventSeverity.Low,
+            new Opc.Ua.LocalizedText("WoT asset address space changed."));
+        modelChangeEvent.SetChildValue(context, BrowseNames.SourceNode, ObjectIds.Server, copy: false);
+        modelChangeEvent.SetChildValue(context, BrowseNames.SourceName, "Server", copy: false);
+        modelChangeEvent.SetChildValue(
+            context,
+            BrowseNames.Changes,
+            new ModelChangeStructureDataType[]
+            {
+                new()
+                {
+                    Affected = assetId,
+                    AffectedType = ObjectTypeIds.BaseObjectType,
+                    Verb = (byte)verb,
+                },
+            },
+            copy: false);
+
+        Server.ReportEvent(modelChangeEvent);
     }
 
     /// <summary>
