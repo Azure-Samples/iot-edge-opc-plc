@@ -20,25 +20,25 @@
 
   <!-- Build / source control tooling -->
   <ItemGroup>
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" />
-    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.85" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.303" />
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.94" />
     <PackageVersion Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.3" />
   </ItemGroup>
 
   <!-- OPC UA SDK (OPC Foundation) -->
   <ItemGroup>
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types.Debug" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes.Debug" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common" Version="1.5.378.152" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common.Debug" Version="1.5.378.152" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types.Debug" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes.Debug" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common.Debug" Version="1.5.378.176" />
   </ItemGroup>
 
   <!-- Test dependencies -->
@@ -48,6 +48,6 @@
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="NUnit" Version="4.6.1" />
     <PackageVersion Include="NUnit3TestAdapter" Version="6.3.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
   </ItemGroup>
 </Project>
