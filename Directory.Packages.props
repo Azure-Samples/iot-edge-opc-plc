@@ -2,29 +2,26 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageVersion Include="KubernetesClient" Version="19.0.2" />
     <PackageVersion Include="Mono.Options" Version="6.12.0.148" />
-    <PackageVersion Include="OpenTelemetry" Version="1.16.0" />
-    <PackageVersion Include="OpenTelemetry.Api" Version="1.16.0" />
-    <PackageVersion Include="OpenTelemetry.Api.ProviderBuilderExtensions" Version="1.16.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.16.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.16.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.16.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
+    <PackageVersion Include="OpenTelemetry" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Api.ProviderBuilderExtensions" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.18.0" />
     <PackageVersion Include="Serilog.Extensions.Logging.File" Version="3.0.0" />
   </ItemGroup>
-
   <!-- Build / source control tooling -->
   <ItemGroup>
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.303" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
     <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.94" />
     <PackageVersion Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.3" />
   </ItemGroup>
-
   <!-- OPC UA SDK (OPC Foundation) -->
   <ItemGroup>
     <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="1.5.378.176" />
@@ -40,7 +37,6 @@
     <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common" Version="1.5.378.176" />
     <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common.Debug" Version="1.5.378.176" />
   </ItemGroup>
-
   <!-- Test dependencies -->
   <ItemGroup>
     <PackageVersion Include="Bogus" Version="35.6.5" />
