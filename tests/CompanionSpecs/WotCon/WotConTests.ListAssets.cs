@@ -104,7 +104,16 @@ public partial class WotConTests
         _ = await CreateManagedAssetAsync(assetName).ConfigureAwait(false);
 
         var everything = await BrowseAllChildrenOfManagementObjectAsync().ConfigureAwait(false);
-        var plumbing = new[] { "Configuration", "SupportedWoTBindings", "CreateAsset", "DeleteAsset" };
+        var plumbing = new[]
+        {
+            "Configuration",
+            "SupportedWoTBindings",
+            "CreateAsset",
+            "DeleteAsset",
+            "DiscoverAssets",
+            "CreateAssetForEndpoint",
+            "ConnectionTest",
+        };
         foreach (var name in plumbing)
         {
             _ = everything.Should().Contain(
