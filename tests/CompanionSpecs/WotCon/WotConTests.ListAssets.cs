@@ -51,13 +51,13 @@ public partial class WotConTests
         for (int i = 0; i < names.Length; i++)
         {
             var matches = references.Where(r => r.BrowseName.Name == names[i]).ToList();
-            matches.Should().ContainSingle(
+            _ = matches.Should().ContainSingle( 
                 "asset '{0}' must appear exactly once in the Organizes listing", names[i]);
-            matches[0].NodeClass.Should().Be(NodeClass.Object, "an asset is an Object per §6.3.8");
-            matches[0].BrowseName.NamespaceIndex.Should().Be(
+            _ = matches[0].NodeClass.Should().Be(NodeClass.Object, "an asset is an Object per §6.3.8");
+            _ = matches[0].BrowseName.NamespaceIndex.Should().Be(
                 WotConNamespaceIndex,
                 "the asset BrowseName must live in the WoT-Con namespace");
-            ExpandedNodeId.ToNodeId(matches[0].NodeId, Session.NamespaceUris)
+            _ = ExpandedNodeId.ToNodeId(matches[0].NodeId, Session.NamespaceUris)
                 .Should().Be(created[i], "the listed NodeId must be the AssetId returned by CreateAsset");
         }
     }
@@ -73,22 +73,22 @@ public partial class WotConTests
         var survivorId = await CreateManagedAssetAsync(survivorName).ConfigureAwait(false);
 
         var (before, _) = await BrowseManagedAssetsAsync().ConfigureAwait(false);
-        before.Should().Contain(r => r.BrowseName.Name == doomedName);
-        before.Should().Contain(r => r.BrowseName.Name == survivorName);
+        _ = before.Should().Contain(r => r.BrowseName.Name == doomedName);
+        _ = before.Should().Contain(r => r.BrowseName.Name == survivorName);
 
         var (deleteStatus, _) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(DeleteAssetMethodInstanceId),
             arguments: new VariantCollection { new Variant(doomedId) }).ConfigureAwait(false);
-        StatusCode.IsGood(deleteStatus).Should().BeTrue("DeleteAsset should succeed, got {0}", deleteStatus);
+        _ = StatusCode.IsGood(deleteStatus).Should().BeTrue("DeleteAsset should succeed, got {0}", deleteStatus);
 
         var (after, _) = await BrowseManagedAssetsAsync().ConfigureAwait(false);
-        after.Should().NotContain(
+        _ = after.Should().NotContain(
             r => r.BrowseName.Name == doomedName,
             "a deleted asset must vanish from the listing immediately");
 
         var survivor = after.Should().ContainSingle(r => r.BrowseName.Name == survivorName).Subject;
-        ExpandedNodeId.ToNodeId(survivor.NodeId, Session.NamespaceUris).Should().Be(
+        _ = ExpandedNodeId.ToNodeId(survivor.NodeId, Session.NamespaceUris).Should().Be(
             survivorId,
             "deleting one asset must not disturb its siblings");
     }
@@ -107,16 +107,16 @@ public partial class WotConTests
         var plumbing = new[] { "Configuration", "SupportedWoTBindings", "CreateAsset", "DeleteAsset" };
         foreach (var name in plumbing)
         {
-            everything.Should().Contain(
+            _ = everything.Should().Contain(
                 r => r.BrowseName.Name == name,
                 "'{0}' must exist under the management object, otherwise this test proves nothing", name);
         }
 
         var (assets, _) = await BrowseManagedAssetsAsync().ConfigureAwait(false);
-        assets.Should().Contain(r => r.BrowseName.Name == assetName);
+        _ = assets.Should().Contain(r => r.BrowseName.Name == assetName);
         foreach (var name in plumbing)
         {
-            assets.Should().NotContain(
+            _ = assets.Should().NotContain(
                 r => r.BrowseName.Name == name,
                 "'{0}' is management-object plumbing, not an asset", name);
         }
@@ -138,14 +138,14 @@ public partial class WotConTests
                 new Variant(assetName),
                 new Variant($"opc.tcp://list-afe-{suffix}.invalid:4840"),
             }).ConfigureAwait(false);
-        StatusCode.IsGood(status).Should().BeTrue("CreateAssetForEndpoint should succeed, got {0}", status);
+        _ = StatusCode.IsGood(status).Should().BeTrue("CreateAssetForEndpoint should succeed, got {0}", status);
         var assetId = outputs[0].Value as NodeId;
-        NodeId.IsNull(assetId).Should().BeFalse();
+        _ = NodeId.IsNull(assetId).Should().BeFalse();
 
         var (references, _) = await BrowseManagedAssetsAsync().ConfigureAwait(false);
 
         var match = references.Should().ContainSingle(r => r.BrowseName.Name == assetName).Subject;
-        ExpandedNodeId.ToNodeId(match.NodeId, Session.NamespaceUris).Should().Be(assetId);
+        _ = ExpandedNodeId.ToNodeId(match.NodeId, Session.NamespaceUris).Should().Be(assetId);
     }
 
     [Test]
@@ -163,19 +163,19 @@ public partial class WotConTests
         var (paged, serviceCalls) = await BrowseManagedAssetsAsync(requestedMaxReferencesPerNode: 1)
             .ConfigureAwait(false);
 
-        serviceCalls.Should().BeGreaterThan(
+        _ = serviceCalls.Should().BeGreaterThan(
             1,
             "capping the page size at one reference must force at least one BrowseNext");
 
         foreach (var name in names)
         {
-            paged.Should().Contain(
+            _ = paged.Should().Contain(
                 r => r.BrowseName.Name == name,
                 "asset '{0}' must survive continuation-point paging", name);
         }
 
         var (unpaged, _) = await BrowseManagedAssetsAsync().ConfigureAwait(false);
-        paged.Select(r => r.NodeId).Should().BeEquivalentTo(
+        _ = paged.Select(r => r.NodeId).Should().BeEquivalentTo(
             unpaged.Select(r => r.NodeId),
             "paged and unpaged browses must return the same population");
     }
@@ -190,10 +190,10 @@ public partial class WotConTests
             methodId: WotConNodeId(CreateAssetMethodInstanceId),
             arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
 
-        StatusCode.IsGood(status).Should().BeTrue(
+        _ = StatusCode.IsGood(status).Should().BeTrue(
             "CreateAsset('{0}') should succeed, got {1}", assetName, status);
         var assetId = outputs[0].Value as NodeId;
-        NodeId.IsNull(assetId).Should().BeFalse("AssetId must be a real, non-null NodeId");
+        _ = NodeId.IsNull(assetId).Should().BeFalse("AssetId must be a real, non-null NodeId");
         return assetId;
     }
 
