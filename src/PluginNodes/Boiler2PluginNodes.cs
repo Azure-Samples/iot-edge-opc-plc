@@ -2,16 +2,16 @@ namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
-using Opc.Ua.DI;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
+using DeviceHealthEnumeration = OpcPlc.RuntimeModelIds.Di.DeviceHealth;
 
 /// <summary>
 /// Boiler that inherits from DI companion spec.
@@ -29,10 +29,10 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
     private BaseDataVariableState _overheatedNode;
     private BaseDataVariableState _heaterStateNode;
     private BaseDataVariableState _deviceHealth;
-    private DeviceHealthDiagnosticAlarmTypeState _failureEv;
-    private DeviceHealthDiagnosticAlarmTypeState _checkFunctionEv;
-    private DeviceHealthDiagnosticAlarmTypeState _offSpecEv;
-    private DeviceHealthDiagnosticAlarmTypeState _maintenanceRequiredEv;
+    private OffNormalAlarmState _failureEv;
+    private OffNormalAlarmState _checkFunctionEv;
+    private OffNormalAlarmState _offSpecEv;
+    private OffNormalAlarmState _maintenanceRequiredEv;
     private OpcPlc.ITimer _nodeGenerator;
     private OpcPlc.ITimer _maintenanceGenerator;
     private OpcPlc.ITimer _overheatGenerator;
@@ -75,15 +75,18 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
             (string s) => _overheatInterval = TimeSpan.FromSeconds(CliHelper.ParseInt(s, min: 1, max: int.MaxValue, optionName: "boiler2overheatinterval")));
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public async ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         // Check again if targetTemp is within range, because the minimum uses baseTemp as lower bound and
         // the order in which the CLI options are specified affects the calculation.
         _ = CliHelper.ParseFloat(_targetTempDegrees.ToString(), min: _baseTempDegrees + 10.0f, max: float.MaxValue, optionName: "boiler2targettemp", digits: 1);
 
         _plcNodeManager = plcNodeManager;
 
-        AddNodes();
+        await AddNodesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public void StartSimulation()
@@ -110,10 +113,9 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
         }
     }
 
-    private void AddNodes()
+    private async ValueTask AddNodesAsync(CancellationToken cancellationToken)
     {
-        // Load complex types from binary uanodes file.
-        _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
+        await _plcNodeManager.LoadPredefinedNodesAsync(LoadPredefinedNodes, cancellationToken).ConfigureAwait(false);
 
         // Locate Boiler #2 object itself.
         _boiler2Object = _plcNodeManager.FindPredefinedNode<BaseObjectState>(new NodeId(5017, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
@@ -131,26 +133,26 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
         }
 
         // Find the Boiler2 configuration nodes.
-        _tempSpeedDegreesPerSecNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
-        _baseTempDegreesNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
-        _targetTempDegreesNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TargetTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
-        _maintenanceIntervalInSecondsNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_MaintenanceInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
-        _overheatIntervalInSecondsNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
-        _overheatThresholdDegreesNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatedThresholdTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        _tempSpeedDegreesPerSecNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        _baseTempDegreesNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        _targetTempDegreesNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_ParameterSet_TargetTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        _maintenanceIntervalInSecondsNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_ParameterSet_MaintenanceInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        _overheatIntervalInSecondsNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_ParameterSet_OverheatInterval, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        _overheatThresholdDegreesNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_ParameterSet_OverheatedThresholdTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
 
         AllowReadAndWrite(_overheatIntervalInSecondsNode);
         AllowReadAndWrite(_overheatThresholdDegreesNode);
         AllowReadAndWrite(_maintenanceIntervalInSecondsNode);
 
         // Find and enable write access to device properties for testing.
-        var assetIdNode = _plcNodeManager.FindPredefinedNode<PropertyState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_AssetId, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
-        var deviceManualNode = _plcNodeManager.FindPredefinedNode<PropertyState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_DeviceManual, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        var assetIdNode = _plcNodeManager.FindPredefinedNode<PropertyState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_AssetId, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        var deviceManualNode = _plcNodeManager.FindPredefinedNode<PropertyState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_DeviceManual, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
 
         if (assetIdNode is not null)
         {
             AllowReadAndWrite(assetIdNode);
         }
-        
+
         if (deviceManualNode is not null)
         {
             AllowReadAndWrite(deviceManualNode);
@@ -167,16 +169,16 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
         _overheatIntervalInSecondsNode.OnSimpleWriteValue = OnWriteOverheatIntervalInSeconds;
 
         // Find the Boiler2 data nodes.
-        _currentTempDegreesNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
-        _overheatedNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_Overheated, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
-        _heaterStateNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_HeaterState, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        _currentTempDegreesNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        _overheatedNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_ParameterSet_Overheated, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        _heaterStateNode = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_ParameterSet_HeaterState, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
 
         SetValue(_currentTempDegreesNode, _baseTempDegrees);
         SetValue(_overheatedNode, false);
         SetValue(_heaterStateNode, true);
 
         // Find the Boiler2 deviceHealth nodes.
-        _deviceHealth = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        _deviceHealth = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(new NodeId(RuntimeModelIds.Boiler2.Variables.Boilers_Boiler__2_DeviceHealth, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
         SetValue(_deviceHealth, DeviceHealthEnumeration.NORMAL);
 
         AddMethods();
@@ -194,27 +196,23 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
     /// </summary>
     private static NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
-        var uanodesPath = "Boilers/Boiler2/BoilerModel2.PredefinedNodes.uanodes";
+        var xmlPath = "Boilers/Boiler2/BoilerModel2.NodeSet2.xml";
         var snapLocation = Environment.GetEnvironmentVariable("SNAP");
         if (!string.IsNullOrWhiteSpace(snapLocation))
         {
             // Application running as a snap
-            uanodesPath = Path.Join(snapLocation, uanodesPath);
+            xmlPath = Path.Join(snapLocation, xmlPath);
         }
 
         var predefinedNodes = new NodeStateCollection();
-
-        predefinedNodes.LoadFromBinaryResource(context,
-            uanodesPath, // CopyToOutputDirectory -> PreserveNewest.
-            typeof(PlcNodeManager).GetTypeInfo().Assembly,
-            updateTables: true);
-
+        using var stream = File.OpenRead(xmlPath);
+        Opc.Ua.Export.UANodeSet.Read(stream).Import(context, predefinedNodes);
         return predefinedNodes;
     }
 
     private void SetValue<T>(BaseVariableState variable, T value)
     {
-        variable.Value = value;
+        variable.Value = VariantHelper.CastFrom(value);
         variable.Timestamp = _timeService.Now();
         variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
@@ -227,17 +225,17 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
         variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
     }
 
-    private ServiceResult OnWriteMaintenanceIntervalInSeconds(ISystemContext context, NodeState node, ref object value)
+    private ServiceResult OnWriteMaintenanceIntervalInSeconds(ISystemContext context, NodeState node, ref Variant value)
     {
-        _maintenanceInterval = TimeSpan.FromSeconds((uint)value);
+        _maintenanceInterval = TimeSpan.FromSeconds(value.GetUInt32());
         _maintenanceGenerator?.Dispose();
         _maintenanceGenerator = _timeService.NewTimer(UpdateMaintenance, intervalInMilliseconds: (uint)_maintenanceInterval.TotalMilliseconds);
         return ServiceResult.Good;
     }
 
-    private ServiceResult OnWriteOverheatIntervalInSeconds(ISystemContext context, NodeState node, ref object value)
+    private ServiceResult OnWriteOverheatIntervalInSeconds(ISystemContext context, NodeState node, ref Variant value)
     {
-        _overheatInterval = TimeSpan.FromSeconds((uint)value);
+        _overheatInterval = TimeSpan.FromSeconds(value.GetUInt32());
         _overheatGenerator?.Dispose();
         _overheatGenerator = _timeService.NewTimer(UpdateOverheat, intervalInMilliseconds: (uint)_overheatInterval.TotalMilliseconds);
         return ServiceResult.Good;
@@ -291,7 +289,7 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     private void AddMethods()
     {
-        MethodState switchMethodNode = _plcNodeManager.FindPredefinedNode<MethodState>(new NodeId(BoilerModel2.Methods.Boilers_Boiler__2_MethodSet_Switch, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        MethodState switchMethodNode = _plcNodeManager.FindPredefinedNode<MethodState>(new NodeId(RuntimeModelIds.Boiler2.Methods.Boilers_Boiler__2_MethodSet_Switch, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
 
         switchMethodNode.OnCallMethod += SwitchOnCall;
     }
@@ -299,47 +297,27 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
     /// <summary>
     /// Set the heater on/off. Executes synchronously.
     /// </summary>
-    private ServiceResult SwitchOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult SwitchOnCall(ISystemContext context, MethodState method,
+        ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
-        SetValue(_heaterStateNode, inputArguments[0]);
-        LogSwitchOnCallMethodCalled(inputArguments[0]);
+        SetValue(_heaterStateNode, inputArguments[0].GetBoolean());
+        LogSwitchOnCallMethodCalled(inputArguments[0].ToString());
 
         return ServiceResult.Good;
     }
 
     private void InitEvents()
     {
-        // Construct the events.
-        _failureEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
-        _checkFunctionEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
-        _offSpecEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
-        _maintenanceRequiredEv = new DeviceHealthDiagnosticAlarmTypeState(parent: null);
-
         // Use the boiler object as the event source so subscriptions on the boiler NodeId receive the events.
         NodeState sourceNodeForEvents = _boiler2Object != null
             ? (NodeState)_boiler2Object
             : _currentTempDegreesNode;
 
-        // Init the events.
-        _failureEv.Initialize(_plcNodeManager.SystemContext,
-            source: sourceNodeForEvents,
-            EventSeverity.Max,
-            new LocalizedText($"Temperature is above or equal to the overheat threshold!"));
-
-        _checkFunctionEv.Initialize(_plcNodeManager.SystemContext,
-            source: sourceNodeForEvents,
-            EventSeverity.Low,
-            new LocalizedText($"Temperature is above target!"));
-
-        _offSpecEv.Initialize(_plcNodeManager.SystemContext,
-            source: sourceNodeForEvents,
-            EventSeverity.MediumLow,
-            new LocalizedText($"Temperature is off spec!"));
-
-        _maintenanceRequiredEv.Initialize(_plcNodeManager.SystemContext,
-                source: sourceNodeForEvents,
-                EventSeverity.Medium,
-                new LocalizedText($"Maintenance required!"));
+        _failureEv = CreateHealthEvent(sourceNodeForEvents, EventSeverity.Max,
+            "Temperature is above or equal to the overheat threshold!");
+        _checkFunctionEv = CreateHealthEvent(sourceNodeForEvents, EventSeverity.Low, "Temperature is above target!");
+        _offSpecEv = CreateHealthEvent(sourceNodeForEvents, EventSeverity.MediumLow, "Temperature is off spec!");
+        _maintenanceRequiredEv = CreateHealthEvent(sourceNodeForEvents, EventSeverity.Medium, "Maintenance required!");
 
         _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.SourceName, value: "Maintenance", copy: false);
     }
@@ -369,7 +347,7 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
         SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
 
-        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTimeUtc.Now, copy: false);
 
         // Report event through the boiler object.
         _boiler2Object?.ReportEvent(_plcNodeManager.SystemContext, _maintenanceRequiredEv);
@@ -385,7 +363,7 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
         SetValue(_heaterStateNode, false);
         SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
 
-        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTimeUtc.Now, copy: false);
 
         // Report event through the boiler object.
         _boiler2Object?.ReportEvent(_plcNodeManager.SystemContext, _offSpecEv);
@@ -399,19 +377,19 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
     {
         if (_isOverheated)
         {
-            switch ((DeviceHealthEnumeration)_deviceHealth.Value)
+            switch ((DeviceHealthEnumeration)_deviceHealth.Value.GetInt32())
             {
                 case DeviceHealthEnumeration.NORMAL:
                     _isOverheated = false;
                     break;
                 case DeviceHealthEnumeration.CHECK_FUNCTION:
-                    _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+                    _checkFunctionEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTimeUtc.Now, copy: false);
 
                     // Report event through the boiler object.
                     _boiler2Object?.ReportEvent(_plcNodeManager.SystemContext, _checkFunctionEv);
                     break;
                 case DeviceHealthEnumeration.FAILURE:
-                    _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+                    _failureEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTimeUtc.Now, copy: false);
 
                     // Report event through the boiler object.
                     _boiler2Object?.ReportEvent(_plcNodeManager.SystemContext, _failureEv);
@@ -419,9 +397,9 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
             }
         }
 
-        if ((DeviceHealthEnumeration)_deviceHealth.Value == DeviceHealthEnumeration.OFF_SPEC)
+        if ((DeviceHealthEnumeration)_deviceHealth.Value.GetInt32() == DeviceHealthEnumeration.OFF_SPEC)
         {
-            _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+            _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTimeUtc.Now, copy: false);
 
             // Report event through the boiler object.
             _boiler2Object?.ReportEvent(_plcNodeManager.SystemContext, _offSpecEv);
@@ -430,9 +408,19 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     private void OnReportBoilerEvent(ISystemContext context, NodeState node, IFilterTarget @event)
     {
-        _plcNodeManager.Server.ReportEvent(context, @event);
+        _plcNodeManager.Server.ReportEvent(@event);
+    }
+
+    private OffNormalAlarmState CreateHealthEvent(NodeState source, EventSeverity severity, string message)
+    {
+        var alarm = new OffNormalAlarmState(null);
+        alarm.Initialize(_plcNodeManager.SystemContext, source, severity, new LocalizedText(message));
+        alarm.TypeDefinitionId = NodeId.Create(RuntimeModelIds.Di.ObjectTypes.DeviceHealthDiagnosticAlarmType,
+            OpcPlc.Namespaces.DI, _plcNodeManager.Server.NamespaceUris);
+        alarm.EventType.Value = alarm.TypeDefinitionId;
+        return alarm;
     }
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "SwitchOnCall method called with argument: {Argument}")]
-    partial void LogSwitchOnCallMethodCalled(object argument);
+    partial void LogSwitchOnCallMethodCalled(string argument);
 }

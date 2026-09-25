@@ -6,6 +6,8 @@ using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Nodes that change value every second to string containing single repeated uppercase letter.
@@ -15,8 +17,8 @@ public class LongStringPluginNodes(TimeService timeService, ILogger logger) : Pl
     private PlcNodeManager _plcNodeManager;
     private SimulatedVariableNode<string> _longStringIdNode10;
     private SimulatedVariableNode<string> _longStringIdNode50;
-    private SimulatedVariableNode<byte[]> _longStringIdNode100;
-    private SimulatedVariableNode<byte[]> _longStringIdNode200;
+    private SimulatedVariableNode<ByteString> _longStringIdNode100;
+    private SimulatedVariableNode<ArrayOf<byte>> _longStringIdNode200;
     private readonly Random _random = new();
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
@@ -26,8 +28,11 @@ public class LongStringPluginNodes(TimeService timeService, ILogger logger) : Pl
         // Enabled by default.
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         FolderState folder = _plcNodeManager.CreateFolder(
@@ -37,6 +42,8 @@ public class LongStringPluginNodes(TimeService timeService, ILogger logger) : Pl
             NamespaceType.OpcPlcApplications);
 
         AddNodes(folder);
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()
@@ -46,8 +53,10 @@ public class LongStringPluginNodes(TimeService timeService, ILogger logger) : Pl
 
         _longStringIdNode10.Start(value => new string((char)_random.Next(A, Z), 10 * 1024), periodMs: 1000);
         _longStringIdNode50.Start(value => new string((char)_random.Next(A, Z), 50 * 1024), periodMs: 1000);
-        _longStringIdNode100.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 100 * 1024)), periodMs: 1000);
-        _longStringIdNode200.Start(value => Encoding.UTF8.GetBytes(new string((char)_random.Next(A, Z), 200 * 1024)), periodMs: 1000);
+        _longStringIdNode100.Start(value => (ByteString)Encoding.UTF8.GetBytes(
+            new string((char)_random.Next(A, Z), 100 * 1024)), periodMs: 1000);
+        _longStringIdNode200.Start(value => Encoding.UTF8.GetBytes(
+            new string((char)_random.Next(A, Z), 200 * 1024)).ToArrayOf(), periodMs: 1000);
     }
 
     public void StopSimulation()
@@ -90,7 +99,7 @@ public class LongStringPluginNodes(TimeService timeService, ILogger logger) : Pl
 
         // 100 kB.
         var initialByteArray = Encoding.UTF8.GetBytes(new string('A', 100 * 1024));
-        _longStringIdNode100 = _plcNodeManager.CreateVariableNode<byte[]>(
+        _longStringIdNode100 = _plcNodeManager.CreateVariableNode<ByteString>(
             _plcNodeManager.CreateBaseVariable(
                 folder,
                 path: "LongString100kB",
@@ -104,7 +113,7 @@ public class LongStringPluginNodes(TimeService timeService, ILogger logger) : Pl
 
         // 200 kB.
         initialByteArray = Encoding.UTF8.GetBytes(new string('A', 200 * 1024));
-        _longStringIdNode200 = _plcNodeManager.CreateVariableNode<byte[]>(
+        _longStringIdNode200 = _plcNodeManager.CreateVariableNode<ArrayOf<byte>>(
             _plcNodeManager.CreateBaseVariable(
                 folder,
                 path: "LongString200kB",

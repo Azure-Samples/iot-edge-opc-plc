@@ -5,6 +5,8 @@ using Opc.Ua;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Nodes with values: Cycling step-up, alternating boolean, random signed 32-bit integer and random unsigend 32-bit integer.
@@ -30,8 +32,11 @@ public partial class DataPluginNodes(TimeService timeService, ILogger logger) : 
             (string s) => _isEnabled = s == null);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (_isEnabled)
@@ -45,6 +50,8 @@ public partial class DataPluginNodes(TimeService timeService, ILogger logger) : 
             AddNodes(folder);
             AddMethods(methodsFolder);
         }
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()
@@ -174,7 +181,8 @@ public partial class DataPluginNodes(TimeService timeService, ILogger logger) : 
     /// <summary>
     /// Method to reset the step-up value. Executes synchronously.
     /// </summary>
-    private ServiceResult OnResetStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnResetStepUpCall(ISystemContext context, MethodState method,
+        ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
         ResetStepUpData();
         LogResetStepUpMethodCalled();
@@ -184,7 +192,8 @@ public partial class DataPluginNodes(TimeService timeService, ILogger logger) : 
     /// <summary>
     /// Method to start the step-up value. Executes synchronously.
     /// </summary>
-    private ServiceResult OnStartStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnStartStepUpCall(ISystemContext context, MethodState method,
+        ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
         StartStepUp();
         LogStartStepUpMethodCalled();
@@ -194,7 +203,8 @@ public partial class DataPluginNodes(TimeService timeService, ILogger logger) : 
     /// <summary>
     /// Method to stop the step-up value. Executes synchronously.
     /// </summary>
-    private ServiceResult OnStopStepUpCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnStopStepUpCall(ISystemContext context, MethodState method,
+        ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
         StopStepUp();
         LogStopStepUpMethodCalled();

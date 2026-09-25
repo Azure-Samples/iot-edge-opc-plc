@@ -68,26 +68,28 @@ public class GdsPushConfigurationFlatDirectoryTests
     {
         var client = new ServerPushConfigurationClient(_simulator.ClientConfiguration)
         {
-            AdminCredentials = new UserIdentity(new UserNameIdentityToken
-            {
-                UserName = "sysadmin",
-                DecryptedPassword = Encoding.UTF8.GetBytes("demo")
-            })
+            AdminCredentials = new UserIdentity("sysadmin", Encoding.UTF8.GetBytes("demo"))
         };
 
         await client.ConnectAsync(_simulator.EndpointUrl).ConfigureAwait(false);
 
-        byte[] certificateRequest = await client.CreateSigningRequestAsync(
+        ByteString certificateRequest = await client.CreateSigningRequestAsync(
             client.DefaultApplicationGroup,
             client.ApplicationCertificateType,
             subjectName: null,
             regeneratePrivateKey: false,
             nonce: [21, 22, 23, 24]).ConfigureAwait(false);
 
-        certificateRequest.Should().NotBeNullOrEmpty();
+        certificateRequest.ToArray().Should().NotBeNullOrEmpty();
         certificateRequest[0].Should().Be(0x30, "DER encoded CSR starts with ASN.1 SEQUENCE");
 
+        TrustListDataType unchanged = await client.ReadTrustListAsync().ConfigureAwait(false);
+        (await client.UpdateTrustListAsync(unchanged).ConfigureAwait(false)).Should().BeTrue(
+            "a staged trust-list update requires ApplyChanges in the same session");
         await client.ApplyChangesAsync().ConfigureAwait(false);
+        Func<Task> emptyApply = () => client.ApplyChangesAsync().AsTask();
+        await emptyApply.Should().ThrowAsync<ServiceResultException>()
+            .Where(exception => exception.StatusCode == StatusCodes.BadNothingToDo).ConfigureAwait(false);
         await client.DisconnectAsync().ConfigureAwait(false);
 
         Directory.Exists(_appStorePath).Should().BeTrue();
@@ -100,11 +102,7 @@ public class GdsPushConfigurationFlatDirectoryTests
     {
         var client = new ServerPushConfigurationClient(_simulator.ClientConfiguration)
         {
-            AdminCredentials = new UserIdentity(new UserNameIdentityToken
-            {
-                UserName = "user1",
-                DecryptedPassword = Encoding.UTF8.GetBytes("password")
-            })
+            AdminCredentials = new UserIdentity("user1", Encoding.UTF8.GetBytes("password"))
         };
 
         await client.ConnectAsync(_simulator.EndpointUrl).ConfigureAwait(false);

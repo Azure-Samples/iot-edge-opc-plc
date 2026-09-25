@@ -90,7 +90,10 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         _noPrivateKeys = true;
     }
 
-    public async Task AddAsync(X509Certificate2 certificate, char[] password = null, CancellationToken ct = default)
+    public async Task AddAsync(
+        Certificate certificate,
+        char[] password = null,
+        CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(certificate);
 
@@ -107,13 +110,13 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         await SaveSecretDataAsync(secretData, ct).ConfigureAwait(false);
     }
 
-    public async Task AddRejectedAsync(X509Certificate2Collection certificates, int maxCertificates, CancellationToken ct = default)
+    public async Task AddRejectedAsync(CertificateCollection certificates, int maxCertificates, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(certificates);
 
         var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
 
-        foreach (var certificate in certificates.Cast<X509Certificate2>())
+        foreach (var certificate in certificates)
         {
             secretData[GetCertificateEntryKey(certificate.Thumbprint)] = certificate.Export(X509ContentType.Cert);
         }
@@ -152,16 +155,20 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         return removedCertificate || removedPrivateKey;
     }
 
-    public async Task<X509Certificate2Collection> EnumerateAsync(CancellationToken ct = default)
+    public async Task<CertificateCollection> EnumerateAsync(CancellationToken ct = default)
     {
         var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
-        var certificates = new X509Certificate2Collection();
+        var certificates = new CertificateCollection();
 
         foreach (var certificateEntry in secretData.Where(pair => IsCertificateEntryKey(pair.Key)))
         {
             try
             {
-                certificates.AddRange(LoadCertificates(certificateEntry.Key, certificateEntry.Value));
+                using var loadedCertificates = LoadCertificates(certificateEntry.Key, certificateEntry.Value);
+                foreach (var certificate in loadedCertificates)
+                {
+                    certificates.Add(certificate);
+                }
             }
             catch (Exception ex)
             {
@@ -215,7 +222,7 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         return crls;
     }
 
-    public async Task<X509CRLCollection> EnumerateCRLsAsync(X509Certificate2 issuer, bool validateUpdateTime = true, CancellationToken ct = default)
+    public async Task<X509CRLCollection> EnumerateCRLsAsync(Certificate issuer, bool validateUpdateTime = true, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(issuer);
 
@@ -233,21 +240,23 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         return filtered;
     }
 
-    public async Task<X509Certificate2Collection> FindByThumbprintAsync(string thumbprint, CancellationToken ct = default)
+    public async Task<CertificateCollection> FindByThumbprintAsync(string thumbprint, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(thumbprint);
 
         var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
-        var certificates = new X509Certificate2Collection();
+        var certificates = new CertificateCollection();
 
         if (secretData.TryGetValue(GetCertificateEntryKey(thumbprint), out var certificateBytes))
         {
-            certificates.Add(X509CertificateLoader.LoadCertificate(certificateBytes));
+            using var certificate = new Certificate(certificateBytes);
+            certificates.Add(certificate);
         }
 
         foreach (var certificateEntry in secretData.Where(pair => IsPemCertificateEntryKey(pair.Key)))
         {
-            foreach (var certificate in LoadCertificates(certificateEntry.Key, certificateEntry.Value).Where(certificate => string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase)))
+            using var loadedCertificates = LoadCertificates(certificateEntry.Key, certificateEntry.Value);
+            foreach (var certificate in loadedCertificates.Where(candidate => string.Equals(candidate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase)))
             {
                 certificates.Add(certificate);
             }
@@ -256,7 +265,7 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         return certificates;
     }
 
-    public async Task<StatusCode> IsRevokedAsync(X509Certificate2 issuer, X509Certificate2 certificate, CancellationToken ct = default)
+    public async Task<StatusCode> IsRevokedAsync(Certificate issuer, Certificate certificate, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(issuer);
         ArgumentNullException.ThrowIfNull(certificate);
@@ -267,10 +276,10 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             : StatusCodes.Good;
     }
 
-    public Task<X509Certificate2> LoadPrivateKeyAsync(string thumbprint, string subjectName, string password, CancellationToken ct = default)
-        => LoadPrivateKeyAsync(thumbprint, subjectName, applicationUri: null, certificateType: null, password?.ToCharArray(), ct);
+    public Task<Certificate> LoadPrivateKeyAsync(string thumbprint, string subjectName, string password, CancellationToken ct = default)
+        => LoadPrivateKeyAsync(thumbprint, subjectName, applicationUri: null, certificateType: default, password?.ToCharArray(), ct);
 
-    public async Task<X509Certificate2> LoadPrivateKeyAsync(string thumbprint, string subjectName, string applicationUri, NodeId certificateType, char[] password = null, CancellationToken ct = default)
+    public async Task<Certificate> LoadPrivateKeyAsync(string thumbprint, string subjectName, string applicationUri, NodeId certificateType, char[] password = null, CancellationToken ct = default)
     {
         if (_noPrivateKeys)
         {
@@ -281,7 +290,7 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
 
         if (!string.IsNullOrWhiteSpace(thumbprint) && secretData.TryGetValue(GetPrivateKeyEntryKey(thumbprint), out var privateKeyBytes))
         {
-            return X509CertificateLoader.LoadPkcs12(
+            return new Certificate(
                 privateKeyBytes,
                 password is null ? string.Empty : new string(password),
                 X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
@@ -291,19 +300,18 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         {
             try
             {
-                foreach (var certificate in LoadCertificates(certificateEntry.Key, certificateEntry.Value))
+                using var loadedCertificates = LoadCertificates(certificateEntry.Key, certificateEntry.Value);
+                foreach (var certificate in loadedCertificates)
                 {
                     if (!MatchCertificate(certificate, thumbprint, subjectName, certificateType))
                     {
-                        certificate.Dispose();
                         continue;
                     }
 
                     var certificateBaseName = GetBaseName(certificateEntry.Key);
                     if (secretData.TryGetValue(certificateBaseName + PfxExtension, out var pkcs12Bytes))
                     {
-                        certificate.Dispose();
-                        return X509CertificateLoader.LoadPkcs12(
+                        return new Certificate(
                             pkcs12Bytes,
                             password is null ? string.Empty : new string(password),
                             X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
@@ -312,18 +320,14 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
                     if (secretData.TryGetValue(certificateBaseName + PemExtension, out var pemPrivateKeyBytes))
                     {
                         var certificateWithPrivateKey = CreateCertificateFromPem(certificateEntry.Value, pemPrivateKeyBytes);
-                        certificate.Dispose();
                         return certificateWithPrivateKey;
                     }
 
                     if (secretData.TryGetValue(certificateBaseName + KeyExtension, out var keyPrivateKeyBytes))
                     {
                         var certificateWithPrivateKey = CreateCertificateFromPem(certificateEntry.Value, keyPrivateKeyBytes);
-                        certificate.Dispose();
                         return certificateWithPrivateKey;
                     }
-
-                    certificate.Dispose();
                 }
             }
             catch (Exception ex)
@@ -400,33 +404,32 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             : entryKey[..^extension.Length];
     }
 
-    private static X509Certificate2Collection LoadCertificates(string entryKey, byte[] certificateBytes)
+    private static CertificateCollection LoadCertificates(string entryKey, byte[] certificateBytes)
     {
         if (entryKey.EndsWith(DerExtension, StringComparison.OrdinalIgnoreCase))
         {
-            return [X509CertificateLoader.LoadCertificate(certificateBytes)];
+            using var certificate = new Certificate(certificateBytes);
+            return new CertificateCollection { certificate };
         }
 
         if (entryKey.EndsWith(CrtExtension, StringComparison.OrdinalIgnoreCase))
         {
-            var certificates = new X509Certificate2Collection();
-            certificates.ImportFromPem(Encoding.UTF8.GetString(certificateBytes));
-            return certificates;
+            return CertificateCollection.From(PEMReader.ImportPublicKeysFromPEM(certificateBytes));
         }
 
         throw new ArgumentException($"Unsupported certificate entry key '{entryKey}'.", nameof(entryKey));
     }
 
-    private static X509Certificate2 CreateCertificateFromPem(byte[] certificateBytes, byte[] privateKeyBytes)
+    private static Certificate CreateCertificateFromPem(byte[] certificateBytes, byte[] privateKeyBytes)
     {
-        return X509Certificate2.CreateFromPem(
+        return Certificate.From(X509Certificate2.CreateFromPem(
             Encoding.UTF8.GetString(certificateBytes),
-            Encoding.UTF8.GetString(privateKeyBytes));
+            Encoding.UTF8.GetString(privateKeyBytes)));
     }
 
-    private static bool MatchCertificate(X509Certificate2 certificate, string thumbprint, string subjectName, NodeId certificateType)
+    private static bool MatchCertificate(Certificate certificate, string thumbprint, string subjectName, NodeId certificateType)
     {
-        if (certificateType == null || certificateType == ObjectTypeIds.RsaSha256ApplicationCertificateType || certificateType == ObjectTypeIds.RsaMinApplicationCertificateType || certificateType == ObjectTypeIds.ApplicationCertificateType)
+        if (certificateType.IsNull || certificateType == ObjectTypeIds.RsaSha256ApplicationCertificateType || certificateType == ObjectTypeIds.RsaMinApplicationCertificateType || certificateType == ObjectTypeIds.ApplicationCertificateType)
         {
             if (!string.IsNullOrEmpty(thumbprint) && !string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
             {

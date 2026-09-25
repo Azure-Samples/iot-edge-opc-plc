@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 using Opc.Ua;
+using Opc.Ua.Security.Certificates;
 using OpcPlc.Configuration;
 using OpcPlc.Certs;
 using OpcPlc.Helpers;
@@ -30,7 +31,8 @@ public class KubernetesSecretCertificateStoreTests
 
         store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\own", noPrivateKeys: false);
 
-        await store.AddAsync(certificate, ct: CancellationToken.None).ConfigureAwait(false);
+        using Certificate owned = Certificate.From(new X509Certificate2(certificate));
+        await store.AddAsync(owned, ct: CancellationToken.None).ConfigureAwait(false);
 
         var certificates = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
         certificates.Should().ContainSingle(certificateInStore => certificateInStore.Thumbprint == certificate.Thumbprint);
@@ -79,7 +81,7 @@ public class KubernetesSecretCertificateStoreTests
         appConfig.SecurityConfiguration.ApplicationCertificate.StoreType.Should().Be(KubernetesSecretCertificateStore.StoreTypeName);
         appConfig.SecurityConfiguration.TrustedUserCertificates.StorePath.Should().Be(KubernetesSecretCertificateStore.StoreTypePrefix + config.OpcUa.OpcTrustedUserCertStorePath);
 
-        using var trustedUserStore = appConfig.SecurityConfiguration.TrustedUserCertificates.OpenStore(telemetryContext);
+        using var trustedUserStore = appConfig.CertificateManager.OpenTrustedStore(TrustListIdentifier.Users);
         var trustedUserCertificates = await trustedUserStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
         trustedUserCertificates.Should().Contain(certificate => certificate.Thumbprint == trustedUserCertificate.Thumbprint);
@@ -101,8 +103,10 @@ public class KubernetesSecretCertificateStoreTests
         ownStore.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\own", noPrivateKeys: false);
         trustedStore.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\trusted", noPrivateKeys: true);
 
-        await ownStore.AddAsync(ownCertificate, ct: CancellationToken.None).ConfigureAwait(false);
-        await trustedStore.AddAsync(trustedCertificate, ct: CancellationToken.None).ConfigureAwait(false);
+        using Certificate owned = Certificate.From(new X509Certificate2(ownCertificate));
+        using Certificate trusted = Certificate.From(new X509Certificate2(trustedCertificate));
+        await ownStore.AddAsync(owned, ct: CancellationToken.None).ConfigureAwait(false);
+        await trustedStore.AddAsync(trusted, ct: CancellationToken.None).ConfigureAwait(false);
 
         var ownSecret = client.GetSecret("opcplc-tests", "pki-own");
         var trustedSecret = client.GetSecret("opcplc-tests", "pki-trusted");
@@ -191,7 +195,7 @@ public class KubernetesSecretCertificateStoreTests
         public IKubernetesSecretStoreClient Create() => Client;
     }
 
-    private sealed class InMemoryKubernetesSecretStoreClient : IKubernetesSecretStoreClient
+    internal sealed class InMemoryKubernetesSecretStoreClient : IKubernetesSecretStoreClient
     {
         private readonly Dictionary<(string Namespace, string SecretName), Dictionary<string, byte[]>> _secrets = [];
 

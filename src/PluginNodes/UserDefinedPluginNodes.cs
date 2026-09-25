@@ -10,6 +10,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Nodes that are configured via JSON file.
@@ -27,14 +29,19 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
             (string s) => _nodesFileName = s);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (!string.IsNullOrEmpty(_nodesFileName))
         {
             AddNodes((FolderState)telemetryFolder.Parent); // Root.
         }
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()

@@ -6,7 +6,6 @@ using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Client.ComplexTypes;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using static System.TimeSpan;
@@ -25,9 +24,13 @@ public class BoilerTests : SimulatorTestsBase
     [OneTimeSetUp]
     public void OneTimeSetUp()
     {
-        _complexTypeSystem = new ComplexTypeSystem(Session);
+        _complexTypeSystem = new ComplexTypeSystemFactory(DefaultTelemetry.Create(_ => { })).Create(Session);
         var loaded = _complexTypeSystem.LoadNamespaceAsync(OpcPlc.Namespaces.OpcPlcBoiler, true, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
         loaded.Should().BeTrue("BoilerDataType should be loaded");
+        Session.MessageContext.Factory.Builder
+            .AddEncodeableType(typeof(BoilerDataType))
+            .AddEncodeableType(typeof(BoilerTemperatureType))
+            .Commit();
     }
 
     [TearDown]
@@ -146,13 +149,8 @@ public class BoilerTests : SimulatorTestsBase
     private async Task<BoilerDataType> GetBoilerModelAsync()
     {
         var nodeId = NodeId.Create(BoilerModel1.Variables.Boiler1_BoilerStatus, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var value = (await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value;
-
-        // change dynamic in-memory created Boiler type to expected BoilerDataType by serializing and deserializing it.
-        var inMemoryBoilerDataType = (value as ExtensionObject).Body;
-        var json = JsonSerializer.Serialize(inMemoryBoilerDataType);
-
-        var boilerDataTypeFromGeneratedSourceCode = JsonSerializer.Deserialize<BoilerDataType>(json);
-        return boilerDataTypeFromGeneratedSourceCode;
+        var value = (await ReadDataValueAsync(nodeId).ConfigureAwait(false)).WrappedValue;
+        value.TryGetStructure(out BoilerDataType model).Should().BeTrue();
+        return model;
     }
 }

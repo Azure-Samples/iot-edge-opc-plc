@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Nodes that are configured via *.NodeSet2.xml file(s).
@@ -16,7 +18,6 @@ public partial class NodeSet2PluginNodes(TimeService timeService, ILogger logger
 {
     private List<string> _nodesFileNames;
     private PlcNodeManager _plcNodeManager;
-    private Stream _nodes2File;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -26,13 +27,16 @@ public partial class NodeSet2PluginNodes(TimeService timeService, ILogger logger
             (string s) => _nodesFileNames = CliHelper.ParseListOfFileNames(s, "ns2"));
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public async ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (_nodesFileNames?.Any() ?? false)
         {
-            AddNodes();
+            await AddNodesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -44,18 +48,20 @@ public partial class NodeSet2PluginNodes(TimeService timeService, ILogger logger
     {
     }
 
-    private void AddNodes()
+    private async ValueTask AddNodesAsync(CancellationToken cancellationToken)
     {
         foreach (var file in _nodesFileNames)
         {
             try
             {
-                _nodes2File = File.OpenRead(file);
+                cancellationToken.ThrowIfCancellationRequested();
+                using var stream = File.OpenRead(file);
 
                 // Load complex types from NodeSet2 file.
-                _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
+                await _plcNodeManager.LoadPredefinedNodesAsync(
+                    context => LoadPredefinedNodes(context, stream), cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
                 LogErrorLoadingNodeSet2File(e, file, e.Message);
             }
@@ -67,24 +73,21 @@ public partial class NodeSet2PluginNodes(TimeService timeService, ILogger logger
     /// <summary>
     /// Loads a node set from a file and adds them to the set of predefined nodes.
     /// </summary>
-    private NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    private NodeStateCollection LoadPredefinedNodes(ISystemContext context, Stream stream)
     {
         var predefinedNodes = new NodeStateCollection();
         var namespaces = new Dictionary<string, string>();
 
-        using (_nodes2File)
-        {
-            var importedNodeSet = Opc.Ua.Export.UANodeSet.Read(_nodes2File);
+        var importedNodeSet = Opc.Ua.Export.UANodeSet.Read(stream);
 
-            if (importedNodeSet.NamespaceUris != null)
+        if (importedNodeSet.NamespaceUris != null)
+        {
+            foreach (var namespaceUri in importedNodeSet.NamespaceUris)
             {
-                foreach (var namespaceUri in importedNodeSet.NamespaceUris)
-                {
-                    namespaces[namespaceUri] = namespaceUri;
-                }
+                namespaces[namespaceUri] = namespaceUri;
             }
-            importedNodeSet.Import(_plcNodeManager.SystemContext, predefinedNodes);
         }
+        importedNodeSet.Import(_plcNodeManager.SystemContext, predefinedNodes);
 
         // Add to node list for creation of pn.json.
         Nodes ??= new List<NodeWithIntervals>();

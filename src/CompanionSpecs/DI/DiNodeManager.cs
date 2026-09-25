@@ -1,16 +1,18 @@
 namespace OpcPlc.CompanionSpecs.DI;
 
 using Opc.Ua;
+using Opc.Ua.Export;
 using Opc.Ua.Server;
 using System;
 using System.IO;
-using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Node manager for a server that exposes the Device Information (DI) companion spec.
 /// https://opcfoundation.org/developer-tools/documents/view/197
 /// </summary>
-public sealed class DiNodeManager : CustomNodeManager2
+public sealed class DiNodeManager : AsyncCustomNodeManager
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="DiNodeManager"/> class.
@@ -29,22 +31,24 @@ public sealed class DiNodeManager : CustomNodeManager2
     /// <summary>
     /// Loads a node set from a file or resource and adds them to the set of predefined nodes.
     /// </summary>
-    protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    protected override ValueTask<NodeStateCollection> LoadPredefinedNodesAsync(
+        ISystemContext context, CancellationToken cancellationToken = default)
     {
-        var uanodesPath = "CompanionSpecs/DI/Opc.Ua.DI.PredefinedNodes.uanodes";
+        cancellationToken.ThrowIfCancellationRequested();
+        var xmlPath = "CompanionSpecs/DI/Opc.Ua.DI.NodeSet2.xml";
         var snapLocation = Environment.GetEnvironmentVariable("SNAP");
         if (!string.IsNullOrWhiteSpace(snapLocation))
         {
             // Application running as a snap
-            uanodesPath = Path.Join(snapLocation, uanodesPath);
+            xmlPath = Path.Join(snapLocation, xmlPath);
         }
 
         var predefinedNodes = new NodeStateCollection();
-        predefinedNodes.LoadFromBinaryResource(context,
-            uanodesPath, // CopyToOutputDirectory -> PreserveNewest.
-            typeof(DiNodeManager).GetTypeInfo().Assembly,
-            updateTables: true);
+        using var stream = File.OpenRead(xmlPath);
+        var nodeSet = UANodeSet.Read(stream);
+        nodeSet.Import(context, predefinedNodes);
 
-        return predefinedNodes;
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(predefinedNodes);
     }
 }

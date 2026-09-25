@@ -2,52 +2,64 @@ namespace OpcPlc;
 
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
+using Opc.Ua.Identity;
+using Opc.Ua.Security.Certificates;
 using Opc.Ua.Server;
 using System;
+using System.Collections.Generic;
 using System.Text;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 
 public partial class PlcServer
 {
     /// <summary>
-    /// Creates the objects used to validate the user identity tokens supported by the server.
+    /// Registers validators for the user identity tokens supported by the server.
     /// </summary>
-    private async Task CreateUserIdentityValidatorAsync(ApplicationConfiguration configuration)
+    private void RegisterUserIdentityValidators(IServerInternal server)
     {
-        for (int ii = 0; ii < configuration.ServerConfiguration.UserTokenPolicies.Count; ii++)
+        foreach (IUserTokenAuthenticator authenticator in CreateUserIdentityAuthenticators())
         {
-            UserTokenPolicy policy = configuration.ServerConfiguration.UserTokenPolicies[ii];
+            server.IdentityRegistry.Register(authenticator);
+        }
+    }
 
-            // Create a validator for a certificate token policy.
-            // Check if user certificate trust lists are specified in configuration.
-            if (policy.TokenType == UserTokenType.Certificate &&
-                configuration.SecurityConfiguration.TrustedUserCertificates != null &&
-                configuration.SecurityConfiguration.UserIssuerCertificates != null)
+    internal IEnumerable<IUserTokenAuthenticator> CreateUserIdentityAuthenticators()
+    {
+        foreach (UserTokenType tokenType in Enum.GetValues<UserTokenType>())
+        {
+            yield return new RejectedTokenAuthenticator(tokenType);
+        }
+
+        if (!Config.DisableAnonymousAuth)
+        {
+            yield return new AnonymousAuthenticator();
+        }
+
+        if (!Config.DisableUsernamePasswordAuth)
+        {
+            yield return new UserNamePasswordAuthenticator((token, ct) =>
             {
-                var certificateValidator = new CertificateValidator(_telemetryContext);
-                await certificateValidator.UpdateAsync(configuration).ConfigureAwait(false);
-                certificateValidator.Update(configuration.SecurityConfiguration.UserIssuerCertificates,
-                    configuration.SecurityConfiguration.TrustedUserCertificates,
-                    configuration.SecurityConfiguration.RejectedCertificateStore);
+                ct.ThrowIfCancellationRequested();
+                IUserIdentity identity = VerifyPassword(token);
+                LogTokenAccepted("UserName", identity.DisplayName);
+                return ValueTask.FromResult(identity);
+            });
+        }
 
-                // set custom validator for user certificates.
-                m_userCertificateValidator = certificateValidator;
-                break;
-            }
+        if (!Config.DisableCertAuth)
+        {
+            yield return new X509Authenticator(VerifyUserCertificateAsync);
         }
     }
 
     /// <summary>
     /// Validates the password for a username token.
     /// </summary>
-    private IUserIdentity VerifyPassword(UserNameIdentityToken userNameToken)
+    private IUserIdentity VerifyPassword(UserNameIdentityTokenHandler userNameToken)
     {
         string userName = userNameToken.UserName;
-        string password = userNameToken.DecryptedPassword is null
-            ? null
-            : Encoding.UTF8.GetString(userNameToken.DecryptedPassword);
+        string password = Encoding.UTF8.GetString(userNameToken.DecryptedPassword.AsSpan());
         if (string.IsNullOrEmpty(userName))
         {
             // an empty username is not accepted.
@@ -86,84 +98,52 @@ public partial class PlcServer
     }
 
     /// <summary>
-    /// Called when a client tries to change its user identity.
+    /// Validates an X509 user token and grants the existing PLC configuration identity.
     /// </summary>
-    private void SessionManager_ImpersonateUser(ISession session, ImpersonateEventArgs args)
+    private async ValueTask<IUserIdentity> VerifyUserCertificateAsync(
+        X509IdentityTokenHandler tokenHandler,
+        CancellationToken ct)
     {
-        if (args.NewIdentity is AnonymousIdentityToken anonymousToken)
+        ct.ThrowIfCancellationRequested();
+        if (tokenHandler.Token is not X509IdentityToken token || token.CertificateData.Span.IsEmpty)
         {
-            args.Identity = new UserIdentity(anonymousToken);
-            LogTokenAccepted("Anonymous", args.Identity.DisplayName);
-            return;
+            throw ServiceResultException.Create(StatusCodes.BadIdentityTokenInvalid,
+                "Security token is not a valid X509 token. The certificate is missing.");
         }
 
-        // check for a user name token.
-        if (args.NewIdentity is UserNameIdentityToken userNameToken)
+        Certificate certificate;
+        try
         {
-            args.Identity = VerifyPassword(userNameToken);
-            LogTokenAccepted("UserName", args.Identity.DisplayName);
-            return;
+            certificate = new Certificate(token.CertificateData.Span);
+        }
+        catch (Exception ex)
+        {
+            throw ServiceResultException.Create(StatusCodes.BadIdentityTokenInvalid,
+                "Security token is not a valid X509 token. The certificate data is invalid.", ex);
         }
 
-        // check for x509 user token.
-        if (args.NewIdentity is X509IdentityToken x509Token)
+        using (certificate)
         {
-            if (x509Token.Certificate == null)
-            {
-                if (x509Token.CertificateData != null)
-                {
-                    try
-                    {
-                        x509Token.Certificate = X509CertificateLoader.LoadCertificate(x509Token.CertificateData);
-                    }
-                    catch (Exception ex)
-                    {
-                        // create an exception with a vendor defined sub-code.
-                        throw ServiceResultException.Create(StatusCodes.BadIdentityTokenInvalid,
-                            "Security token is not a valid X509 token. The certificate data is invalid.", ex);
-                    }
-                }
-                else
-                {
-                    // create an exception with a vendor defined sub-code.
-                    throw ServiceResultException.Create(StatusCodes.BadIdentityTokenInvalid,
-                        "Security token is not a valid X509 token. The certificate is missing.");
-                }
-            }
-
-            VerifyCertificateAsync(x509Token.Certificate, default).GetAwaiter().GetResult();
-
-            // A client that authenticates with a trusted X509 user certificate is treated
-            // as a privileged identity (e.g. a GDS push device). Grant the SecurityAdmin /
-            // ConfigureAdmin roles via SystemConfigurationIdentity so that GDS push
-            // operations such as UpdateCertificate and TrustList updates are permitted.
-            args.Identity = new SystemConfigurationIdentity(new UserIdentity(x509Token));
-            LogTokenAccepted("X509", args.Identity.DisplayName);
-            return;
+            await VerifyCertificateAsync(certificate, ct).ConfigureAwait(false);
         }
 
-        // no other token types are accepted.
-        throw ServiceResultException.Create(StatusCodes.BadIdentityTokenRejected,
-            "Security token is not a valid user identity token.");
+        var identity = new SystemConfigurationIdentity(new UserIdentity(tokenHandler));
+        LogTokenAccepted("X509", identity.DisplayName);
+        return identity;
     }
 
     /// <summary>
     /// Verifies that a certificate user token is trusted.
     /// </summary>
-    private async Task VerifyCertificateAsync(X509Certificate2 certificate, CancellationToken ct)
+    private async Task VerifyCertificateAsync(Certificate certificate, CancellationToken ct)
     {
         try
         {
-            if (m_userCertificateValidator != null)
-            {
-                await m_userCertificateValidator.ValidateAsync(certificate, ct).ConfigureAwait(false);
-            }
-            else
-            {
-                await Config.OpcUa.ApplicationConfiguration.CertificateValidator.ValidateAsync(certificate, ct).ConfigureAwait(false);
-            }
+            var result = await Config.OpcUa.ApplicationConfiguration.CertificateManager.ValidateAsync(
+                certificate, TrustListIdentifier.Users, ct).ConfigureAwait(false);
+            result.ThrowIfInvalid();
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             TranslationInfo info;
             StatusCode result = StatusCodes.BadIdentityTokenRejected;
@@ -189,11 +169,23 @@ public partial class PlcServer
             }
 
             // create an exception with a vendor defined sub-code.
-            throw ServiceResultException.Create((uint)result, info.Text);
+            throw ServiceResultException.Create(result, info.Text, certificate.Subject);
         }
     }
 
-    private CertificateValidator m_userCertificateValidator;
+    private sealed class RejectedTokenAuthenticator(UserTokenType tokenType) : IUserTokenAuthenticator
+    {
+        public UserTokenType TokenType => tokenType;
+
+        public string IssuedTokenProfileUri => null;
+
+        public ValueTask<AuthenticationResult> AuthenticateAsync(AuthenticationContext context, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(AuthenticationResult.Reject(new ServiceResult(
+                StatusCodes.BadIdentityTokenRejected)));
+        }
+    }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{TokenType} Token Accepted: {DisplayName}")]
     partial void LogTokenAccepted(string tokenType, string displayName);

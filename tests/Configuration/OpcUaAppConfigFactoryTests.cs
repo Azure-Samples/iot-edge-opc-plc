@@ -75,7 +75,7 @@ public class OpcUaAppConfigFactoryTests
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
 
             // Assert - open the configured trusted user store and find our certificate
-            using var store = appConfig.SecurityConfiguration.TrustedUserCertificates.OpenStore(telemetryContext);
+            using var store = appConfig.CertificateManager.OpenTrustedStore(TrustListIdentifier.Users);
             var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
@@ -135,7 +135,7 @@ public class OpcUaAppConfigFactoryTests
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
 
             // Assert - open the configured trusted user store and find our certificate
-            using var store = appConfig.SecurityConfiguration.TrustedUserCertificates.OpenStore(telemetryContext);
+            using var store = appConfig.CertificateManager.OpenTrustedStore(TrustListIdentifier.Users);
             var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
@@ -196,7 +196,7 @@ public class OpcUaAppConfigFactoryTests
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
 
             // Assert
-            using var store = appConfig.SecurityConfiguration.UserIssuerCertificates.OpenStore(telemetryContext);
+            using var store = appConfig.CertificateManager.OpenIssuerStore(TrustListIdentifier.Users);
             var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
@@ -259,7 +259,7 @@ public class OpcUaAppConfigFactoryTests
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
 
             // Assert - open the configured user issuer store and find our certificate
-            using var store = appConfig.SecurityConfiguration.UserIssuerCertificates.OpenStore(telemetryContext);
+            using var store = appConfig.CertificateManager.OpenIssuerStore(TrustListIdentifier.Users);
             var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
@@ -403,7 +403,9 @@ public class OpcUaAppConfigFactoryTests
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
 
             // Assert - the generated application certificate key size should meet the minimum
-            var certificate = appConfig.SecurityConfiguration.ApplicationCertificate.Certificate;
+            using CertificateEntry entry = appConfig.CertificateManager.AcquireApplicationCertificateByType(
+                Opc.Ua.ObjectTypeIds.RsaSha256ApplicationCertificateType);
+            var certificate = entry.Certificate;
             certificate.Should().NotBeNull("a self-signed application certificate should have been created");
 
             using var rsaKey = certificate.GetRSAPublicKey();
@@ -519,12 +521,12 @@ public class OpcUaAppConfigFactoryTests
             reverseConnect.ConnectTimeout.Should().Be(2000);
             reverseConnect.RejectTimeout.Should().Be(3000);
 
-            reverseConnect.Clients.Should().HaveCount(2);
-            reverseConnect.Clients.Select(c => c.EndpointUrl).Should()
+            reverseConnect.Clients.ToArray().Should().HaveCount(2);
+            reverseConnect.Clients.ToArray().Select(c => c.EndpointUrl).Should()
                 .Equal("opc.tcp://client1:65300", "opc.tcp://client2:65301");
-            reverseConnect.Clients.Should().OnlyContain(c => c.Enabled);
-            reverseConnect.Clients.Should().OnlyContain(c => c.Timeout == 2000);
-            reverseConnect.Clients.Should().OnlyContain(c => c.MaxSessionCount == 4);
+            reverseConnect.Clients.ToArray().Should().OnlyContain(c => c.Enabled);
+            reverseConnect.Clients.ToArray().Should().OnlyContain(c => c.Timeout == 2000);
+            reverseConnect.Clients.ToArray().Should().OnlyContain(c => c.MaxSessionCount == 4);
         }
         finally
         {

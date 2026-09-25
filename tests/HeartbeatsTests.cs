@@ -84,11 +84,11 @@ public class HeartbeatsDisabledTests : SimulatorTestsBase
             requestHeader: null,
             view: null,
             requestedMaxReferencesPerNode: 0,
-            nodesToBrowse: new BrowseDescriptionCollection { browseDescription },
+            nodesToBrowse: new List<BrowseDescription> { browseDescription },
             ct: CancellationToken.None).ConfigureAwait(false);
 
-        response.Results.Should().ContainSingle();
-        response.Results[0].References.Should().NotContain(reference =>
+        response.Results.ToArray().Should().ContainSingle();
+        response.Results[0].References.ToArray().Should().NotContain(reference =>
             reference.BrowseName.NamespaceIndex ==
                 Session.NamespaceUris.GetIndex(OpcPlc.Namespaces.OpcPlcApplications) &&
             reference.BrowseName.Name == "heartbeats");

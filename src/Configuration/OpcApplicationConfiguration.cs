@@ -79,6 +79,28 @@ public partial class OpcApplicationConfiguration
     /// </summary>
     public int ReverseConnectMaxSessionCount { get; set; }
 
+    public ReverseConnectServerConfiguration CreateReverseConnectConfiguration()
+    {
+        if (ReverseConnectClientUrls is null || ReverseConnectClientUrls.Count == 0)
+        {
+            return null;
+        }
+
+        return new ReverseConnectServerConfiguration
+        {
+            ConnectInterval = ReverseConnectInterval,
+            ConnectTimeout = ReverseConnectTimeout,
+            RejectTimeout = ReverseConnectRejectTimeout,
+            Clients = ReverseConnectClientUrls.ToArrayOf(clientUrl => new ReverseConnectClient
+            {
+                EndpointUrl = clientUrl,
+                Timeout = ReverseConnectTimeout,
+                MaxSessionCount = ReverseConnectMaxSessionCount,
+                Enabled = true
+            })
+        };
+    }
+
     /// <summary>
     /// Set the max string length the OPC stack supports.
     /// </summary>

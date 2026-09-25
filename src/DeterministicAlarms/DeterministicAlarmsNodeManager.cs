@@ -9,29 +9,28 @@ using OpcPlc.DeterministicAlarms.SimBackend;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
+public partial class DeterministicAlarmsNodeManager : AsyncCustomNodeManager
 {
+    internal object SyncRoot { get; } = new();
+
     private readonly SimBackendService _system;
     private readonly List<SimFolderState> _folders = new();
     private uint _nodeIdCounter;
-    private List<NodeState> _rootNotifiers;
-    private readonly IServerInternal _server;
-    private readonly ServerSystemContext _defaultSystemContext;
     private readonly Dictionary<string, SimSourceNodeState> _sourceNodes = new();
     private readonly Configuration.Configuration _scriptConfiguration;
     private readonly TimeService _timeService;
     private readonly ILogger _logger;
     private Dictionary<string, string> _scriptAlarmToSources;
+    private ScriptEngine _scriptEngine;
 
     /// <summary>
     /// Initializes the node manager.
     /// </summary>
     public DeterministicAlarmsNodeManager(IServerInternal server, ApplicationConfiguration configuration, TimeService timeService, string scriptFileName, ILogger logger) : base(server, configuration)
     {
-        _server = server;
-        _defaultSystemContext = _server.DefaultSystemContext.Copy();
         SystemContext.NodeIdFactory = this;
         SystemContext.SystemHandle = _system = new SimBackendService();
         _timeService = timeService;
@@ -120,7 +119,7 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
         {
             VerifyScriptConfiguration(scriptConfiguration);
             LogScriptStartsExecuting();
-            _ = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable, _timeService);
+            _scriptEngine = new ScriptEngine(scriptConfiguration.Script, OnScriptStepAvailable, _timeService);
         }
         catch (ScriptException ex)
         {
@@ -136,21 +135,24 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
     /// <param name="loopNumber"></param>
     private void OnScriptStepAvailable(Step step, long loopNumber)
     {
-        if (step == null)
+        lock (SyncRoot)
         {
-            LogScriptEnded();
-        }
-        else
-        {
-            if (step.Event != null)
+            if (step == null)
             {
-                var alarm = GetAlarm(step);
-                UpdateAlarm(alarm, step.Event);
-                var sourceNodeId = _scriptAlarmToSources[step.Event.AlarmId];
-                _sourceNodes[sourceNodeId].UpdateAlarmInSource(alarm, $"{step.Event.EventId} ({loopNumber})");
+                LogScriptEnded();
             }
+            else
+            {
+                if (step.Event != null)
+                {
+                    var alarm = GetAlarm(step);
+                    UpdateAlarm(alarm, step.Event);
+                    var sourceNodeId = _scriptAlarmToSources[step.Event.AlarmId];
+                    _sourceNodes[sourceNodeId].UpdateAlarmInSource(alarm, $"{step.Event.EventId} ({loopNumber})");
+                }
 
-            PrintScriptStep(step, loopNumber);
+                PrintScriptStep(step, loopNumber);
+            }
         }
     }
 
@@ -216,246 +218,38 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
         }
     }
 
-    #region CustomNodeManager2 overrides
+    #region AsyncCustomNodeManager overrides
 
-    /// <summary>
-    /// Creates a new set of monitored items for a set of variables.
-    /// </summary>
-    /// <remarks>
-    /// This method only handles data change subscriptions. Event subscriptions are created by the SDK.
-    /// </remarks>
-    public override void CreateMonitoredItems(
-        OperationContext context,
-        uint subscriptionId,
-        double publishingInterval,
-        TimestampsToReturn timestampsToReturn,
-        IList<MonitoredItemCreateRequest> itemsToCreate,
-        IList<ServiceResult> errors,
-        IList<MonitoringFilterResult> filterErrors,
-        IList<IMonitoredItem> monitoredItems,
-        bool createDurable,
-        MonitoredItemIdFactory monitoredItemIdFactory)
+    protected override void Dispose(bool disposing)
     {
-        ServerSystemContext systemContext = _defaultSystemContext.Copy(context);
-        IDictionary<NodeId, NodeState> operationCache = new NodeIdDictionary<NodeState>();
-        List<NodeHandle> nodesToValidate = new();
-        List<IMonitoredItem> createdItems = new();
-
-        lock (Lock)
+        if (disposing)
         {
-            for (int ii = 0; ii < itemsToCreate.Count; ii++)
-            {
-                MonitoredItemCreateRequest monitoredItemCreateRequest = itemsToCreate[ii];
-
-                // skip items that have already been processed.
-                if (monitoredItemCreateRequest.Processed)
-                {
-                    continue;
-                }
-
-                ReadValueId itemToMonitor = monitoredItemCreateRequest.ItemToMonitor;
-
-                // check for valid handle.
-                NodeHandle handle = GetManagerHandle(systemContext, itemToMonitor.NodeId, operationCache);
-
-                if (handle == null)
-                {
-                    continue;
-                }
-
-                // owned by this node manager.
-                monitoredItemCreateRequest.Processed = true;
-
-                // must validate node in a separate operation.
-                errors[ii] = StatusCodes.BadNodeIdUnknown;
-
-                handle.Index = ii;
-                nodesToValidate.Add(handle);
-            }
-
-            // check for nothing to do.
-            if (nodesToValidate.Count == 0)
-            {
-                return;
-            }
+            Interlocked.Exchange(ref _scriptEngine, null)?.Dispose();
         }
-
-        // validates the nodes (reads values from the underlying data source if required).
-        for (int ii = 0; ii < nodesToValidate.Count; ii++)
-        {
-            NodeHandle handle = nodesToValidate[ii];
-
-            MonitoringFilterResult filterResult = null;
-            IMonitoredItem monitoredItem = null;
-
-            lock (Lock)
-            {
-                // validate node.
-                NodeState source = ValidateNode(systemContext, handle, operationCache);
-
-                if (source == null)
-                {
-                    continue;
-                }
-
-                MonitoredItemCreateRequest itemToCreate = itemsToCreate[handle.Index];
-
-                // create monitored item.
-                errors[handle.Index] = CreateMonitoredItem(
-                    systemContext,
-                    handle,
-                    subscriptionId,
-                    publishingInterval,
-                    context.DiagnosticsMask,
-                    timestampsToReturn,
-                    itemToCreate,
-                    createDurable,
-                    monitoredItemIdFactory,
-                    out filterResult,
-                    out monitoredItem);
-            }
-
-            // save any filter error details.
-            filterErrors[handle.Index] = filterResult;
-
-            if (ServiceResult.IsBad(errors[handle.Index]))
-            {
-                continue;
-            }
-
-            // save the monitored item.
-            monitoredItems[handle.Index] = monitoredItem;
-            createdItems.Add(monitoredItem);
-        }
-
-        // do any post processing.
-        OnCreateMonitoredItemsComplete(systemContext, createdItems);
+        base.Dispose(disposing);
     }
 
-    /// <summary>
-    /// Verifies that the specified node exists.
-    /// </summary>
-    protected override NodeState ValidateNode(
-        ServerSystemContext context,
-        NodeHandle handle,
-        IDictionary<NodeId, NodeState> cache)
+    public override async ValueTask DeleteAddressSpaceAsync(CancellationToken cancellationToken = default)
     {
-        // lookup in cache.
-        NodeState target = FindNodeInCache(context, handle, cache);
-
-        if (target != null)
+        cancellationToken.ThrowIfCancellationRequested();
+        ScriptEngine engine = Interlocked.Exchange(ref _scriptEngine, null);
+        if (engine is not null)
         {
-            handle.Node = target;
-            handle.Validated = true;
-            return handle.Node;
+            await engine.DisposeAsync().ConfigureAwait(false);
         }
-
-        // return default.
-        return handle.Node;
-    }
-
-    /// <summary>
-    /// Subscribes or unsubscribes to events produced by all event sources.
-    /// </summary>
-    /// <remarks>
-    /// This method is called when a event subscription is created or deleted. The node
-    /// manager must start/stop reporting events for all objects that it manages.
-    /// </remarks>
-    public override ServiceResult SubscribeToAllEvents(
-        OperationContext context,
-        uint subscriptionId,
-        IEventMonitoredItem monitoredItem,
-        bool unsubscribe)
-    {
-        ServerSystemContext serverSystemContext = SystemContext.Copy(context);
-
-        lock (Lock)
+        await base.DeleteAddressSpaceAsync(cancellationToken).ConfigureAwait(false);
+        lock (SyncRoot)
         {
-            // A client has subscribed to the Server object which means all events produced
-            // by this manager must be reported. This is done by incrementing the monitoring
-            // reference count for all root notifiers.
-            if (_rootNotifiers != null)
-            {
-                for (int ii = 0; ii < _rootNotifiers.Count; ii++)
-                {
-                    SubscribeToEvents(serverSystemContext, _rootNotifiers[ii], monitoredItem, unsubscribe);
-                }
-            }
-
-            return ServiceResult.Good;
+            _folders.Clear();
+            _sourceNodes.Clear();
+            _system.SourceNodes.Clear();
+            _scriptAlarmToSources?.Clear();
         }
     }
 
-    /// <summary>
-    /// Subscribes to events.
-    /// </summary>
-    /// <param name="context">The context.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="monitoredItem">The monitored item.</param>
-    /// <param name="unsubscribe">if set to <c>true</c> [unsubscribe].</param>
-    /// <returns>Any error code.</returns>
-    protected override ServiceResult SubscribeToEvents(
-        ServerSystemContext context,
-        NodeState source,
-        IEventMonitoredItem monitoredItem,
-        bool unsubscribe)
-    {
-        // handle unsubscribe.
-        if (unsubscribe)
-        {
-            // check for existing monitored node.
-            if (!MonitoredNodes.TryGetValue(source.NodeId, out MonitoredNode2 monitoredNode2))
-            {
-                return StatusCodes.BadNodeIdUnknown;
-            }
 
-            monitoredNode2.Remove(monitoredItem);
 
-            // check if node is no longer being monitored.
-            if (!monitoredNode2.HasMonitoredItems)
-            {
-                MonitoredNodes.Remove(source.NodeId);
-            }
 
-            // update flag.
-            source.SetAreEventsMonitored(context, !unsubscribe, true);
-
-            // call subclass.
-            OnSubscribeToEvents(context, monitoredNode2, unsubscribe);
-
-            // all done.
-            return ServiceResult.Good;
-        }
-
-        // only objects or views can be subscribed to.
-
-        if ((source is not BaseObjectState instance || (instance.EventNotifier & EventNotifiers.SubscribeToEvents) == 0) &&
-            (source is not ViewState view || (view.EventNotifier & EventNotifiers.SubscribeToEvents) == 0))
-        {
-            return StatusCodes.BadNotSupported;
-        }
-
-        // check for existing monitored node.
-        if (!MonitoredNodes.TryGetValue(source.NodeId, out MonitoredNode2 monitoredNode))
-        {
-            MonitoredNodes[source.NodeId] = monitoredNode = new MonitoredNode2(this, source);
-        }
-
-        // this links the node to specified monitored item and ensures all events
-        // reported by the node are added to the monitored item's queue.
-        monitoredNode.Add(monitoredItem);
-
-        // This call recursively updates a reference count all nodes in the notifier
-        // hierarchy below the area. Sources with a reference count of 0 do not have
-        // any active subscriptions so they do not need to report events.
-        source.SetAreEventsMonitored(context, !unsubscribe, true);
-
-        // signal update.
-        OnSubscribeToEvents(context, monitoredNode, unsubscribe);
-
-        // all done.
-        return ServiceResult.Good;
-    }
 
     /// <summary>
     /// Does any initialization required before the address space can be used.
@@ -465,21 +259,25 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
     /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
     /// should have a reference to the root folder node(s) exposed by this node manager.
     /// </remarks>
-    public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+    public override async ValueTask CreateAddressSpaceAsync(
+        IDictionary<NodeId, IList<IReference>> externalReferences,
+        CancellationToken cancellationToken = default)
     {
-        lock (Lock)
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!externalReferences.TryGetValue(ObjectIds.Server, out IList<IReference> references))
         {
-            if (!externalReferences.TryGetValue(ObjectIds.Server, out IList<IReference> references))
-            {
-                externalReferences[ObjectIds.Server] = references = new List<IReference>();
-            }
+            externalReferences[ObjectIds.Server] = references = new List<IReference>();
+        }
 
-            // Folders Nodes
-            foreach (var folder in _scriptConfiguration.Folders)
+        // Folders Nodes
+        foreach (var folder in _scriptConfiguration.Folders)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            SimFolderState simFolderState;
+            lock (SyncRoot)
             {
-                var simFolderState = new SimFolderState(SystemContext, null, new NodeId(folder.Name, NamespaceIndex), folder.Name);
+                simFolderState = new SimFolderState(SystemContext, null, new NodeId(folder.Name, NamespaceIndex), folder.Name);
                 simFolderState.AddReference(ReferenceTypeIds.HasNotifier, true, ObjectIds.Server);
-                AddRootNotifier(simFolderState);
                 _folders.Add(simFolderState);
 
                 // Source Nodes
@@ -494,127 +292,18 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
                     simSourceNodeState.AddNotifier(SystemContext, ReferenceTypeIds.HasEventSource, true, simFolderState);
                     simFolderState.AddNotifier(SystemContext, ReferenceTypeIds.HasEventSource, false, simSourceNodeState);
                 }
-
-                references.Add(new NodeStateReference(ReferenceTypeIds.HasNotifier, false, simFolderState.NodeId));
-
-                AddPredefinedNode(SystemContext, simFolderState);
             }
+
+            await AddRootNotifierAsync(simFolderState, cancellationToken).ConfigureAwait(false);
+            references.Add(new NodeStateReference(ReferenceTypeIds.HasNotifier, false, simFolderState.NodeId));
+            await AddPredefinedNodeAsync(SystemContext, simFolderState, cancellationToken).ConfigureAwait(false);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         ReplayScriptStart(_scriptConfiguration);
     }
 
-    /// <summary>
-    /// Tells the node manager to refresh any conditions associated with the specified monitored items.
-    /// </summary>
-    /// <remarks>
-    /// This method is called when the condition refresh method is called for a subscription.
-    /// The node manager must create a refresh event for each condition monitored by the subscription.
-    /// </remarks>
-    public override ServiceResult ConditionRefresh(
-        OperationContext context,
-        IList<IEventMonitoredItem> monitoredItems)
-    {
-        foreach (var monitoredItem in monitoredItems.Cast<MonitoredItem>())
-        {
-            if (monitoredItem == null)
-            {
-                continue;
-            }
 
-            List<IFilterTarget> events = new();
-            List<NodeState> nodesToRefresh = new();
-
-            lock (Lock)
-            {
-                // check for server subscription.
-                if (monitoredItem.NodeId == ObjectIds.Server)
-                {
-                    if (_rootNotifiers != null)
-                    {
-                        nodesToRefresh.AddRange(_rootNotifiers);
-                    }
-                }
-                else
-                {
-                    if (!MonitoredNodes.TryGetValue(monitoredItem.NodeId, out MonitoredNode2 monitoredNode))
-                    {
-                        continue;
-                    }
-
-                    // get the refresh events.
-                    nodesToRefresh.Add(monitoredNode.Node);
-                }
-            }
-
-            foreach (var node in nodesToRefresh)
-            {
-                node.ConditionRefresh(SystemContext, events, true);
-            }
-
-            foreach (var @event in events)
-            {
-                monitoredItem.QueueEvent(@event);
-            }
-        }
-
-        return ServiceResult.Good;
-    }
-
-    /// <summary>
-    /// Adds a root notifier.
-    /// </summary>
-    /// <param name="notifier">The notifier.</param>
-    /// <remarks>
-    /// A root notifier is a notifier owned by the NodeManager that is not the target of a
-    /// HasNotifier reference. These nodes need to be linked directly to the Server object.
-    /// </remarks>
-    protected override void AddRootNotifier(NodeState notifier)
-    {
-        if (_rootNotifiers == null)
-        {
-            _rootNotifiers = new List<NodeState>();
-        }
-
-        for (int ii = 0; ii < _rootNotifiers.Count; ii++)
-        {
-            if (ReferenceEquals(notifier, _rootNotifiers[ii]))
-            {
-                return;
-            }
-        }
-
-        _rootNotifiers.Add(notifier);
-
-        // need to prevent recursion with the server object.
-        if (notifier.NodeId != ObjectIds.Server)
-        {
-            notifier.OnReportEvent = OnReportEvent;
-
-            if (!notifier.ReferenceExists(ReferenceTypeIds.HasNotifier, true, ObjectIds.Server))
-            {
-                notifier.AddReference(ReferenceTypeIds.HasNotifier, true, ObjectIds.Server);
-            }
-        }
-
-        // subscribe to existing events.
-        if (_server.EventManager != null)
-        {
-            IList<IEventMonitoredItem> monitoredItems = _server.EventManager.GetMonitoredItems();
-
-            for (int ii = 0; ii < monitoredItems.Count; ii++)
-            {
-                if (monitoredItems[ii].MonitoringAllEvents)
-                {
-                    SubscribeToEvents(
-                        SystemContext,
-                        notifier,
-                        monitoredItems[ii],
-                        true);
-                }
-            }
-        }
-    }
 
     /// <summary>
     /// Creates the NodeId for the specified node.
@@ -634,15 +323,6 @@ public partial class DeterministicAlarmsNodeManager : CustomNodeManager2
         return new NodeId(++_nodeIdCounter, NamespaceIndex);
     }
 
-    /// <summary>
-    /// Loads a node set from a file or resource and adds them to the set of predefined nodes.
-    /// </summary>
-    protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
-    {
-        NodeStateCollection predefinedNodes = new();
-
-        return predefinedNodes;
-    }
     #endregion
 
     [LoggerMessage(

@@ -45,7 +45,7 @@ public class VariableTests : SimulatorTestsBase
         results.Should().Be(StatusCodes.Good);
 
         (await ReadDataValueAsync(nodeId).ConfigureAwait(false))
-            .Value
+            .WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy)
             .Should().BeEquivalentTo(newValue);
     }
 }

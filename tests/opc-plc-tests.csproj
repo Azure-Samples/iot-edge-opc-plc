@@ -5,6 +5,7 @@
     <RootNamespace>OpcPlc.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
     <LangVersion>Preview</LangVersion>
+    <UseOpcUaModelSourceGenerator>true</UseOpcUaModelSourceGenerator>
   </PropertyGroup>
 
   <ItemGroup>
@@ -68,9 +69,37 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\opc-plc.csproj" />
+    <ProjectReference Include="..\models\BoilerModel1\BoilerModel1.csproj" />
+    <AdditionalFiles Include="..\src\Boilers\Boiler2\BoilerModel2.NodeSet2.xml"
+                     ModelSourceGeneratorModelUri="http://microsoft.com/Opc/OpcPlc/Boiler"
+                     ModelSourceGeneratorName="BoilerModel2" ModelSourceGeneratorPrefix="BoilerModel2" />
+    <AdditionalFiles Include="..\src\CompanionSpecs\DI\Opc.Ua.DI.NodeSet2.xml"
+                     ModelSourceGeneratorModelUri="http://opcfoundation.org/UA/DI/"
+                     ModelSourceGeneratorName="DI" ModelSourceGeneratorPrefix="Opc.Ua.DI" />
+    <AdditionalFiles Include="..\src\CompanionSpecs\WotCon\Opc.Ua.WotCon.NodeSet2.xml"
+                     ModelSourceGeneratorModelUri="http://opcfoundation.org/UA/WoT-Con/"
+                     ModelSourceGeneratorName="WotCon" ModelSourceGeneratorPrefix="Opc.Ua.WotCon" />
+    <AdditionalFiles Include="..\src\SimpleEvent\SimpleEvents.NodeSet2.xml"
+                     ModelSourceGeneratorModelUri="http://microsoft.com/Opc/OpcPlc/SimpleEvents"
+                     ModelSourceGeneratorName="SimpleEvents" ModelSourceGeneratorPrefix="SimpleEvents" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="TestResults/**/*.cs" />
+    <EmbeddedResource Remove="TestResults/**/*" />
+    <None Remove="TestResults/**/*" />
+    <Using Include="System.Collections.Generic" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ModelBaselines\GeneratedApiDifferences.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\src\Boilers\**\*.Classes.cs;..\src\CompanionSpecs\DI\*.Classes.cs;..\src\CompanionSpecs\WotCon\*.Classes.cs;..\src\SimpleEvent\*.Classes.cs"
+          Link="ModelBaselines\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\src\Boilers\**\*.NodeIds.csv;..\src\Boilers\**\*.NodeSet2.xml;..\src\CompanionSpecs\DI\*.NodeIds.csv;..\src\CompanionSpecs\DI\*.NodeSet2.xml;..\src\CompanionSpecs\WotCon\*.NodeIds.csv;..\src\CompanionSpecs\WotCon\*.NodeSet2.xml;..\src\SimpleEvent\*.NodeIds.csv;..\src\SimpleEvent\*.NodeSet2.xml"
+          Link="ModelBaselines\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

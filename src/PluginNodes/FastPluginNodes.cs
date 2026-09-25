@@ -6,6 +6,8 @@ using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 
 /// <summary>
@@ -26,7 +28,7 @@ public partial class FastPluginNodes(TimeService timeService, ILogger logger) : 
     private SlowFastCommon _slowFastCommon;
     protected BaseDataVariableState[] _nodes;
     protected BaseDataVariableState[] _badNodes;
-    private ITimer _nodeGenerator;
+    private OpcPlc.ITimer _nodeGenerator;
     private bool _updateNodes = true;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
@@ -77,8 +79,11 @@ public partial class FastPluginNodes(TimeService timeService, ILogger logger) : 
             (uint i) => NodeRate = i);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
         _slowFastCommon = new SlowFastCommon(_plcNodeManager, _timeService, _logger);
 
@@ -97,6 +102,8 @@ public partial class FastPluginNodes(TimeService timeService, ILogger logger) : 
 
         AddNodes(folder, simulatorFolder);
         AddMethods(methodsFolder);
+
+        return ValueTask.CompletedTask;
     }
 
     private void AddMethods(FolderState methodsFolder)
@@ -154,7 +161,7 @@ public partial class FastPluginNodes(TimeService timeService, ILogger logger) : 
         foreach (var node in _nodes)
         {
             nodes.Add(new NodeWithIntervals {
-                NodeId = node.NodeId.Identifier.ToString(),
+                NodeId = node.NodeId.IdentifierAsString,
                 Namespace = OpcPlc.Namespaces.OpcPlcApplications,
                 PublishingInterval = NodeRate,
                 SamplingInterval = NodeSamplingInterval,
@@ -164,7 +171,7 @@ public partial class FastPluginNodes(TimeService timeService, ILogger logger) : 
         foreach (var node in _badNodes)
         {
             nodes.Add(new NodeWithIntervals {
-                NodeId = node.NodeId.Identifier.ToString(),
+                NodeId = node.NodeId.IdentifierAsString,
                 Namespace = OpcPlc.Namespaces.OpcPlcApplications,
                 PublishingInterval = NodeRate,
                 SamplingInterval = NodeSamplingInterval,
@@ -187,7 +194,8 @@ public partial class FastPluginNodes(TimeService timeService, ILogger logger) : 
     /// <summary>
     /// Method to stop updating the fast nodes.
     /// </summary>
-    private ServiceResult OnStopUpdateFastNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnStopUpdateFastNodes(ISystemContext context, MethodState method,
+        ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
         _updateNodes = false;
         LogStopUpdateFastNodesMethodCalled();
@@ -197,7 +205,8 @@ public partial class FastPluginNodes(TimeService timeService, ILogger logger) : 
     /// <summary>
     /// Method to start updating the fast nodes.
     /// </summary>
-    private ServiceResult OnStartUpdateFastNodes(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnStartUpdateFastNodes(ISystemContext context, MethodState method,
+        ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
         _updateNodes = true;
         LogStartUpdateFastNodesMethodCalled();

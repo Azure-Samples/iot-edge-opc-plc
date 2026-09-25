@@ -30,6 +30,18 @@ public sealed class OpcTelemetryContext : ITelemetryContext, IDisposable
         return new Meter(_name, _version);
     }
 
+    public Meter CreateMeter(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        return CreateMeter();
+    }
+
+    public ActivitySource GetActivitySource(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        return ActivitySource;
+    }
+
     public void Dispose()
     {
         ActivitySource.Dispose();

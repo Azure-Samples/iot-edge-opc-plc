@@ -1,5 +1,7 @@
 namespace OpcPlc.Tests.CompanionSpecs.WotCon;
 
+using System.Collections.Generic;
+
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
@@ -57,14 +59,14 @@ public class WotConValueSubscriptionTests : SubscriptionTestsBase
         // received can only come from a simulation tick.
         var seedNotification = ReceiveEvents(1).ToList()[0].NotificationValue
             .Should().BeOfType<MonitoredItemNotification>().Subject;
-        object seedValue = seedNotification.Value.Value;
+        object seedValue = seedNotification.Value.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
         seedValue.Should().BeOfType<int>();
 
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         var notifications = ReceiveEvents(1).ToList();
         var notification = notifications[0].NotificationValue.Should().BeOfType<MonitoredItemNotification>().Subject;
-        notification.Value.Value.Should().BeOfType<int>().And.NotBe(seedValue);
+        notification.Value.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().BeOfType<int>().And.NotBe(seedValue);
         StatusCode.IsGood(notification.Value.StatusCode).Should().BeTrue();
     }
 
@@ -78,11 +80,11 @@ public class WotConValueSubscriptionTests : SubscriptionTestsBase
         var (createStatus, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(assetName) }).ConfigureAwait(false);
         StatusCode.IsGood(createStatus).Should().BeTrue("CreateAsset should succeed, got {0}", createStatus);
 
-        var assetId = outputs[0].Value as NodeId;
-        assetId.Should().NotBeNull();
+        outputs[0].TryGetValue(out NodeId assetId).Should().BeTrue();
+        assetId.IsNull.Should().BeFalse();
 
         NodeId fileId = await TranslateChildAsync(assetId, new QualifiedName("WoTFile", WotConNamespaceIndex)).ConfigureAwait(false);
         return (assetId, fileId);
@@ -97,24 +99,24 @@ public class WotConValueSubscriptionTests : SubscriptionTestsBase
         var (openStatus, openOutputs) = await CallAsync(
             objectId: fileId,
             methodId: new NodeId(Methods.FileType_Open, 0),
-            arguments: new VariantCollection { new Variant((byte)6) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant((byte)6) }).ConfigureAwait(false);
         StatusCode.IsGood(openStatus).Should().BeTrue("Open should succeed, got {0}", openStatus);
-        uint handle = Convert.ToUInt32(openOutputs[0].Value);
+        uint handle = Convert.ToUInt32(openOutputs[0].AsBoxedObject(Variant.BoxingBehavior.Legacy));
 
         var (writeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: new NodeId(Methods.FileType_Write, 0),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant(handle),
-                new Variant(System.Text.Encoding.UTF8.GetBytes(td)),
+                Variant.From((ByteString)System.Text.Encoding.UTF8.GetBytes(td)),
             }).ConfigureAwait(false);
         StatusCode.IsGood(writeStatus).Should().BeTrue("Write should succeed, got {0}", writeStatus);
 
         var (closeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(handle) }).ConfigureAwait(false);
         StatusCode.IsGood(closeStatus).Should().BeTrue("CloseAndUpdate should succeed, got {0}", closeStatus);
     }
 
@@ -129,7 +131,7 @@ public class WotConValueSubscriptionTests : SubscriptionTestsBase
             RelativePath = new RelativePath
             {
                 Elements =
-                {
+                [
                     new RelativePathElement
                     {
                         ReferenceTypeId = ReferenceTypeIds.HasComponent,
@@ -137,26 +139,26 @@ public class WotConValueSubscriptionTests : SubscriptionTestsBase
                         IncludeSubtypes = true,
                         TargetName = targetName,
                     },
-                },
+                ],
             },
         };
 
         var response = await Session.TranslateBrowsePathsToNodeIdsAsync(
             null,
-            new BrowsePathCollection { browsePath },
+            new List<BrowsePath> { browsePath },
             CancellationToken.None).ConfigureAwait(false);
 
-        response.Results.Should().ContainSingle();
+        response.Results.ToArray().Should().ContainSingle();
         var result = response.Results[0];
         StatusCode.IsGood(result.StatusCode).Should().BeTrue("resolving '{0}' should succeed, got {1}", targetName.Name, result.StatusCode);
-        result.Targets.Should().ContainSingle();
+        result.Targets.ToArray().Should().ContainSingle();
         return ToNodeId(result.Targets[0].TargetId);
     }
 
-    private async Task<(StatusCode Status, VariantCollection Outputs)> CallAsync(
+    private async Task<(StatusCode Status, List<Variant> Outputs)> CallAsync(
         NodeId objectId,
         NodeId methodId,
-        VariantCollection arguments)
+        List<Variant> arguments)
     {
         var request = new CallMethodRequest
         {
@@ -167,11 +169,11 @@ public class WotConValueSubscriptionTests : SubscriptionTestsBase
 
         var response = await Session.CallAsync(
             null,
-            new CallMethodRequestCollection { request },
+            new List<CallMethodRequest> { request },
             CancellationToken.None).ConfigureAwait(false);
 
-        response.Results.Should().ContainSingle();
+        response.Results.ToArray().Should().ContainSingle();
         var result = response.Results[0];
-        return (result.StatusCode, result.OutputArguments ?? new VariantCollection());
+        return (result.StatusCode, result.OutputArguments.ToArray().ToList());
     }
 }

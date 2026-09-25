@@ -72,13 +72,13 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
 
     public void Close() => _innerStore.Close();
 
-    public Task AddAsync(X509Certificate2 certificate, char[] password = null, CancellationToken ct = default) => _innerStore.AddAsync(certificate, password, ct);
+    public Task AddAsync(Certificate certificate, char[] password = null, CancellationToken ct = default) => _innerStore.AddAsync(certificate, password, ct);
 
-    public Task AddRejectedAsync(X509Certificate2Collection certificates, int maxCertificates, CancellationToken ct = default) => _innerStore.AddRejectedAsync(certificates, maxCertificates, ct);
+    public Task AddRejectedAsync(CertificateCollection certificates, int maxCertificates, CancellationToken ct = default) => _innerStore.AddRejectedAsync(certificates, maxCertificates, ct);
 
     public Task<bool> DeleteAsync(string thumbprint, CancellationToken ct = default) => _innerStore.DeleteAsync(thumbprint, ct);
 
-    public async Task<X509Certificate2Collection> EnumerateAsync(CancellationToken ct = default)
+    public async Task<CertificateCollection> EnumerateAsync(CancellationToken ct = default)
     {
         var certificatesCollection = await _innerStore.EnumerateAsync(ct).ConfigureAwait(false);
 
@@ -93,9 +93,12 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
 
             try
             {
-                var certificates = new X509Certificate2Collection();
-                certificates.ImportFromPemFile(filePath);
-                certificatesCollection.AddRange(certificates);
+                using var certificates = CertificateCollection.From(
+                    PEMReader.ImportPublicKeysFromPEM(await File.ReadAllBytesAsync(filePath, ct).ConfigureAwait(false)));
+                foreach (var certificate in certificates)
+                {
+                    certificatesCollection.Add(certificate);
+                }
             }
             catch (Exception e)
             {
@@ -111,9 +114,9 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
 
     public Task<X509CRLCollection> EnumerateCRLsAsync(CancellationToken ct = default) => _innerStore.EnumerateCRLsAsync(ct);
 
-    public Task<X509CRLCollection> EnumerateCRLsAsync(X509Certificate2 issuer, bool validateUpdateTime = true, CancellationToken ct = default) => _innerStore.EnumerateCRLsAsync(issuer, validateUpdateTime, ct);
+    public Task<X509CRLCollection> EnumerateCRLsAsync(Certificate issuer, bool validateUpdateTime = true, CancellationToken ct = default) => _innerStore.EnumerateCRLsAsync(issuer, validateUpdateTime, ct);
 
-    public async Task<X509Certificate2Collection> FindByThumbprintAsync(string thumbprint, CancellationToken ct = default)
+    public async Task<CertificateCollection> FindByThumbprintAsync(string thumbprint, CancellationToken ct = default)
     {
         var certificatesCollection = await _innerStore.FindByThumbprintAsync(thumbprint, ct).ConfigureAwait(false);
 
@@ -128,9 +131,9 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
 
             try
             {
-                var certificates = new X509Certificate2Collection();
-                certificates.ImportFromPemFile(filePath);
-                foreach (var certificate in certificates.Cast<X509Certificate2>().Where(c => string.Equals(c.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase)))
+                using var certificates = CertificateCollection.From(
+                    PEMReader.ImportPublicKeysFromPEM(await File.ReadAllBytesAsync(filePath, ct).ConfigureAwait(false)));
+                foreach (var certificate in certificates.Where(candidate => string.Equals(candidate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase)))
                 {
                     certificatesCollection.Add(certificate);
                 }
@@ -143,14 +146,14 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
         return certificatesCollection;
     }
 
-    public Task<StatusCode> IsRevokedAsync(X509Certificate2 issuer, X509Certificate2 certificate, CancellationToken ct = default) => _innerStore.IsRevokedAsync(issuer, certificate, ct);
+    public Task<StatusCode> IsRevokedAsync(Certificate issuer, Certificate certificate, CancellationToken ct = default) => _innerStore.IsRevokedAsync(issuer, certificate, ct);
 
-    public Task<X509Certificate2> LoadPrivateKeyAsync(string thumbprint, string subjectName, string password, CancellationToken ct = default)
-        => LoadPrivateKeyAsync(thumbprint, subjectName, applicationUri: null, certificateType: null, password?.ToCharArray(), ct);
+    public Task<Certificate> LoadPrivateKeyAsync(string thumbprint, string subjectName, string password, CancellationToken ct = default)
+        => LoadPrivateKeyAsync(thumbprint, subjectName, applicationUri: null, certificateType: default, password?.ToCharArray(), ct);
 
-    public async Task<X509Certificate2> LoadPrivateKeyAsync(string thumbprint, string subjectName, string applicationUri, NodeId certificateType, char[] password = null, CancellationToken ct = default)
+    public async Task<Certificate> LoadPrivateKeyAsync(string thumbprint, string subjectName, string applicationUri, NodeId certificateType, char[] password = null, CancellationToken ct = default)
     {
-        if (ct.IsCancellationRequested)
+        if (NoPrivateKeys || ct.IsCancellationRequested)
         {
             return null;
         }
@@ -171,9 +174,9 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
             {
                 var keyFilePath = filePath.Replace(CrtExtension, KeyExtension, StringComparison.OrdinalIgnoreCase);
                 if (!File.Exists(keyFilePath)) continue;
-                using var certificate = X509CertificateLoader.LoadCertificateFromFile(filePath);
+                using var certificate = new Certificate(filePath);
                 if (!MatchCertificate(certificate, thumbprint, subjectName, certificateType)) continue;
-                return X509Certificate2.CreateFromPemFile(filePath, keyFilePath);
+                return Certificate.From(X509Certificate2.CreateFromPemFile(filePath, keyFilePath));
             }
             catch (Exception e)
             {
@@ -184,9 +187,9 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
         return await _innerStore.LoadPrivateKeyAsync(thumbprint, subjectName, applicationUri, certificateType, password, ct).ConfigureAwait(false);
     }
 
-    private static bool MatchCertificate(X509Certificate2 certificate, string thumbprint, string subjectName, NodeId certificateType)
+    private static bool MatchCertificate(Certificate certificate, string thumbprint, string subjectName, NodeId certificateType)
     {
-        if (certificateType == null || certificateType == ObjectTypeIds.RsaSha256ApplicationCertificateType || certificateType == ObjectTypeIds.RsaMinApplicationCertificateType || certificateType == ObjectTypeIds.ApplicationCertificateType)
+        if (certificateType.IsNull || certificateType == ObjectTypeIds.RsaSha256ApplicationCertificateType || certificateType == ObjectTypeIds.RsaMinApplicationCertificateType || certificateType == ObjectTypeIds.ApplicationCertificateType)
         {
             if (!string.IsNullOrEmpty(thumbprint) && !string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase)) return false;
             if (!string.IsNullOrEmpty(subjectName) && !X509Utils.CompareDistinguishedName(subjectName, certificate.Subject) && (subjectName.Contains('=', StringComparison.OrdinalIgnoreCase) || !X509Utils.ParseDistinguishedName(certificate.Subject).Any(s => s.Equals("CN=" + subjectName, StringComparison.Ordinal)))) return false;

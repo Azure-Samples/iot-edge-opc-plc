@@ -9,6 +9,8 @@ using Opc.Ua.Server;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Materializes the optional members of <c>WoTAssetConnectionManagementType</c> (i=1) on
@@ -31,17 +33,17 @@ public partial class WotConNodeManager
     // bound to the model-compiler-generated constants in Opc.Ua.WotCon.{Methods,Objects,
     // ObjectTypes,Variables} so a future NodeSet regeneration that renames any of these
     // fails the compile rather than mismatching silently at runtime.
-    private const uint SupportedWoTBindingsTypeVariableId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_SupportedWoTBindings;
-    private const uint DiscoverAssetsTypeMethodId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagementType_DiscoverAssets;
-    private const uint DiscoverAssetsOutputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_DiscoverAssets_OutputArguments;
-    private const uint CreateAssetForEndpointTypeMethodId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagementType_CreateAssetForEndpoint;
-    private const uint CreateAssetForEndpointInputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_CreateAssetForEndpoint_InputArguments;
-    private const uint CreateAssetForEndpointOutputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_CreateAssetForEndpoint_OutputArguments;
-    private const uint ConnectionTestTypeMethodId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagementType_ConnectionTest;
-    private const uint ConnectionTestInputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_ConnectionTest_InputArguments;
-    private const uint ConnectionTestOutputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagementType_ConnectionTest_OutputArguments;
-    private const uint ConfigurationTypeObjectId = Opc.Ua.WotCon.Objects.WoTAssetConnectionManagementType_Configuration;
-    private const uint WoTAssetConfigurationTypeId = Opc.Ua.WotCon.ObjectTypes.WoTAssetConfigurationType;
+    private const uint SupportedWoTBindingsTypeVariableId = RuntimeModelIds.WotCon.Variables.WoTAssetConnectionManagementType_SupportedWoTBindings;
+    private const uint DiscoverAssetsTypeMethodId = RuntimeModelIds.WotCon.Methods.WoTAssetConnectionManagementType_DiscoverAssets;
+    private const uint DiscoverAssetsOutputArgumentsId = RuntimeModelIds.WotCon.Variables.WoTAssetConnectionManagementType_DiscoverAssets_OutputArguments;
+    private const uint CreateAssetForEndpointTypeMethodId = RuntimeModelIds.WotCon.Methods.WoTAssetConnectionManagementType_CreateAssetForEndpoint;
+    private const uint CreateAssetForEndpointInputArgumentsId = RuntimeModelIds.WotCon.Variables.WoTAssetConnectionManagementType_CreateAssetForEndpoint_InputArguments;
+    private const uint CreateAssetForEndpointOutputArgumentsId = RuntimeModelIds.WotCon.Variables.WoTAssetConnectionManagementType_CreateAssetForEndpoint_OutputArguments;
+    private const uint ConnectionTestTypeMethodId = RuntimeModelIds.WotCon.Methods.WoTAssetConnectionManagementType_ConnectionTest;
+    private const uint ConnectionTestInputArgumentsId = RuntimeModelIds.WotCon.Variables.WoTAssetConnectionManagementType_ConnectionTest_InputArguments;
+    private const uint ConnectionTestOutputArgumentsId = RuntimeModelIds.WotCon.Variables.WoTAssetConnectionManagementType_ConnectionTest_OutputArguments;
+    private const uint ConfigurationTypeObjectId = RuntimeModelIds.WotCon.Objects.WoTAssetConnectionManagementType_Configuration;
+    private const uint WoTAssetConfigurationTypeId = RuntimeModelIds.WotCon.ObjectTypes.WoTAssetConfigurationType;
 
     // OPC UA Part 5 §12.20: UriString (subtype of String) — backing DataType for
     // WoTBindingType in the WoT-Con NodeSet (DataType="i=23751" on i=40). Lives in
@@ -55,7 +57,7 @@ public partial class WotConNodeManager
     /// <summary>
     /// Maps the type-side method NodeIds of the optional management members (i=41 / i=49 /
     /// i=75) to the runtime-allocated instance method NodeIds we materialize on i=31. The
-    /// <see cref="Call"/> override consults this dict to remap incoming type-method calls
+    /// <see cref="CallAsync"/> override consults this dict to remap incoming type-method calls
     /// onto the instance method, mirroring the workaround already used for CreateAsset /
     /// DeleteAsset.
     /// </summary>
@@ -81,7 +83,7 @@ public partial class WotConNodeManager
                 nsIdx,
                 managementObject,
                 typeMethodId: DiscoverAssetsTypeMethodId,
-                browseName: Opc.Ua.WotCon.BrowseNames.DiscoverAssets,
+                browseName: RuntimeModelIds.WotCon.BrowseNames.DiscoverAssets,
                 inputArgs: null,
                 outputArgs: new[] { MakeArgArray("AssetEndpoints", DataTypes.String) },
                 handler: OnDiscoverAssets);
@@ -91,21 +93,22 @@ public partial class WotConNodeManager
                 nsIdx,
                 managementObject,
                 typeMethodId: CreateAssetForEndpointTypeMethodId,
-                browseName: Opc.Ua.WotCon.BrowseNames.CreateAssetForEndpoint,
+                browseName: RuntimeModelIds.WotCon.BrowseNames.CreateAssetForEndpoint,
                 inputArgs: new[]
                 {
                     MakeArg("AssetName", DataTypes.String),
                     MakeArg("AssetEndpoint", DataTypes.String),
                 },
                 outputArgs: new[] { MakeArg("AssetId", DataTypes.NodeId) },
-                handler: OnCreateAssetForEndpoint);
+                handler: null,
+                asyncHandler: OnCreateAssetForEndpointAsync);
 
             MaterializeOptionalMethod(
                 context,
                 nsIdx,
                 managementObject,
                 typeMethodId: ConnectionTestTypeMethodId,
-                browseName: Opc.Ua.WotCon.BrowseNames.ConnectionTest,
+                browseName: RuntimeModelIds.WotCon.BrowseNames.ConnectionTest,
                 inputArgs: new[] { MakeArg("AssetEndpoint", DataTypes.String) },
                 outputArgs: new[]
                 {
@@ -125,25 +128,23 @@ public partial class WotConNodeManager
 
     private void MaterializeSupportedWoTBindings(ISystemContext context, ushort nsIdx, BaseObjectState managementObject)
     {
-        var prop = new PropertyState<string[]>(managementObject)
-        {
-            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-            BrowseName = new QualifiedName(Opc.Ua.WotCon.BrowseNames.SupportedWoTBindings, NamespaceIndex),
-            DisplayName = Opc.Ua.WotCon.BrowseNames.SupportedWoTBindings,
-            ReferenceTypeId = ReferenceTypeIds.HasProperty,
-            TypeDefinitionId = VariableTypeIds.PropertyType,
-            DataType = new NodeId(UriStringDataTypeId, 0),
-            ValueRank = ValueRanks.OneDimension,
-            ArrayDimensions = new[] { 0u },
-            AccessLevel = AccessLevels.CurrentRead,
-            UserAccessLevel = AccessLevels.CurrentRead,
-            Value = (string[])WotConBindings.SupportedBindings.Clone(),
-            StatusCode = StatusCodes.Good,
-            Timestamp = DateTime.UtcNow,
-        };
+        var prop = PropertyState<ArrayOf<string>>.With<VariantBuilder>(managementObject);
+        prop.NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
+        prop.BrowseName = new QualifiedName(RuntimeModelIds.WotCon.BrowseNames.SupportedWoTBindings, NamespaceIndex);
+        prop.DisplayName = new LocalizedText(RuntimeModelIds.WotCon.BrowseNames.SupportedWoTBindings);
+        prop.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+        prop.TypeDefinitionId = VariableTypeIds.PropertyType;
+        prop.DataType = new NodeId(UriStringDataTypeId, 0);
+        prop.ValueRank = ValueRanks.OneDimension;
+        prop.ArrayDimensions = [0];
+        prop.AccessLevel = AccessLevels.CurrentRead;
+        prop.UserAccessLevel = AccessLevels.CurrentRead;
+        prop.Value = ((string[])WotConBindings.SupportedBindings.Clone()).ToArrayOf();
+        prop.StatusCode = StatusCodes.Good;
+        prop.Timestamp = DateTime.UtcNow;
 
         managementObject.AddChild(prop);
-        AddPredefinedNode(context, prop);
+        AddPredefinedNodeSynchronously(prop);
         _logger?.LogDebug("[WotCon] Materialized SupportedWoTBindings property NodeId={NodeId} (type-side i={TypeId}) with {Count} binding(s)",
             prop.NodeId, SupportedWoTBindingsTypeVariableId, WotConBindings.SupportedBindings.Length);
     }
@@ -153,8 +154,8 @@ public partial class WotConNodeManager
         var configObject = new BaseObjectState(managementObject)
         {
             NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-            BrowseName = new QualifiedName(Opc.Ua.WotCon.BrowseNames.Configuration, NamespaceIndex),
-            DisplayName = Opc.Ua.WotCon.BrowseNames.Configuration,
+            BrowseName = new QualifiedName(RuntimeModelIds.WotCon.BrowseNames.Configuration, NamespaceIndex),
+            DisplayName = new LocalizedText(RuntimeModelIds.WotCon.BrowseNames.Configuration),
             ReferenceTypeId = ReferenceTypeIds.HasComponent,
             TypeDefinitionId = new NodeId(WoTAssetConfigurationTypeId, nsIdx),
         };
@@ -166,26 +167,23 @@ public partial class WotConNodeManager
         // The <WoTConfigurationParameterName> placeholder (i=108, modelling rule
         // OptionalPlaceholder) is deliberately omitted — no configuration parameters are
         // defined yet.
-        var license = new PropertyState<string>(configObject)
-        {
-            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-            BrowseName = new QualifiedName(Opc.Ua.WotCon.BrowseNames.License, NamespaceIndex),
-            DisplayName = Opc.Ua.WotCon.BrowseNames.License,
-            ReferenceTypeId = ReferenceTypeIds.HasProperty,
-            TypeDefinitionId = VariableTypeIds.PropertyType,
-            DataType = DataTypeIds.String,
-            ValueRank = ValueRanks.Scalar,
-            AccessLevel = AccessLevels.CurrentRead,
-            UserAccessLevel = AccessLevels.CurrentRead,
-            Value = ServerLicenseSpdx,
-            StatusCode = StatusCodes.Good,
-            Timestamp = DateTime.UtcNow,
-        };
+        var license = PropertyState<string>.With<VariantBuilder>(configObject);
+        license.NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
+        license.BrowseName = new QualifiedName(RuntimeModelIds.WotCon.BrowseNames.License, NamespaceIndex);
+        license.DisplayName = new LocalizedText(RuntimeModelIds.WotCon.BrowseNames.License);
+        license.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+        license.TypeDefinitionId = VariableTypeIds.PropertyType;
+        license.DataType = DataTypeIds.String;
+        license.ValueRank = ValueRanks.Scalar;
+        license.AccessLevel = AccessLevels.CurrentRead;
+        license.UserAccessLevel = AccessLevels.CurrentRead;
+        license.Value = ServerLicenseSpdx;
+        license.StatusCode = StatusCodes.Good;
+        license.Timestamp = DateTime.UtcNow;
 
         configObject.AddChild(license);
         managementObject.AddChild(configObject);
-        AddPredefinedNode(context, configObject);
-        AddPredefinedNode(context, license);
+        AddPredefinedNodeSynchronously(configObject);
     }
 
     /// <summary>
@@ -193,7 +191,7 @@ public partial class WotConNodeManager
     /// own NodeId and rehydrated <c>InputArguments</c> / <c>OutputArguments</c> properties,
     /// then registers <paramref name="handler"/> on both the new instance and the type-side
     /// method (i=<paramref name="typeMethodId"/>) and records the type-to-instance remap so
-    /// the <see cref="Call"/> override can route either invocation form.
+    /// the <see cref="CallAsync"/> override can route either invocation form.
     /// </summary>
     private void MaterializeOptionalMethod(
         ISystemContext context,
@@ -203,54 +201,36 @@ public partial class WotConNodeManager
         string browseName,
         Argument[] inputArgs,
         Argument[] outputArgs,
-        GenericMethodCalledEventHandler handler)
+        GenericMethodCalledEventHandler handler,
+        GenericMethodCalledEventHandler2Async asyncHandler = null)
     {
         var typeMethodNodeId = new NodeId(typeMethodId, nsIdx);
         var method = new MethodState(managementObject)
         {
             NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
             BrowseName = new QualifiedName(browseName, NamespaceIndex),
-            DisplayName = browseName,
+            DisplayName = new LocalizedText(browseName),
             SymbolicName = browseName,
             ReferenceTypeId = ReferenceTypeIds.HasComponent,
             MethodDeclarationId = typeMethodNodeId,
             Executable = true,
             UserExecutable = true,
             OnCallMethod = handler,
+            OnCallMethod2Async = asyncHandler,
         };
 
         if (inputArgs != null)
         {
-            method.InputArguments = new PropertyState<Argument[]>(method)
-            {
-                NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-                BrowseName = BrowseNames.InputArguments,
-                DisplayName = BrowseNames.InputArguments,
-                ReferenceTypeId = ReferenceTypeIds.HasProperty,
-                TypeDefinitionId = VariableTypeIds.PropertyType,
-                DataType = DataTypeIds.Argument,
-                ValueRank = ValueRanks.OneDimension,
-                Value = inputArgs,
-            };
+            method.InputArguments = CreateArgumentProperty(method, BrowseNames.InputArguments, inputArgs);
         }
 
         if (outputArgs != null)
         {
-            method.OutputArguments = new PropertyState<Argument[]>(method)
-            {
-                NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-                BrowseName = BrowseNames.OutputArguments,
-                DisplayName = BrowseNames.OutputArguments,
-                ReferenceTypeId = ReferenceTypeIds.HasProperty,
-                TypeDefinitionId = VariableTypeIds.PropertyType,
-                DataType = DataTypeIds.Argument,
-                ValueRank = ValueRanks.OneDimension,
-                Value = outputArgs,
-            };
+            method.OutputArguments = CreateArgumentProperty(method, BrowseNames.OutputArguments, outputArgs);
         }
 
         managementObject.AddChild(method);
-        AddPredefinedNode(context, method);
+        AddPredefinedNodeSynchronously(method);
 
         // Belt-and-braces: under normal operation the Call override remaps the type-method
         // NodeId to the instance method above before dispatch, so this second wire is
@@ -261,6 +241,7 @@ public partial class WotConNodeManager
         if (typeMethodNode != null)
         {
             typeMethodNode.OnCallMethod = handler;
+            typeMethodNode.OnCallMethod2Async = asyncHandler;
         }
 
         _optionalMethodRemap[typeMethodNodeId] = method.NodeId;
@@ -277,8 +258,8 @@ public partial class WotConNodeManager
     private ServiceResult OnDiscoverAssets(
         ISystemContext context,
         MethodState method,
-        IList<object> inputArguments,
-        IList<object> outputArguments)
+        ArrayOf<Variant> inputArguments,
+        List<Variant> outputArguments)
     {
         // OPC 10100-1 §6.3.4: return the list of asset endpoints currently known to the
         // server. We populate that from each managed asset's AssetEndpoint Property
@@ -299,7 +280,7 @@ public partial class WotConNodeManager
         }
 
         var result = endpoints.OrderBy(x => x, StringComparer.Ordinal).ToArray();
-        outputArguments[0] = result;
+        outputArguments[0] = Variant.From(result.ToArrayOf());
 
         _logger?.LogDebug("[WotCon] DiscoverAssets returning {Count} endpoint(s)", result.Length);
         return ServiceResult.Good;
@@ -314,25 +295,28 @@ public partial class WotConNodeManager
     /// upload can populate Properties / Actions; if that TD carries a different
     /// <c>base</c>, it wins (TD is the authoritative source of the model).
     /// </summary>
-    private ServiceResult OnCreateAssetForEndpoint(
+    private async ValueTask<ServiceResult> OnCreateAssetForEndpointAsync(
         ISystemContext context,
         MethodState method,
-        IList<object> inputArguments,
-        IList<object> outputArguments)
+        NodeId objectId,
+        ArrayOf<Variant> inputArguments,
+        List<Variant> outputArguments,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (inputArguments.Count < 2)
         {
             _logger?.LogWarning("[WotCon] CreateAssetForEndpoint called with insufficient arguments");
             return new ServiceResult(StatusCodes.BadArgumentsMissing);
         }
 
-        var assetName = inputArguments[0] as string;
-        var endpoint = inputArguments[1] as string;
+        string assetName = inputArguments[0].GetString();
+        string endpoint = inputArguments[1].GetString();
         if (string.IsNullOrWhiteSpace(assetName))
         {
             // Mirrors §6.3.2's Bad_BrowseNameInvalid for an invalid AssetName; the
             // AssetName flows into the asset's BrowseName the same way as in CreateAsset.
-            return new ServiceResult(StatusCodes.BadBrowseNameInvalid, "AssetName cannot be empty");
+            return ServiceResult.Create(StatusCodes.BadBrowseNameInvalid, "{0}", "AssetName cannot be empty");
         }
 
         if (string.IsNullOrWhiteSpace(endpoint))
@@ -340,10 +324,11 @@ public partial class WotConNodeManager
             // §6.3.5 doesn't define a status for this. Bad_InvalidArgument is the closest
             // match — the method's whole point is the endpoint, so an empty one is a
             // malformed request, not a missing optional argument.
-            return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetEndpoint cannot be empty");
+            return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "AssetEndpoint cannot be empty");
         }
 
-        var (result, assetId) = CreateAssetInternal(context, assetName, endpoint);
+        var (result, assetId) = await CreateAssetInternalAsync(context, assetName, endpoint, cancellationToken)
+            .ConfigureAwait(false);
         if (ServiceResult.IsBad(result))
         {
             return result;
@@ -365,8 +350,8 @@ public partial class WotConNodeManager
     private ServiceResult OnConnectionTest(
         ISystemContext context,
         MethodState method,
-        IList<object> inputArguments,
-        IList<object> outputArguments)
+        ArrayOf<Variant> inputArguments,
+        List<Variant> outputArguments)
     {
         if (inputArguments.Count < 1)
         {
@@ -374,10 +359,10 @@ public partial class WotConNodeManager
             return new ServiceResult(StatusCodes.BadArgumentsMissing);
         }
 
-        var endpoint = inputArguments[0] as string;
+        string endpoint = inputArguments[0].GetString();
         if (string.IsNullOrWhiteSpace(endpoint))
         {
-            return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetEndpoint cannot be empty");
+            return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "AssetEndpoint cannot be empty");
         }
 
         var known = false;
@@ -428,8 +413,9 @@ public partial class WotConNodeManager
                 _logger?.LogWarning(
                     "[WotCon] TD references unsupported binding '{Binding}'. Supported: {Supported}",
                     ctx, string.Join(", ", WotConBindings.SupportedBindings));
-                return new ServiceResult(
+                return ServiceResult.Create(
                     StatusCodes.BadNotSupported,
+                    "{0}",
                     $"WoT binding '{ctx}' is not supported by this server. Supported bindings: {string.Join(", ", WotConBindings.SupportedBindings)}.");
             }
         }

@@ -71,7 +71,7 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     {
         MonitoredItem = new MonitoredItem(_subscription.DefaultItem)
         {
-            DisplayName = startNodeId.Identifier.ToString(),
+            DisplayName = startNodeId.IdentifierAsString,
             StartNodeId = startNodeId,
             NodeClass = nodeClass,
             SamplingInterval = 0,
@@ -167,17 +167,18 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     protected Dictionary<string, object> EventFieldListToDictionary(EventFieldList arg)
     {
         return
-            ((EventFilter)MonitoredItem.Filter).SelectClauses // all retrieved fields for event
-            .Zip(arg.EventFields) // values of retrieved fields
+            ((EventFilter)MonitoredItem.Filter).SelectClauses.ToArray() // all retrieved fields for event
+            .Zip(arg.EventFields.ToArray()) // values of retrieved fields
             .ToDictionary(
                 p => SimpleAttributeOperand.Format(p.First.BrowsePath), // e.g. "/EventId"
-                p => ConvertValue(SimpleAttributeOperand.Format(p.First.BrowsePath), p.Second.Value));
+                p => ConvertValue(SimpleAttributeOperand.Format(p.First.BrowsePath), p.Second.AsBoxedObject(Variant.BoxingBehavior.Legacy)));
     }
 
     private static object ConvertValue(string browsePath, object value)
     {
         return value switch
         {
+            ByteString byteString => Encoding.UTF8.GetString(byteString.Span),
             byte[] byteArray => Encoding.UTF8.GetString(byteArray),
             ushort severity when browsePath == "/Severity" => Enum.Parse(typeof(EventSeverity), severity.ToString()),
             _ => value

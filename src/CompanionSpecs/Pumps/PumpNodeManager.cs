@@ -7,12 +7,14 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Node manager for a trimmed subset of the OPC UA Pumps companion spec.
 /// https://reference.opcfoundation.org/Pumps/v100/docs/
 /// </summary>
-public sealed class PumpNodeManager : CustomNodeManager2
+public sealed class PumpNodeManager : AsyncCustomNodeManager
 {
     /// <summary>
     /// NodeId (in the Pumps namespace) of the SystemRequirementsType defined by the Pumps companion spec.
@@ -50,12 +52,15 @@ public sealed class PumpNodeManager : CustomNodeManager2
     /// <summary>
     /// Loads the Pumps node set from the NodeSet2 XML file and adds them to the set of predefined nodes.
     /// </summary>
-    protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    protected override ValueTask<NodeStateCollection> LoadPredefinedNodesAsync(
+        ISystemContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var predefinedNodes = new NodeStateCollection();
         ReadNodeSet().Import(context, predefinedNodes);
 
-        return predefinedNodes;
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(predefinedNodes);
     }
 
     private static UANodeSet ReadNodeSet()
@@ -181,7 +186,7 @@ public sealed class PumpNodeManager : CustomNodeManager2
         }
 
         string namespaceUri = modelNamespaceUris[modelNamespaceIndex - 1];
-        return new ExpandedNodeId(nodeId.Identifier, 0, namespaceUri, 0);
+        return new ExpandedNodeId(nodeId, namespaceUri, 0);
     }
 }
 

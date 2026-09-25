@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>BoilerModel1</RootNamespace>
+		<LangVersion>Preview</LangVersion>
+		<IsPackable>false</IsPackable>
+		<UseOpcUaModelSourceGenerator>true</UseOpcUaModelSourceGenerator>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" NoWarn="NU5104" />
+		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types" NoWarn="NU5104" />
+		<AdditionalFiles Include="..\..\src\Boilers\Boiler1\ModelDesign.xml"
+										 ModelSourceGeneratorModelUri="http://microsoft.com/Opc/OpcPlc/Boiler"
+										 ModelSourceGeneratorName="BoilerModel1" ModelSourceGeneratorPrefix="BoilerModel1" />
+		<AdditionalFiles Include="..\..\src\Boilers\Boiler1\ModelDesign.csv" />
+	</ItemGroup>
+</Project>

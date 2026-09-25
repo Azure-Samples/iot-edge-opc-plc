@@ -21,6 +21,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using static Opc.Ua.Server.RequestType;
 
 public partial class PlcServer : ReverseConnectServer
 {
@@ -73,6 +74,7 @@ public partial class PlcServer : ReverseConnectServer
     private bool _lastLoggedPublishMetricsEnabled;
 
     public PlcServer(OpcPlcConfiguration config, PlcSimulation plcSimulation, TimeService timeService, ImmutableList<IPluginNodes> pluginNodes, ILogger logger, ITelemetryContext telemetryContext)
+        : base(telemetryContext)
     {
         Config = config;
         PlcSimulation = plcSimulation;
@@ -104,6 +106,26 @@ public partial class PlcServer : ReverseConnectServer
         MetricsHelper.IsEnabled = Config.OtlpEndpointUri is not null;
     }
 
+    protected override async ValueTask OnNodeManagerStartedAsync(
+        IServerInternal server, CancellationToken cancellationToken = default)
+    {
+        await base.OnNodeManagerStartedAsync(server, cancellationToken).ConfigureAwait(false);
+        foreach (var plugin in _pluginNodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            plugin.OnAddressSpaceReady();
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _periodicLoggingTimer.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
     /// <summary>
     /// Enable publish requests metrics only if the following apply:
     /// 1) Metrics are enabled by specifying OtlpEndpointUri,
@@ -127,15 +149,22 @@ public partial class PlcServer : ReverseConnectServer
 
         ThreadPool.GetAvailableThreads(out int availWorkerThreads, out _);
 
-        uint sessionCount = ServerInternal.ServerDiagnostics.CurrentSessionCount;
+        uint sessionCount = 0;
+        uint currentSubscriptionCount = 0;
+        uint cumulatedSessionCount = 0;
+        uint cumulatedSubscriptionCount = 0;
+        ServerInternal.UpdateServerDiagnostics(diagnostics =>
+        {
+            sessionCount = diagnostics.CurrentSessionCount;
+            currentSubscriptionCount = diagnostics.CurrentSubscriptionCount;
+            cumulatedSessionCount = diagnostics.CumulatedSessionCount;
+            cumulatedSubscriptionCount = diagnostics.CumulatedSubscriptionCount;
+        });
         IList<ISubscription> subscriptions = ServerInternal.SubscriptionManager.GetSubscriptions();
         int monitoredItemsCount = subscriptions.Sum(s => s.MonitoredItemCount);
 
         _autoDisablePublishMetrics = sessionCount > 40 || monitoredItemsCount > 500;
 
-        uint currentSubscriptionCount = ServerInternal.ServerDiagnostics.CurrentSubscriptionCount;
-        uint cumulatedSessionCount = ServerInternal.ServerDiagnostics.CumulatedSessionCount;
-        uint cumulatedSubscriptionCount = ServerInternal.ServerDiagnostics.CumulatedSubscriptionCount;
         long workingSet = curProc.WorkingSet64 / 1024 / 1024;
         int threadCount = curProc.Threads.Count;
         bool publishMetricsEnabled = PublishMetricsEnabled;
@@ -194,18 +223,18 @@ public partial class PlcServer : ReverseConnectServer
         }
     }
 
-    public override async Task<CreateSessionResponse> CreateSessionAsync(
+    public override async ValueTask<CreateSessionResponse> CreateSessionAsync(
         SecureChannelContext secureChannelContext,
         RequestHeader requestHeader,
         ApplicationDescription clientDescription,
         string serverUri,
         string endpointUrl,
         string sessionName,
-        byte[] clientNonce,
-        byte[] clientCertificate,
+        ByteString clientNonce,
+        ByteString clientCertificate,
         double requestedSessionTimeout,
         uint maxResponseMessageSize,
-        CancellationToken ct)
+        RequestLifetime requestLifetime)
     {
         _countCreateSession++;
 
@@ -222,7 +251,7 @@ public partial class PlcServer : ReverseConnectServer
                 clientCertificate,
                 requestedSessionTimeout,
                 maxResponseMessageSize,
-                ct).ConfigureAwait(false);
+                requestLifetime).ConfigureAwait(false);
 
             MetricsHelper.AddSessionCount(response.SessionId.ToString());
 
@@ -238,11 +267,11 @@ public partial class PlcServer : ReverseConnectServer
             return new CreateSessionResponse
             {
                 ResponseHeader = new ResponseHeader { ServiceResult = StatusCodes.BadServerHalted },
-                SessionId = null,
-                AuthenticationToken = null,
+                SessionId = NodeId.Null,
+                AuthenticationToken = NodeId.Null,
                 RevisedSessionTimeout = 0,
-                ServerNonce = Array.Empty<byte>(),
-                ServerCertificate = Array.Empty<byte>(),
+                ServerNonce = ByteString.Empty,
+                ServerCertificate = ByteString.Empty,
                 ServerEndpoints = [],
                 ServerSignature = new SignatureData(),
                 MaxRequestMessageSize = 0
@@ -257,7 +286,7 @@ public partial class PlcServer : ReverseConnectServer
         }
     }
 
-    public override async Task<CreateSubscriptionResponse> CreateSubscriptionAsync(
+    public override async ValueTask<CreateSubscriptionResponse> CreateSubscriptionAsync(
         SecureChannelContext secureChannelContext,
         RequestHeader requestHeader,
         double requestedPublishingInterval,
@@ -266,7 +295,7 @@ public partial class PlcServer : ReverseConnectServer
         uint maxNotificationsPerPublish,
         bool publishingEnabled,
         byte priority,
-        CancellationToken ct)
+        RequestLifetime requestLifetime)
     {
         _countCreateSubscription++;
 
@@ -281,7 +310,7 @@ public partial class PlcServer : ReverseConnectServer
                 maxNotificationsPerPublish,
                 publishingEnabled,
                 priority,
-                ct).ConfigureAwait(false);
+                requestLifetime).ConfigureAwait(false);
 
             NodeId sessionId = GetSessionId(requestHeader.AuthenticationToken);
             MetricsHelper.AddSubscriptionCount(sessionId.ToString(), response.SubscriptionId.ToString());
@@ -302,13 +331,13 @@ public partial class PlcServer : ReverseConnectServer
         }
     }
 
-    public override async Task<CreateMonitoredItemsResponse> CreateMonitoredItemsAsync(
+    public override async ValueTask<CreateMonitoredItemsResponse> CreateMonitoredItemsAsync(
         SecureChannelContext secureChannelContext,
         RequestHeader requestHeader,
         uint subscriptionId,
         TimestampsToReturn timestampsToReturn,
-        MonitoredItemCreateRequestCollection itemsToCreate,
-        CancellationToken ct)
+        ArrayOf<MonitoredItemCreateRequest> itemsToCreate,
+        RequestLifetime requestLifetime)
     {
         _countCreateMonitoredItems += (uint)itemsToCreate.Count;
 
@@ -320,13 +349,13 @@ public partial class PlcServer : ReverseConnectServer
                 subscriptionId,
                 timestampsToReturn,
                 itemsToCreate,
-                ct).ConfigureAwait(false);
+                requestLifetime).ConfigureAwait(false);
 
             MetricsHelper.AddMonitoredItemCount(itemsToCreate.Count);
 
             // Only log items with good status codes.
-            var successfulItems = itemsToCreate
-                .Zip(response.Results, (request, result) => new { Request = request, Result = result })
+            var successfulItems = itemsToCreate.ToArray()
+                .Zip(response.Results.ToArray(), (request, result) => new { Request = request, Result = result })
                 .Where(item => StatusCode.IsGood(item.Result.StatusCode))
                 .Select(item => item.Request.ItemToMonitor.NodeId)
                 .ToList();
@@ -358,11 +387,11 @@ public partial class PlcServer : ReverseConnectServer
         }
     }
 
-    public override async Task<PublishResponse> PublishAsync(
+    public override async ValueTask<PublishResponse> PublishAsync(
         SecureChannelContext secureChannelContext,
         RequestHeader requestHeader,
-        SubscriptionAcknowledgementCollection subscriptionAcknowledgements,
-        CancellationToken ct)
+        ArrayOf<SubscriptionAcknowledgement> subscriptionAcknowledgements,
+        RequestLifetime requestLifetime)
     {
         _countPublish++;
 
@@ -372,7 +401,7 @@ public partial class PlcServer : ReverseConnectServer
                 secureChannelContext,
                 requestHeader,
                 subscriptionAcknowledgements,
-                ct).ConfigureAwait(false);
+                requestLifetime).ConfigureAwait(false);
 
             if (PublishMetricsEnabled)
             {
@@ -453,13 +482,13 @@ public partial class PlcServer : ReverseConnectServer
         }
     }
 
-    public override async Task<ReadResponse> ReadAsync(
+    public override async ValueTask<ReadResponse> ReadAsync(
         SecureChannelContext secureChannelContext,
         RequestHeader requestHeader,
         double maxAge,
         TimestampsToReturn timestampsToReturn,
-        ReadValueIdCollection nodesToRead,
-        CancellationToken ct)
+        ArrayOf<ReadValueId> nodesToRead,
+        RequestLifetime requestLifetime)
     {
         _countRead++;
 
@@ -471,7 +500,7 @@ public partial class PlcServer : ReverseConnectServer
                 maxAge,
                 timestampsToReturn,
                 nodesToRead,
-                ct).ConfigureAwait(false);
+                requestLifetime).ConfigureAwait(false);
 
             LogSuccess(nameof(Read));
 
@@ -486,11 +515,11 @@ public partial class PlcServer : ReverseConnectServer
         }
     }
 
-    public override async Task<WriteResponse> WriteAsync(
+    public override async ValueTask<WriteResponse> WriteAsync(
         SecureChannelContext secureChannelContext,
         RequestHeader requestHeader,
-        WriteValueCollection nodesToWrite,
-        CancellationToken ct)
+        ArrayOf<WriteValue> nodesToWrite,
+        RequestLifetime requestLifetime)
     {
         _countWrite++;
 
@@ -500,7 +529,7 @@ public partial class PlcServer : ReverseConnectServer
                 secureChannelContext,
                 requestHeader,
                 nodesToWrite,
-                ct).ConfigureAwait(false);
+                requestLifetime).ConfigureAwait(false);
 
             LogSuccess(nameof(Write));
 
@@ -523,26 +552,11 @@ public partial class PlcServer : ReverseConnectServer
     /// always creates a CoreNodesManager which handles the built-in nodes defined by the specification.
     /// Any additional NodeManagers are expected to handle application specific nodes.
     /// </remarks>
-    protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
+    protected override ValueTask<IMasterNodeManager> CreateMasterNodeManagerAsync(
+        IServerInternal server, ApplicationConfiguration configuration, CancellationToken cancellationToken = default)
     {
-        var nodeManagers = new List<INodeManager>();
-
-        // When used via NuGet package in-memory, the server needs to use its own encodable factory.
-        // Otherwise the client will not load the type definitions for decoding correctly. There is currently no public
-        // API to set the encodable factory and it is not possible to provide an own implementation, because other classes
-        // require the StandardServer or ServerInternalData as objects, so we need to use reflection to set it.
-        var serverInternalDataField = typeof(StandardServer).GetField("m_serverInternal", BindingFlags.Instance | BindingFlags.NonPublic);
-        if (serverInternalDataField != null)
-        {
-            var encodableFactoryField = serverInternalDataField.FieldType.GetField("m_factory", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (encodableFactoryField != null)
-            {
-                encodableFactoryField.SetValue(server, encodableFactoryField.GetValue(server));
-            }
-        }
-
-        // Add encodable complex types.
-        server.Factory.AddEncodeableTypes(Assembly.GetExecutingAssembly());
+        cancellationToken.ThrowIfCancellationRequested();
+        var nodeManagers = new List<IAsyncNodeManager>();
 
         // IMPORTANT: Namespace indices are assigned in the order node managers are added here.
         // Do NOT reorder these registrations without understanding the impact on the namespace indices.
@@ -630,9 +644,9 @@ public partial class PlcServer : ReverseConnectServer
             nodeManagers.Add(wotConNodeManager);
         }
 
-        var masterNodeManager = new MasterNodeManager(server, configuration, dynamicNamespaceUri: null, nodeManagers.ToArray());
-
-        return masterNodeManager;
+        var masterNodeManager = new MasterNodeManager(server, configuration, dynamicNamespaceUri: null,
+            additionalManagers: nodeManagers, additionalSyncManagers: null);
+        return ValueTask.FromResult<IMasterNodeManager>(masterNodeManager);
     }
 
     /// <summary>
@@ -683,25 +697,12 @@ public partial class PlcServer : ReverseConnectServer
         return resourceManager;
     }
 
-    /// <summary>
-    /// Initializes the server before it starts up.
-    /// </summary>
-    protected override void OnServerStarting(ApplicationConfiguration configuration)
-    {
-        base.OnServerStarting(configuration);
-
-        // it is up to the application to decide how to validate user identity tokens.
-        // this function creates validator for X509 identity tokens.
-        CreateUserIdentityValidatorAsync(configuration).GetAwaiter().GetResult();
-    }
-
     protected override void OnServerStarted(IServerInternal server)
     {
         // start the simulation
         base.OnServerStarted(server);
 
-        // request notifications when the user identity is changed, all valid users are accepted by default.
-        server.SessionManager.ImpersonateUser += new ImpersonateEventHandler(SessionManager_ImpersonateUser);
+        RegisterUserIdentityValidators(server);
 
         // The standard OPC UA NodeSet defaults the TrustList file node's Writable / UserWritable
         // properties to false. The SDK's ConfigurationNodeManager does not flip them, so GDS push
@@ -758,9 +759,9 @@ public partial class PlcServer : ReverseConnectServer
 
     private static bool TryEnableWritableOnTrustList(IServerInternal server, NodeId trustListNodeId)
     {
-        foreach (INodeManager nodeManager in server.NodeManager.NodeManagers)
+        foreach (IAsyncNodeManager nodeManager in server.NodeManager.AsyncNodeManagers)
         {
-            if (nodeManager is CustomNodeManager2 customNodeManager &&
+            if (nodeManager is AsyncCustomNodeManager customNodeManager &&
                 customNodeManager.FindPredefinedNode<TrustListState>(trustListNodeId) is TrustListState trustList)
             {
                 if (trustList.Writable != null)
@@ -1059,10 +1060,7 @@ public partial class PlcServer : ReverseConnectServer
         StatusCodes.BadRequestInterrupted,
     };
 
-    protected override OperationContext ValidateRequest(
-        SecureChannelContext secureChannelContext,
-        RequestHeader requestHeader,
-        RequestType requestType)
+    protected override ValueTask OnRequestValidatedAsync(OperationContext context)
     {
         if (InjectErrorResponseRate != 0)
         {
@@ -1074,7 +1072,7 @@ public partial class PlcServer : ReverseConnectServer
                 throw new ServiceResultException(error);
             }
         }
-        return base.ValidateRequest(secureChannelContext, requestHeader, requestType);
+        return ValueTask.CompletedTask;
     }
 #pragma warning restore CA5394 // Do not use insecure randomness
 
@@ -1084,28 +1082,30 @@ public partial class PlcServer : ReverseConnectServer
         int dataChanges = 0;
         int diagnostics = 0;
 
-        notificationMessage.NotificationData.ForEach(x => {
-            if (x.Body is DataChangeNotification changeNotification)
+        foreach (var notification in notificationMessage.NotificationData)
+        {
+            if (notification.TryGetValue(out DataChangeNotification changeNotification))
             {
                 dataChanges += changeNotification.MonitoredItems.Count;
                 diagnostics += changeNotification.DiagnosticInfos.Count;
             }
-            else if (x.Body is EventNotificationList eventNotification)
+            else if (notification.TryGetValue(out EventNotificationList eventNotification))
             {
                 events += eventNotification.Events.Count;
             }
             else
             {
-                LogUnknownNotification(x.Body.GetType().Name);
+                LogUnknownNotification(notification.TypeId.ToString());
             }
-        });
+        }
 
         MetricsHelper.AddPublishedCount(dataChanges, events);
     }
 
     private NodeId GetSessionId(NodeId authenticationToken) => ServerInternal.SessionManager.GetSession(authenticationToken).Id;
 
-    private string GetSessionName(NodeId authenticationToken) => ServerInternal.SessionManager.GetSession(authenticationToken).SessionDiagnostics.SessionName;
+    private string GetSessionName(NodeId authenticationToken) => ServerInternal.SessionManager
+        .GetSession(authenticationToken).ReadDiagnostics(diagnostics => diagnostics.SessionName);
 
     [LoggerMessage(
         Level = LogLevel.Information,

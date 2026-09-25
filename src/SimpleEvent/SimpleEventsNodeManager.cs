@@ -32,17 +32,17 @@ namespace SimpleEvents;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
-using OpcPlc.SimpleEvent;
+using OpcPlc;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// A node manager for a server that exposes several variables.
 /// </summary>
-public sealed class SimpleEventsNodeManager : CustomNodeManager2
+public sealed class SimpleEventsNodeManager : AsyncCustomNodeManager
 {
     #region Constructors
     /// <summary>
@@ -67,11 +67,11 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
     /// </summary>
     protected override void Dispose(bool disposing)
     {
-        if (disposing && m_simulationTimer != null)
+        if (disposing)
         {
-            Utils.SilentDispose(m_simulationTimer);
-            m_simulationTimer = null;
+            Interlocked.Exchange(ref m_simulationTimer, null)?.Dispose();
         }
+        base.Dispose(disposing);
     }
     #endregion
 
@@ -89,22 +89,24 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
     /// <summary>
     /// Loads a node set from a file or resource and adds them to the set of predefined nodes.
     /// </summary>
-    protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    protected override ValueTask<NodeStateCollection> LoadPredefinedNodesAsync(
+        ISystemContext context, CancellationToken cancellationToken = default)
     {
-        var uanodesPath = "SimpleEvent/SimpleEvents.PredefinedNodes.uanodes";
+        cancellationToken.ThrowIfCancellationRequested();
+        var xmlPath = "SimpleEvent/SimpleEvents.NodeSet2.xml";
         var snapLocation = Environment.GetEnvironmentVariable("SNAP");
         if (!string.IsNullOrWhiteSpace(snapLocation))
         {
             // Application running as a snap
-            uanodesPath = Path.Join(snapLocation, uanodesPath);
+            xmlPath = Path.Join(snapLocation, xmlPath);
         }
 
         var predefinedNodes = new NodeStateCollection();
-        predefinedNodes.LoadFromBinaryResource(context,
-            uanodesPath,
-            typeof(SimpleEventsNodeManager).GetTypeInfo().Assembly,
-            updateTables: true);
-        return predefinedNodes;
+        using var stream = File.OpenRead(xmlPath);
+        var nodeSet = Opc.Ua.Export.UANodeSet.Read(stream);
+        nodeSet.Import(context, predefinedNodes);
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(predefinedNodes);
     }
     #endregion
 
@@ -117,37 +119,41 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
     /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
     /// should have a reference to the root folder node(s) exposed by this node manager.
     /// </remarks>
-    public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+    public override async ValueTask CreateAddressSpaceAsync(
+        IDictionary<NodeId, IList<IReference>> externalReferences, CancellationToken cancellationToken = default)
     {
-        lock (Lock)
-        {
-            LoadPredefinedNodes(SystemContext, externalReferences);
-
-            // start a simulation that changes the values of the nodes.
-            m_simulationTimer = new Timer(DoSimulation, state: null, 3000, 3000);
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        await LoadPredefinedNodesAsync(SystemContext, externalReferences, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        m_simulationTimer = new Timer(DoSimulation, state: null, 3000, 3000);
     }
 
     /// <summary>
     /// Frees any resources allocated for the address space.
     /// </summary>
-    public override void DeleteAddressSpace()
+    public override async ValueTask DeleteAddressSpaceAsync(CancellationToken cancellationToken = default)
     {
-        lock (Lock)
+        cancellationToken.ThrowIfCancellationRequested();
+        Timer timer = Interlocked.Exchange(ref m_simulationTimer, null);
+        if (timer is not null)
         {
-            base.DeleteAddressSpace();
+            await timer.DisposeAsync().ConfigureAwait(false);
         }
+        await base.DeleteAddressSpaceAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Returns a unique handle for the node.
     /// </summary>
-    protected override NodeHandle GetManagerHandle(ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache)
+    protected override ValueTask<NodeHandle> GetManagerHandleAsync(
+        ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         // quickly exclude nodes that are not in the namespace.
         if (!IsNodeIdInNamespace(nodeId))
         {
-            return null;
+            return ValueTask.FromResult<NodeHandle>(null);
         }
 
         // check for predefined nodes.
@@ -159,35 +165,37 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
                 Node = node,
             };
 
-            return handle;
+            return ValueTask.FromResult(handle);
         }
 
-        return null;
+        return ValueTask.FromResult<NodeHandle>(null);
     }
 
     /// <summary>
     /// Verifies that the specified node exists.
     /// </summary>
-    protected override NodeState ValidateNode(
+    protected override ValueTask<NodeState> ValidateNodeAsync(
         ServerSystemContext context,
         NodeHandle handle,
-        IDictionary<NodeId, NodeState> cache)
+        IDictionary<NodeId, NodeState> cache,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         // not valid if no root.
         if (handle == null)
         {
-            return null;
+            return ValueTask.FromResult<NodeState>(null);
         }
 
         // check if previously validated.
         if (handle.Validated)
         {
-            return handle.Node;
+            return ValueTask.FromResult(handle.Node);
         }
 
         // TBD
 
-        return null;
+        return ValueTask.FromResult<NodeState>(null);
     }
     #endregion
 
@@ -200,36 +208,60 @@ public sealed class SimpleEventsNodeManager : CustomNodeManager2
     {
         try
         {
-            for (int i = 1; i < 3; i++)
+            if (!Server.Factory.TryGetEncodeableType(RuntimeModelIds.SimpleEvents.CycleStepDataType, out var stepType))
             {
-                // Construct the event.
-                var e = new SystemCycleStartedEventState(parent: null);
+                return;
+            }
 
-                e.Initialize(
+            for (int severity = 1; severity < 3; severity++)
+            {
+                if (Volatile.Read(ref m_simulationTimer) is null)
+                {
+                    return;
+                }
+
+                var cycleEvent = new SystemEventState(parent: null);
+                cycleEvent.Initialize(
                     SystemContext,
                     source: null,
-                    (EventSeverity)i,
+                    (EventSeverity)severity,
                     new LocalizedText($"The system cycle '{++m_cycleId}' has started."));
 
-                e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceName, "System", copy: false);
-                e.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, copy: false);
-                e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.CycleId, NamespaceIndex), m_cycleId.ToString(), copy: false);
-
-                var step = new CycleStepDataType {
-                    Name = "Step 1",
-                    Duration = 1000,
-                };
-
-                e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.CurrentStep, NamespaceIndex), step, copy: false);
-                e.SetChildValue(SystemContext, new QualifiedName(BrowseNames.Steps, NamespaceIndex), new CycleStepDataType[] { step, step }, copy: false);
-
-                Server.ReportEvent(e);
+                cycleEvent.TypeDefinitionId = ExpandedNodeId.ToNodeId(
+                    RuntimeModelIds.SimpleEvents.SystemCycleStartedEventType, Server.NamespaceUris);
+                cycleEvent.EventType.Value = cycleEvent.TypeDefinitionId;
+                cycleEvent.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceName, "System", copy: false);
+                cycleEvent.SetChildValue(SystemContext, Opc.Ua.BrowseNames.SourceNode, Opc.Ua.ObjectIds.Server, copy: false);
+                var step = (IStructure)stepType.CreateInstance();
+                step["Name"] = "Step 1";
+                step["Duration"] = 1000.0;
+                var encodedStep = new ExtensionObject((IEncodeable)step);
+                var stepDataType = ExpandedNodeId.ToNodeId(
+                    RuntimeModelIds.SimpleEvents.CycleStepDataType, Server.NamespaceUris);
+                AddEventProperty(cycleEvent, "CycleId", Opc.Ua.DataTypeIds.String, m_cycleId.ToString());
+                AddEventProperty(cycleEvent, "CurrentStep", stepDataType, new Variant(encodedStep));
+                AddEventProperty(cycleEvent, "Steps", stepDataType,
+                    new Variant(new[] { encodedStep, encodedStep }.ToArrayOf()), ValueRanks.OneDimension);
+                Server.ReportEvent(cycleEvent);
             }
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Unexpected error during simulation");
         }
+    }
+
+    private void AddEventProperty(BaseEventState cycleEvent, string name, NodeId dataType, Variant value,
+        int valueRank = ValueRanks.Scalar)
+    {
+        cycleEvent.AddChild(new PropertyState(cycleEvent)
+        {
+            BrowseName = new QualifiedName(name, NamespaceIndex),
+            DisplayName = new LocalizedText(name),
+            DataType = dataType,
+            ValueRank = valueRank,
+            Value = value
+        });
     }
     #endregion
 

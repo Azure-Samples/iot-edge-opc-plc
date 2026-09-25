@@ -5,6 +5,8 @@ using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Client-managed heartbeat values exposed directly under the OPC UA Objects folder.
@@ -25,17 +27,21 @@ public class HeartbeatsPluginNodes(TimeService timeService, ILogger logger)
             (string s) => _isEnabled = s is not null);
     }
 
-    public void AddToAddressSpace(
+    public ValueTask AddToAddressSpaceAsync(
         FolderState telemetryFolder,
         FolderState methodsFolder,
-        PlcNodeManager plcNodeManager)
+        PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (_isEnabled)
         {
             AddNodes();
         }
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()

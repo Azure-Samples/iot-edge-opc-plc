@@ -7,6 +7,7 @@ using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Configuration;
+using Opc.Ua.Security.Certificates;
 using OpcPlc;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
@@ -69,6 +70,12 @@ public class PlcSimulatorFixture
     private ConfiguredEndpoint _serverEndpoint;
 
     public ApplicationConfiguration ClientConfiguration => _config;
+
+    public PlcServer Server => _opcPlcServer.PlcServer;
+
+    public bool Ready => _opcPlcServer.Ready;
+
+    public Task RestartAsync() => _opcPlcServer.RestartAsync();
 
     public string EndpointUrl => _serverEndpoint?.EndpointUrl?.ToString();
 
@@ -173,10 +180,10 @@ public class PlcSimulatorFixture
     /// </summary>
     /// <param name="sessionName">The name to assign to the session.</param>
     /// <returns>The created session.</returns>
-    public async Task<Session> CreateSessionAsync(string sessionName)
+    public async Task<Session> CreateSessionAsync(string sessionName, IUserIdentity userIdentity = null)
     {
         await _log.WriteLineAsync("Create a session with OPC UA server ...").ConfigureAwait(false);
-        var userIdentity = new UserIdentity(new AnonymousIdentityToken());
+        userIdentity ??= new UserIdentity(new AnonymousIdentityToken());
 
         // When unit test certificate expires,
         // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
@@ -190,7 +197,7 @@ public class PlcSimulatorFixture
             sessionName,
             sessionTimeout: 60000,
             userIdentity,
-            preferredLocales: null,
+            preferredLocales: default,
             CancellationToken.None).ConfigureAwait(false);
         return (Session)session;
     }
@@ -268,18 +275,15 @@ public class PlcSimulatorFixture
             throw new Exception("Application instance certificate invalid!");
         }
 
-        var applicationUris = X509Utils.GetApplicationUrisFromCertificate(config.SecurityConfiguration.ApplicationCertificate.Certificate);
+        using CertificateEntry certificate = config.CertificateManager.AcquireApplicationCertificateByType(
+            ObjectTypeIds.RsaSha256ApplicationCertificateType);
+        var applicationUris = X509Utils.GetApplicationUrisFromCertificate(certificate.Certificate);
         config.ApplicationUri = applicationUris.Count > 0 ? applicationUris[0] : null;
 
         // Auto-accept server certificate
-        config.CertificateValidator.CertificateValidation += CertificateValidator_AutoAccept;
+        config.CertificateManager.AcceptError = (_, error) => error.StatusCode == StatusCodes.BadCertificateUntrusted;
 
         return config;
-    }
-
-    private static void CertificateValidator_AutoAccept(CertificateValidator validator, CertificateValidationEventArgs e)
-    {
-        e.Accept = true;
     }
 
     /// <summary>

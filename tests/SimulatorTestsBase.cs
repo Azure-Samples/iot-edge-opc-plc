@@ -99,7 +99,7 @@ public abstract class SimulatorTestsBase
 
     private async Task<NodeId> FindNodeAsync(NodeId startingNode, string relativePath)
     {
-        var browsePaths = new BrowsePathCollection
+        var browsePaths = new List<BrowsePath>
             {
                 new BrowsePath
                 {
@@ -113,9 +113,9 @@ public abstract class SimulatorTestsBase
             browsePaths,
             CancellationToken.None).ConfigureAwait(false);
 
-        var nodeId = results.Results
+        var nodeId = results.Results.ToArray()
             .Should().ContainSingle("search should contain a result")
-            .Subject.Targets
+            .Subject.Targets.ToArray()
             .Should().ContainSingle("search for {0} should contain a result target (Results: {1})", relativePath, JsonSerializer.Serialize(results))
             .Subject.TargetId;
 
@@ -124,12 +124,12 @@ public abstract class SimulatorTestsBase
 
     protected async Task<T> ReadValueAsync<T>(NodeId nodeId)
     {
-        return (T)(await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value;
+        return (T)(await ReadDataValueAsync(nodeId).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
     }
 
     protected async Task<DataValue> ReadDataValueAsync(NodeId nodeId, CancellationToken ct = default)
     {
-        var nodesToRead = new ReadValueIdCollection
+        var nodesToRead = new List<ReadValueId>
         {
             new ReadValueId
             {
@@ -150,16 +150,13 @@ public abstract class SimulatorTestsBase
 
     protected async Task<StatusCode> WriteValueAsync(NodeId nodeId, object newValue)
     {
-        var valuesToWrite = new WriteValueCollection
+        var valuesToWrite = new List<WriteValue>
             {
                 new WriteValue
                 {
                     NodeId = nodeId,
                     AttributeId = Attributes.Value,
-                    Value =
-                    {
-                        Value = newValue,
-                    },
+                    Value = new DataValue(VariantHelper.CastFrom(newValue)),
                 }
             };
 
@@ -169,14 +166,17 @@ public abstract class SimulatorTestsBase
             valuesToWrite,
             CancellationToken.None).ConfigureAwait(false);
 
-        return results.Results.FirstOrDefault();
+        return results.Results.ToArray().FirstOrDefault();
     }
 
     /// <summary>
     /// Calls OPC UA method over active session
     /// </summary>
-    protected Task<IList<object>> CallMethodAsync(string methodName, string objectName = "Methods", params object[] args)
+    protected async Task<IList<object>> CallMethodAsync(
+        string methodName, string objectName = "Methods", params object[] args)
     {
-        return Session.CallAsync(GetOpcPlcNodeId(objectName), GetOpcPlcNodeId(methodName), args: args);
+        var output = await Session.CallAsync(GetOpcPlcNodeId(objectName), GetOpcPlcNodeId(methodName),
+            CancellationToken.None, args.Select(VariantHelper.CastFrom).ToArray()).ConfigureAwait(false);
+        return output.ToArray().Select(value => value.AsBoxedObject(Variant.BoxingBehavior.Legacy)).ToList();
     }
 }
