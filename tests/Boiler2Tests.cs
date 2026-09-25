@@ -78,6 +78,41 @@ public class Boiler2Tests : SimulatorTestsBase
         heaterState.Should().BeFalse();
     }
 
+    [Test]
+    public async Task TimerCallbackExceptionDoesNotBlockSubsequentUpdates()
+    {
+        var overheatThresholdNodeId = NodeId.Create(
+            BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatedThresholdTemperature,
+            OpcPlc.Namespaces.OpcPlcBoiler,
+            Session.NamespaceUris);
+        var currentTemperatureNodeId = NodeId.Create(
+            BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature,
+            OpcPlc.Namespaces.OpcPlcBoiler,
+            Session.NamespaceUris);
+        float originalThreshold = (float)(await ReadDataValueAsync(overheatThresholdNodeId).ConfigureAwait(false)).Value;
+
+        try
+        {
+            var statusCode = await WriteValueAsync(overheatThresholdNodeId, float.NaN).ConfigureAwait(false);
+            statusCode.Should().Be(StatusCodes.Good);
+
+            FireTimersWithPeriod(FromSeconds(678), numberOfTimes: 1);
+            FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
+
+            statusCode = await WriteValueAsync(overheatThresholdNodeId, originalThreshold).ConfigureAwait(false);
+            statusCode.Should().Be(StatusCodes.Good);
+
+            FireTimersWithPeriod(FromSeconds(678), numberOfTimes: 1);
+
+            float currentTemperatureDegrees = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+            currentTemperatureDegrees.Should().Be(originalThreshold + 10f);
+        }
+        finally
+        {
+            _ = await WriteValueAsync(overheatThresholdNodeId, originalThreshold).ConfigureAwait(false);
+        }
+    }
+
     [TestCase, Order(2)]
     public async Task DeviceHealth_Normal()
     {

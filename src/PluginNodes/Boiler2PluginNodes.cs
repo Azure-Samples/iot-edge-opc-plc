@@ -46,6 +46,7 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     private bool _isOverheated;
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private int _timerCallbackBlocked;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -150,7 +151,7 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
         {
             AllowReadAndWrite(assetIdNode);
         }
-        
+
         if (deviceManualNode is not null)
         {
             AllowReadAndWrite(deviceManualNode);
@@ -245,48 +246,47 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     public void UpdateBoiler2(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        _lock.Wait();
-
-        float currentTemperatureDegrees = (float)_currentTempDegreesNode.Value;
-        float newTemperature;
-        float tempSpeedDegreesPerSec = (float)_tempSpeedDegreesPerSecNode.Value;
-        float baseTempDegrees = (float)_baseTempDegreesNode.Value;
-        float targetTempDegrees = (float)_targetTempDegreesNode.Value;
-        float overheatThresholdDegrees = (float)_overheatThresholdDegreesNode.Value;
-
-        if ((bool)_heaterStateNode.Value)
+        ExecuteTimerCallback(nameof(UpdateBoiler2), () =>
         {
-            // Heater on, increase by specified speed, but the step should not be bigger than targetTemp.
-            newTemperature = currentTemperatureDegrees + Math.Min(tempSpeedDegreesPerSec, Math.Abs(targetTempDegrees - currentTemperatureDegrees));
+            float currentTemperatureDegrees = (float)_currentTempDegreesNode.Value;
+            float newTemperature;
+            float tempSpeedDegreesPerSec = (float)_tempSpeedDegreesPerSecNode.Value;
+            float baseTempDegrees = (float)_baseTempDegreesNode.Value;
+            float targetTempDegrees = (float)_targetTempDegreesNode.Value;
+            float overheatThresholdDegrees = (float)_overheatThresholdDegreesNode.Value;
 
-            // Target temp reached, turn off heater.
-            if (newTemperature >= targetTempDegrees)
+            if ((bool)_heaterStateNode.Value)
             {
-                SetValue(_heaterStateNode, false);
-            }
-        }
-        else
-        {
-            // Heater off, decrease by specified speed, but the step should not be bigger than baseTemp.
-            newTemperature = currentTemperatureDegrees - Math.Min(tempSpeedDegreesPerSec, Math.Abs(currentTemperatureDegrees - baseTempDegrees));
+                // Heater on, increase by specified speed, but the step should not be bigger than targetTemp.
+                newTemperature = currentTemperatureDegrees + Math.Min(tempSpeedDegreesPerSec, Math.Abs(targetTempDegrees - currentTemperatureDegrees));
 
-            // Base temp reached, turn on heater.
-            if (newTemperature <= baseTempDegrees)
+                // Target temp reached, turn off heater.
+                if (newTemperature >= targetTempDegrees)
+                {
+                    SetValue(_heaterStateNode, false);
+                }
+            }
+            else
             {
-                SetValue(_heaterStateNode, true);
+                // Heater off, decrease by specified speed, but the step should not be bigger than baseTemp.
+                newTemperature = currentTemperatureDegrees - Math.Min(tempSpeedDegreesPerSec, Math.Abs(currentTemperatureDegrees - baseTempDegrees));
+
+                // Base temp reached, turn on heater.
+                if (newTemperature <= baseTempDegrees)
+                {
+                    SetValue(_heaterStateNode, true);
+                }
             }
-        }
 
-        // Change other values.
-        SetValue(_currentTempDegreesNode, newTemperature);
-        SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
+            // Change other values.
+            SetValue(_currentTempDegreesNode, newTemperature);
+            SetValue(_overheatedNode, newTemperature > overheatThresholdDegrees);
 
-        // Update DeviceHealth status.
-        SetDeviceHealth(newTemperature, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
+            // Update DeviceHealth status.
+            SetDeviceHealth(newTemperature, baseTempDegrees, targetTempDegrees, overheatThresholdDegrees);
 
-        EmitEvents();
-
-        _lock.Release();
+            EmitEvents();
+        });
     }
 
     private void AddMethods()
@@ -365,34 +365,59 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     private void UpdateMaintenance(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        _lock.Wait();
+        ExecuteTimerCallback(nameof(UpdateMaintenance), () =>
+        {
+            SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
 
-        SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
+            _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
 
-        _maintenanceRequiredEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
-
-        // Report event through the boiler object.
-        _boiler2Object?.ReportEvent(_plcNodeManager.SystemContext, _maintenanceRequiredEv);
-
-        _lock.Release();
+            // Report event through the boiler object.
+            _boiler2Object?.ReportEvent(_plcNodeManager.SystemContext, _maintenanceRequiredEv);
+        });
     }
 
     private void UpdateOverheat(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        _lock.Wait();
+        ExecuteTimerCallback(nameof(UpdateOverheat), () =>
+        {
+            SetValue(_currentTempDegreesNode, (float)_overheatThresholdDegreesNode.Value + 10.0f);
+            SetValue(_heaterStateNode, false);
+            SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
 
-        SetValue(_currentTempDegreesNode, (float)_overheatThresholdDegreesNode.Value + 10.0f);
-        SetValue(_heaterStateNode, false);
-        SetValue(_deviceHealth, DeviceHealthEnumeration.OFF_SPEC);
+            _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
 
-        _offSpecEv.SetChildValue(_plcNodeManager.SystemContext, Opc.Ua.BrowseNames.Time, value: DateTime.Now, copy: false);
+            // Report event through the boiler object.
+            _boiler2Object?.ReportEvent(_plcNodeManager.SystemContext, _offSpecEv);
 
-        // Report event through the boiler object.
-        _boiler2Object?.ReportEvent(_plcNodeManager.SystemContext, _offSpecEv);
+            _isOverheated = true;
+        });
+    }
 
-        _isOverheated = true;
+    private void ExecuteTimerCallback(string callbackName, Action callback)
+    {
+        if (!_lock.Wait(0))
+        {
+            if (Interlocked.Exchange(ref _timerCallbackBlocked, 1) == 0)
+            {
+                LogTimerCallbackSkipped(callbackName);
+            }
 
-        _lock.Release();
+            return;
+        }
+
+        _ = Interlocked.Exchange(ref _timerCallbackBlocked, 0);
+        try
+        {
+            callback();
+        }
+        catch (Exception ex)
+        {
+            LogTimerCallbackFailed(ex, callbackName);
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     private void EmitEvents()
@@ -435,4 +460,10 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "SwitchOnCall method called with argument: {Argument}")]
     partial void LogSwitchOnCallMethodCalled(object argument);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Skipping {CallbackName} because another Boiler #2 timer callback is still running.")]
+    partial void LogTimerCallbackSkipped(string callbackName);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "{CallbackName} failed.")]
+    partial void LogTimerCallbackFailed(Exception exception, string callbackName);
 }
