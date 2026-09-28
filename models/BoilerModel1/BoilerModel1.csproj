@@ -8,6 +8,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" NoWarn="NU5104" />
+		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" NoWarn="NU5104" />
 		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types" NoWarn="NU5104" />
 		<AdditionalFiles Include="..\..\src\Boilers\Boiler1\ModelDesign.xml"
 										 ModelSourceGeneratorModelUri="http://microsoft.com/Opc/OpcPlc/Boiler"

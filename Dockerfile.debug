@@ -7,14 +7,19 @@ WORKDIR /app
 COPY common.props .
 COPY Directory.Packages.props .
 COPY Directory.Build.targets .
+COPY NuGet.config .
 COPY src/Directory.Build.props src/
+COPY src/project.props src/
 COPY src/opc-plc.csproj src/
 COPY docs/media/icon.png docs/media/
 COPY README.md .
 
 # Restore dependencies
-RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
-    && dotnet restore src/opc-plc.csproj -a "$ARCH"
+RUN --mount=type=secret,id=opcua_nuget_credentials,env=NuGetPackageSourceCredentials_opcua-preview,required=true \
+    if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
+    && dotnet restore src/opc-plc.csproj -a "$ARCH" \
+    -p:Configuration=Debug -p:SelfContained=true -p:TargetLatestRuntimePatch=true \
+    -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false
 
 # Copy source code
 COPY src/ src/
@@ -30,9 +35,11 @@ WORKDIR /app/src
 RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
     && dotnet publish opc-plc.csproj \
     -c Debug \
+    --no-restore \
     -o /app/publish \
     -a "$ARCH" \
     --self-contained true \
+    -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false \
     /p:TargetLatestRuntimePatch=true
 
 # Final stage

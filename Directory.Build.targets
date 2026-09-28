@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <UseLocalOpcUaStack Condition="'$(UseLocalOpcUaStack)' == ''">true</UseLocalOpcUaStack>
+    <UseLocalOpcUaStack Condition="'$(UseLocalOpcUaStack)' == ''">false</UseLocalOpcUaStack>
     <OpcUaSourceRoot Condition="'$(OpcUaSourceRoot)' == '' And '$(UseLocalOpcUaStack)' == 'true'">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\UA-.NETStandard'))</OpcUaSourceRoot>
     <GeneratePackageOnBuild Condition="'$(UseLocalOpcUaStack)' == 'true'">false</GeneratePackageOnBuild>
   </PropertyGroup>
@@ -19,27 +19,26 @@
     <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Client.ComplexTypes\Opc.Ua.Client.ComplexTypes.csproj" />
     <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Gds.Client\Opc.Ua.Gds.Client.csproj" />
   </ItemGroup>
-  <PropertyGroup>
-    <!-- Uncomment the following to test against a local OPC UA SDK and avoid error CS0433 -->
-    <!-- <DefineConstants>UseLocalOpcUaSdk</DefineConstants> -->
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(UseOpcUaModelSourceGenerator)' == 'true'">
-    <OpcUaSourceRoot Condition="'$(OpcUaSourceRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\UA-.NETStandard-generator-2.0.337.4992'))</OpcUaSourceRoot>
+  <ItemGroup Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' != 'true'">
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration"
+      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true'">
     <_OpcUaGeneratorDirectory>$(OpcUaSourceRoot)\tools\Opc.Ua.SourceGeneration</_OpcUaGeneratorDirectory>
   </PropertyGroup>
   <Import Project="$(_OpcUaGeneratorDirectory)\OPCFoundation.Opc.Ua.SourceGeneration.props"
-    Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And Exists('$(_OpcUaGeneratorDirectory)\OPCFoundation.Opc.Ua.SourceGeneration.props')" />
-  <ItemGroup Condition="'$(UseOpcUaModelSourceGenerator)' == 'true'">
+    Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true' And Exists('$(_OpcUaGeneratorDirectory)\OPCFoundation.Opc.Ua.SourceGeneration.props')" />
+  <ItemGroup Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true'">
     <ProjectReference Include="$(_OpcUaGeneratorDirectory)\Opc.Ua.SourceGeneration.csproj"
       OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
   </ItemGroup>
   <Target Name="ValidateOpcUaModelSourceGenerator" BeforeTargets="CollectPackageReferences;CoreCompile"
-    Condition="'$(UseOpcUaModelSourceGenerator)' == 'true'">
+    Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true'">
     <Error Condition="!Exists('$(_OpcUaGeneratorDirectory)\Opc.Ua.SourceGeneration.csproj')"
       Text="OPC UA generator source is missing. Set OpcUaSourceRoot to a checkout compatible with the selected runtime; source mode uses the same checkout for both." />
   </Target>
   <Target Name="LoadOpcUaModelGeneratorDependencies" BeforeTargets="CoreCompile"
-    Condition="'$(UseOpcUaModelSourceGenerator)' == 'true'">
+    Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true'">
     <ItemGroup>
       <_OpcUaGeneratorAssembly Include="@(Analyzer)" Condition="'%(Analyzer.Filename)' == 'Opc.Ua.SourceGeneration'" />
     </ItemGroup>

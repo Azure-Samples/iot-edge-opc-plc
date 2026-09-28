@@ -1,23 +1,152 @@
 # OPC UA 2.0 migration
 
-## Draft PR checkpoint
+## CI and Linux qualification (2026-09-28)
 
-This branch is a source-validated migration checkpoint, **not a merge-ready release change**.
-It requires a compatible sibling UA-.NETStandard checkout (qualified commit
-`9b8a3b1188411f3858fbdf3e4dacf8b82ca0cec9`). The configured OPC NuGet pins are still 1.5.378.176 and
-are inactive in source mode; disabling source mode does not yet provide a supported package build.
+The release version is now **2.16.0**, selected by the user. Package mode continues to use the exact
+preview-20 SDK set described below. The following validation is local; a hosted pipeline result
+must be checked separately after the draft migration PR is opened.
 
-Before merging for release: adopt the official 2.0 package set, qualify normal audited feed restores,
-make source references opt-in, and complete the package/consumer/CI/deployment gates below.
-The migration commit includes implementation, regression tests, test-only model references, runtime
-asset rules, and this evidence record. Deferred Docker changes and ignored local probes, logs,
-build outputs, caches, and PKI are not part of the commit. No PR or remote publication is implied.
+### CI credential setup
 
-Pre-commit validation on `migration/opc-ua-2-source-checkpoint`: fresh full Release suite
-**913 passed, 0 failed, 0 skipped**, exit 0, against the exact clean SDK commit above.
+Configure `OpcUaNuGetCredentials` as a **secret** Azure Pipelines variable, with this format:
+
+```text
+Username=<GitHub user>;Password=<read:packages token>;ValidAuthenticationTypes=Basic
+```
+
+Use a least-privilege account/token authorized to read the OPC Foundation packages and satisfy any
+organization SSO requirements. Set the value directly in the pipeline UI or approved secret store,
+never in YAML, source control, chat, or build arguments. The user confirmed this variable is configured;
+its availability to the hosted job has not yet been verified. Do not expose secrets to untrusted fork
+PRs; use the organization's protected approval policy for builds requiring private-feed credentials.
+
+The build and test jobs run `tools/scripts/restore-ci.ps1` with a fresh cache under the agent's temp
+directory. Only the restore task receives `NuGetPackageSourceCredentials_opcua-preview`. Later builds
+and tests use `--no-restore` and disable automatic package generation. Full Git history is fetched for
+Nerdbank versioning. Missing credentials, a nonempty cache, an in-repository cache, mixed OPC versions,
+unexpected fallback folders, or disabled dependency auditing fail the gate.
+
+### Cold-cache results
+
+- The script passed against a new external temporary package directory and a separate empty fallback
+  directory, with `--force --no-http-cache`, auditing of all dependencies, and warnings as errors.
+- All three restored assets graphs contain only preview-20 OPC packages and the allowed fresh cache
+  directories. No machine package/fallback cache or local SDK project was used.
+- Release and Debug **rebuilds** passed with zero warnings and errors at version 2.16.0.
+- The final full Release run from these external-cache rebuilds passed **913 tests, 0 failed,
+  0 skipped**, exit 0, with a reported duration of 9 minutes 24 seconds. The saved TRX confirms
+  all 913 tests executed successfully.
+- An initial local cache under `tests/TestResults` exposed the project's intentional artifact exclusion:
+  NUnit engine copy items were removed and no tests could execute. The script now rejects such cache
+  locations before restore. External-cache rebuilds copy `nunit.engine.api.dll` correctly. The failed
+  run is retained as evidence, not counted as a successful test run; no test assertions were changed.
+
+Evidence under `tests/TestResults/stack-v2-migration/`:
+`20260928-ci-external-cold-restore.log`, `20260928-ci-external-cold-release-build.log`,
+`20260928-ci-external-cold-debug-build.log`, and the completed
+`20260928-ci-external-cold-release-full.trx`/`.log`. PowerShell parsing and missing-credential/cache
+guards passed. YAML parsing and five branch/reason condition cases passed.
+
+### Linux images
+
+Both Dockerfiles copy the repository feed configuration and project metadata before restore. GitHub
+package credentials are passed via the required BuildKit secret `opcua_nuget_credentials`, exposed
+only during restore. Publish uses `--no-restore` with matching architecture/self-contained settings.
+No credentials are supplied as Docker build arguments or persisted environment settings.
+
+For local builds, supply the credential through an existing secure environment setup and run:
+
+```powershell
+docker build -f Dockerfile.release -t opcplc-local:release --secret id=opcua_nuget_credentials,env=OPCUA_NUGET_CREDENTIALS .
+docker build -f Dockerfile.debug -t opcplc-local:debug --secret id=opcua_nuget_credentials,env=OPCUA_NUGET_CREDENTIALS .
+```
+
+- A no-cache Release image build successfully restored inside Docker. Both final version-2.16.0
+  Release and Debug images subsequently built and ran as UID **1654** on Linux/amd64.
+- The unchanged independent SDK 1.5.378.176 client passed against **both** final images: encrypted
+  SignAndEncrypt/Aes256_Sha256_RsaPss sessions, scalar and opaque-ID reads, scalar/complex writes and
+  readback, stop/start and heater methods, changing data subscriptions, fresh sessions, nested legacy
+  Boiler decoding, and custom-event CycleStep scalar/array decoding.
+- Those container probes auto-accept test certificates and use anonymous identities. They do not
+  qualify production trust/revocation, username/X509 user authentication, persistent PKI, or GDS on
+  Linux. Temporary containers and ephemeral loopback port mappings were removed after each check.
+- The credential value was absent from both final images' inspected metadata/history/environment
+  and image build logs. This is a scoped check, not a byte-for-byte image-layer security audit.
+- PR and non-release branch jobs build images locally without pushing. Only non-PR `main` and
+  `release/*` jobs retain the existing ACR publishing path. No registry administration, image push,
+  package upload, or cloud deployment was performed during this validation.
+
+Final local image IDs: Release `9766010c08d1a216251e347ac269e0d5ff02d1ef8153b55d1dcba068eb990362`;
+Debug `4b0d7da506db9133f2cadeb188083dada203b619c206b58ff1fc5e873ac9179a`.
+Evidence files: `20260928-container-{release,debug}-final-{build,interop,runtime}.log` under the
+same ignored validation directory. ARM64, actual hosted CI execution, full Debug test execution,
+and deployment remain separate qualification gates. These results supersede the earlier deferred
+cold-cache and Linux-image status; historical checkpoints below remain dated evidence.
+
+## Package validation (2026-09-28)
+
+The central manifest is reconciled with package mode: all seven active OPC runtime/analyzer
+packages are pinned to the exact version `[2.0.0-preview.20.g46fa7d364a]`, the obsolete Debug and
+Gds.Client.Common entries are removed, and the missing Newtonsoft.Json 13.0.4 entry is restored.
+Other dependency versions, application code, the local SDK checkout, and feed settings are unchanged
+by this repair. Package mode remains the default.
+
+Fresh validation with `UseLocalOpcUaStack=false` and `GeneratePackageOnBuild=false`:
+
+- Forced restore with `--no-http-cache`, `NuGetAudit=true`, `NuGetAuditMode=all`, and
+  `TreatWarningsAsErrors=true` passed through the configured feeds. No warning suppression or audit
+  override was used. Existing package caches remained available; this is not a cold-cache test.
+- Release and Debug solution builds passed with zero warnings and errors.
+- All three project assets files contain only the requested OPC package version, with no OPC source
+  project substitutions: seven packages in the application, twelve in the tests, and eight in the
+  Boiler1 reference project. Audit settings are enabled for all dependencies in each graph.
+- An advisory scan found no known CVEs for the twelve resolved OPC package versions and
+  Newtonsoft.Json 13.0.4. This does not constitute a complete security review.
+- The fresh full Release regression run passed **913 tests, 0 failed, 0 skipped**, exit 0,
+  with a reported test duration of 8 minutes 33 seconds. The saved TRX confirms all 913 tests
+  executed successfully against the rebuilt package-mode Release binaries. The full Debug suite
+  was not rerun in this step.
+
+Evidence is under `tests/TestResults/stack-v2-migration/`: `20260928-preview20-restore.log`,
+`20260928-preview20-release-build.log`, `20260928-preview20-debug-build.log`, and
+`20260928-preview20-cve-report.json`. Completed runtime evidence is
+`20260928-preview20-release-full.log` and `20260928-preview20-release-full.trx`.
+
+CI authentication, Docker feed/secret wiring, cold-cache restore, and deployment qualification
+remain separate gates. This repair does not create packages, commits, branches, or pull requests.
+The dated checkpoints below describe their state at the time and do not override this section.
+
+## Package checkpoint (2026-09-27)
+
+Package mode is now the default and pins the complete direct OPC dependency set to
+`2.0.0-preview.20.g46fa7d364a`, built from stack commit
+`46fa7d364a0bc44b71a78bbe3cc415edda4a46bd`. Local source mode remains available explicitly with
+`-p:UseLocalOpcUaStack=true`; it is no longer required for normal builds.
+
+The repository `NuGet.config` maps `OPCFoundation.NetStandard.Opc.Ua.*` to the OPC Foundation GitHub
+Packages feed and all other dependencies to the official nuget.org v2 endpoint. The v2 endpoint avoids
+the local TLS handshake failure observed with nuget.org v3 without changing the repository's audit or
+certificate-validation settings. GitHub credentials are stored outside the repository in the user
+NuGet configuration. Package mode uses the renamed
+`OPCFoundation.NetStandard.Opc.Ua.Gds.Client` package and the packaged
+`OPCFoundation.NetStandard.Opc.Ua.SourceGeneration` analyzer. The Boiler1 model project explicitly
+references Server because its generated fluent builders use `Opc.Ua.Server`.
+
+A forced, no-HTTP-cache restore completed successfully. NuGet metadata records the GitHub Packages
+feed and a content hash for every direct OPC package, and all resolved direct and transitive OPC
+libraries in the application, test, and Boiler1 assets files have the exact requested version. The
+Release application, Boiler1 model, and test graph build with zero warnings and errors. The full
+package-mode Release suite passed **913 tests, 0 failed, 0 skipped** in 579 seconds; evidence is
+`tests/TestResults/stack-v2-migration/stack-preview20-package-release.trx`. Docker and deployment
+qualification remain separate gates. No PR, commit, or remote publication is implied.
+
+Historical pre-commit validation (2026-09-25) on `migration/opc-ua-2-source-checkpoint`:
+full Release suite **913 passed, 0 failed, 0 skipped**, exit 0, against clean SDK source commit
+`9b8a3b1188411f3858fbdf3e4dacf8b82ca0cec9`.
 Local evidence is `tests/TestResults/stack-v2-migration/pr-checkpoint-release-full.trx` and `.log`.
 This run includes the typed heater read and offline asset-layout fixes. Existing Debug and independent
-1.5.x-client evidence remains recorded below; normal-feed auditing and package-mode CI are still blocked.
+1.5.x-client evidence remains recorded below. At that checkpoint, normal-feed auditing and package-mode
+CI were blocked; subsequent package-mode local validation is recorded above, while CI remains a separate gate.
 
 ## Constraints
 

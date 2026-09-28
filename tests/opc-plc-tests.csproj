@@ -17,43 +17,12 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
 
-  <!-- When referencing a local build of the OPC UA stack for testing, define the constant UseLocalOpcUaSdk in the file Directory.Build.targets -->
-  <Choose>
-    <When Condition="'$(Configuration)'=='Debug'">
-      <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common.Debug" NoWarn="NU5104" />
-      </ItemGroup>
-      <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Security.Certificates\Opc.Ua.Security.Certificates.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Client\Opc.Ua.Client.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Client.ComplexTypes\Opc.Ua.Client.ComplexTypes.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Gds.Client.Common\Opc.Ua.Gds.Client.Common.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj" />
-      </ItemGroup>
-    </When>
-    <When Condition="'$(Configuration)'=='Release'">
-      <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes.Debug" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common" NoWarn="NU5104" />
-      </ItemGroup>
-      <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Security.Certificates\Opc.Ua.Security.Certificates.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Client\Opc.Ua.Client.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Client.ComplexTypes\Opc.Ua.Client.ComplexTypes.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Gds.Client.Common\Opc.Ua.Gds.Client.Common.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj" />
-      </ItemGroup>
-    </When>
-  </Choose>
+  <ItemGroup>
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client" NoWarn="NU5104" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Update="DeterministicAlarmsTests\dalm002.json">
