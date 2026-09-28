@@ -6,9 +6,9 @@ The test fixture runs an instance of the OPC PLC Server per test class, as a bac
 The Server is instrumented with mocks for time-related objects and methods (DateTime.Now, Timers) so
 that time can be controlled programmatically.
 
-The runtime-model migration currently uses the repaired sibling UA-.NETStandard checkout by default.
-See [the migration checkpoint](../docs/opc-ua-v2-migration.md#current-runtime-model-checkpoint-2026-09-23)
-for source-mode prerequisites and validation commands.
+Package mode is the default for OPC UA 2.0. To use a repaired sibling `UA-.NETStandard`
+checkout explicitly, pass `-p:UseLocalOpcUaStack=true`. See the
+[OPC UA 2.0 migration notes](../docs/opc-ua-v2-migration.md) for package-feed and local-source setup.
 
 Model source generation is test-only: the test assembly and BoilerModel1 project provide independent
 reference identities, states, and wire codecs. The PLC server imports NodeSet2 XML and builds runtime
