@@ -46,27 +46,19 @@ jobs:
       filePath: ./tools/scripts/set-version.ps1
       pwsh: true
 
-  - task: PowerShell@2
-    displayName: Audited Cold Restore
-    inputs:
-      targetType: filePath
-      filePath: ./tools/scripts/restore-ci.ps1
-      arguments: '-PackagesDirectory "$(Agent.TempDirectory)/opcplc-packages-$(System.JobId)-$(System.JobAttempt)"'
-      pwsh: true
-
   - task: DotNetCoreCLI@2
     displayName: Release Build
     inputs:
       command: build
       projects: '$(file)'
-      arguments: '--configuration Release --no-restore -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false'
+      arguments: '--configuration Release -p:NuGetAudit=true -p:NuGetAuditMode=all'
 
   - task: DotNetCoreCLI@2
     displayName: Debug Build
     inputs:
       command: build
       projects: '$(file)'
-      arguments: '--configuration Debug --no-restore -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false'
+      arguments: '--configuration Debug -p:NuGetAudit=true -p:NuGetAuditMode=all'
 
 - job: testprep
   displayName: Prepare Test Jobs
@@ -118,14 +110,6 @@ jobs:
       filePath: ./tools/scripts/set-version.ps1
       pwsh: true
 
-  - task: PowerShell@2
-    displayName: Audited Cold Restore
-    inputs:
-      targetType: filePath
-      filePath: ./tools/scripts/restore-ci.ps1
-      arguments: '-PackagesDirectory "$(Agent.TempDirectory)/opcplc-packages-$(System.JobId)-$(System.JobAttempt)"'
-      pwsh: true
-
   - task: DotNetCoreCLI@2
     displayName: Test
     timeoutInMinutes: 30
@@ -133,4 +117,4 @@ jobs:
       command: test
       # projects: '$(folder)/**/tests/*.csproj'
       projects: '**/tests/*.csproj'
-      arguments: '--configuration Release --no-restore -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false'
+      arguments: '--configuration Release -p:NuGetAudit=true -p:NuGetAuditMode=all'
