@@ -349,9 +349,12 @@ public class DiSecurityMigrationTests
         }
     }
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task PlcProvider_PreservesExplicitPathsIdentityAndServerSettingsAsync(bool unsecure)
+    [TestCase(false, 1)]
+    [TestCase(false, 73)]
+    [TestCase(true, 73)]
+    [TestCase(false, 100)]
+    [TestCase(false, int.MaxValue - 3)]
+    public async Task PlcProvider_PreservesExplicitPathsIdentityAndServerSettingsAsync(bool unsecure, int maxSessionCount)
     {
         string root = Path.Combine(Path.GetTempPath(), "opcplc-provider-" + Guid.NewGuid().ToString("N"));
         try
@@ -367,7 +370,7 @@ public class DiSecurityMigrationTests
             plc.OpcUa.OpcUserIssuerCertStorePath = Path.Combine(root, "custom-user-issuers");
             plc.OpcUa.OpcRejectedCertStorePath = Path.Combine(root, "custom-rejections");
             plc.OpcUa.EnableUnsecureTransport = unsecure;
-            plc.OpcUa.MaxSessionCount = 73;
+            plc.OpcUa.MaxSessionCount = maxSessionCount;
             plc.OpcUa.MaxSubscriptionCount = 91;
             plc.OpcUa.OpcMaxStringLength = 123456;
             plc.OpcUa.ReverseConnectClientUrls = ["opc.tcp://localhost:51235/client"];
@@ -399,7 +402,8 @@ public class DiSecurityMigrationTests
                     {
                         UserTokenType.Anonymous, UserTokenType.UserName, UserTokenType.Certificate
                     });
-                config.ServerConfiguration.MaxSessionCount.Should().Be(73);
+                config.ServerConfiguration.MaxSessionCount.Should().Be(maxSessionCount);
+                config.ServerConfiguration.MaxChannelCount.Should().Be(maxSessionCount + 3);
                 config.ServerConfiguration.MaxSubscriptionCount.Should().Be(91);
                 config.TransportQuotas.MaxStringLength.Should().Be(123456);
                 config.ServerConfiguration.OperationLimits.MaxNodesPerRead.Should().Be(2500);
@@ -428,6 +432,26 @@ public class DiSecurityMigrationTests
                 Directory.Delete(root, recursive: true);
             }
         }
+    }
+
+    [TestCase(0)]
+    [TestCase(-1)]
+    [TestCase(int.MaxValue - 2)]
+    [TestCase(int.MaxValue - 1)]
+    [TestCase(int.MaxValue)]
+    public async Task PlcProvider_RejectsSessionCapacityWithoutReconnectHeadroomAsync(int maxSessionCount)
+    {
+        string root = Path.Combine(Path.GetTempPath(), "opcplc-capacity-" + Guid.NewGuid().ToString("N"));
+        var plc = CreatePlcConfiguration(root, false);
+        plc.OpcUa.MaxSessionCount = maxSessionCount;
+        var logging = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
+        var factory = new OpcUaAppConfigFactory(plc, logging.CreateLogger("provider-test"), logging,
+            DefaultTelemetry.Create(_ => { }));
+        Func<Task> configure = () => factory.ConfigureAsync();
+
+        await configure.Should().ThrowAsync<ArgumentOutOfRangeException>()
+            .WithParameterName(nameof(plc.OpcUa.MaxSessionCount)).ConfigureAwait(false);
+        Directory.Exists(root).Should().BeFalse();
     }
 
     [TestCase("empty")]

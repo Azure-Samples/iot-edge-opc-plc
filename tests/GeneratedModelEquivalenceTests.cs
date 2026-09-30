@@ -504,28 +504,6 @@ public partial class GeneratedModelEquivalenceTests
         "Boiler2TypeState/2:DeviceHealthAlarms/1:MaintenanceRequiredAlarm"
     ];
 
-    private static readonly HashSet<string> EmptyArgumentPropertyPaths = new[]
-    {
-        "FailureAlarmTypeState", "MaintenanceRequiredAlarmTypeState", "CheckFunctionAlarmTypeState",
-        "OffSpecAlarmTypeState", "DeviceHealthDiagnosticAlarmTypeState"
-    }.Concat(BoilerAlarmPaths).SelectMany(root => new[]
-    {
-        "Disable/InputArguments", "Disable/OutputArguments", "Enable/InputArguments", "Enable/OutputArguments",
-        "AddComment/OutputArguments", "Acknowledge/OutputArguments"
-    }.Select(path => root + "/" + path)).Concat(new[]
-    {
-        "WoTAssetFileState/Close/OutputArguments", "WoTAssetFileState/Write/OutputArguments",
-        "WoTAssetFileState/SetPosition/OutputArguments", "IWoTAssetState/3:WoTFile/Close/OutputArguments",
-        "IWoTAssetState/3:WoTFile/Write/OutputArguments", "IWoTAssetState/3:WoTFile/SetPosition/OutputArguments",
-        "FileSystemLoadingTypeState/FileSystem/Delete/OutputArguments",
-        "WoTAssetConnectionManagementState/3:WoTAssetNameFirst/3:WoTFile/Close/OutputArguments",
-        "WoTAssetConnectionManagementState/3:WoTAssetNameFirst/3:WoTFile/Write/OutputArguments",
-        "WoTAssetConnectionManagementState/3:WoTAssetNameFirst/3:WoTFile/SetPosition/OutputArguments",
-        "WoTAssetConnectionManagementState/3:WoTAssetNameSecond/3:WoTFile/Close/OutputArguments",
-        "WoTAssetConnectionManagementState/3:WoTAssetNameSecond/3:WoTFile/Write/OutputArguments",
-        "WoTAssetConnectionManagementState/3:WoTAssetNameSecond/3:WoTFile/SetPosition/OutputArguments"
-    }).ToHashSet(StringComparer.Ordinal);
-
     private static readonly Dictionary<string, uint[]> TypeOnlyDeclarationIds = new(StringComparer.Ordinal)
     {
         ["PrepareForUpdateStateMachineTypeState"] = [231, 233, 235, 237, 239, 241, 243, 245, 247],
@@ -551,12 +529,6 @@ public partial class GeneratedModelEquivalenceTests
     public void BoilerAlarm_MetadataPolicyRejectsOtherPaths(string root)
     {
         BoilerAlarmPaths.Should().HaveCount(4).And.OnlyHaveUniqueItems();
-        EmptyArgumentPropertyPaths.Should().NotContain(root + "/Disable/InputArguments")
-            .And.NotContain(root + "/Disable/OutputArguments")
-            .And.NotContain(root + "/Enable/InputArguments")
-            .And.NotContain(root + "/Enable/OutputArguments")
-            .And.NotContain(root + "/AddComment/OutputArguments")
-            .And.NotContain(root + "/Acknowledge/OutputArguments");
         IsApprovedFixedAlarmBound(root + "/AddComment/InputArguments", [0], [2], 2, 2).Should().BeFalse();
         IsApprovedFixedAlarmBound(root + "/Acknowledge/InputArguments", [0], [2], 2, 2).Should().BeFalse();
     }
@@ -642,8 +614,7 @@ public partial class GeneratedModelEquivalenceTests
                 var propertyBrowseName = new QualifiedName(propertyName);
                 expectedMethod.FindChild(context, propertyBrowseName).Should().BeNull();
                 string path = "Boiler2TypeState/" + alarmsName + "/" + name + "/" + methodName + "/" + propertyName;
-                IsApprovedEmptyArgumentProperty(context, actualMethod,
-                    actualMethod.FindChild(context, propertyBrowseName), path).Should().BeTrue(path);
+                actualMethod.FindChild(context, propertyBrowseName).Should().BeNull(path);
             }
             if (methodName is "AddComment" or "Acknowledge")
             {
@@ -790,101 +761,63 @@ public partial class GeneratedModelEquivalenceTests
     [TestCase(typeof(Opc.Ua.DI.FailureAlarmState), "Enable", "OutputArguments")]
     [TestCase(typeof(Opc.Ua.DI.FailureAlarmState), "AddComment", "OutputArguments")]
     [TestCase(typeof(Opc.Ua.DI.FailureAlarmState), "Acknowledge", "OutputArguments")]
-    public void Method_AdditionalArgumentPropertyHasEmptyReadOnlySignature(Type type, string path, string propertyName)
+    public void Method_ArgumentsMatchRetainedDeclaration(Type type, string path, string propertyName)
     {
         var context = CreateModelContext();
+        TestCaseData retained = RetainedNodeStates().Single(test => (Type)test.Arguments[2] == type);
+        var expected = new BaseObjectState(null);
+        expected.Initialize(context, (string)retained.Arguments[3]);
         var state = (BaseInstanceState)Activator.CreateInstance(type, new object[] { null });
         state.Create(context, new NodeId("EmptyArgumentsProbe", 1),
-            new QualifiedName(type.Name, 1), new LocalizedText(type.Name), false);
+            expected.BrowseName, expected.DisplayName, false);
         BaseInstanceState method = state;
+        BaseInstanceState retainedMethod = expected;
         foreach (string name in path.Split('/'))
         {
             method = method.FindChild(context, new QualifiedName(name));
             method.Should().NotBeNull(path);
+            retainedMethod = retainedMethod.FindChild(context, new QualifiedName(name));
+            retainedMethod.Should().NotBeNull(path);
         }
         method.Should().BeAssignableTo<MethodState>();
-        var property = method.FindChild(context, new QualifiedName(propertyName)) as BaseVariableState;
-        property.Should().NotBeNull();
         using var assertions = new AssertionScope(type.Name + "/" + path + "/" + propertyName);
-        property.Parent.Should().BeSameAs(method);
-        property.TypeDefinitionId.Should().Be(VariableTypeIds.PropertyType);
-        property.ReferenceTypeId.Should().Be(ReferenceTypeIds.HasProperty);
-        property.DataType.Should().Be(Opc.Ua.DataTypeIds.Argument);
-        property.ValueRank.Should().Be(ValueRanks.OneDimension);
-        property.ArrayDimensions.ToArray().Should().Equal(0u);
-        property.AccessLevel.Should().Be(AccessLevels.CurrentRead);
-        property.UserAccessLevel.Should().Be(AccessLevels.CurrentRead);
-        ReadArguments(property.Value).Should().NotBeNull().And.BeEmpty();
+        retainedMethod.FindChild(context, new QualifiedName(propertyName)).Should().BeNull();
+        method.FindChild(context, new QualifiedName(propertyName)).Should().BeNull();
+        CompareChildren(context, retainedMethod, method, retained.Arguments[1] + "/" + path);
     }
 
-    [TestCase("UnknownPath", false)]
-    [TestCase("UnknownPath", true)]
-    [TestCase("NullValue", false)]
-    [TestCase("NullValue", true)]
-    [TestCase("NonemptyValue", false)]
-    [TestCase("NonemptyValue", true)]
-    [TestCase("AccessLevel", false)]
-    [TestCase("AccessLevel", true)]
-    [TestCase("UserAccessLevel", false)]
-    [TestCase("UserAccessLevel", true)]
-    [TestCase("DataType", false)]
-    [TestCase("DataType", true)]
-    [TestCase("ValueRank", false)]
-    [TestCase("ValueRank", true)]
-    [TestCase("ArrayDimensions", false)]
-    [TestCase("ArrayDimensions", true)]
-    [TestCase("Parent", false)]
-    [TestCase("Parent", true)]
-    [TestCase("ReferenceType", false)]
-    [TestCase("ReferenceType", true)]
-    [TestCase("TypeDefinition", false)]
-    [TestCase("TypeDefinition", true)]
-    [TestCase("BrowseNameNamespace", false)]
-    [TestCase("BrowseNameNamespace", true)]
-    [TestCase("Duplicate", false)]
-    [TestCase("Duplicate", true)]
-    [TestCase("NestedChild", false)]
-    [TestCase("NestedChild", true)]
-    public void EmptyArgumentProperty_RejectsUnapprovedChanges(string change, bool nestedBoiler)
+    [TestCase("InputArguments", false, false)]
+    [TestCase("InputArguments", false, true)]
+    [TestCase("InputArguments", true, false)]
+    [TestCase("InputArguments", true, true)]
+    [TestCase("OutputArguments", false, false)]
+    [TestCase("OutputArguments", false, true)]
+    [TestCase("OutputArguments", true, false)]
+    [TestCase("OutputArguments", true, true)]
+    public void MethodComparison_RejectsUndeclaredArguments(string propertyName, bool hasArguments, bool qualifiedName)
     {
-        EmptyArgumentPropertyPaths.Should().HaveCount(67);
         var context = CreateModelContext();
-        var state = new Opc.Ua.WotCon.WoTAssetFileState(null);
-        state.Create(context, new NodeId("EmptyArgumentGuard", 1), new QualifiedName("Guard", 1),
-            new LocalizedText("Guard"), false);
-        BaseInstanceState parent = state.Close;
-        BaseVariableState property = state.Close.OutputArguments;
-        string path = nestedBoiler
-            ? "Boiler2TypeState/2:DeviceHealthAlarms/1:FailureAlarm/Disable/OutputArguments"
-            : "WoTAssetFileState/Close/OutputArguments";
-        IsApprovedEmptyArgumentProperty(context, parent, property, path).Should().BeTrue();
-        switch (change)
-        {
-            case "UnknownPath": path = "Unapproved/Close/OutputArguments"; break;
-            case "NullValue": property.Value = Variant.Null; break;
-            case "NonemptyValue": property.Value = ((BaseVariableState)state.Open.OutputArguments).Value; break;
-            case "AccessLevel": property.AccessLevel = AccessLevels.CurrentReadOrWrite; break;
-            case "UserAccessLevel": property.UserAccessLevel = AccessLevels.CurrentReadOrWrite; break;
-            case "DataType": property.DataType = Opc.Ua.DataTypeIds.String; break;
-            case "ValueRank": property.ValueRank = ValueRanks.Scalar; break;
-            case "ArrayDimensions": property.ArrayDimensions = [1u]; break;
-            case "Parent": parent = state.Open; break;
-            case "ReferenceType": property.ReferenceTypeId = ReferenceTypeIds.HasComponent; break;
-            case "TypeDefinition": property.TypeDefinitionId = VariableTypeIds.BaseDataVariableType; break;
-            case "BrowseNameNamespace": property.BrowseName = new QualifiedName("OutputArguments", 1); break;
-            case "Duplicate":
-                parent.AddChild(new BaseDataVariableState(parent) { BrowseName = property.BrowseName });
-                break;
-            case "NestedChild":
-                property.AddChild(new BaseDataVariableState(property) { BrowseName = new QualifiedName("Unexpected") });
-                break;
-            default: throw new ArgumentOutOfRangeException(nameof(change));
-        }
-        IsApprovedEmptyArgumentProperty(context, parent, property, path).Should().BeFalse(change);
+        var expected = new MethodState(null);
+        var actual = new MethodState(null);
+        string path = "WoTAssetFileState/Close";
+        CompareChildren(context, expected, actual, path);
+        var property = PropertyState<ArrayOf<Argument>>.With<StructureBuilder<Argument>>(actual);
+        property.BrowseName = new QualifiedName(propertyName, (ushort)(qualifiedName ? 1 : 0));
+        property.TypeDefinitionId = VariableTypeIds.PropertyType;
+        property.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+        property.DataType = Opc.Ua.DataTypeIds.Argument;
+        property.ValueRank = ValueRanks.OneDimension;
+        property.ArrayDimensions = [0u];
+        property.AccessLevel = AccessLevels.CurrentRead;
+        property.UserAccessLevel = AccessLevels.CurrentRead;
+        property.Value = hasArguments ? [new Argument { Name = "Unexpected", DataType = Opc.Ua.DataTypeIds.String }] : [];
+        actual.AddChild(property);
+        Action compare = () => CompareChildren(context, expected, actual, path);
+        compare.Should().Throw<AssertionException>();
     }
 
     [Test]
-    public void NamedAsset_FileOutputsAreEmptyReadOnlyArguments()
+    public void NamedAsset_FileMethodsDoNotAddOutputArguments()
     {
         var context = CreateModelContext();
         ushort namespaceIndex = context.NamespaceUris.GetIndexOrAppend(OpcPlc.Namespaces.WotCon);
@@ -898,39 +831,11 @@ public partial class GeneratedModelEquivalenceTests
             foreach (string methodName in new[] { "Close", "Write", "SetPosition" })
             {
                 BaseInstanceState method = file.FindChild(context, new QualifiedName(methodName));
+                method.Should().BeAssignableTo<MethodState>();
                 BaseInstanceState output = method.FindChild(context, new QualifiedName("OutputArguments"));
-                HasEmptyArgumentPropertyMetadata(context, method, output).Should().BeTrue(assetName + "/" + methodName);
+                output.Should().BeNull(assetName + "/" + methodName);
             }
         }
-    }
-
-    private static bool IsApprovedEmptyArgumentProperty(ISystemContext context, BaseInstanceState parent,
-        BaseInstanceState child, string path)
-    {
-        return EmptyArgumentPropertyPaths.Contains(path) && HasEmptyArgumentPropertyMetadata(context, parent, child);
-    }
-
-    private static bool HasEmptyArgumentPropertyMetadata(ISystemContext context, BaseInstanceState parent,
-        BaseInstanceState child)
-    {
-        if (parent is not MethodState ||
-            child is not BaseVariableState property || property.Parent != parent ||
-            property.BrowseName.NamespaceIndex != 0 ||
-            property.BrowseName.Name is not ("InputArguments" or "OutputArguments") ||
-            property.TypeDefinitionId != VariableTypeIds.PropertyType ||
-            property.ReferenceTypeId != ReferenceTypeIds.HasProperty || property.DataType != Opc.Ua.DataTypeIds.Argument ||
-            property.ValueRank != ValueRanks.OneDimension || property.ArrayDimensions.ToArray() is not [0] ||
-            property.AccessLevel != AccessLevels.CurrentRead || property.UserAccessLevel != AccessLevels.CurrentRead ||
-            property.Value.IsNull)
-        {
-            return false;
-        }
-        var children = new List<BaseInstanceState>();
-        property.GetChildren(context, children);
-        var siblings = new List<BaseInstanceState>();
-        parent.GetChildren(context, siblings);
-        return children.Count == 0 && siblings.Count(sibling => sibling.BrowseName == property.BrowseName) == 1 &&
-            ReadArguments(property.Value) is { Length: 0 };
     }
 
     [Test]
@@ -1291,9 +1196,7 @@ public partial class GeneratedModelEquivalenceTests
             }
             CompareChildren(context, child, found, childPath);
         }
-        actualChildren.Where(child => expectedChildren.Any(expectedChild => expectedChild.BrowseName == child.BrowseName) ||
-            !IsApprovedEmptyArgumentProperty(context, actual, child, path + "/" + child.BrowseName))
-            .Select(child => child.BrowseName).Should()
+        actualChildren.Select(child => child.BrowseName).Should()
             .BeEquivalentTo(expectedChildren.Select(child => child.BrowseName), path + " child set");
     }
 

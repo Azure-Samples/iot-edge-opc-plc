@@ -7,7 +7,6 @@ WORKDIR /app
 COPY common.props .
 COPY Directory.Packages.props .
 COPY Directory.Build.targets .
-COPY NuGet.config .
 COPY src/Directory.Build.props src/
 COPY src/project.props src/
 COPY src/opc-plc.csproj src/

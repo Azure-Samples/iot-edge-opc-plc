@@ -20,6 +20,7 @@ public partial class OpcUaAppConfigFactory(
     ITelemetryContext telemetryContext,
     IKubernetesSecretStoreClientFactory kubernetesSecretStoreClientFactory = null)
 {
+    private const int SecureChannelHeadroom = 3;
     private readonly OpcPlcConfiguration _config = config;
     private readonly IKubernetesSecretStoreClientFactory _kubernetesSecretStoreClientFactory = kubernetesSecretStoreClientFactory ?? new KubernetesSecretStoreClientFactory(config.OpcUa.OpcKubernetesKubeConfigFilePath, loggerFactory.CreateLogger<KubernetesSecretStoreClient>());
     private readonly ILogger _logger = logger;
@@ -52,6 +53,12 @@ public partial class OpcUaAppConfigFactory(
         if (_config.DisableAnonymousAuth && _config.DisableCertAuth && !_config.UsernamePasswordAuthEnabled)
         {
             throw new InvalidOperationException("At least one user authentication method must be enabled.");
+        }
+
+        if (_config.OpcUa.MaxSessionCount <= 0 || _config.OpcUa.MaxSessionCount > int.MaxValue - SecureChannelHeadroom)
+        {
+            throw new ArgumentOutOfRangeException(nameof(_config.OpcUa.MaxSessionCount),
+            "Session capacity must be positive and leave room for reserved and reconnect SecureChannels.");
         }
 
         var transportQuotas = new TransportQuotas {
@@ -136,9 +143,7 @@ public partial class OpcUaAppConfigFactory(
             .SetMaxSubscriptionCount(_config.OpcUa.MaxSubscriptionCount)
             .SetMaxQueuedRequestCount(_config.OpcUa.MaxQueuedRequestCount)
             .SetOperationLimits(operationLimits)
-            // Ignore max channel count.
-            // TODO: Remove this when the OPC UA stack supports more than 100 channels.
-            .SetMaxChannelCount(0);
+            .SetMaxChannelCount(_config.OpcUa.MaxSessionCount + SecureChannelHeadroom);
 
         // Security configuration.
         _config.OpcUa.ApplicationConfiguration = await InitApplicationSecurityAsync(securityBuilder).ConfigureAwait(false);

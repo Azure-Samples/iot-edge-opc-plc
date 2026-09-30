@@ -1,5 +1,113 @@
 # OPC UA 2.0 migration
 
+## Preview-6 compatibility fixes (2026-09-30)
+
+The preview-6 packages identify SDK commit `d5092e9207816ba26aa18841032e148d19ace6a7`, which includes
+all five upstream fix PRs (#4544, #4546, #4547, #4548, and #4549). The initial 77 focused failures
+were 30 startup failures, 43 empty-argument expectations, and four identifier-baseline expectations;
+the original node-copy, mandatory-child, and certificate-store regressions already passed.
+
+- The PLC now configures `MaxChannelCount = MaxSessionCount + 3`. Balanced resource isolation
+  reserves one bootstrap and one reconnect channel; the remaining shared pool must still support
+  the configured sessions plus an ordinary reconnect channel. The initial `+1` experiment correctly
+  failed this second validation. Nonpositive session counts and counts above `int.MaxValue - 3` are
+  rejected before certificate-store side effects. The SDK isolation policy remains enabled.
+- Removed 29 obsolete missing-identifier exceptions. Their original numeric and expanded NodeIds
+  must now match the retained CSVs. All five identifier-table tests pass.
+- Removed the 67-path allowance for synthetic empty method argument properties. Generated methods
+  now have to match the retained child sets and signatures directly. Ten method cases compare against
+  retained declarations; boiler alarms and named assets require undeclared properties to be absent.
+  The 28 old allowance-mutation cases were replaced by eight negative cases that reject any added
+  argument property, including empty/nonempty arrays and namespace-qualified names.
+
+The capacity/boiler check passes **15/15**, and the complete model-equivalence class passes
+**220/220**. The full Release run passed **902 tests, 0 failed, 0 skipped**, exit 0, in a reported
+**7 minutes 2 seconds**. The saved TRX confirms all 902 tests executed successfully. The updated
+solution also builds in Debug; that build passed for all three projects.
+The test-count change reflects the replaced allowance cases and eight added capacity cases, not
+skipped runtime tests. Evidence is under the ignored `tests/TestResults/stack-v2-migration/` folder:
+`20260930-preview6-capacity-reserved.trx`, `20260930-preview6-identifiers.trx`,
+`20260930-preview6-model-compatibility.trx`, and `20260930-preview6-release-full.trx`/`.log`.
+An earlier full run was canceled by terminal reuse and is not counted as validation; the results
+above are from the completed sequential rerun.
+
+No SDK source was modified. Official-feed restore was local and command-scoped; hosted feed-policy,
+container validation, and full Debug test execution remain separate gates. The earlier failed
+experiments below are historical evidence, not the current full-suite result.
+
+## Preview-6 official-feed validation (2026-09-30)
+
+A command-scoped local restore from `https://api.nuget.org/v3/index.json` succeeded with fresh
+external package/fallback directories, `--force --no-http-cache`, auditing of all dependencies,
+and warnings as errors. The application, test, and reference-model graphs resolved 7, 12, and 8 OPC
+packages respectively, all exactly `2.0.0-preview.6`. No persistent feed settings were changed;
+the root NuGet configuration remains removed from the preceding experiment.
+
+Release and Debug solution rebuilds passed for all three projects using `--no-restore`, package
+mode, and `GeneratePackageOnBuild=false`. The same focused Release regression selection used for
+preview 13 ran **292 tests: 215 passed, 77 failed, 0 skipped**. Server-based tests fail startup with
+`SecureChannel capacity must support the Session maximum plus one.` Generated-model equivalence
+tests also report identifier and empty-method-argument expectation differences. No application,
+SDK, baseline, or assertion changes were made to accommodate these failures.
+
+The TRX evidence is in
+`tests/TestResults/stack-v2-migration/20260930-preview6-nugetorg-focused.trx` (ignored). Preview 6 now
+restores and compiles locally but is not runtime-qualified. Full tests, Docker, and hosted CI were
+not run. This direct-source local check does not resolve or disable the hosted feed-security policy,
+and it does not prove availability through `aio-brokers` or the workstation package proxy.
+
+To repeat the local restore/build without changing persistent settings:
+
+```powershell
+dotnet restore opcplc.sln --source https://api.nuget.org/v3/index.json -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false -p:NuGetAudit=true -p:NuGetAuditMode=all
+dotnet build opcplc.sln -c Release --no-restore -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false
+```
+
+## Preview-6 restore attempt (2026-09-30)
+
+All seven direct OPC runtime/analyzer dependencies are now pinned to exact `2.0.0-preview.6`.
+The first attempt used the single `aio-brokers` Azure Artifacts source without changing its settings.
+
+An audited Release restore with fresh external package/fallback directories failed with 15 `NU1102`
+errors across the three projects: the feed did not expose the requested version for any of the seven
+package IDs. The exact Server and SourceGeneration preview-6 pages were verified on nuget.org and
+reported publication about an hour before the check. Upstream propagation may explain the gap, but
+availability through `aio-brokers` must be verified by a successful restore before proceeding.
+
+For a subsequent local experiment, the root NuGet configuration and its two Docker `COPY` references
+were removed. Cold restore inherited the workstation's `azure-default` and `opcua-preview` sources
+and failed with three `NU1507` errors because source mapping was absent. A second, command-scoped
+restore using only the existing `azure-default` package proxy failed with 15 `NU1102` errors: that
+source exposed preview 5 but not preview 6. Both attempts used fresh caches, dependency auditing,
+and warnings as errors. User-level NuGet settings were not changed. Neither experiment validates
+hosted CI or containers, which do not inherit the workstation's configuration.
+
+Compilation, tests, and dependency compatibility checks were not run during these attempts because
+restore failed. The later official-feed results above supersede that local restore/build blocker.
+No security gate, test assertion, or SDK source was changed for these attempts.
+
+## Preview-13 compatibility experiment (2026-09-29)
+
+All seven direct OPC runtime/analyzer dependencies were pinned to exact
+`2.0.0-preview.13.gb4136d8e9b` for this experiment, using the single `aio-brokers` Azure Artifacts
+feed. This version is **not qualified for the migration** despite successful compilation.
+
+- An audited Release restore with fresh external package/fallback directories passed. The application,
+  test, and reference-model graphs resolved 7, 12, and 8 OPC packages respectively, all at preview 13.
+- Release and Debug solution builds passed for all three projects.
+- Focused Release model-equivalence, certificate-store, boiler, and throughput tests ran:
+  **292 total, 255 passed, 37 failed, 0 skipped**. Server startup fails because the Boiler runtime
+  structure `nsu=http://microsoft.com/Opc/OpcPlc/Boiler;i=15001` is not registered. Independent model
+  child-initialization, typed-method copy ownership, and injected certificate-store tests also fail.
+- The GitHub advisory scan found no known CVEs for the 12 resolved OPC packages. This is a scoped
+  dependency check, not security approval or a substitute for the failing runtime checks.
+
+Evidence is in the ignored `tests/TestResults/stack-v2-migration/20260929-preview13-focused.trx`
+and `20260929-preview13-cve-report.json`. No assertions were relaxed and no SDK source was modified.
+Full tests, hosted CI, and containers were not rerun. The preview-20 results below are historical;
+they do not validate this downgrade. Use a package set containing the required SDK fixes before
+treating the migration as ready.
+
 ## CI and Linux qualification (2026-09-28)
 
 The release version is now **2.16.0**, selected by the user. Package mode continues to use the exact

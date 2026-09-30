@@ -4,15 +4,7 @@
     "BoilerTemperatureType_Encoding_DefaultJson": null
   },
   "BoilerModel2": {
-    "http___microsoft_com_Opc_OpcPlc_boiler": null,
     "Boilers_Boiler__2": null,
-    "http___microsoft_com_Opc_OpcPlc_boiler_IsNamespaceSubset": null,
-    "http___microsoft_com_Opc_OpcPlc_boiler_NamespacePublicationDate": null,
-    "http___microsoft_com_Opc_OpcPlc_boiler_NamespaceUri": null,
-    "http___microsoft_com_Opc_OpcPlc_boiler_NamespaceVersion": null,
-    "http___microsoft_com_Opc_OpcPlc_boiler_StaticNodeIdTypes": null,
-    "http___microsoft_com_Opc_OpcPlc_boiler_StaticNumericNodeIdRange": null,
-    "http___microsoft_com_Opc_OpcPlc_boiler_StaticStringNodeIdPattern": null,
     "http___microsoft_com_Opc_OpcPlc_boiler_DefaultRolePermissions": null
   },
   "Opc.Ua.DI": {
@@ -27,10 +19,7 @@
     "FunctionalGroupType_GroupIdentifier_UIElement": "FunctionalGroupType_GroupIdentifier_Placeholder_UIElement",
     "NetworkType_CPIdentifier": "NetworkType_CPIdentifier_Placeholder",
     "NetworkType_CPIdentifier_NetworkAddress": "NetworkType_CPIdentifier_Placeholder_NetworkAddress",
-    "MaxInactiveLockTime": null,
-    "OpcUaDi_XmlSchema": null,
     "OpcUaDi_XmlSchema_NamespaceUri": null,
-    "OpcUaDi_BinarySchema": null,
     "OpcUaDi_BinarySchema_NamespaceUri": null,
     "ConnectionPointType_ProfileIdentifier": "ConnectionPointType_ProfileIdentifier_Placeholder",
     "OpcUaDi_XmlSchema_FetchResultDataType": null,
@@ -42,14 +31,6 @@
     "DeviceType_CPIdentifier_NetworkAddress": "DeviceType_CPIdentifier_Placeholder_NetworkAddress",
     "NetworkType_ProfileIdentifier": "NetworkType_ProfileIdentifier_Placeholder",
     "ConnectionPointType_NetworkIdentifier": "ConnectionPointType_NetworkIdentifier_Placeholder",
-    "OPCUADINamespaceMetadata": null,
-    "OPCUADINamespaceMetadata_NamespaceUri": null,
-    "OPCUADINamespaceMetadata_NamespaceVersion": null,
-    "OPCUADINamespaceMetadata_NamespacePublicationDate": null,
-    "OPCUADINamespaceMetadata_IsNamespaceSubset": null,
-    "OPCUADINamespaceMetadata_StaticNodeIdTypes": null,
-    "OPCUADINamespaceMetadata_StaticNumericNodeIdRange": null,
-    "OPCUADINamespaceMetadata_StaticStringNodeIdPattern": null,
     "OPCUADINamespaceMetadata_DefaultRolePermissions": null,
     "OPCUADINamespaceMetadata_DefaultUserRolePermissions": null,
     "OPCUADINamespaceMetadata_DefaultAccessRestrictions": null,
@@ -66,20 +47,9 @@
   },
   "Opc.Ua.WotCon": {
     "WotConNamespaceMetadata_ModelVersion": null,
-    "WotConNamespaceMetadata": null,
-    "WotConNamespaceMetadata_NamespaceUri": null,
-    "WotConNamespaceMetadata_NamespaceVersion": null,
-    "WotConNamespaceMetadata_NamespacePublicationDate": null,
-    "WotConNamespaceMetadata_IsNamespaceSubset": null,
-    "WotConNamespaceMetadata_StaticNodeIdTypes": null,
-    "WotConNamespaceMetadata_StaticNumericNodeIdRange": null,
-    "WotConNamespaceMetadata_StaticStringNodeIdPattern": null,
     "WotConNamespaceMetadata_DefaultRolePermissions": null,
     "WotConNamespaceMetadata_DefaultUserRolePermissions": null,
     "WotConNamespaceMetadata_DefaultAccessRestrictions": null
   },
-  "SimpleEvents": {
-    "SimpleEvents_BinarySchema": null,
-    "SimpleEvents_XmlSchema": null
-  }
+  "SimpleEvents": {}
 }
