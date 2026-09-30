@@ -14,8 +14,7 @@ COPY docs/media/icon.png docs/media/
 COPY README.md .
 
 # Restore dependencies
-RUN --mount=type=secret,id=opcua_nuget_credentials,env=NuGetPackageSourceCredentials_opcua-preview,required=true \
-    if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
+RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
     && dotnet restore src/opc-plc.csproj -a "$ARCH" \
     -p:Configuration=Debug -p:SelfContained=true -p:TargetLatestRuntimePatch=true \
     -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false

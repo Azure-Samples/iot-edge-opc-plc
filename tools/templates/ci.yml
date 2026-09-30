@@ -53,8 +53,6 @@ jobs:
       filePath: ./tools/scripts/restore-ci.ps1
       arguments: '-PackagesDirectory "$(Agent.TempDirectory)/opcplc-packages-$(System.JobId)-$(System.JobAttempt)"'
       pwsh: true
-    env:
-      NuGetPackageSourceCredentials_opcua-preview: $(OpcUaNuGetCredentials)
 
   - task: DotNetCoreCLI@2
     displayName: Release Build
@@ -127,8 +125,6 @@ jobs:
       filePath: ./tools/scripts/restore-ci.ps1
       arguments: '-PackagesDirectory "$(Agent.TempDirectory)/opcplc-packages-$(System.JobId)-$(System.JobAttempt)"'
       pwsh: true
-    env:
-      NuGetPackageSourceCredentials_opcua-preview: $(OpcUaNuGetCredentials)
 
   - task: DotNetCoreCLI@2
     displayName: Test

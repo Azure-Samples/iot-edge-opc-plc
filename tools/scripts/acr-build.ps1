@@ -27,10 +27,6 @@ Param(
     [switch] $Debug
 )
 
-if ([string]::IsNullOrWhiteSpace($env:OPCUA_NUGET_CREDENTIALS) -or $env:OPCUA_NUGET_CREDENTIALS.Contains('$(')) {
-    throw 'Configure the secret pipeline variable OpcUaNuGetCredentials before building images.'
-}
-
 # Check path argument and resolve to full existing path
 if ([string]::IsNullOrEmpty($Path)) {
     throw "No docker folder specified."
@@ -240,7 +236,6 @@ $argumentList = @("buildx", "build",
     "--platform", $platforms,
     "--file", $dockerfile,
     "--tag", $fullImageName,
-    "--secret", "id=opcua_nuget_credentials,env=OPCUA_NUGET_CREDENTIALS",
     "--provenance=false",
     "--push"
 )

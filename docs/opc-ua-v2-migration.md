@@ -1,5 +1,31 @@
 # OPC UA 2.0 migration
 
+## Public-package CI credential cleanup (2026-09-30)
+
+Hosted build `183499378` at merge commit `5819cc1` passed both preparation jobs, CodeQL, and CLA.
+Both Linux build/test jobs then failed in `Audited Cold Restore`, at the obsolete
+`OpcUaNuGetCredentials` prerequisite in `tools/scripts/restore-ci.ps1`. The failure occurred before
+NuGet restore or compilation; it was not a preview-6 runtime failure or another feed-policy rejection.
+
+Preview 6 is public on nuget.org, so the restore script no longer requires a GitHub Packages secret.
+The CI templates no longer inject that secret. Both Dockerfiles and the image build wrapper also no
+longer require or pass the obsolete BuildKit package credential. Registry authentication and the
+PR/non-release build-only versus main/release publishing conditions are unchanged. The GitHub-feed
+credential guidance in older checkpoints below is historical, not a current setup requirement.
+
+The corrected restore script passed locally with the GitHub credential explicitly absent, fresh
+external package/fallback directories, dependency auditing, and exact preview-6 checks across all
+three projects. Only for this local check, process-scoped `RestoreSources` selected nuget.org to avoid
+the workstation's inherited multi-feed configuration; the original environment was restored afterward.
+The Release solution build passed using those restored assets. PowerShell parsing and the image
+wrapper's pre-registry missing-path guard passed; active CI/container files contain no obsolete
+package-secret references.
+
+Docker builds were not run because the local Linux engine was unavailable. The ACR publishing path
+was not executed, and no registry or feed permissions were changed. A hosted pipeline rerun is still
+required to validate the changes in the agent environment. This cleanup does not disable supply-chain
+analysis or change package sources, cold-cache checks, dependency auditing, or warning enforcement.
+
 ## Preview-6 compatibility fixes (2026-09-30)
 
 The preview-6 packages identify SDK commit `d5092e9207816ba26aa18841032e148d19ace6a7`, which includes

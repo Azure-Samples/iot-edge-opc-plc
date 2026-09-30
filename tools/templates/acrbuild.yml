@@ -17,14 +17,10 @@ jobs:
       targetType: inline
       script: |
         set -euo pipefail
-        docker build --file Dockerfile.release --tag opcplc-ci:release \
-          --secret id=opcua_nuget_credentials,env=OPCUA_NUGET_CREDENTIALS .
-        docker build --file Dockerfile.debug --tag opcplc-ci:debug \
-          --secret id=opcua_nuget_credentials,env=OPCUA_NUGET_CREDENTIALS .
+        docker build --file Dockerfile.release --tag opcplc-ci:release .
+        docker build --file Dockerfile.debug --tag opcplc-ci:debug .
         test "$(docker run --rm --entrypoint id opcplc-ci:release -u)" = "1654"
         test "$(docker run --rm --entrypoint id opcplc-ci:debug -u)" = "1654"
-    env:
-      OPCUA_NUGET_CREDENTIALS: $(OpcUaNuGetCredentials)
 
 - job: imagesprep
   displayName: Prepare Image Jobs
@@ -79,8 +75,6 @@ jobs:
       scriptLocation: inlineScript
       scriptType: pscore
       inlineScript: pwsh ./tools/scripts/acr-build.ps1 $(dockerFolder)
-    env:
-      OPCUA_NUGET_CREDENTIALS: $(OpcUaNuGetCredentials)
 
   - task: AzureCLI@1
     name: acrbuildd
@@ -90,5 +84,3 @@ jobs:
       scriptLocation: inlineScript
       scriptType: pscore
       inlineScript: pwsh ./tools/scripts/acr-build.ps1 $(dockerFolder) -debug
-    env:
-      OPCUA_NUGET_CREDENTIALS: $(OpcUaNuGetCredentials)

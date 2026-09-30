@@ -8,11 +8,6 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$credential = [Environment]::GetEnvironmentVariable('NuGetPackageSourceCredentials_opcua-preview')
-if ([string]::IsNullOrWhiteSpace($credential) -or $credential.Contains('$(')) {
-    throw 'Configure the secret pipeline variable OpcUaNuGetCredentials before restoring OPC UA packages.'
-}
-$credential = $null
 
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $packageRoot = [IO.Path]::GetFullPath($PackagesDirectory)
