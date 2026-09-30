@@ -18,9 +18,13 @@ jobs:
       script: |
         set -euo pipefail
         docker build --file Dockerfile.release --tag opcplc-ci:release .
-        docker build --file Dockerfile.debug --tag opcplc-ci:debug .
+        docker build --file Dockerfile.debug --tag opcplc-ci:debug \
+          --build-arg "OPCUA_DEBUG_NUGET_FEED=$(OpcUaDebugNuGetFeed)" \
+          --secret id=opcua_nuget_token,env=OPCUA_NUGET_TOKEN .
         test "$(docker run --rm --entrypoint id opcplc-ci:release -u)" = "1654"
         test "$(docker run --rm --entrypoint id opcplc-ci:debug -u)" = "1654"
+    env:
+      OPCUA_NUGET_TOKEN: $(System.AccessToken)
 
 - job: imagesprep
   displayName: Prepare Image Jobs
@@ -84,3 +88,6 @@ jobs:
       scriptLocation: inlineScript
       scriptType: pscore
       inlineScript: pwsh ./tools/scripts/acr-build.ps1 $(dockerFolder) -debug
+    env:
+      OPCUA_NUGET_TOKEN: $(System.AccessToken)
+      OPCUA_DEBUG_NUGET_FEED: $(OpcUaDebugNuGetFeed)

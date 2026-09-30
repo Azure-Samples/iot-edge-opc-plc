@@ -53,12 +53,15 @@ jobs:
       projects: '$(file)'
       arguments: '--configuration Release -p:NuGetAudit=true -p:NuGetAuditMode=all'
 
+  - task: NuGetAuthenticate@1
+    displayName: Authenticate Debug Package Feed
+
   - task: DotNetCoreCLI@2
     displayName: Debug Build
     inputs:
       command: build
       projects: '$(file)'
-      arguments: '--configuration Debug -p:NuGetAudit=true -p:NuGetAuditMode=all'
+      arguments: '--configuration Debug -p:RestoreSources=$(OpcUaDebugNuGetFeed) -p:NuGetAudit=true -p:NuGetAuditMode=all'
 
 - job: testprep
   displayName: Prepare Test Jobs

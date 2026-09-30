@@ -34,9 +34,11 @@ dotnet build opcplc.sln -c Release --no-restore
 dotnet test tests/opc-plc-tests.csproj -c Release --no-build --no-restore
 ```
 
-The matching `.Debug` packages are published only to
-`https://nuget.pkg.github.com/OPCFoundation/index.json`, not nuget.org. Configure authenticated access
-outside the repository, or use an approved mirror containing the complete Debug dependency set.
+The matching preview-6 `.Debug` packages are published upstream to
+`https://nuget.pkg.github.com/OPCFoundation/index.json`, not nuget.org. The complete set is also mirrored
+unchanged to the approved `aio-brokers` Azure Artifacts feed used by CI:
+`https://pkgs.dev.azure.com/msazure/One/_packaging/aio-brokers/nuget/v3/index.json`.
+Configure authenticated access outside the repository, or use an approved mirror containing the complete set.
 When using GitHub alongside a general feed, map `OPCFoundation.NetStandard.Opc.Ua.*` to GitHub and
 `*` to the general feed. Supply credentials securely through the environment or a credential provider;
 never commit them. With those sources configured:
@@ -188,6 +190,9 @@ The following are local results for preview 6, not hosted pipeline results:
 | Current package graphs | 7 application, 11 test, 8 reference-model OPC dependencies at exact preview 6; matching configuration only, no `Client.ComplexTypes` |
 | Clean Release NuGet consumer | External standalone sample, audited isolated restore, build and publish; 3 tests pass from build output and 3 from published output, exit codes 0 |
 | Package asset propagation | Automatic package-target import and SHA-256 equality for all 10 runtime assets in both build and publish output; no source-project references |
+| Approved Debug mirror | 11 upstream Debug packages mirrored unchanged; SHA-512 equality verified after downloading from Azure Artifacts |
+| Cold restore from Azure Artifacts | Audited empty-cache Debug restore of all three projects passed using only `aio-brokers`, followed by a successful Debug build |
+| Debug Linux/amd64 image with mirrored feed | Build and publish passed with a BuildKit token secret; runs as UID 1654; no token in final image metadata; image not pushed |
 
 Current restores kept auditing enabled. Debug reused the previously authenticated external package
 cache, so this is not a new cold-restore result or proof of hosted feed availability. During earlier client
@@ -217,6 +222,7 @@ Local evidence is under the ignored `tests/TestResults/stack-v2-migration/` dire
 - `20260930-package-consumer-publish.trx` and `.log`
 - `20260930-optional-cleanup-release-full.trx` and `.log`
 - `20260930-optional-cleanup-debug-full.trx` and `.log`
+- `20260930-aio-debug-image.log`
 
 Earlier SDK checkpoints passed independent 1.5.378.176-client interoperability and Linux/amd64
 non-root image checks. Those results do not qualify the current preview-6 binaries or Docker changes.
@@ -228,21 +234,29 @@ Git history rather than serving as current setup instructions.
 [CI](../tools/templates/ci.yml) uses normal build/test commands with implicit restore, explicitly
 enables auditing of all dependencies, and retains warnings as errors and build-time package generation.
 Full-history checkouts support versioning. The migration-only cold-restore wrapper and GitHub package
-secret plumbing remain removed. Debug jobs now require an approved feed exposing the `.Debug`
-packages, with secure authentication where needed. That feed provisioning is not part of automatic
-package selection; production CI must still pass its supply-chain checks.
+secret plumbing remain removed. Debug builds use the non-secret `OpcUaDebugNuGetFeed` pipeline variable
+to select `aio-brokers` and `NuGetAuthenticate@1` for the existing build identity. Release build/test
+sources are unchanged. Both One and Project Collection build-service identities already have feed access;
+no permissions were changed. Production CI must still pass its supply-chain checks.
 
 The [Release Dockerfile](../Dockerfile.release) and [Debug Dockerfile](../Dockerfile.debug) restore
 with matching architecture, configuration, self-contained, and runtime-patch settings before publishing
 with `--no-restore`. They do not copy the test-only models. Release uses the ordinary public SDK
-packages; Debug requires the same authenticated or mirrored feed access inside the build container.
-The current Dockerfile does not provision that access, so a stock public-feed-only Debug image build
-cannot restore the new packages. Do not pass credentials through Docker build arguments or image layers.
+packages. Debug selects the approved mirror and requires the `opcua_nuget_token` BuildKit secret for
+restore. Image jobs map their short-lived `System.AccessToken` to `OPCUA_NUGET_TOKEN`; only the Debug
+restore mounts it. The multiarchitecture publishing script uses the same secret and fails before registry
+operations if it is missing. No token is written to NuGet configuration or image layers. Do not pass
+credentials through Docker build arguments; `OPCUA_DEBUG_NUGET_FEED` is a non-secret URL override only.
 [.dockerignore](../.dockerignore) excludes host build outputs, test artifacts, and PKI.
 
 ```powershell
 docker build -f Dockerfile.release -t opcplc-local:release .
+docker build -f Dockerfile.debug -t opcplc-local:debug `
+  --secret id=opcua_nuget_token,env=OPCUA_NUGET_TOKEN .
 ```
+
+For the local Debug command, supply a feed-read token securely through `OPCUA_NUGET_TOKEN` first.
+The default feed is `aio-brokers`; changing the URL does not grant access to another feed.
 
 The [image pipeline](../tools/templates/acrbuild.yml) builds PR and non-release images without
 publishing and checks for UID 1654. Only non-PR `main` and `release/*` branches enter the existing ACR
@@ -290,16 +304,17 @@ an external consumer directory and an initially empty dependency cache. The publ
 preview 6, so the eight previously verified Release SDK NuGet archives were staged in the temporary
 local feed. Other dependencies restored from the proxy with auditing enabled. No machine, repository
 or pipeline feed settings changed. This validates package consumption, not live upstream availability;
-Debug-package feed configuration remains deferred at the user's request. Both build and published
+Debug feed configuration was deferred during that consumer check and is now addressed separately above.
+Both build and published
 outputs passed 3 tests with no failures/skips; all ten asset hashes matched the package archive.
 
 ## Remaining qualification
 
-- [ ] Provision approved Debug-package feed access for hosted restore and container builds, then
-  rerun the jobs. Successful build `183508314` used ordinary SDK packages for both configurations
-  and predates automatic `.Debug` package selection.
-- [ ] Rebuild and exercise current Release/Debug Linux images, including ARM64. Local Docker validation
-  was blocked by the unavailable Linux engine. Build/UID checks alone do not prove server health.
+- [ ] Commit/push the mirrored-feed CI changes and rerun hosted validation. Build `183536411` passed
+  Release build and Linux tests but failed Debug restore against nuget.org; the new pipeline wiring
+  still needs its hosted run. Mirror contents, cold restore, Debug build and Linux/amd64 image build pass locally.
+- [ ] Exercise current Release/Debug Linux images, including ARM64. The Debug Linux/amd64 build and
+  UID check now pass, but these checks alone do not prove server health or production security.
 - [ ] Repeat independent 1.5.x-client interoperability against the current binaries, including
   cross-version GDS and X509 user authentication. Include trust/revocation rejection, invalid
   credentials, same-session ApplyChanges, and persistent container PKI, not only auto-accepted certs.
