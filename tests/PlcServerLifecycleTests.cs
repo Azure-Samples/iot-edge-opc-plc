@@ -17,6 +17,52 @@ using System.Timers;
 public class PlcServerLifecycleTests
 {
     [Test]
+    public async Task ManagedSession_RestartReconnectsAndResumesReadsAsync()
+    {
+        var fixture = new PlcSimulatorFixture(["--str=false"]);
+        await fixture.StartAsync().ConfigureAwait(false);
+        try
+        {
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            var session = await fixture.CreateSessionAsync("ManagedRestart", cancellationToken: deadline.Token)
+                .ConfigureAwait(false);
+            var managed = session.Should().BeOfType<ManagedSession>().Subject;
+            await using var cleanup = managed.ConfigureAwait(false);
+            managed.KeepAliveInterval = 1000;
+            var disconnected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var reconnected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            managed.ConnectionStateChanged += (_, change) =>
+            {
+                if (change.NewState != ConnectionState.Connected)
+                {
+                    disconnected.TrySetResult();
+                }
+                else if (disconnected.Task.IsCompleted)
+                {
+                    reconnected.TrySetResult();
+                }
+            };
+            var nodeId = NodeId.Create("FastUInt1", OpcPlc.Namespaces.OpcPlcApplications, managed.NamespaceUris);
+            StatusCode.IsGood((await managed.ReadValueAsync(nodeId, deadline.Token).ConfigureAwait(false)).StatusCode)
+                .Should().BeTrue();
+
+            await fixture.RestartAsync().WaitAsync(deadline.Token).ConfigureAwait(false);
+            await reconnected.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
+
+            uint before = (await managed.ReadValueAsync(nodeId, deadline.Token).ConfigureAwait(false))
+                .WrappedValue.GetUInt32();
+            fixture.FireTimersWithPeriod(1000, 1);
+            (await managed.ReadValueAsync(nodeId, deadline.Token).ConfigureAwait(false)).WrappedValue.GetUInt32()
+                .Should().Be(before + 1);
+            await managed.CloseAsync(deadline.Token).ConfigureAwait(false);
+        }
+        finally
+        {
+            await fixture.StopAsync().WaitAsync(TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+        }
+    }
+
+    [Test]
     public async Task Restart_ReusesCertificateAndReleasesEndpointAsync()
     {
         var fixture = new PlcSimulatorFixture(["--str=false"]);
@@ -65,22 +111,26 @@ public class PlcServerLifecycleTests
         await fixture.StartAsync().ConfigureAwait(false);
         try
         {
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             using var session = await fixture.CreateSessionAsync("ConfiguredUser",
-                new UserIdentity("operator", Encoding.UTF8.GetBytes("test-password"))).ConfigureAwait(false);
+                new UserIdentity("operator", Encoding.UTF8.GetBytes("test-password")), deadline.Token)
+                .ConfigureAwait(false);
             var node = NodeId.Create("FastUInt1", OpcPlc.Namespaces.OpcPlcApplications, session.NamespaceUris);
             StatusCode.IsGood((await session.ReadValueAsync(node).ConfigureAwait(false)).StatusCode).Should().BeTrue();
             await session.CloseAsync().ConfigureAwait(false);
 
             Func<Task> anonymous = async () =>
             {
-                using var rejected = await fixture.CreateSessionAsync("RejectedAnonymous").ConfigureAwait(false);
+                using var rejected = await fixture.CreateSessionAsync(
+                    "RejectedAnonymous", cancellationToken: deadline.Token).ConfigureAwait(false);
                 await rejected.CloseAsync().ConfigureAwait(false);
             };
             await anonymous.Should().ThrowAsync<ServiceResultException>().ConfigureAwait(false);
             Func<Task> wrongPassword = async () =>
             {
                 using var rejected = await fixture.CreateSessionAsync("RejectedPassword",
-                    new UserIdentity("operator", Encoding.UTF8.GetBytes("wrong-password"))).ConfigureAwait(false);
+                    new UserIdentity("operator", Encoding.UTF8.GetBytes("wrong-password")), deadline.Token)
+                    .ConfigureAwait(false);
                 await rejected.CloseAsync().ConfigureAwait(false);
             };
             await wrongPassword.Should().ThrowAsync<ServiceResultException>().ConfigureAwait(false);

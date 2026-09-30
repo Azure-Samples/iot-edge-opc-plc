@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
@@ -40,32 +40,52 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "opc-plc-tests", "tests\opc-
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BoilerModel1", "models\BoilerModel1\BoilerModel1.csproj", "{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}"
 EndProject
-# Uncomment the following to include local OPC UA SDK files, e.g. for debugging.
-# You will also need to define the constant UseLocalOpcUaSdk in the file Directory.Build.targets.
-+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Opc.Ua.Configuration", "..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj", "{19796333-27CA-461A-A3B3-96F7DB378F23}"
-+EndProject
-+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Opc.Ua.Server", "..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj", "{6D71B6B9-2A80-44A7-A5BE-E1012C2419E0}"
-+EndProject
-+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Opc.Ua.Core", "..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj", "{322731A7-E3EA-40FA-889B-81243B67DFC7}"
-+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Debug|x64.Build.0 = Debug|Any CPU
+		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Debug|x86.Build.0 = Debug|Any CPU
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Release|x64.ActiveCfg = Release|Any CPU
+		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Release|x64.Build.0 = Release|Any CPU
+		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Release|x86.ActiveCfg = Release|Any CPU
+		{7CAC7271-E0D2-4BB5-A9FB-D6EE4EDFE19D}.Release|x86.Build.0 = Release|Any CPU
 		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Debug|x64.Build.0 = Debug|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Debug|x86.Build.0 = Debug|Any CPU
 		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|x64.ActiveCfg = Release|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|x64.Build.0 = Release|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|x86.ActiveCfg = Release|Any CPU
+		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|x86.Build.0 = Release|Any CPU
 		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|x64.Build.0 = Debug|Any CPU
+		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|x86.Build.0 = Debug|Any CPU
 		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|x64.ActiveCfg = Release|Any CPU
+		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|x64.Build.0 = Release|Any CPU
+		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|x86.ActiveCfg = Release|Any CPU
+		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

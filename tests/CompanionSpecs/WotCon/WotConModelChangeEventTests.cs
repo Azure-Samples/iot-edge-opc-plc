@@ -47,12 +47,6 @@ public class WotConModelChangeEventTests : SubscriptionTestsBase
         await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
-    [TearDown]
-    public void RemoveMonitoredItem()
-    {
-        Session.DefaultSubscription.RemoveItem(MonitoredItem);
-    }
-
     [Test]
     public async Task CreateAsset_ReportsNodeAdded()
     {
@@ -109,7 +103,7 @@ public class WotConModelChangeEventTests : SubscriptionTestsBase
         int expectedEventCount = 1)
     {
         var receivedEvents = ReceiveAtMostEvents(expectedEventCount)
-            .Select(value => (EventFieldList)value.NotificationValue)
+            .Cast<EventFieldList>()
             .Select(EventFieldListToDictionary)
             .ToList();
         var eventFields = receivedEvents.Should().ContainSingle(
@@ -133,8 +127,8 @@ public class WotConModelChangeEventTests : SubscriptionTestsBase
     {
         return eventFields["/Changes"] switch
         {
-            ModelChangeStructureDataType[] values => values,
-            ExtensionObject[] values => values.Select(ExtensionObject.ToEncodeable)
+            ArrayOf<ModelChangeStructureDataType> values => values.ToArray(),
+            ArrayOf<ExtensionObject> values => values.ToArray().Select(ExtensionObject.ToEncodeable)
                 .OfType<ModelChangeStructureDataType>()
                 .ToArray(),
             object value => throw new AssertionException(

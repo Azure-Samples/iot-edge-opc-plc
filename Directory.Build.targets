@@ -16,11 +16,11 @@
   </ItemGroup>
   <ItemGroup Condition="'$(UseLocalOpcUaStack)' == 'true' And '$(MSBuildProjectName)' == 'opc-plc-tests'">
     <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
-    <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Client.ComplexTypes\Opc.Ua.Client.ComplexTypes.csproj" />
+    <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Client\Opc.Ua.Client.csproj" />
     <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Gds.Client\Opc.Ua.Gds.Client.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' != 'true'">
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration"
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration$(OpcUaPackageSuffix)"
       OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
   </ItemGroup>
   <PropertyGroup Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true'">

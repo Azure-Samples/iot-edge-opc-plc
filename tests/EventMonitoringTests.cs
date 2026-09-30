@@ -51,7 +51,7 @@ public class EventMonitoringTests : SubscriptionTestsBase
         ClearEvents();
 
         // Assert
-        var notifications = ReceiveEvents(6).Select(item => (EventFieldList)item.NotificationValue).ToArray();
+        var notifications = ReceiveEvents(6).Cast<EventFieldList>().ToArray();
         var values = notifications.Select(EventFieldListToDictionary);
         foreach (var value in values)
         {

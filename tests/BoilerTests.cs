@@ -16,17 +16,22 @@ using static System.TimeSpan;
 [TestFixture]
 public class BoilerTests : SimulatorTestsBase
 {
-    private ComplexTypeSystem _complexTypeSystem;
     public BoilerTests() : base(["--ctb"])
     {
     }
 
     [OneTimeSetUp]
-    public void OneTimeSetUp()
+    public async Task OneTimeSetUpAsync()
     {
-        _complexTypeSystem = new ComplexTypeSystemFactory(DefaultTelemetry.Create(_ => { })).Create(Session);
-        var loaded = _complexTypeSystem.LoadNamespaceAsync(OpcPlc.Namespaces.OpcPlcBoiler, true, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+        using var complexTypeSystem = new DefaultComplexTypeSystemFactory(Session.MessageContext.Telemetry).Create(Session);
+        bool loaded = await complexTypeSystem.LoadNamespaceAsync(
+            OpcPlc.Namespaces.OpcPlcBoiler, true, CancellationToken.None).ConfigureAwait(false);
         loaded.Should().BeTrue("BoilerDataType should be loaded");
+        var nodeId = NodeId.Create(BoilerModel1.Variables.Boiler1_BoilerStatus,
+            OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var runtimeValue = await Session.ReadValueAsync(nodeId).ConfigureAwait(false);
+        runtimeValue.WrappedValue.TryGetStructure(out IEncodeable runtimeBody).Should().BeTrue();
+        runtimeBody.Should().BeAssignableTo<IStructure>();
         Session.MessageContext.Factory.Builder
             .AddEncodeableType(typeof(BoilerDataType))
             .AddEncodeableType(typeof(BoilerTemperatureType))

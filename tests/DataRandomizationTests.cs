@@ -40,7 +40,8 @@ public class DataRandomizationTests : SubscriptionTestsBase
 
         // Assert
         var events = ReceiveEvents(6);
-        var values = events.Select(a => (uint)((MonitoredItemNotification)a.NotificationValue).Value.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy)).ToList();
+        var values = events.Cast<MonitoredItemNotification>()
+            .Select(notification => notification.Value.WrappedValue.GetUInt32()).ToList();
         var differences = values.Zip(values.Skip(1), (x, y) => y - x);
         var differencesOfDifferences = differences.Zip(differences.Skip(1), (x, y) => y - x);
 

@@ -32,13 +32,16 @@ public abstract class SimulatorTestsBase
 
     protected IReadOnlyCollection<IPluginNodes> PluginNodes => _simulator.PluginNodes;
 
+    protected TimeSpan MinimumSubscriptionLifetime => TimeSpan.FromMilliseconds(
+        _simulator.ClientConfiguration.ClientConfiguration.MinSubscriptionLifetime);
+
     protected SimulatorTestsBase(string[] args = default)
     {
         _simulator = new PlcSimulatorFixture(args);
     }
 
     /// <summary>The current OPC-UA Session.</summary>
-    protected Session Session { get; private set; }
+    protected ISession Session { get; private set; }
 
     /// <summary>Starts the simulator and creates a new OPC-UA session, shared by all test methods in a class.</summary>
     [OneTimeSetUp]
@@ -52,8 +55,31 @@ public abstract class SimulatorTestsBase
     [OneTimeTearDown]
     public async Task TearDown()
     {
-        await Session.CloseAsync().ConfigureAwait(false);
-        await _simulator.StopAsync().ConfigureAwait(false);
+        try
+        {
+            if (Session is not null)
+            {
+                await Session.CloseAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            try
+            {
+                if (Session is IAsyncDisposable asyncSession)
+                {
+                    await asyncSession.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    Session?.Dispose();
+                }
+            }
+            finally
+            {
+                await _simulator.StopAsync().ConfigureAwait(false);
+            }
+        }
     }
 
     /// <summary>
@@ -124,7 +150,12 @@ public abstract class SimulatorTestsBase
 
     protected async Task<T> ReadValueAsync<T>(NodeId nodeId)
     {
-        return (T)(await ReadDataValueAsync(nodeId).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
+        Variant value = (await ReadDataValueAsync(nodeId).ConfigureAwait(false)).WrappedValue;
+        if (value.IsNull && default(T) is not null)
+        {
+            throw new InvalidCastException($"Cannot read a null value as {typeof(T).Name}.");
+        }
+        return value.CastTo<T>();
     }
 
     protected async Task<DataValue> ReadDataValueAsync(NodeId nodeId, CancellationToken ct = default)
@@ -172,11 +203,10 @@ public abstract class SimulatorTestsBase
     /// <summary>
     /// Calls OPC UA method over active session
     /// </summary>
-    protected async Task<IList<object>> CallMethodAsync(
-        string methodName, string objectName = "Methods", params object[] args)
+    protected async Task<ArrayOf<Variant>> CallMethodAsync(
+        string methodName, string objectName = "Methods", params Variant[] args)
     {
-        var output = await Session.CallAsync(GetOpcPlcNodeId(objectName), GetOpcPlcNodeId(methodName),
-            CancellationToken.None, args.Select(VariantHelper.CastFrom).ToArray()).ConfigureAwait(false);
-        return output.ToArray().Select(value => value.AsBoxedObject(Variant.BoxingBehavior.Legacy)).ToList();
+        return await Session.CallAsync(GetOpcPlcNodeId(objectName), GetOpcPlcNodeId(methodName),
+            CancellationToken.None, args).ConfigureAwait(false);
     }
 }

@@ -3,11 +3,14 @@ namespace OpcPlc.Tests;
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
-using Opc.Ua.Client;
+using Opc.Ua.Client.Subscriptions;
+using Opc.Ua.Client.Subscriptions.MonitoredItems;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -34,7 +37,8 @@ public class ThroughputTests : SimulatorTestsBase
     [TestCase(250, 100u, 1000)]
     public async Task FastNodes_BurstThroughput(int nodeCount, uint rateMs, int timerFires)
     {
-        using var context = await SetupSubscriptionAsync(nodeCount).ConfigureAwait(false);
+        var context = await SetupSubscriptionAsync(nodeCount).ConfigureAwait(false);
+        await using var cleanup = context.ConfigureAwait(false);
 
         int expectedTotal = nodeCount * timerFires;
 
@@ -65,7 +69,8 @@ public class ThroughputTests : SimulatorTestsBase
     public async Task FastNodes_SustainedThroughput(
         int nodeCount, uint rateMs, int batchSize, int batches, int delayMs)
     {
-        using var context = await SetupSubscriptionAsync(nodeCount).ConfigureAwait(false);
+        var context = await SetupSubscriptionAsync(nodeCount).ConfigureAwait(false);
+        await using var cleanup = context.ConfigureAwait(false);
 
         int totalFires = batchSize * batches;
         int expectedTotal = nodeCount * totalFires;
@@ -100,7 +105,8 @@ public class ThroughputTests : SimulatorTestsBase
     public async Task FastNodes_MinimumProcessingRate(
         int nodeCount, uint rateMs, int timerFires, int minNotificationsPerSecond)
     {
-        using var context = await SetupSubscriptionAsync(nodeCount).ConfigureAwait(false);
+        var context = await SetupSubscriptionAsync(nodeCount).ConfigureAwait(false);
+        await using var cleanup = context.ConfigureAwait(false);
 
         int expectedTotal = nodeCount * timerFires;
 
@@ -124,52 +130,61 @@ public class ThroughputTests : SimulatorTestsBase
 
     private async Task<SubscriptionContext> SetupSubscriptionAsync(int nodeCount)
     {
-        var subscription = new Subscription(Session.DefaultSubscription)
-        {
-            PublishingInterval = 100,
-            LifetimeCount = 1000,
-            KeepAliveCount = 100,
-            MaxNotificationsPerPublish = 0, // unlimited
-        };
-
-        Session.AddSubscription(subscription);
-        await subscription.CreateAsync().ConfigureAwait(false);
-
-        var notifications = new ConcurrentQueue<MonitoredItemNotificationEventArgs>();
-        var monitoredItems = new List<MonitoredItem>();
-
-        for (int i = 1; i <= nodeCount; i++)
-        {
-            var nodeId = GetOpcPlcNodeId($"FastUInt{i}");
-            var item = new MonitoredItem(subscription.DefaultItem)
+        Session.TryGetSubscriptionManager(out var manager).Should().BeTrue("managed sessions use the V2 engine");
+        manager.PoolNotifications.Should().BeFalse("these tests retain notification payloads after callbacks return");
+        var context = new SubscriptionContext();
+        context.Subscription = manager.Add(context,
+            new OptionsMonitor<SubscriptionOptions>(new()
             {
-                DisplayName = $"FastUInt{i}",
-                StartNodeId = nodeId,
-                NodeClass = NodeClass.Variable,
-                SamplingInterval = 0,
-                AttributeId = Attributes.Value,
-                QueueSize = 10000,
-                DiscardOldest = true,
-            };
-
-            item.Notification += (_, e) => notifications.Enqueue(e);
-            monitoredItems.Add(item);
-        }
-
-        subscription.AddItems(monitoredItems);
-        await subscription.ApplyChangesAsync().ConfigureAwait(false);
-
-        // Wait for initial value notifications and discard them.
-        await Task.Delay(3000).ConfigureAwait(false);
-        while (notifications.TryDequeue(out _))
+                PublishingEnabled = true,
+                PublishingInterval = TimeSpan.FromMilliseconds(100),
+                LifetimeCount = 1000,
+                KeepAliveCount = 100,
+                MaxNotificationsPerPublish = 0,
+                Priority = 255,
+                MinLifetimeInterval = MinimumSubscriptionLifetime
+            }));
+        try
         {
-        }
+            var monitoredItems = new List<IMonitoredItem>();
+            for (int index = 1; index <= nodeCount; index++)
+            {
+                string name = $"FastUInt{index}";
+                context.Subscription.MonitoredItems.TryAdd(name,
+                    new OptionsMonitor<MonitoredItemOptions>(new()
+                    {
+                        StartNodeId = GetOpcPlcNodeId(name),
+                        SamplingInterval = TimeSpan.Zero,
+                        AttributeId = Attributes.Value,
+                        QueueSize = 10000,
+                        DiscardOldest = true
+                    }), out var item).Should().BeTrue();
+                monitoredItems.Add(item);
+            }
 
-        return new SubscriptionContext(Session, subscription, notifications);
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            while (monitoredItems.Any(item => !item.Created))
+            {
+                foreach (var item in monitoredItems)
+                {
+                    ServiceResult.IsBad(item.Error).Should().BeFalse($"monitored item creation failed: {item.Error}");
+                }
+                await Task.Delay(25, deadline.Token).ConfigureAwait(false);
+            }
+
+            await Task.Delay(3000).ConfigureAwait(false);
+            context.Notifications.Clear();
+            return context;
+        }
+        catch
+        {
+            await context.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
     }
 
     private static async Task<int> WaitForNotificationsAsync(
-        ConcurrentQueue<MonitoredItemNotificationEventArgs> notifications,
+        ConcurrentQueue<DataValue> notifications,
         int expectedTotal,
         int maxWaitSeconds)
     {
@@ -208,14 +223,34 @@ public class ThroughputTests : SimulatorTestsBase
         return notifications.Count;
     }
 
-    private sealed class SubscriptionContext(Session session, Subscription subscription, ConcurrentQueue<MonitoredItemNotificationEventArgs> notifications) : IDisposable
+    private sealed class SubscriptionContext : IAsyncDisposable, ISubscriptionNotificationHandler
     {
-        public ConcurrentQueue<MonitoredItemNotificationEventArgs> Notifications => notifications;
+        public ISubscription Subscription { get; set; }
 
-        public void Dispose()
+        public ConcurrentQueue<DataValue> Notifications { get; } = new();
+
+        public ValueTask DisposeAsync() => Subscription.DisposeAsync();
+
+        public ValueTask OnDataChangeNotificationAsync(ISubscription subscription, uint sequenceNumber,
+            DateTime publishTime, ReadOnlyMemory<DataValueChange> notification, PublishState publishStateMask,
+            IReadOnlyList<string> stringTable)
         {
-            subscription.DeleteAsync(true).GetAwaiter().GetResult();
-            session.RemoveSubscriptionAsync(subscription).GetAwaiter().GetResult();
+            foreach (var change in notification.Span)
+            {
+                Notifications.Enqueue(change.Value);
+            }
+            return ValueTask.CompletedTask;
         }
+
+        public ValueTask OnEventDataNotificationAsync(ISubscription subscription, uint sequenceNumber,
+            DateTime publishTime, ReadOnlyMemory<EventNotification> notification, PublishState publishStateMask,
+            IReadOnlyList<string> stringTable) => ValueTask.CompletedTask;
+
+        public ValueTask OnKeepAliveNotificationAsync(ISubscription subscription, uint sequenceNumber,
+            DateTime publishTime, PublishState publishStateMask) => ValueTask.CompletedTask;
+
+        public ValueTask OnSubscriptionStateChangedAsync(ISubscription subscription,
+            SubscriptionState state, PublishState publishStateMask,
+            CancellationToken ct = default) => ValueTask.CompletedTask;
     }
 }

@@ -1,8 +1,10 @@
 # OPC UA 2.0 migration
 
 Status as of **2026-09-30**: OPC PLC **2.16.0** uses exact **2.0.0-preview.6** SDK packages.
-Package-mode Release and Debug builds pass locally. The full Release suite passes **902 tests,
-0 failed, 0 skipped**. Hosted CI and current container qualification remain outstanding.
+Debug builds automatically select the SDK's **`.Debug` packages**, including the model generator;
+Release keeps the ordinary package IDs. Test clients now use native runtime type loading and managed
+sessions instead of the Reflection.Emit package and raw sessions. Full Release and Debug suites each
+pass **903 tests, 0 failed, 0 skipped**. Hosted CI and containers still need current qualification.
 
 ## Constraints
 
@@ -22,16 +24,31 @@ Use the .NET 10 SDK and run commands from the repository root. Nerdbank.GitVersi
 history. [Directory.Packages.props](../Directory.Packages.props) pins all seven direct OPC runtime
 and analyzer packages; the validated dependency graphs contain only preview-6 OPC packages.
 
-Preview 6 is public on nuget.org and does not require a GitHub Packages token. This local workflow
-selects the official feed for one restore without changing persistent NuGet settings:
+The ordinary Release packages are public on nuget.org and need no GitHub Packages token. This
+Release workflow selects the official feed without changing persistent NuGet settings:
 
 ```powershell
 dotnet restore opcplc.sln --source https://api.nuget.org/v3/index.json `
   -p:Configuration=Release -p:NuGetAudit=true -p:NuGetAuditMode=all
 dotnet build opcplc.sln -c Release --no-restore
-dotnet build opcplc.sln -c Debug --no-restore
 dotnet test tests/opc-plc-tests.csproj -c Release --no-build --no-restore
 ```
+
+The matching `.Debug` packages are published only to
+`https://nuget.pkg.github.com/OPCFoundation/index.json`, not nuget.org. Configure authenticated access
+outside the repository, or use an approved mirror containing the complete Debug dependency set.
+When using GitHub alongside a general feed, map `OPCFoundation.NetStandard.Opc.Ua.*` to GitHub and
+`*` to the general feed. Supply credentials securely through the environment or a credential provider;
+never commit them. With those sources configured:
+
+```powershell
+dotnet restore opcplc.sln -p:Configuration=Debug -p:NuGetAudit=true -p:NuGetAuditMode=all
+dotnet build opcplc.sln -c Debug --no-restore
+dotnet test tests/opc-plc-tests.csproj -c Debug --no-build --no-restore
+```
+
+Restore again whenever switching Debug/Release: their package IDs differ, and the projects share
+restore assets. Do not use `--no-restore` with assets restored for the other configuration.
 
 There is no root NuGet configuration. Ordinary build/test commands perform an implicit restore using
 the environment's configured sources. Multiple inherited sources without source mapping can cause
@@ -95,7 +112,7 @@ reject undeclared argument properties, including empty arrays and namespace-qual
 
 ### Upstream fixes
 
-All 12 resolved OPC packages identify source commit
+The pinned preview-6 package provenance was verified against source commit
 [`d5092e9207816ba26aa18841032e148d19ace6a7`](https://github.com/OPCFoundation/UA-.NETStandard/commit/d5092e9207816ba26aa18841032e148d19ace6a7).
 Its ancestry includes the fixes contributed during this migration:
 
@@ -110,19 +127,74 @@ Its ancestry includes the fixes contributed during this migration:
 No SDK source was modified to accommodate preview 6. Package ancestry establishes inclusion of the
 merged fixes; the PLC regression suite supplies separate behavioral evidence.
 
+### Client modernization
+
+The tests reference `OPCFoundation.NetStandard.Opc.Ua.Client` directly, in both build configurations
+and local-source mode. `Client.ComplexTypes` is no longer a dependency. Boiler tests use the
+`DefaultComplexTypeSystemFactory` from `Client` and the shared runtime codecs in `Core.Schema`;
+the CLR namespace remains `Opc.Ua.Client.ComplexTypes`. Namespace loading is awaited and its loader
+disposed. Tests check runtime `IStructure` decoding before registering independent generated codecs.
+
+The shared fixture creates `ManagedSession` with its client telemetry and returns `ISession`.
+Managed sessions add automatic reconnection and use the SDK's current subscription engine; connection
+security settings and notification/fault assertions are unchanged. Session creation accepts cancellation,
+and shared teardown awaits session disposal before stopping the server. Throughput subscription cleanup
+is also asynchronous. The lifecycle regression keeps the same managed client across a server restart.
+
+The test-only reconnect policy retains the SDK defaults but stops retrying `BadIdentityTokenInvalid`,
+`BadIdentityTokenRejected`, and `BadUserAccessDenied`. The fixture supplies fixed credentials, so retrying
+those failures only delayed negative-authentication tests by five minutes per attempt. A deadline now
+guards that test without replacing the expected service exception with cancellation.
+
+Other stack packages remain necessary, including `Gds.Client` for push-configuration tests and `Server`
+for the generated model's fluent node builders. Generated models remain test-only; production already
+uses runtime NodeSets, async node managers, and DI hosting.
+
+### Test-helper cleanup
+
+Shared reads use typed `Variant` conversions, with explicit null rejection for value types. Method helpers
+pass and return `Variant` collections directly. Boiler2 and notification tests use typed scalar/enum
+accessors; event dictionaries retain native array wrappers with explicit time, severity and byte-string
+conversions instead of legacy boxing mode.
+
+Shared monitoring and throughput tests use the native V2 `ISubscriptionManager` and notification-handler
+APIs. Setup waits for monitored items to be created, with a deadline and immediate status-error checks.
+Publishing intervals, priority, minimum lifetime, queue sizes and throughput assertions are preserved.
+Subscriptions are disposed asynchronously, and payload pooling must remain disabled while these tests
+retain notification values. Dedicated low-level classic-subscription tests and heterogeneous object-valued
+comparisons remain separate coverage; this is not a blanket rewrite of all test representations.
+
 ## Validation
 
 The following are local results for preview 6, not hosted pipeline results:
 
 | Check | Verified result |
 | --- | --- |
-| Audited cold restore from nuget.org | Fresh external package/fallback directories; 7 application, 12 test, and 8 reference-model OPC dependencies, all exactly preview 6 |
-| Release and Debug builds | All three projects build successfully |
+| Audited cold restore before client modernization | Fresh external package/fallback directories from nuget.org; 7 application, 12 test, and 8 reference-model OPC dependencies, all exactly preview 6 |
+| Release and Debug builds before Debug package selection | All three projects build successfully using ordinary SDK packages |
+| Debug-package audited cold restore before client modernization | External cache and mapped GitHub/general feeds; 7 application, 12 test, and 8 reference-model OPC dependencies, all `.Debug` at exact preview 6 |
+| Debug-package regressions before client modernization | All three projects build; 367 model, boiler, security, and certificate-store tests passed, 0 failed, 0 skipped |
+| Configuration selection and Release rebuild | Default/explicit Debug, explicit Release and local-source mode evaluated across all three projects; audited Release restore/build passes with no `.Debug` dependencies |
 | Capacity and live boiler checks | 15 passed |
 | Generated model equivalence | 220 passed, including five identifier tables |
 | Full Release suite after compatibility fixes | 902 passed, 0 failed, 0 skipped; reported duration 7m 2s |
-| Simplified CI commands | Normal implicit-restore Release/Debug builds and 15 focused tests passed |
+| Simplified CI commands before Debug package selection | Normal implicit-restore Release/Debug builds and 15 focused tests passed |
 | Inspected OPC PLC NuGet archive | Ten runtime assets and exact preview-6 dependencies |
+| Native complex-type loader | Release restore/build and all 5 Boiler tests passed without `Client.ComplexTypes` |
+| Managed-session initial checks | 10 fault-injection, data-monitoring and throughput tests passed with unchanged assertions |
+| Managed identity policy and lifecycle | 13 lifecycle/fault tests passed; rejected identities fail promptly and automatic reconnect remains enabled |
+| Current Release full suite after helper cleanup | 903 passed, 0 failed, 0 skipped; 8m 30s; exit code 0 |
+| Current Debug full suite after helper cleanup | 903 passed, 0 failed, 0 skipped; 10m 1s; exit code 0 |
+| Current package graphs | 7 application, 11 test, 8 reference-model OPC dependencies at exact preview 6; matching configuration only, no `Client.ComplexTypes` |
+| Clean Release NuGet consumer | External standalone sample, audited isolated restore, build and publish; 3 tests pass from build output and 3 from published output, exit codes 0 |
+| Package asset propagation | Automatic package-target import and SHA-256 equality for all 10 runtime assets in both build and publish output; no source-project references |
+
+Current restores kept auditing enabled. Debug reused the previously authenticated external package
+cache, so this is not a new cold-restore result or proof of hosted feed availability. During earlier client
+modernization, a generated-version file lock interrupted the first Debug build before tests; a serialized
+MSBuild retry passed. The added
+managed reconnect regression accounts for the change from 902 to 903 tests. In both full runs, rejected
+credentials completed in about three seconds and restart recovery in about 17 seconds.
 
 Focused tests overlap with the full suite and are not additive. Replacing 28 obsolete allowance
 tests with eight stricter cases and adding eight capacity cases changed the suite count; no runtime
@@ -136,6 +208,15 @@ Local evidence is under the ignored `tests/TestResults/stack-v2-migration/` dire
 - `20260930-preview6-model-compatibility.trx`
 - `20260930-preview6-release-full.trx` and `.log`
 - `20260930-simplified-ci-focused.trx`
+- `20260930-preview6-debug-packages-focused.trx`
+- `20260930-native-complex-types.trx`
+- `20260930-managed-client-policy.trx` and `.log`
+- `20260930-native-client-release-full.trx` and `.log`
+- `20260930-native-client-debug-full.trx` and `.log`
+- `20260930-package-consumer-build.trx` and `.log`
+- `20260930-package-consumer-publish.trx` and `.log`
+- `20260930-optional-cleanup-release-full.trx` and `.log`
+- `20260930-optional-cleanup-debug-full.trx` and `.log`
 
 Earlier SDK checkpoints passed independent 1.5.378.176-client interoperability and Linux/amd64
 non-root image checks. Those results do not qualify the current preview-6 binaries or Docker changes.
@@ -147,16 +228,20 @@ Git history rather than serving as current setup instructions.
 [CI](../tools/templates/ci.yml) uses normal build/test commands with implicit restore, explicitly
 enables auditing of all dependencies, and retains warnings as errors and build-time package generation.
 Full-history checkouts support versioning. The migration-only cold-restore wrapper and GitHub package
-secret requirements have been removed; production CI must still pass its supply-chain checks.
+secret plumbing remain removed. Debug jobs now require an approved feed exposing the `.Debug`
+packages, with secure authentication where needed. That feed provisioning is not part of automatic
+package selection; production CI must still pass its supply-chain checks.
 
 The [Release Dockerfile](../Dockerfile.release) and [Debug Dockerfile](../Dockerfile.debug) restore
 with matching architecture, configuration, self-contained, and runtime-patch settings before publishing
-with `--no-restore`. They do not copy the test-only models or require a package-feed secret.
+with `--no-restore`. They do not copy the test-only models. Release uses the ordinary public SDK
+packages; Debug requires the same authenticated or mirrored feed access inside the build container.
+The current Dockerfile does not provision that access, so a stock public-feed-only Debug image build
+cannot restore the new packages. Do not pass credentials through Docker build arguments or image layers.
 [.dockerignore](../.dockerignore) excludes host build outputs, test artifacts, and PKI.
 
 ```powershell
 docker build -f Dockerfile.release -t opcplc-local:release .
-docker build -f Dockerfile.debug -t opcplc-local:debug .
 ```
 
 The [image pipeline](../tools/templates/acrbuild.yml) builds PR and non-release images without
@@ -164,21 +249,62 @@ publishing and checks for UID 1654. Only non-PR `main` and `release/*` branches 
 publishing path. Whether development branches should publish is a separate policy decision; this
 migration's CI simplification did not expand publishing or change registry authentication.
 
+## Package consumer
+
+The [sample project](../samples/OpcUaUnitTests.csproj) is a standalone NUnit consumer, not part of the
+server solution. It deliberately references the packed server, with no repository project references or
+generated test-model assembly. The following PowerShell workflow runs from the repository root and
+uses the version from the generated NuGet manifest, since repository versioning supplies the package version.
+
+```powershell
+$consumer = Join-Path ([IO.Path]::GetTempPath()) ("opcplc-consumer-" + [Guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $consumer | Out-Null
+Copy-Item samples/OpcUaUnitTests.csproj,samples/OpcPlcBase.cs,samples/OpcUaUnitTests.cs $consumer
+Copy-Item samples/nuget.config.sample "$consumer/NuGet.Config"
+dotnet pack src/opc-plc.csproj -c Release -o "$consumer/packages" `
+  -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false -p:NuGetAudit=true -p:NuGetAuditMode=all
+$package = Get-ChildItem "$consumer/packages/Microsoft.IoTEdge.OpcPlc.*.nupkg" | Select-Object -First 1
+$archive = [IO.Compression.ZipFile]::OpenRead($package.FullName)
+try {
+  $entry = $archive.Entries | Where-Object FullName -Like '*.nuspec'
+  $reader = [IO.StreamReader]::new($entry.Open())
+  try { [xml]$manifest = $reader.ReadToEnd() } finally { $reader.Dispose() }
+  $version = $manifest.package.metadata.version
+} finally { $archive.Dispose() }
+dotnet restore "$consumer/OpcUaUnitTests.csproj" --configfile "$consumer/NuGet.Config" `
+  --packages "$consumer/cache" -p:OpcPlcPackageVersion=$version -p:NuGetAudit=true -p:NuGetAuditMode=all
+dotnet test "$consumer/OpcUaUnitTests.csproj" -c Release --no-restore -p:OpcPlcPackageVersion=$version
+dotnet publish "$consumer/OpcUaUnitTests.csproj" -c Release --no-restore `
+  -p:OpcPlcPackageVersion=$version -o "$consumer/publish"
+Push-Location "$consumer/publish"
+try { dotnet vstest OpcUaUnitTests.dll } finally { Pop-Location }
+```
+
+Check each command succeeds before continuing. The sample owns a dynamic TCP port, temporary client/server
+certificate stores, and asynchronous shutdown. It accepts otherwise-untrusted certificates only for its
+isolated test connection; this is not production PKI qualification. The tests verify SignAndEncrypt,
+method calls, write/read-back, discovered runtime structures, restart and all ten packaged asset paths.
+
+Local qualification used the freshly packed `2.16.0-g8daebfd7be` Release package from the working tree,
+an external consumer directory and an initially empty dependency cache. The public proxy lacked SDK
+preview 6, so the eight previously verified Release SDK NuGet archives were staged in the temporary
+local feed. Other dependencies restored from the proxy with auditing enabled. No machine, repository
+or pipeline feed settings changed. This validates package consumption, not live upstream availability;
+Debug-package feed configuration remains deferred at the user's request. Both build and published
+outputs passed 3 tests with no failures/skips; all ten asset hashes matched the package archive.
+
 ## Remaining qualification
 
-- [ ] Rerun hosted restore/build/test and image jobs with the simplified configuration and required
-  feed policy. Build `183499378` failed before restore on the now-removed GitHub credential guard;
-  its preparation, CodeQL, and CLA checks passed, but that is not a successful post-fix pipeline run.
-- [ ] Run the full Debug suite, including enum-conversion behavior. The production heater already
-  uses typed Int32 access; the earlier generic-enum Debug assertion is not separately qualified here.
+- [ ] Provision approved Debug-package feed access for hosted restore and container builds, then
+  rerun the jobs. Successful build `183508314` used ordinary SDK packages for both configurations
+  and predates automatic `.Debug` package selection.
 - [ ] Rebuild and exercise current Release/Debug Linux images, including ARM64. Local Docker validation
   was blocked by the unavailable Linux engine. Build/UID checks alone do not prove server health.
 - [ ] Repeat independent 1.5.x-client interoperability against the current binaries, including
   cross-version GDS and X509 user authentication. Include trust/revocation rejection, invalid
   credentials, same-session ApplyChanges, and persistent container PKI, not only auto-accepted certs.
-- [ ] Validate automatic imports, dependencies, build/publish assets, and execution from the actual
-  OPC PLC package in a clean consumer; update and run the sample against that package. Earlier offline
-  consumer checks and archive inspection do not cover the complete consumption workflow.
+- [x] Validate the Release package in a clean Windows consumer, including automatic imports,
+  dependencies, build/publish assets and execution of the updated sample from both output directories.
 - [ ] Complete deployment and representative performance qualification. Preserve the previous
   deployable image and securely back up configuration and PKI for rollback. Deploy from fresh
   package/publish outputs, not a recursively copied, previously used build directory.

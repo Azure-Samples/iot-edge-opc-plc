@@ -57,16 +57,16 @@ public class WotConValueSubscriptionTests : SubscriptionTestsBase
 
         // Dequeue the initial-value notification the server sends on subscribe, so the next one
         // received can only come from a simulation tick.
-        var seedNotification = ReceiveEvents(1).ToList()[0].NotificationValue
+        var seedNotification = ReceiveEvents(1).ToList()[0]
             .Should().BeOfType<MonitoredItemNotification>().Subject;
-        object seedValue = seedNotification.Value.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
-        seedValue.Should().BeOfType<int>();
+        seedNotification.Value.WrappedValue.TryGetValue(out int seedValue).Should().BeTrue();
 
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         var notifications = ReceiveEvents(1).ToList();
-        var notification = notifications[0].NotificationValue.Should().BeOfType<MonitoredItemNotification>().Subject;
-        notification.Value.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().BeOfType<int>().And.NotBe(seedValue);
+        var notification = notifications[0].Should().BeOfType<MonitoredItemNotification>().Subject;
+        notification.Value.WrappedValue.TryGetValue(out int currentValue).Should().BeTrue();
+        currentValue.Should().NotBe(seedValue);
         StatusCode.IsGood(notification.Value.StatusCode).Should().BeTrue();
     }
 
