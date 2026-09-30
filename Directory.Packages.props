@@ -28,13 +28,13 @@
 
   <!-- OPC UA SDK (OPC Foundation) -->
   <ItemGroup>
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration" Version="[2.0.0-preview.6]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="[2.0.0-preview.20.g46fa7d364a]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="[2.0.0-preview.20.g46fa7d364a]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="[2.0.0-preview.20.g46fa7d364a]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types" Version="[2.0.0-preview.20.g46fa7d364a]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" Version="[2.0.0-preview.20.g46fa7d364a]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client" Version="[2.0.0-preview.20.g46fa7d364a]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration" Version="[2.0.0-preview.20.g46fa7d364a]" />
   </ItemGroup>
 
   <!-- Test dependencies -->
