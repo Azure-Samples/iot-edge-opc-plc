@@ -337,12 +337,19 @@ Notes:
 | StartUpdateFastNodes | Start the increase of value of fast nodes      | fast nodes activated                           |
 
 ## NuGet
-- The OPC PLC build generates a NuGet package that can be used to add the OPC PLC server to your own project, e.g. for unit tests
-- Sample base class for unit tests: `./samples/OpcPlcBase.cs`
-- Sample unit test file that uses the base class: `./samples/OpcUaUnitTests.cs`
-- Sample NuGet config to consume a local package (needs to be next to the solution file): `./samples/nuget.config`
-- Sample project file that shows how to import the local OPC PLC nuget package: `./samples/OpcUaUnitTests.prj`
-- Note: The NuGet package is not published to NuGet.org
+The build generates a `Microsoft.IoTEdge.OpcPlc` NuGet package for embedding the server, for example in
+integration tests. It is not published to nuget.org.
+
+The runnable .NET 10 NUnit sample is [samples/OpcUaUnitTests.csproj](samples/OpcUaUnitTests.csproj), using
+[samples/OpcPlcBase.cs](samples/OpcPlcBase.cs) and [samples/OpcUaUnitTests.cs](samples/OpcUaUnitTests.cs).
+It starts and stops its own server asynchronously, uses isolated temporary PKI, and tests secure reads,
+writes, runtime types, restart, and packaged assets. Set `OpcPlcPackageVersion` to the exact version
+produced by your build. [samples/nuget.config.sample](samples/nuget.config.sample) supplies a local
+`packages` source alongside nuget.org.
+
+See the [clean package-consumer workflow](docs/opc-ua-v2-migration.md#package-consumer) for running the
+sample outside the repository against the actual package and its published output. Certificate
+auto-acceptance in this isolated sample is for tests only, not production trust configuration.
 
 ## Build
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR you need to:

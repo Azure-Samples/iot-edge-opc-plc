@@ -27,6 +27,9 @@ public partial class OpcPlcServer
 
     private string[] _args;
     private CancellationTokenSource _cancellationTokenSource;
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
+    private PlcServerHost _plcHost;
+    private bool _simulationStarted;
     private ImmutableList<IPluginNodes> _pluginNodes;
     private OpcTelemetryContext _telemetryContext;
     private IDisposable _otelProviders;
@@ -80,8 +83,14 @@ public partial class OpcPlcServer
     /// </summary>
     public async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
     {
+        Ready = false;
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             // Initialize configuration.
             _args = args;
             Config = new OpcPlcConfiguration();
@@ -151,6 +160,9 @@ public partial class OpcPlcServer
 
             await StartPlcServerAsync(cancellationToken).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
         catch (Mono.Options.OptionException ex)
         {
             LogInvalidOption(ex.Message);
@@ -176,14 +188,26 @@ public partial class OpcPlcServer
     /// </summary>
     public async Task RestartAsync()
     {
-        LogStoppingPlcServer();
-        await PlcServer.StopAsync(CancellationToken.None).ConfigureAwait(false);
-        PlcSimulationInstance.Stop();
-
-        LogRestartingPlcServer();
-        LogLogo();
-
-        await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
+        await _lifecycleGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_cancellationTokenSource is null || _cancellationTokenSource.IsCancellationRequested)
+            {
+                return;
+            }
+            Ready = false;
+            LogStoppingPlcServer();
+            await StopPlcServerAndSimulationAsync().ConfigureAwait(false);
+            LogRestartingPlcServer();
+            LogLogo();
+            await StartPlcServerAndSimulationAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
+            _cancellationTokenSource.Token.ThrowIfCancellationRequested();
+            Ready = true;
+        }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
     }
 
 
@@ -193,7 +217,13 @@ public partial class OpcPlcServer
     /// </summary>
     public void Stop()
     {
-        _cancellationTokenSource.Cancel();
+        try
+        {
+            _cancellationTokenSource?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
     }
 
     /// <summary>
@@ -269,52 +299,93 @@ public partial class OpcPlcServer
     /// </summary>
     private async Task StartPlcServerAsync(CancellationToken cancellationToken)
     {
-        await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
-
-        if (Config.ShowPublisherConfigJsonIp)
-        {
-            await PnJsonHelper.PrintPublisherConfigJsonAsync(
-                Config.PnJson,
-                $"{GetIpAddress()}:{Config.OpcUa.ServerPort}{Config.OpcUa.ServerPath}",
-                !Config.OpcUa.EnableUnsecureTransport,
-                _pluginNodes,
-                Logger).ConfigureAwait(false);
-        }
-        else if (Config.ShowPublisherConfigJsonPh)
-        {
-            await PnJsonHelper.PrintPublisherConfigJsonAsync(
-                Config.PnJson,
-                $"{Config.OpcUa.Hostname}:{Config.OpcUa.ServerPort}{Config.OpcUa.ServerPath}",
-                !Config.OpcUa.EnableUnsecureTransport,
-                _pluginNodes,
-                Logger).ConfigureAwait(false);
-        }
-
-        Ready = true;
-        LogPlcSimulationStarted();
-
-        // Wait for cancellation.
         _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        Console.CancelKeyPress += (_, eArgs) => {
-            _cancellationTokenSource.Cancel();
+        CancellationToken shutdown = _cancellationTokenSource.Token;
+        ConsoleCancelEventHandler cancelHandler = (_, eArgs) =>
+        {
+            Stop();
             eArgs.Cancel = true;
         };
+        Console.CancelKeyPress += cancelHandler;
+        try
+        {
+            await _lifecycleGate.WaitAsync(shutdown).ConfigureAwait(false);
+            try
+            {
+                await StartPlcServerAndSimulationAsync(shutdown).ConfigureAwait(false);
+                shutdown.ThrowIfCancellationRequested();
+                Ready = true;
+            }
+            finally
+            {
+                _lifecycleGate.Release();
+            }
 
-        await _cancellationTokenSource.Token.WhenCanceled().ConfigureAwait(false);
-
-        PlcSimulationInstance.Stop();
-        await PlcServer.StopAsync(cancellationToken).ConfigureAwait(false);
-        _cancellationTokenSource.Dispose();
+            if (Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh)
+            {
+                string hostname = Config.ShowPublisherConfigJsonIp ? GetIpAddress() : Config.OpcUa.Hostname;
+                await PnJsonHelper.PrintPublisherConfigJsonAsync(Config.PnJson,
+                    $"{hostname}:{Config.OpcUa.ServerPort}{Config.OpcUa.ServerPath}",
+                    !Config.OpcUa.EnableUnsecureTransport, _pluginNodes, Logger).ConfigureAwait(false);
+            }
+            LogPlcSimulationStarted();
+            Task canceled = Task.Delay(Timeout.Infinite, shutdown);
+            while (!shutdown.IsCancellationRequested)
+            {
+                PlcServerHost host;
+                await _lifecycleGate.WaitAsync(shutdown).ConfigureAwait(false);
+                try
+                {
+                    host = _plcHost ?? throw new InvalidOperationException("The OPC UA host is unavailable.");
+                }
+                finally
+                {
+                    _lifecycleGate.Release();
+                }
+                Task completed = await Task.WhenAny(canceled, host.Completion).ConfigureAwait(false);
+                if (completed == canceled)
+                {
+                    break;
+                }
+                await _lifecycleGate.WaitAsync(shutdown).ConfigureAwait(false);
+                try
+                {
+                    if (ReferenceEquals(host, _plcHost))
+                    {
+                        await host.Completion.ConfigureAwait(false);
+                        throw new InvalidOperationException("The OPC UA host stopped unexpectedly.");
+                    }
+                }
+                finally
+                {
+                    _lifecycleGate.Release();
+                }
+            }
+        }
+        catch (OperationCanceledException) when (shutdown.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            Console.CancelKeyPress -= cancelHandler;
+            await _lifecycleGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                Ready = false;
+                await StopPlcServerAndSimulationAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _cancellationTokenSource, null)?.Dispose();
+                _lifecycleGate.Release();
+            }
+        }
     }
 
-    private async Task StartPlcServerAndSimulationAsync()
+    private async Task StartPlcServerAndSimulationAsync(CancellationToken cancellationToken)
     {
-        // init OPC configuration and tracing
-        var opcUaAppConfigFactory = new OpcUaAppConfigFactory(Config, Logger, LoggerFactory, _telemetryContext);
-        ApplicationConfiguration plcApplicationConfiguration = await opcUaAppConfigFactory.ConfigureAsync().ConfigureAwait(false);
-
-        // start the server.
-        LogStartingServerOnEndpoint(plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
+        cancellationToken.ThrowIfCancellationRequested();
+        LogStartingServerOnEndpoint($"opc.tcp://{Config.OpcUa.Hostname}:{Config.OpcUa.ServerPort}{Config.OpcUa.ServerPath}");
         LogSimulationSettings();
         LogSimulationCycleCount(PlcSimulationInstance.SimulationCycleCount);
         LogSimulationCycleLength(PlcSimulationInstance.SimulationCycleLength);
@@ -331,13 +402,44 @@ public partial class OpcPlcServer
         LogUsernamePasswordAuth(Config.UsernamePasswordAuthEnabled ? "Enabled" : "Disabled");
         LogCertAuth(Config.DisableCertAuth ? "Disabled" : "Enabled");
 
-        // Add simple events, alarms, reference test simulation and deterministic alarms.
-        PlcServer = new PlcServer(Config, PlcSimulationInstance, TimeService, _pluginNodes, Logger, _telemetryContext);
-        await PlcServer.StartAsync(plcApplicationConfiguration).ConfigureAwait(false);
-        LogOpcUaServerStarted();
+        var host = new PlcServerHost(Config, PlcSimulationInstance, TimeService, _pluginNodes,
+            Logger, LoggerFactory, _telemetryContext);
+        _plcHost = host;
+        try
+        {
+            await host.StartAsync(cancellationToken).ConfigureAwait(false);
+            PlcServer = host.Server;
+            LogOpcUaServerStarted();
+            _simulationStarted = true;
+            PlcSimulationInstance.Start(PlcServer);
+        }
+        catch
+        {
+            PlcServer = host.Server;
+            await StopPlcServerAndSimulationAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
 
-        // Add remaining base simulations.
-        PlcSimulationInstance.Start(PlcServer);
+    private async Task StopPlcServerAndSimulationAsync()
+    {
+        PlcServerHost host = _plcHost;
+        _plcHost = null;
+        try
+        {
+            if (_simulationStarted)
+            {
+                _simulationStarted = false;
+                PlcSimulationInstance.Stop();
+            }
+        }
+        finally
+        {
+            if (host is not null)
+            {
+                await host.DisposeAsync().ConfigureAwait(false);
+            }
+        }
     }
 
     /// <summary>

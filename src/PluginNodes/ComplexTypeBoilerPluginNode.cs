@@ -1,6 +1,5 @@
 namespace OpcPlc.PluginNodes;
 
-using BoilerModel1;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using OpcPlc.Helpers;
@@ -8,7 +7,8 @@ using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 
 /// <summary>
@@ -17,8 +17,8 @@ using System.Timers;
 public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogger logger) : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private PlcNodeManager _plcNodeManager;
-    private Boiler1State _node;
-    private ITimer _nodeGenerator;
+    private BaseDataVariableState _boilerStatus;
+    private OpcPlc.ITimer _nodeGenerator;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -27,11 +27,27 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
         // Enabled by default.
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public async ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
-        AddNodes(methodsFolder);
+        await AddNodesAsync(methodsFolder, cancellationToken).ConfigureAwait(false);
+    }
+
+    public void OnAddressSpaceReady()
+    {
+        IStructure temperature = CreateStructure(RuntimeModelIds.Boiler1.DataTypeIds.BoilerTemperatureType);
+        temperature["Bottom"] = 100;
+        temperature["Top"] = 95;
+        IStructure status = CreateStructure(RuntimeModelIds.Boiler1.DataTypeIds.BoilerDataType);
+        status["Temperature"] = new Variant(new ExtensionObject((IEncodeable)temperature));
+        status["Pressure"] = 99_000;
+        status["HeaterState"] = VariantHelper.CastFrom(HeaterState.On);
+        _boilerStatus.Value = new Variant(new ExtensionObject((IEncodeable)status));
+        _boilerStatus.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: true);
     }
 
     public void StartSimulation()
@@ -47,45 +63,27 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
         }
     }
 
-    private void AddNodes(FolderState methodsFolder)
+    private async ValueTask AddNodesAsync(FolderState methodsFolder, CancellationToken cancellationToken)
     {
-        // Load complex types from binary uanodes file.
-        _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
+        await _plcNodeManager.LoadPredefinedNodesAsync(LoadPredefinedNodes, cancellationToken).ConfigureAwait(false);
 
         // Find the Boiler1 node that was created when the model was loaded.
-        var passiveBoiler1Node = _plcNodeManager.FindPredefinedNode<BaseObjectState>(new NodeId(BoilerModel1.Objects.Boiler1, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
-        var boilersNode = _plcNodeManager.FindPredefinedNode<BaseObjectState>(new NodeId(BoilerModel2.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
+        var boilersNode = _plcNodeManager.FindPredefinedNode<BaseObjectState>(new NodeId(RuntimeModelIds.Boiler2.Objects.Boilers, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
         var boiler2Node = _plcNodeManager.FindPredefinedNode<BaseObjectState>(new NodeId(5017, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.Boiler]));
 
-        var boilerStatus = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(ExpandedNodeId.ToNodeId(BoilerModel1.VariableIds.Boiler1_BoilerStatus, _plcNodeManager.Server.NamespaceUris));
-        AllowReadAndWrite(boilerStatus);
-
-        // Convert to node that can be manipulated within the server.
-        _node = new Boiler1State(null);
-        _node.Create(_plcNodeManager.SystemContext, passiveBoiler1Node);
-        _node.BoilerStatus.Value = new BoilerDataType {
-            Pressure = 99_000,
-            Temperature = new BoilerTemperatureType { Bottom = 100, Top = 95 },
-            HeaterState = BoilerHeaterStateType.On,
-        };
-        _node.BoilerStatus.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: true);
+        _boilerStatus = _plcNodeManager.FindPredefinedNode<BaseDataVariableState>(ExpandedNodeId.ToNodeId(RuntimeModelIds.Boiler1.VariableIds.Boiler1_BoilerStatus, _plcNodeManager.Server.NamespaceUris));
+        AllowReadAndWrite(_boilerStatus);
 
         // Put Boiler #2 into Boilers folder.
         // TODO: Find a better solution to avoid this dependency between boilers.
         boilersNode.AddChild(boiler2Node);
 
-        _plcNodeManager.AddPredefinedNode(_node);
-
         AddMethods(methodsFolder);
-
-        // Get BoilerStatus complex type variable.
-        var children = new List<BaseInstanceState>();
-        _node.GetChildren(_plcNodeManager.SystemContext, children);
 
         // Add to node list for creation of pn.json.
         Nodes = new List<NodeWithIntervals>
         {
-            PluginNodesHelper.GetNodeWithIntervals(children[0].NodeId, _plcNodeManager),
+            PluginNodesHelper.GetNodeWithIntervals(_boilerStatus.NodeId, _plcNodeManager),
         };
     }
 
@@ -94,54 +92,52 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
     /// </summary>
     private static NodeStateCollection LoadPredefinedNodes(ISystemContext context)
     {
-        var uanodesPath = "Boilers/Boiler1/BoilerModel1.PredefinedNodes.uanodes";
+        var xmlPath = "Boilers/Boiler1/BoilerModel1.NodeSet2.xml";
         var snapLocation = Environment.GetEnvironmentVariable("SNAP");
         if (!string.IsNullOrWhiteSpace(snapLocation))
         {
             // Application running as a snap
-            uanodesPath = Path.Join(snapLocation, uanodesPath);
+            xmlPath = Path.Join(snapLocation, xmlPath);
         }
 
+        using var stream = File.OpenRead(xmlPath);
+        var nodeSet = Opc.Ua.Export.UANodeSet.Read(stream);
         var predefinedNodes = new NodeStateCollection();
-
-        predefinedNodes.LoadFromBinaryResource(context,
-            uanodesPath, // CopyToOutputDirectory -> PreserveNewest.
-            typeof(PlcNodeManager).GetTypeInfo().Assembly,
-            updateTables: true);
-
+        nodeSet.Import(context, predefinedNodes);
         return predefinedNodes;
     }
 
     public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        var newValue = new BoilerDataType
-        {
-            HeaterState = _node.BoilerStatus.Value.HeaterState,
-        };
+        IStructure currentValue = ReadStructure(_boilerStatus.Value);
+        IStructure newValue = CreateStructure(RuntimeModelIds.Boiler1.DataTypeIds.BoilerDataType);
+        newValue["HeaterState"] = currentValue["HeaterState"];
+        int currentTemperatureBottom = ReadStructure(currentValue["Temperature"])["Bottom"].GetInt32();
+        IStructure newTemperature = CreateStructure(RuntimeModelIds.Boiler1.DataTypeIds.BoilerTemperatureType);
+        int bottom;
 
-        int currentTemperatureBottom = _node.BoilerStatus.Value.Temperature.Bottom;
-        BoilerTemperatureType newTemperature = newValue.Temperature;
-
-        if (_node.BoilerStatus.Value.HeaterState == BoilerHeaterStateType.On)
+        if (currentValue["HeaterState"].GetInt32() == (int)HeaterState.On)
         {
             // Heater on, increase by 1.
-            newTemperature.Bottom = currentTemperatureBottom + 1;
+            bottom = currentTemperatureBottom + 1;
         }
         else
         {
             // Heater off, decrease down to a minimum of 20.
-            newTemperature.Bottom = Math.Max(20, currentTemperatureBottom - 1);
+            bottom = Math.Max(20, currentTemperatureBottom - 1);
         }
 
         // Top is always 5 degrees less than bottom, with a minimum value of 20.
-        newTemperature.Top = Math.Max(20, newTemperature.Bottom - 5);
+        newTemperature["Bottom"] = bottom;
+        newTemperature["Top"] = Math.Max(20, bottom - 5);
 
         // Pressure is always 100_000 + bottom temperature.
-        newValue.Pressure = 100_000 + newTemperature.Bottom;
+        newValue["Temperature"] = new Variant(new ExtensionObject((IEncodeable)newTemperature));
+        newValue["Pressure"] = 100_000 + bottom;
 
         // Change complex value in one atomic step.
-        _node.BoilerStatus.Value = newValue;
-        _node.BoilerStatus.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: true);
+        _boilerStatus.Value = new Variant(new ExtensionObject((IEncodeable)newValue));
+        _boilerStatus.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: true);
     }
 
     private void AddMethods(NodeState methodsFolder)
@@ -179,9 +175,10 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
     /// <summary>
     /// Method to turn the heater on. Executes synchronously.
     /// </summary>
-    private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method,
+        ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
-        _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.On;
+        ReadStructure(_boilerStatus.Value)["HeaterState"] = VariantHelper.CastFrom(HeaterState.On);
         LogOnHeaterOnCallMethodCalled();
         return ServiceResult.Good;
     }
@@ -189,12 +186,39 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
     /// <summary>
     /// Method to turn the heater off. Executes synchronously.
     /// </summary>
-    private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method,
+        ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
-        _node.BoilerStatus.Value.HeaterState = BoilerHeaterStateType.Off;
+        ReadStructure(_boilerStatus.Value)["HeaterState"] = VariantHelper.CastFrom(HeaterState.Off);
         LogOnHeaterOffCallMethodCalled();
         return ServiceResult.Good;
     }
+    private IStructure CreateStructure(ExpandedNodeId typeId)
+    {
+        bool registered = _plcNodeManager.Server.Factory.TryGetEncodeableType(typeId, out var type);
+        IEncodeable instance = registered ? type.CreateInstance() : null;
+        if (instance is not IStructure value)
+        {
+            throw new InvalidOperationException($"Runtime structure {typeId} is not registered.");
+        }
+        return value;
+    }
+
+    private static IStructure ReadStructure(Variant value)
+    {
+        if (!value.TryGetStructure(out IEncodeable body) || body is not IStructure structure)
+        {
+            throw new InvalidOperationException("Boiler value is not a runtime structure.");
+        }
+        return structure;
+    }
+
+    private enum HeaterState
+    {
+        Off,
+        On
+    }
+
     private void AllowReadAndWrite(BaseDataVariableState variable)
     {
         variable.Timestamp = _timeService.Now();

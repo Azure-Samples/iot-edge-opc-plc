@@ -2,8 +2,33 @@
 # Build images in acr
 #
 jobs:
+- job: validateimages
+  displayName: Validate Images Without Publishing
+  condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), and(ne(variables['Build.SourceBranch'], 'refs/heads/main'), not(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))))
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - checkout: self
+    fetchDepth: 0
+
+  - task: Bash@3
+    displayName: Build Release and Debug Images
+    inputs:
+      targetType: inline
+      script: |
+        set -euo pipefail
+        docker build --file Dockerfile.release --tag opcplc-ci:release .
+        docker build --file Dockerfile.debug --tag opcplc-ci:debug \
+          --build-arg "OPCUA_DEBUG_NUGET_FEED=$(OpcUaDebugNuGetFeed)" \
+          --secret id=opcua_nuget_token,env=OPCUA_NUGET_TOKEN .
+        test "$(docker run --rm --entrypoint id opcplc-ci:release -u)" = "1654"
+        test "$(docker run --rm --entrypoint id opcplc-ci:debug -u)" = "1654"
+    env:
+      OPCUA_NUGET_TOKEN: $(System.AccessToken)
+
 - job: imagesprep
   displayName: Prepare Image Jobs
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))
   pool:
     vmImage: 'ubuntu-latest'
   variables:
@@ -19,6 +44,7 @@ jobs:
 
 - job: imagesall
   displayName: Build Images for
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))
   pool:
     vmImage: 'ubuntu-latest'
   dependsOn: imagesprep
@@ -27,6 +53,9 @@ jobs:
   variables:
     skipComponentGovernanceDetection: true
   steps:
+  - checkout: self
+    fetchDepth: 0
+
   - task: PowerShell@2
     displayName: Versioning
     inputs:
@@ -59,3 +88,6 @@ jobs:
       scriptLocation: inlineScript
       scriptType: pscore
       inlineScript: pwsh ./tools/scripts/acr-build.ps1 $(dockerFolder) -debug
+    env:
+      OPCUA_NUGET_TOKEN: $(System.AccessToken)
+      OPCUA_DEBUG_NUGET_FEED: $(OpcUaDebugNuGetFeed)

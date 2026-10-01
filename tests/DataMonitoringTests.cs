@@ -42,7 +42,8 @@ public class DataMonitoringTests : SubscriptionTestsBase
 
         // Assert
         var events = ReceiveEvents(6);
-        var values = events.Select(a => (uint)((MonitoredItemNotification)a.NotificationValue).Value.Value).ToList();
+        var values = events.Select(notification => ((MonitoredItemNotification)notification)
+            .Value.WrappedValue.GetUInt32()).ToList();
         var differences = values.Zip(values.Skip(1), (x, y) => y - x);
         differences.Should().AllBeEquivalentTo(1, $"elements of sequence {string.Join(",", values)} should be increasing by interval 1");
     }

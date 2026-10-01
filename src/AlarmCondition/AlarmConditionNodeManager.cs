@@ -37,6 +37,7 @@ using OpcPlc.AlarmCondition;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 
 /// <summary>
@@ -48,8 +49,10 @@ using System.Threading;
 /// identified by a fully qualified path. The underlying system knows how to access the source
 /// configuration when it is provided the fully qualified path.
 /// </remarks>
-public class AlarmConditionServerNodeManager : CustomNodeManager2
+public class AlarmConditionServerNodeManager : AsyncCustomNodeManager
 {
+    internal object SyncRoot { get; } = new();
+
     #region Constructors
     /// <summary>
     /// Initializes the node manager.
@@ -79,6 +82,8 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
     {
         if (disposing)
         {
+            Interlocked.Exchange(ref m_simulationTimer, null)?.Dispose();
+            Interlocked.Exchange(ref _deterministicEventTimer, null)?.Dispose();
             m_system?.Dispose();
         }
 
@@ -115,10 +120,14 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
     /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
     /// should have a reference to the root folder node(s) exposed by this node manager.
     /// </remarks>
-    public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+    public override async ValueTask CreateAddressSpaceAsync(
+        IDictionary<NodeId, IList<IReference>> externalReferences,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var alarmConfig = CreateAreaConfigurationCollection();
-        lock (Lock)
+        var rootAreas = new List<AreaState>();
+        lock (SyncRoot)
         {
             if (alarmConfig != null)
             {
@@ -132,15 +141,25 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
 
                 for (int ii = 0; ii < alarmConfig.Count; ii++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     // recursively process each area.
                     AreaState area = CreateAndIndexAreas(null, alarmConfig[ii]);
-                    AddRootNotifier(area);
+                    rootAreas.Add(area);
 
                     // add an organizes reference from the ObjectsFolder to the area.
                     references.Add(new NodeStateReference(ReferenceTypeIds.HasNotifier, false, area.NodeId));
                 }
             }
+        }
 
+        foreach (AreaState area in rootAreas)
+        {
+            await AddRootNotifierAsync(area, cancellationToken).ConfigureAwait(false);
+        }
+
+        lock (SyncRoot)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             StartDeterministicEvents();
 
             // Existing generic system/audit events every second.
@@ -195,12 +214,12 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
                             new AreaConfiguration
                             {
                                 Name = "Red",
-                                SourcePaths =  new StringCollection { "Metals/SouthMotor", "Colours/NorthMotor" }
+                                SourcePaths =  new List<string> { "Metals/SouthMotor", "Colours/NorthMotor" }
                             },
                             new AreaConfiguration
                             {
                                 Name = "Blue",
-                                SourcePaths =  new StringCollection { "Metals/WestTank", "Metals/SouthMotor" }
+                                SourcePaths =  new List<string> { "Metals/WestTank", "Metals/SouthMotor" }
                             }
                         }
                     }
@@ -219,12 +238,12 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
                             new AreaConfiguration
                             {
                                 Name = "Red",
-                                SourcePaths =  new StringCollection { "Metals/SouthMotor", "Colours/NorthMotor" }
+                                SourcePaths =  new List<string> { "Metals/SouthMotor", "Colours/NorthMotor" }
                             },
                            new AreaConfiguration
                             {
                                 Name = "Blue",
-                                SourcePaths =  new StringCollection { "Colours/EastTank", "Metals/WestTank" }
+                                SourcePaths =  new List<string> { "Colours/EastTank", "Metals/WestTank" }
                             }
 
                        }
@@ -237,6 +256,11 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
     {
         try
         {
+            if (Volatile.Read(ref m_simulationTimer) is null)
+            {
+                return;
+            }
+
             SystemEventState e = new(null);
 
             e.Initialize(
@@ -249,6 +273,11 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
             e.SetChildValue(SystemContext, BrowseNames.SourceName, "Internal", false);
 
             Server.ReportEvent(e);
+
+            if (Volatile.Read(ref m_simulationTimer) is null)
+            {
+                return;
+            }
 
             var aes = new AuditEventState(null);
 
@@ -276,9 +305,10 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
         try
         {
             SourceState source;
-            lock (Lock)
+            lock (SyncRoot)
             {
-                if (_deterministicEventSources == null || _deterministicEventSources.Length == 0)
+                if (_deterministicEventTimer is null ||
+                    _deterministicEventSources == null || _deterministicEventSources.Length == 0)
                 {
                     return;
                 }
@@ -357,11 +387,36 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
     /// <summary>
     /// Frees any resources allocated for the address space.
     /// </summary>
-    public override void DeleteAddressSpace()
+    public override async ValueTask DeleteAddressSpaceAsync(CancellationToken cancellationToken = default)
     {
-        lock (Lock)
+        cancellationToken.ThrowIfCancellationRequested();
+        Timer systemEvents = Interlocked.Exchange(ref m_simulationTimer, null);
+        Timer deterministicEvents = Interlocked.Exchange(ref _deterministicEventTimer, null);
+        await m_system.StopSimulationAsync(CancellationToken.None).ConfigureAwait(false);
+        if (systemEvents is not null)
         {
-            m_system.StopSimulation();
+            await systemEvents.DisposeAsync().ConfigureAwait(false);
+        }
+        if (deterministicEvents is not null)
+        {
+            await deterministicEvents.DisposeAsync().ConfigureAwait(false);
+        }
+
+        await base.DeleteAddressSpaceAsync(cancellationToken).ConfigureAwait(false);
+        lock (SyncRoot)
+        {
+            foreach (SourceState source in m_sources.Values)
+            {
+                source.Delete(SystemContext);
+            }
+            foreach (AreaState area in m_areas.Values)
+            {
+                if (area.Parent is null)
+                {
+                    area.Delete(SystemContext);
+                }
+            }
+            _deterministicEventSources = [];
             m_areas.Clear();
             m_sources.Clear();
         }
@@ -370,14 +425,17 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
     /// <summary>
     /// Returns a unique handle for the node.
     /// </summary>
-    protected override NodeHandle GetManagerHandle(ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache)
+    protected override ValueTask<NodeHandle> GetManagerHandleAsync(
+        ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache,
+        CancellationToken cancellationToken = default)
     {
-        lock (Lock)
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (SyncRoot)
         {
             // quickly exclude nodes that are not in the namespace.
             if (!IsNodeIdInNamespace(nodeId))
             {
-                return null;
+                return ValueTask.FromResult<NodeHandle>(null);
             }
 
             // check for check for nodes that are being currently monitored.
@@ -390,7 +448,7 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
                     Node = monitoredNode.Node,
                 };
 
-                return handle;
+                return ValueTask.FromResult(handle);
             }
 
             // parse the identifier.
@@ -405,17 +463,30 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
                     ParsedNodeId = parsedNodeId
                 };
 
-                return handle;
+                return ValueTask.FromResult(handle);
             }
 
-            return null;
+            return ValueTask.FromResult<NodeHandle>(null);
         }
     }
 
     /// <summary>
     /// Verifies that the specified node exists.
     /// </summary>
-    protected override NodeState ValidateNode(
+    protected override ValueTask<NodeState> ValidateNodeAsync(
+        ServerSystemContext context,
+        NodeHandle handle,
+        IDictionary<NodeId, NodeState> cache,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (SyncRoot)
+        {
+            return ValueTask.FromResult(ResolveNode(context, handle, cache));
+        }
+    }
+
+    private NodeState ResolveNode(
         ServerSystemContext context,
         NodeHandle handle,
         IDictionary<NodeId, NodeState> cache)

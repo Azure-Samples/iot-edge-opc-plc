@@ -7,6 +7,8 @@ using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Nodes with configurable kB (ByteString) values.
@@ -23,7 +25,7 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState[] _veryFastByteStringNodes;
     private byte[] _byteString;
-    private ITimer _nodeGenerator;
+    private OpcPlc.ITimer _nodeGenerator;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -43,13 +45,16 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
             (uint i) => NodeRate = i);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (NodeCount == 0)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
 
         FolderState folder = _plcNodeManager.CreateFolder(
@@ -59,6 +64,8 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
             NamespaceType.OpcPlcApplications);
 
         AddNodes(folder);
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()

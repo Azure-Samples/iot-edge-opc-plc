@@ -34,13 +34,15 @@ namespace OpcPlc.Reference
     using System.Collections.Generic;
     using System.Xml;
     using System.Threading;
+    using System.Threading.Tasks;
     using System.Numerics;
     using Opc.Ua;
     using Opc.Ua.Server;
     using Range = Opc.Ua.Range;
     using Opc.Ua.Test;
+    using static OpcPlc.Reference.ReferenceMethodHandlers;
 
-    public class ReferenceNodeManager : CustomNodeManager2
+    public class ReferenceNodeManager : AsyncCustomNodeManager
     {
         #region Constructors
         /// <summary>
@@ -65,12 +67,10 @@ namespace OpcPlc.Reference
         {
             if (disposing)
             {
-                if (m_simulationTimer != null)
-                {
-                    m_simulationTimer.Dispose();
-                    m_simulationTimer = null;
-                }
+                Interlocked.Exchange(ref m_simulationTimer, null)?.Dispose();
             }
+
+            base.Dispose(disposing);
         }
         #endregion
 
@@ -84,9 +84,7 @@ namespace OpcPlc.Reference
 
             if (instance != null && instance.Parent != null)
             {
-                string id = instance.Parent.NodeId.Identifier as string;
-
-                if (id != null)
+                if (instance.Parent.NodeId.TryGetValue(out string id))
                 {
                     return new NodeId(id + "_" + instance.SymbolicName, instance.Parent.NodeId.NamespaceIndex);
                 }
@@ -128,34 +126,6 @@ namespace OpcPlc.Reference
             return false;
         }
 
-        private static Range GetAnalogRange(BuiltInType builtInType)
-        {
-            switch (builtInType)
-            {
-                case BuiltInType.UInt16:
-                    return new Range(System.UInt16.MaxValue, System.UInt16.MinValue);
-                case BuiltInType.UInt32:
-                    return new Range(System.UInt32.MaxValue, System.UInt32.MinValue);
-                case BuiltInType.UInt64:
-                    return new Range(System.UInt64.MaxValue, System.UInt64.MinValue);
-                case BuiltInType.SByte:
-                    return new Range(System.SByte.MaxValue, System.SByte.MinValue);
-                case BuiltInType.Int16:
-                    return new Range(System.Int16.MaxValue, System.Int16.MinValue);
-                case BuiltInType.Int32:
-                    return new Range(System.Int32.MaxValue, System.Int32.MinValue);
-                case BuiltInType.Int64:
-                    return new Range(System.Int64.MaxValue, System.Int64.MinValue);
-                case BuiltInType.Float:
-                    return new Range(System.Single.MaxValue, System.Single.MinValue);
-                case BuiltInType.Double:
-                    return new Range(System.Double.MaxValue, System.Double.MinValue);
-                case BuiltInType.Byte:
-                    return new Range(System.Byte.MaxValue, System.Byte.MinValue);
-                default:
-                    return new Range(System.SByte.MaxValue, System.SByte.MinValue);
-            }
-        }
         #endregion
 
         #region INodeManager Members
@@ -167,9 +137,25 @@ namespace OpcPlc.Reference
         /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
         /// should have a reference to the root folder node(s) exposed by this node manager.
         /// </remarks>
-        public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+        public override async ValueTask CreateAddressSpaceAsync(
+            IDictionary<NodeId, IList<IReference>> externalReferences,
+            CancellationToken cancellationToken = default)
         {
-            lock (Lock)
+            cancellationToken.ThrowIfCancellationRequested();
+            FolderState root = CreateAddressSpaceNodes(externalReferences);
+            cancellationToken.ThrowIfCancellationRequested();
+            await AddRootNotifierAsync(root, cancellationToken).ConfigureAwait(false);
+            await AddPredefinedNodeAsync(SystemContext, root, cancellationToken).ConfigureAwait(false);
+            lock (_simulationLock)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                m_simulationTimer = new Timer(DoSimulation, null, 1000, 1000);
+            }
+        }
+
+        private FolderState CreateAddressSpaceNodes(IDictionary<NodeId, IList<IReference>> externalReferences)
+        {
+            lock (_simulationLock)
             {
                 IList<IReference> references = null;
 
@@ -179,10 +165,9 @@ namespace OpcPlc.Reference
                 }
 
                 FolderState root = CreateFolder(null, "ReferenceTest", "ReferenceTest");
-                root.AddReference(ReferenceTypes.Organizes, true, ObjectIds.ObjectsFolder);
-                references.Add(new NodeStateReference(ReferenceTypes.Organizes, false, root.NodeId));
+                root.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ObjectsFolder);
+                references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, root.NodeId));
                 root.EventNotifier = EventNotifiers.SubscribeToEvents;
-                AddRootNotifier(root);
 
                 var variables = new List<BaseDataVariableState>();
 
@@ -229,8 +214,8 @@ namespace OpcPlc.Reference
                     BigInteger largeInteger = BigInteger.Parse("1234567890123546789012345678901234567890123456789012345");
                     DecimalDataType decimalValue = new DecimalDataType();
                     decimalValue.Scale = 100;
-                    decimalValue.Value = largeInteger.ToByteArray();
-                    decimalVariable.Value = decimalValue;
+                    decimalValue.Value = (ByteString)largeInteger.ToByteArray();
+                    decimalVariable.Value = Variant.FromStructure(decimalValue);
                     variables.Add(decimalVariable);
                     #endregion
 
@@ -246,22 +231,24 @@ namespace OpcPlc.Reference
 
                     BaseDataVariableState doubleArrayVar = CreateVariable(arraysFolder, staticArrays + "Double", "Double", DataTypeIds.Double, ValueRanks.OneDimension);
                     // Set the first elements of the array to a smaller value.
-                    double[] doubleArrayVal = doubleArrayVar.Value as double[];
+                    double[] doubleArrayVal = doubleArrayVar.Value.GetDoubleArray().ToArray();
                     doubleArrayVal[0] %= 10E+10;
                     doubleArrayVal[1] %= 10E+10;
                     doubleArrayVal[2] %= 10E+10;
                     doubleArrayVal[3] %= 10E+10;
+                    doubleArrayVar.Value = Variant.From(doubleArrayVal.ToArrayOf());
                     variables.Add(doubleArrayVar);
 
                     variables.Add(CreateVariable(arraysFolder, staticArrays + "Duration", "Duration", DataTypeIds.Duration, ValueRanks.OneDimension));
 
                     BaseDataVariableState floatArrayVar = CreateVariable(arraysFolder, staticArrays + "Float", "Float", DataTypeIds.Float, ValueRanks.OneDimension);
                     // Set the first elements of the array to a smaller value.
-                    float[] floatArrayVal = floatArrayVar.Value as float[];
+                    float[] floatArrayVal = floatArrayVar.Value.GetFloatArray().ToArray();
                     floatArrayVal[0] %= 0xf10E + 4;
                     floatArrayVal[1] %= 0xf10E + 4;
                     floatArrayVal[2] %= 0xf10E + 4;
                     floatArrayVal[3] %= 0xf10E + 4;
+                    floatArrayVar.Value = Variant.From(floatArrayVal.ToArrayOf());
                     variables.Add(floatArrayVar);
 
                     variables.Add(CreateVariable(arraysFolder, staticArrays + "Guid", "Guid", DataTypeIds.Guid, ValueRanks.OneDimension));
@@ -277,7 +264,7 @@ namespace OpcPlc.Reference
                     variables.Add(CreateVariable(arraysFolder, staticArrays + "SByte", "SByte", DataTypeIds.SByte, ValueRanks.OneDimension));
 
                     BaseDataVariableState stringArrayVar = CreateVariable(arraysFolder, staticArrays + "String", "String", DataTypeIds.String, ValueRanks.OneDimension);
-                    stringArrayVar.Value = new string[] {
+                    stringArrayVar.Value = Variant.From(new string[] {
                         "Лошадь_ Пурпурово( Змейка( Слон",
                         "猪 绿色 绵羊 大象~ 狗 菠萝 猪鼠",
                         "Лошадь Овцы Голубика Овцы Змейка",
@@ -287,7 +274,7 @@ namespace OpcPlc.Reference
                         "레몬} 빨간% 자주색 쥐 백색; 들" ,
                         "Yellow Sheep Peach Elephant Cow",
                         "Крыса Корова Свинья Собака Кот",
-                        "龙_ 绵羊 大象 芒果; 猫'" };
+                        "龙_ 绵羊 大象 芒果; 猫'" }.ToArrayOf());
                     variables.Add(stringArrayVar);
 
                     variables.Add(CreateVariable(arraysFolder, staticArrays + "UInt16", "UInt16", DataTypeIds.UInt16, ValueRanks.OneDimension));
@@ -569,7 +556,10 @@ namespace OpcPlc.Reference
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "LocalizedText", "LocalizedText", BuiltInType.LocalizedText, ValueRanks.OneDimension, new LocalizedText[] { new LocalizedText("en", "Hello World1"), new LocalizedText("en", "Hello World2"), new LocalizedText("en", "Hello World3"), new LocalizedText("en", "Hello World4"), new LocalizedText("en", "Hello World5"), new LocalizedText("en", "Hello World6"), new LocalizedText("en", "Hello World7"), new LocalizedText("en", "Hello World8"), new LocalizedText("en", "Hello World9"), new LocalizedText("en", "Hello World10") });
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "NodeId", "NodeId", BuiltInType.NodeId, ValueRanks.OneDimension, new NodeId[] { new NodeId(Guid.NewGuid()), new NodeId(Guid.NewGuid()), new NodeId(Guid.NewGuid()), new NodeId(Guid.NewGuid()), new NodeId(Guid.NewGuid()), new NodeId(Guid.NewGuid()), new NodeId(Guid.NewGuid()), new NodeId(Guid.NewGuid()), new NodeId(Guid.NewGuid()), new NodeId(Guid.NewGuid()) });
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "Number", "Number", BuiltInType.Number, ValueRanks.OneDimension, new Int16[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 });
-                    CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "QualifiedName", "QualifiedName", BuiltInType.QualifiedName, ValueRanks.OneDimension, new QualifiedName[] { "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9" });
+                    CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "QualifiedName", "QualifiedName",
+                        BuiltInType.QualifiedName, ValueRanks.OneDimension,
+                        new string[] { "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9" }
+                            .ToArrayOf(value => new QualifiedName(value)));
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "SByte", "SByte", BuiltInType.SByte, ValueRanks.OneDimension, new SByte[] { 10, 20, 30, 40, 50, 60, 70, 80, 90 });
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "String", "String", BuiltInType.String, ValueRanks.OneDimension, new String[] { "a00", "b10", "c20", "d30", "e40", "f50", "g60", "h70", "i80", "j90" });
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "UInt16", "UInt16", BuiltInType.UInt16, ValueRanks.OneDimension, new UInt16[] { 20, 21, 22, 23, 24, 25, 26, 27, 28, 29 });
@@ -579,7 +569,13 @@ namespace OpcPlc.Reference
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "UtcTime", "UtcTime", DataTypeIds.UtcTime, ValueRanks.OneDimension, new DateTime[] { DateTime.MinValue.ToUniversalTime(), DateTime.MaxValue.ToUniversalTime(), DateTime.MinValue.ToUniversalTime(), DateTime.MaxValue.ToUniversalTime(), DateTime.MinValue.ToUniversalTime(), DateTime.MaxValue.ToUniversalTime(), DateTime.MinValue.ToUniversalTime(), DateTime.MaxValue.ToUniversalTime(), DateTime.MinValue.ToUniversalTime() }, null);
                     CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "Variant", "Variant", BuiltInType.Variant, ValueRanks.OneDimension, new Variant[] { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 });
                     XmlDocument doc1 = new XmlDocument();
-                    CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "XmlElement", "XmlElement", BuiltInType.XmlElement, ValueRanks.OneDimension, new XmlElement[] { doc1.CreateElement("tag1"), doc1.CreateElement("tag2"), doc1.CreateElement("tag3"), doc1.CreateElement("tag4"), doc1.CreateElement("tag5"), doc1.CreateElement("tag6"), doc1.CreateElement("tag7"), doc1.CreateElement("tag8"), doc1.CreateElement("tag9"), doc1.CreateElement("tag10") });
+                    CreateAnalogItemVariable(analogArrayFolder, daAnalogArray + "XmlElement", "XmlElement",
+                        BuiltInType.XmlElement, ValueRanks.OneDimension,
+                        new System.Xml.XmlElement[] { doc1.CreateElement("tag1"), doc1.CreateElement("tag2"),
+                            doc1.CreateElement("tag3"), doc1.CreateElement("tag4"), doc1.CreateElement("tag5"),
+                            doc1.CreateElement("tag6"), doc1.CreateElement("tag7"), doc1.CreateElement("tag8"),
+                            doc1.CreateElement("tag9"), doc1.CreateElement("tag10") }
+                            .ToArrayOf(value => Opc.Ua.XmlElement.From(value)));
                     #endregion
 
                     #region DataAccess_DiscreteType
@@ -641,11 +637,11 @@ namespace OpcPlc.Reference
 
                     // create variable nodes with specific references
                     BaseDataVariableState hasForwardReference = CreateMeshVariable(referencesFolder, referencesPrefix + "HasForwardReference", "HasForwardReference");
-                    hasForwardReference.AddReference(ReferenceTypes.HasCause, false, variables[0].NodeId);
+                    hasForwardReference.AddReference(ReferenceTypeIds.HasCause, false, variables[0].NodeId);
                     variables.Add(hasForwardReference);
 
                     BaseDataVariableState hasInverseReference = CreateMeshVariable(referencesFolder, referencesPrefix + "HasInverseReference", "HasInverseReference");
-                    hasInverseReference.AddReference(ReferenceTypes.HasCause, true, variables[0].NodeId);
+                    hasInverseReference.AddReference(ReferenceTypeIds.HasCause, true, variables[0].NodeId);
                     variables.Add(hasInverseReference);
 
                     BaseDataVariableState has3InverseReference = null;
@@ -657,9 +653,9 @@ namespace OpcPlc.Reference
                             referenceString += i.ToString();
                         }
                         BaseDataVariableState has3ForwardReferences = CreateMeshVariable(referencesFolder, referencesPrefix + referenceString, referenceString);
-                        has3ForwardReferences.AddReference(ReferenceTypes.HasCause, false, variables[0].NodeId);
-                        has3ForwardReferences.AddReference(ReferenceTypes.HasCause, false, variables[1].NodeId);
-                        has3ForwardReferences.AddReference(ReferenceTypes.HasCause, false, variables[2].NodeId);
+                        has3ForwardReferences.AddReference(ReferenceTypeIds.HasCause, false, variables[0].NodeId);
+                        has3ForwardReferences.AddReference(ReferenceTypeIds.HasCause, false, variables[1].NodeId);
+                        has3ForwardReferences.AddReference(ReferenceTypeIds.HasCause, false, variables[2].NodeId);
                         if (i == 1)
                         {
                             has3InverseReference = has3ForwardReferences;
@@ -668,9 +664,9 @@ namespace OpcPlc.Reference
                     }
 
                     BaseDataVariableState has3InverseReferences = CreateMeshVariable(referencesFolder, referencesPrefix + "Has3InverseReferences", "Has3InverseReferences");
-                    has3InverseReferences.AddReference(ReferenceTypes.HasEffect, true, variables[0].NodeId);
-                    has3InverseReferences.AddReference(ReferenceTypes.HasEffect, true, variables[1].NodeId);
-                    has3InverseReferences.AddReference(ReferenceTypes.HasEffect, true, variables[2].NodeId);
+                    has3InverseReferences.AddReference(ReferenceTypeIds.HasEffect, true, variables[0].NodeId);
+                    has3InverseReferences.AddReference(ReferenceTypeIds.HasEffect, true, variables[1].NodeId);
+                    has3InverseReferences.AddReference(ReferenceTypeIds.HasEffect, true, variables[2].NodeId);
                     variables.Add(has3InverseReferences);
 
                     BaseDataVariableState hasForwardAndInverseReferences = CreateMeshVariable(referencesFolder, referencesPrefix + "HasForwardAndInverseReference", "HasForwardAndInverseReference", hasForwardReference, hasInverseReference, has3InverseReference, has3InverseReferences, variables[0]);
@@ -762,43 +758,43 @@ namespace OpcPlc.Reference
                     const string rolePermissions = "AccessRights_RolePermissions_";
 
                     BaseDataVariableState rpAnonymous = CreateVariable(folderRolePermissions, rolePermissions + "AnonymousAccess", "AnonymousAccess", BuiltInType.Int16, ValueRanks.Scalar);
-                    rpAnonymous.Description = "This node can be accessed by users that have Anonymous Role";
-                    rpAnonymous.RolePermissions = new RolePermissionTypeCollection()
-                    {
+                    rpAnonymous.Description = new LocalizedText("This node can be accessed by users that have Anonymous Role");
+                    rpAnonymous.RolePermissions =
+                    [
                         // allow access to users with Anonymous role
                         new RolePermissionType()
                         {
                             RoleId = ObjectIds.WellKnownRole_Anonymous,
                             Permissions = (uint)(PermissionType.Browse |PermissionType.Read|PermissionType.ReadRolePermissions | PermissionType.Write)
                         },
-                    };
+                    ];
                     variables.Add(rpAnonymous);
 
                     BaseDataVariableState rpAuthenticatedUser = CreateVariable(folderRolePermissions, rolePermissions + "AuthenticatedUser", "AuthenticatedUser", BuiltInType.Int16, ValueRanks.Scalar);
-                    rpAuthenticatedUser.Description = "This node can be accessed by users that have AuthenticatedUser Role";
-                    rpAuthenticatedUser.RolePermissions = new RolePermissionTypeCollection()
-                    {
+                    rpAuthenticatedUser.Description = new LocalizedText("This node can be accessed by users that have AuthenticatedUser Role");
+                    rpAuthenticatedUser.RolePermissions =
+                    [
                         // allow access to users with AuthenticatedUser role
                         new RolePermissionType()
                         {
                             RoleId = ObjectIds.WellKnownRole_AuthenticatedUser,
                             Permissions = (uint)(PermissionType.Browse |PermissionType.Read|PermissionType.ReadRolePermissions | PermissionType.Write)
                         },
-                    };
+                    ];
                     variables.Add(rpAuthenticatedUser);
 
                     BaseDataVariableState rpAdminUser = CreateVariable(folderRolePermissions, rolePermissions + "AdminUser", "AdminUser", BuiltInType.Int16, ValueRanks.Scalar);
-                    rpAdminUser.Description = "This node can be accessed by users that have SecurityAdmin Role over an encrypted connection";
+                    rpAdminUser.Description = new LocalizedText("This node can be accessed by users that have SecurityAdmin Role over an encrypted connection");
                     rpAdminUser.AccessRestrictions = AccessRestrictionType.EncryptionRequired;
-                    rpAdminUser.RolePermissions = new RolePermissionTypeCollection()
-                    {
+                    rpAdminUser.RolePermissions =
+                    [
                         // allow access to users with SecurityAdmin role
                         new RolePermissionType()
                         {
                             RoleId = ObjectIds.WellKnownRole_SecurityAdmin,
                             Permissions = (uint)(PermissionType.Browse |PermissionType.Read|PermissionType.ReadRolePermissions | PermissionType.Write)
                         },
-                    };
+                    ];
                     variables.Add(rpAdminUser);
 
                     // sub-folder for "AccessRestrictions"
@@ -850,7 +846,7 @@ namespace OpcPlc.Reference
                     variables.Add(guidNodeId);
 
                     BaseDataVariableState opaqueNodeId = CreateVariable(nodeIdsFolder, nodeIds + "Int16Opaque", "Int16Opaque", DataTypeIds.Int16, ValueRanks.Scalar);
-                    opaqueNodeId.NodeId = new NodeId(new byte[] { 9, 2, 0, 5 }, NamespaceIndex);
+                    opaqueNodeId.NodeId = new NodeId((ByteString)new byte[] { 9, 2, 0, 5 }, NamespaceIndex);
                     variables.Add(opaqueNodeId);
                     #endregion
 
@@ -868,199 +864,54 @@ namespace OpcPlc.Reference
 
                     #region Add Method
                     MethodState addMethod = CreateMethod(methodsFolder, methods + "Add", "Add");
-                    // set input arguments
-                    addMethod.InputArguments = new PropertyState<Argument[]>(addMethod);
-                    addMethod.InputArguments.NodeId = new NodeId(addMethod.BrowseName.Name + "InArgs", NamespaceIndex);
-                    addMethod.InputArguments.BrowseName = BrowseNames.InputArguments;
-                    addMethod.InputArguments.DisplayName = addMethod.InputArguments.BrowseName.Name;
-                    addMethod.InputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    addMethod.InputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    addMethod.InputArguments.DataType = DataTypeIds.Argument;
-                    addMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    addMethod.InputArguments.Value =
-                    [
-                        new Argument() { Name = "Float value", Description = "Float value",  DataType = DataTypeIds.Float, ValueRank = ValueRanks.Scalar },
-                        new Argument() { Name = "UInt32 value", Description = "UInt32 value",  DataType = DataTypeIds.UInt32, ValueRank = ValueRanks.Scalar }
-                    ];
-
-                    // set output arguments
-                    addMethod.OutputArguments = new PropertyState<Argument[]>(addMethod);
-                    addMethod.OutputArguments.NodeId = new NodeId(addMethod.BrowseName.Name + "OutArgs", NamespaceIndex);
-                    addMethod.OutputArguments.BrowseName = BrowseNames.OutputArguments;
-                    addMethod.OutputArguments.DisplayName = addMethod.OutputArguments.BrowseName.Name;
-                    addMethod.OutputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    addMethod.OutputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    addMethod.OutputArguments.DataType = DataTypeIds.Argument;
-                    addMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    addMethod.OutputArguments.Value =
-                    [
-                        new Argument() { Name = "Add Result", Description = "Add Result",  DataType = DataTypeIds.Float, ValueRank = ValueRanks.Scalar }
-                    ];
+                    addMethod.InputArguments = CreateArguments(addMethod, true,
+                        ("Float value", DataTypeIds.Float), ("UInt32 value", DataTypeIds.UInt32));
+                    addMethod.OutputArguments = CreateArguments(addMethod, false, ("Add Result", DataTypeIds.Float));
 
                     addMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnAddCall);
                     #endregion
 
                     #region Multiply Method
                     MethodState multiplyMethod = CreateMethod(methodsFolder, methods + "Multiply", "Multiply");
-                    // set input arguments
-                    multiplyMethod.InputArguments = new PropertyState<Argument[]>(multiplyMethod);
-                    multiplyMethod.InputArguments.NodeId = new NodeId(multiplyMethod.BrowseName.Name + "InArgs", NamespaceIndex);
-                    multiplyMethod.InputArguments.BrowseName = BrowseNames.InputArguments;
-                    multiplyMethod.InputArguments.DisplayName = multiplyMethod.InputArguments.BrowseName.Name;
-                    multiplyMethod.InputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    multiplyMethod.InputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    multiplyMethod.InputArguments.DataType = DataTypeIds.Argument;
-                    multiplyMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    multiplyMethod.InputArguments.Value =
-                    [
-                        new Argument() { Name = "Int16 value", Description = "Int16 value",  DataType = DataTypeIds.Int16, ValueRank = ValueRanks.Scalar },
-                        new Argument() { Name = "UInt16 value", Description = "UInt16 value",  DataType = DataTypeIds.UInt16, ValueRank = ValueRanks.Scalar }
-                    ];
-
-                    // set output arguments
-                    multiplyMethod.OutputArguments = new PropertyState<Argument[]>(multiplyMethod);
-                    multiplyMethod.OutputArguments.NodeId = new NodeId(multiplyMethod.BrowseName.Name + "OutArgs", NamespaceIndex);
-                    multiplyMethod.OutputArguments.BrowseName = BrowseNames.OutputArguments;
-                    multiplyMethod.OutputArguments.DisplayName = multiplyMethod.OutputArguments.BrowseName.Name;
-                    multiplyMethod.OutputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    multiplyMethod.OutputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    multiplyMethod.OutputArguments.DataType = DataTypeIds.Argument;
-                    multiplyMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    multiplyMethod.OutputArguments.Value =
-                    [
-                        new Argument() { Name = "Multiply Result", Description = "Multiply Result",  DataType = DataTypeIds.Int32, ValueRank = ValueRanks.Scalar }
-                    ];
+                    multiplyMethod.InputArguments = CreateArguments(multiplyMethod, true,
+                        ("Int16 value", DataTypeIds.Int16), ("UInt16 value", DataTypeIds.UInt16));
+                    multiplyMethod.OutputArguments = CreateArguments(multiplyMethod, false,
+                        ("Multiply Result", DataTypeIds.Int32));
 
                     multiplyMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnMultiplyCall);
                     #endregion
 
                     #region Divide Method
                     MethodState divideMethod = CreateMethod(methodsFolder, methods + "Divide", "Divide");
-                    // set input arguments
-                    divideMethod.InputArguments = new PropertyState<Argument[]>(divideMethod);
-                    divideMethod.InputArguments.NodeId = new NodeId(divideMethod.BrowseName.Name + "InArgs", NamespaceIndex);
-                    divideMethod.InputArguments.BrowseName = BrowseNames.InputArguments;
-                    divideMethod.InputArguments.DisplayName = divideMethod.InputArguments.BrowseName.Name;
-                    divideMethod.InputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    divideMethod.InputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    divideMethod.InputArguments.DataType = DataTypeIds.Argument;
-                    divideMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    divideMethod.InputArguments.Value =
-                    [
-                        new Argument() { Name = "Int32 value", Description = "Int32 value",  DataType = DataTypeIds.Int32, ValueRank = ValueRanks.Scalar },
-                        new Argument() { Name = "UInt16 value", Description = "UInt16 value",  DataType = DataTypeIds.UInt16, ValueRank = ValueRanks.Scalar }
-                    ];
-
-                    // set output arguments
-                    divideMethod.OutputArguments = new PropertyState<Argument[]>(divideMethod);
-                    divideMethod.OutputArguments.NodeId = new NodeId(divideMethod.BrowseName.Name + "OutArgs", NamespaceIndex);
-                    divideMethod.OutputArguments.BrowseName = BrowseNames.OutputArguments;
-                    divideMethod.OutputArguments.DisplayName = divideMethod.OutputArguments.BrowseName.Name;
-                    divideMethod.OutputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    divideMethod.OutputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    divideMethod.OutputArguments.DataType = DataTypeIds.Argument;
-                    divideMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    divideMethod.OutputArguments.Value =
-                    [
-                        new Argument() { Name = "Divide Result", Description = "Divide Result",  DataType = DataTypeIds.Float, ValueRank = ValueRanks.Scalar }
-                    ];
+                    divideMethod.InputArguments = CreateArguments(divideMethod, true,
+                        ("Int32 value", DataTypeIds.Int32), ("UInt16 value", DataTypeIds.UInt16));
+                    divideMethod.OutputArguments = CreateArguments(divideMethod, false,
+                        ("Divide Result", DataTypeIds.Float));
 
                     divideMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnDivideCall);
                     #endregion
 
                     #region Substract Method
                     MethodState substractMethod = CreateMethod(methodsFolder, methods + "Substract", "Substract");
-                    // set input arguments
-                    substractMethod.InputArguments = new PropertyState<Argument[]>(substractMethod);
-                    substractMethod.InputArguments.NodeId = new NodeId(substractMethod.BrowseName.Name + "InArgs", NamespaceIndex);
-                    substractMethod.InputArguments.BrowseName = BrowseNames.InputArguments;
-                    substractMethod.InputArguments.DisplayName = substractMethod.InputArguments.BrowseName.Name;
-                    substractMethod.InputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    substractMethod.InputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    substractMethod.InputArguments.DataType = DataTypeIds.Argument;
-                    substractMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    substractMethod.InputArguments.Value =
-                    [
-                        new Argument() { Name = "Int16 value", Description = "Int16 value",  DataType = DataTypeIds.Int16, ValueRank = ValueRanks.Scalar },
-                        new Argument() { Name = "Byte value", Description = "Byte value",  DataType = DataTypeIds.Byte, ValueRank = ValueRanks.Scalar }
-                    ];
-
-                    // set output arguments
-                    substractMethod.OutputArguments = new PropertyState<Argument[]>(substractMethod);
-                    substractMethod.OutputArguments.NodeId = new NodeId(substractMethod.BrowseName.Name + "OutArgs", NamespaceIndex);
-                    substractMethod.OutputArguments.BrowseName = BrowseNames.OutputArguments;
-                    substractMethod.OutputArguments.DisplayName = substractMethod.OutputArguments.BrowseName.Name;
-                    substractMethod.OutputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    substractMethod.OutputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    substractMethod.OutputArguments.DataType = DataTypeIds.Argument;
-                    substractMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    substractMethod.OutputArguments.Value =
-                    [
-                        new Argument() { Name = "Substract Result", Description = "Substract Result",  DataType = DataTypeIds.Int16, ValueRank = ValueRanks.Scalar }
-                    ];
+                    substractMethod.InputArguments = CreateArguments(substractMethod, true,
+                        ("Int16 value", DataTypeIds.Int16), ("Byte value", DataTypeIds.Byte));
+                    substractMethod.OutputArguments = CreateArguments(substractMethod, false,
+                        ("Substract Result", DataTypeIds.Int16));
 
                     substractMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnSubtractCall);
                     #endregion
 
                     #region Hello Method
                     MethodState helloMethod = CreateMethod(methodsFolder, methods + "Hello", "Hello");
-                    // set input arguments
-                    helloMethod.InputArguments = new PropertyState<Argument[]>(helloMethod);
-                    helloMethod.InputArguments.NodeId = new NodeId(helloMethod.BrowseName.Name + "InArgs", NamespaceIndex);
-                    helloMethod.InputArguments.BrowseName = BrowseNames.InputArguments;
-                    helloMethod.InputArguments.DisplayName = helloMethod.InputArguments.BrowseName.Name;
-                    helloMethod.InputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    helloMethod.InputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    helloMethod.InputArguments.DataType = DataTypeIds.Argument;
-                    helloMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    helloMethod.InputArguments.Value =
-                    [
-                        new Argument() { Name = "String value", Description = "String value",  DataType = DataTypeIds.String, ValueRank = ValueRanks.Scalar }
-                    ];
-
-                    // set output arguments
-                    helloMethod.OutputArguments = new PropertyState<Argument[]>(helloMethod);
-                    helloMethod.OutputArguments.NodeId = new NodeId(helloMethod.BrowseName.Name + "OutArgs", NamespaceIndex);
-                    helloMethod.OutputArguments.BrowseName = BrowseNames.OutputArguments;
-                    helloMethod.OutputArguments.DisplayName = helloMethod.OutputArguments.BrowseName.Name;
-                    helloMethod.OutputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    helloMethod.OutputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    helloMethod.OutputArguments.DataType = DataTypeIds.Argument;
-                    helloMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    helloMethod.OutputArguments.Value =
-                    [
-                        new Argument() { Name = "Hello Result", Description = "Hello Result",  DataType = DataTypeIds.String, ValueRank = ValueRanks.Scalar }
-                    ];
+                    helloMethod.InputArguments = CreateArguments(helloMethod, true, ("String value", DataTypeIds.String));
+                    helloMethod.OutputArguments = CreateArguments(helloMethod, false, ("Hello Result", DataTypeIds.String));
 
                     helloMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnHelloCall);
                     #endregion
 
                     #region Input Method
                     MethodState inputMethod = CreateMethod(methodsFolder, methods + "Input", "Input");
-                    // set input arguments
-                    inputMethod.InputArguments = new PropertyState<Argument[]>(inputMethod);
-                    inputMethod.InputArguments.NodeId = new NodeId(inputMethod.BrowseName.Name + "InArgs", NamespaceIndex);
-                    inputMethod.InputArguments.BrowseName = BrowseNames.InputArguments;
-                    inputMethod.InputArguments.DisplayName = inputMethod.InputArguments.BrowseName.Name;
-                    inputMethod.InputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    inputMethod.InputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    inputMethod.InputArguments.DataType = DataTypeIds.Argument;
-                    inputMethod.InputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    inputMethod.InputArguments.Value =
-                    [
-                        new Argument() { Name = "String value", Description = "String value",  DataType = DataTypeIds.String, ValueRank = ValueRanks.Scalar }
-                    ];
+                    inputMethod.InputArguments = CreateArguments(inputMethod, true, ("String value", DataTypeIds.String));
 
                     inputMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnInputCall);
                     #endregion
@@ -1069,19 +920,7 @@ namespace OpcPlc.Reference
                     MethodState outputMethod = CreateMethod(methodsFolder, methods + "Output", "Output");
 
                     // set output arguments
-                    outputMethod.OutputArguments = new PropertyState<Argument[]>(helloMethod);
-                    outputMethod.OutputArguments.NodeId = new NodeId(helloMethod.BrowseName.Name + "OutArgs", NamespaceIndex);
-                    outputMethod.OutputArguments.BrowseName = BrowseNames.OutputArguments;
-                    outputMethod.OutputArguments.DisplayName = helloMethod.OutputArguments.BrowseName.Name;
-                    outputMethod.OutputArguments.TypeDefinitionId = VariableTypeIds.PropertyType;
-                    outputMethod.OutputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
-                    outputMethod.OutputArguments.DataType = DataTypeIds.Argument;
-                    outputMethod.OutputArguments.ValueRank = ValueRanks.OneDimension;
-
-                    outputMethod.OutputArguments.Value =
-                    [
-                        new Argument() { Name = "Output Result", Description = "Output Result",  DataType = DataTypeIds.String, ValueRank = ValueRanks.Scalar }
-                    ];
+                    outputMethod.OutputArguments = CreateArguments(outputMethod, false, ("Output Result", DataTypeIds.String));
 
                     outputMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnOutputCall);
                     #endregion
@@ -1435,23 +1274,30 @@ namespace OpcPlc.Reference
                     _logger.LogError(e, "Error creating the address space");
                 }
 
-                AddPredefinedNode(SystemContext, root);
-                m_simulationTimer = new Timer(DoSimulation, null, 1000, 1000);
+                return root;
             }
         }
 
-        private ServiceResult OnWriteInterval(ISystemContext context, NodeState node, ref object value)
+        private ServiceResult OnWriteInterval(ISystemContext context, NodeState node, ref Variant value)
         {
             try
             {
-                m_simulationInterval = (UInt16)value;
-
-                if (m_simulationEnabled)
+                lock (_simulationLock)
                 {
-                    m_simulationTimer.Change(100, (int)m_simulationInterval);
-                }
+                    Timer timer = Volatile.Read(ref m_simulationTimer);
+                    if (timer is null)
+                    {
+                        return StatusCodes.BadOutOfService;
+                    }
+                    m_simulationInterval = (UInt16)value;
 
-                return ServiceResult.Good;
+                    if (m_simulationEnabled)
+                    {
+                        timer.Change(100, (int)m_simulationInterval);
+                    }
+
+                    return ServiceResult.Good;
+                }
             }
             catch (Exception e)
             {
@@ -1460,22 +1306,30 @@ namespace OpcPlc.Reference
             }
         }
 
-        private ServiceResult OnWriteEnabled(ISystemContext context, NodeState node, ref object value)
+        private ServiceResult OnWriteEnabled(ISystemContext context, NodeState node, ref Variant value)
         {
             try
             {
-                m_simulationEnabled = (bool)value;
-
-                if (m_simulationEnabled)
+                lock (_simulationLock)
                 {
-                    m_simulationTimer.Change(100, (int)m_simulationInterval);
-                }
-                else
-                {
-                    m_simulationTimer.Change(100, 0);
-                }
+                    Timer timer = Volatile.Read(ref m_simulationTimer);
+                    if (timer is null)
+                    {
+                        return StatusCodes.BadOutOfService;
+                    }
+                    m_simulationEnabled = (bool)value;
 
-                return ServiceResult.Good;
+                    if (m_simulationEnabled)
+                    {
+                        timer.Change(100, (int)m_simulationInterval);
+                    }
+                    else
+                    {
+                        timer.Change(100, 0);
+                    }
+
+                    return ServiceResult.Good;
+                }
             }
             catch (Exception e)
             {
@@ -1491,7 +1345,7 @@ namespace OpcPlc.Reference
         {
             var folder = new FolderState(parent) {
                 SymbolicName = name,
-                ReferenceTypeId = ReferenceTypes.Organizes,
+                ReferenceTypeId = ReferenceTypeIds.Organizes,
                 TypeDefinitionId = ObjectTypeIds.FolderType,
                 NodeId = new NodeId(path, NamespaceIndex),
                 BrowseName = new QualifiedName(path, NamespaceIndex),
@@ -1513,13 +1367,13 @@ namespace OpcPlc.Reference
         {
             var folder = new BaseObjectState(parent) {
                 SymbolicName = name,
-                ReferenceTypeId = ReferenceTypes.Organizes,
+                ReferenceTypeId = ReferenceTypeIds.Organizes,
                 TypeDefinitionId = ObjectTypeIds.BaseObjectType,
                 NodeId = new NodeId(path, NamespaceIndex),
                 BrowseName = new QualifiedName(name, NamespaceIndex),
             };
 
-            folder.DisplayName = folder.BrowseName.Name;
+            folder.DisplayName = new LocalizedText(folder.BrowseName.Name);
             folder.WriteMask = AttributeWriteMask.None;
             folder.UserWriteMask = AttributeWriteMask.None;
             folder.EventNotifier = EventNotifiers.None;
@@ -1541,7 +1395,7 @@ namespace OpcPlc.Reference
                 BrowseName = new QualifiedName(name, NamespaceIndex),
             };
 
-            type.DisplayName = type.BrowseName.Name;
+            type.DisplayName = new LocalizedText(type.BrowseName.Name);
             type.WriteMask = AttributeWriteMask.None;
             type.UserWriteMask = AttributeWriteMask.None;
             type.IsAbstract = false;
@@ -1553,15 +1407,15 @@ namespace OpcPlc.Reference
                 externalReferences[ObjectTypeIds.BaseObjectType] = references = new List<IReference>();
             }
 
-            references.Add(new NodeStateReference(ReferenceTypes.HasSubtype, false, type.NodeId));
+            references.Add(new NodeStateReference(ReferenceTypeIds.HasSubtype, false, type.NodeId));
 
             if (parent != null)
             {
-                parent.AddReference(ReferenceTypes.Organizes, false, type.NodeId);
-                type.AddReference(ReferenceTypes.Organizes, true, parent.NodeId);
+                parent.AddReference(ReferenceTypeIds.Organizes, false, type.NodeId);
+                type.AddReference(ReferenceTypeIds.Organizes, true, parent.NodeId);
             }
 
-            AddPredefinedNode(SystemContext, type);
+            AddPredefinedNodeSynchronously(type);
             return type;
         }
 
@@ -1576,10 +1430,10 @@ namespace OpcPlc.Reference
             {
                 foreach (NodeState peer in peers)
                 {
-                    peer.AddReference(ReferenceTypes.HasCause, false, variable.NodeId);
-                    variable.AddReference(ReferenceTypes.HasCause, true, peer.NodeId);
-                    peer.AddReference(ReferenceTypes.HasEffect, true, variable.NodeId);
-                    variable.AddReference(ReferenceTypes.HasEffect, false, peer.NodeId);
+                    peer.AddReference(ReferenceTypeIds.HasCause, false, variable.NodeId);
+                    variable.AddReference(ReferenceTypeIds.HasCause, true, peer.NodeId);
+                    peer.AddReference(ReferenceTypeIds.HasEffect, true, variable.NodeId);
+                    variable.AddReference(ReferenceTypeIds.HasEffect, false, peer.NodeId);
                 }
             }
 
@@ -1591,52 +1445,7 @@ namespace OpcPlc.Reference
         /// </summary>
         private DataItemState CreateDataItemVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank)
         {
-            var variable = new DataItemState(parent);
-            variable.ValuePrecision = new PropertyState<double>(variable);
-            variable.Definition = new PropertyState<string>(variable);
-
-            variable.Create(
-                SystemContext,
-                null,
-                variable.BrowseName,
-                null,
-                true);
-
-            variable.SymbolicName = name;
-            variable.ReferenceTypeId = ReferenceTypes.Organizes;
-            variable.NodeId = new NodeId(path, NamespaceIndex);
-            variable.BrowseName = new QualifiedName(path, NamespaceIndex);
-            variable.DisplayName = new LocalizedText("en", name);
-            variable.WriteMask = AttributeWriteMask.None;
-            variable.UserWriteMask = AttributeWriteMask.None;
-            variable.DataType = (uint)dataType;
-            variable.ValueRank = valueRank;
-            variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Historizing = false;
-            variable.Value = TypeInfo.GetDefaultValue((uint)dataType, valueRank, Server.TypeTree);
-            variable.StatusCode = StatusCodes.Good;
-            variable.Timestamp = DateTime.UtcNow;
-
-            if (valueRank == ValueRanks.OneDimension)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
-            }
-            else if (valueRank == ValueRanks.TwoDimensions)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
-            }
-
-            variable.ValuePrecision.Value = 2;
-            variable.ValuePrecision.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.ValuePrecision.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Definition.Value = String.Empty;
-            variable.Definition.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Definition.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-
-            parent?.AddChild(variable);
-
-            return variable;
+            return ReferenceDataItemFactory.Create(SystemContext, NamespaceIndex, parent, path, name, dataType, valueRank);
         }
 
         private DataItemState[] CreateDataItemVariables(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, UInt16 numVariables)
@@ -1661,9 +1470,9 @@ namespace OpcPlc.Reference
             NodeState node,
             NumericRange indexRange,
             QualifiedName dataEncoding,
-            ref object value,
+            ref Variant value,
             ref StatusCode statusCode,
-            ref DateTime timestamp)
+            ref DateTimeUtc timestamp)
         {
             var variable = node as DataItemState;
 
@@ -1675,16 +1484,16 @@ namespace OpcPlc.Reference
                 context.NamespaceUris,
                 context.TypeTable);
 
-            if (typeInfo == null || typeInfo == TypeInfo.Unknown)
+            if (typeInfo == TypeInfo.Unknown)
             {
                 return StatusCodes.BadTypeMismatch;
             }
 
             if (typeInfo.BuiltInType != BuiltInType.DateTime)
             {
-                double number = Convert.ToDouble(value);
+                double number = value.ConvertToDouble().GetDouble();
                 number = Math.Round(number, (int)variable.ValuePrecision.Value);
-                value = TypeInfo.Cast(number, typeInfo.BuiltInType);
+                value = new Variant(number).ConvertTo(typeInfo.BuiltInType);
             }
 
             return ServiceResult.Good;
@@ -1705,94 +1514,13 @@ namespace OpcPlc.Reference
 
         private AnalogItemState CreateAnalogItemVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, object initialValues, Range customRange)
         {
-            return CreateAnalogItemVariable(parent, path, name, (uint)dataType, valueRank, initialValues, customRange);
+            return CreateAnalogItemVariable(parent, path, name, new NodeId((uint)dataType), valueRank, initialValues, customRange);
         }
 
         private AnalogItemState CreateAnalogItemVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank, object initialValues, Range customRange)
         {
-            var variable = new AnalogItemState(parent) {
-                BrowseName = new QualifiedName(path, NamespaceIndex),
-            };
-
-            variable.EngineeringUnits = new PropertyState<EUInformation>(variable);
-            variable.InstrumentRange = new PropertyState<Range>(variable);
-
-            variable.Create(
-                SystemContext,
-                new NodeId(path, NamespaceIndex),
-                variable.BrowseName,
-                null,
-                true);
-
-            variable.NodeId = new NodeId(path, NamespaceIndex);
-            variable.SymbolicName = name;
-            variable.DisplayName = new LocalizedText("en", name);
-            variable.WriteMask = AttributeWriteMask.None;
-            variable.UserWriteMask = AttributeWriteMask.None;
-            variable.ReferenceTypeId = ReferenceTypes.Organizes;
-            variable.DataType = dataType;
-            variable.ValueRank = valueRank;
-            variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Historizing = false;
-
-            if (valueRank == ValueRanks.OneDimension)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
-            }
-            else if (valueRank == ValueRanks.TwoDimensions)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
-            }
-
-            BuiltInType builtInType = TypeInfo.GetBuiltInType(dataType, Server.TypeTree);
-
-            // Simulate a mV Voltmeter
-            Range newRange = GetAnalogRange(builtInType);
-            // Using anything but 120,-10 fails a few tests
-            newRange.High = Math.Min(newRange.High, 120);
-            newRange.Low = Math.Max(newRange.Low, -10);
-            variable.InstrumentRange.Value = newRange;
-
-            if (customRange != null)
-            {
-                variable.EURange.Value = customRange;
-            }
-            else
-            {
-                variable.EURange.Value = new Range(100, 0);
-            }
-
-            if (initialValues == null)
-            {
-                variable.Value = TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
-            }
-            else
-            {
-                variable.Value = initialValues;
-            }
-
-            variable.StatusCode = StatusCodes.Good;
-            variable.Timestamp = DateTime.UtcNow;
-            // The latest UNECE version (Rev 11, published in 2015) is available here:
-            // http://www.opcfoundation.org/UA/EngineeringUnits/UNECE/rec20_latest_08052015.zip
-            variable.EngineeringUnits.Value = new EUInformation("mV", "millivolt", "http://www.opcfoundation.org/UA/units/un/cefact");
-            // The mapping of the UNECE codes to OPC UA(EUInformation.unitId) is available here:
-            // http://www.opcfoundation.org/UA/EngineeringUnits/UNECE/UNECE_to_OPCUA.csv
-            variable.EngineeringUnits.Value.UnitId = 12890; // "2Z"
-            variable.OnWriteValue = OnWriteAnalog;
-            variable.EURange.OnWriteValue = OnWriteAnalogRange;
-            variable.EURange.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.EURange.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.EngineeringUnits.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.EngineeringUnits.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.InstrumentRange.OnWriteValue = OnWriteAnalogRange;
-            variable.InstrumentRange.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.InstrumentRange.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-
-            parent?.AddChild(variable);
-
-            return variable;
+            return ReferenceDataItemFactory.CreateAnalog(
+                SystemContext, NamespaceIndex, parent, path, name, dataType, valueRank, initialValues, customRange);
         }
 
         /// <summary>
@@ -1800,43 +1528,8 @@ namespace OpcPlc.Reference
         /// </summary>
         private TwoStateDiscreteState CreateTwoStateDiscreteItemVariable(NodeState parent, string path, string name, string trueState, string falseState)
         {
-            var variable = new TwoStateDiscreteState(parent) {
-                NodeId = new NodeId(path, NamespaceIndex),
-                BrowseName = new QualifiedName(path, NamespaceIndex),
-                DisplayName = new LocalizedText("en", name),
-                WriteMask = AttributeWriteMask.None,
-                UserWriteMask = AttributeWriteMask.None,
-            };
-
-            variable.Create(
-                SystemContext,
-                null,
-                variable.BrowseName,
-                null,
-                true);
-
-            variable.SymbolicName = name;
-            variable.ReferenceTypeId = ReferenceTypes.Organizes;
-            variable.DataType = DataTypeIds.Boolean;
-            variable.ValueRank = ValueRanks.Scalar;
-            variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Historizing = false;
-            variable.Value = (bool)GetNewValue(variable);
-            variable.StatusCode = StatusCodes.Good;
-            variable.Timestamp = DateTime.UtcNow;
-
-            variable.TrueState.Value = trueState;
-            variable.TrueState.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.TrueState.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-
-            variable.FalseState.Value = falseState;
-            variable.FalseState.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.FalseState.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-
-            parent?.AddChild(variable);
-
-            return variable;
+            return ReferenceDataItemFactory.CreateTwoState(
+                SystemContext, NamespaceIndex, parent, path, name, trueState, falseState, GetNewValue);
         }
 
         /// <summary>
@@ -1844,47 +1537,8 @@ namespace OpcPlc.Reference
         /// </summary>
         private MultiStateDiscreteState CreateMultiStateDiscreteItemVariable(NodeState parent, string path, string name, params string[] values)
         {
-            var variable = new MultiStateDiscreteState(parent) {
-                NodeId = new NodeId(path, NamespaceIndex),
-                BrowseName = new QualifiedName(path, NamespaceIndex),
-                DisplayName = new LocalizedText("en", name),
-                WriteMask = AttributeWriteMask.None,
-                UserWriteMask = AttributeWriteMask.None,
-            };
-
-            variable.Create(
-                SystemContext,
-                null,
-                variable.BrowseName,
-                null,
-                true);
-
-            variable.SymbolicName = name;
-            variable.ReferenceTypeId = ReferenceTypes.Organizes;
-            variable.DataType = DataTypeIds.UInt32;
-            variable.ValueRank = ValueRanks.Scalar;
-            variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Historizing = false;
-            variable.Value = (uint)0;
-            variable.StatusCode = StatusCodes.Good;
-            variable.Timestamp = DateTime.UtcNow;
-            variable.OnWriteValue = OnWriteDiscrete;
-
-            var strings = new LocalizedText[values.Length];
-
-            for (int ii = 0; ii < strings.Length; ii++)
-            {
-                strings[ii] = values[ii];
-            }
-
-            variable.EnumStrings.Value = strings;
-            variable.EnumStrings.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.EnumStrings.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-
-            parent?.AddChild(variable);
-
-            return variable;
+            return ReferenceDataItemFactory.CreateMultiState(
+                SystemContext, NamespaceIndex, parent, path, name, values);
         }
 
         /// <summary>
@@ -1892,7 +1546,7 @@ namespace OpcPlc.Reference
         /// </summary>
         private MultiStateValueDiscreteState CreateMultiStateValueDiscreteItemVariable(NodeState parent, string path, string name, params string[] enumNames)
         {
-            return CreateMultiStateValueDiscreteItemVariable(parent, path, name, null, enumNames);
+            return CreateMultiStateValueDiscreteItemVariable(parent, path, name, NodeId.Null, enumNames);
         }
 
         /// <summary>
@@ -1900,249 +1554,8 @@ namespace OpcPlc.Reference
         /// </summary>
         private MultiStateValueDiscreteState CreateMultiStateValueDiscreteItemVariable(NodeState parent, string path, string name, NodeId nodeId, params string[] enumNames)
         {
-            var variable = new MultiStateValueDiscreteState(parent) {
-                NodeId = new NodeId(path, NamespaceIndex),
-                BrowseName = new QualifiedName(path, NamespaceIndex),
-                DisplayName = new LocalizedText("en", name),
-                WriteMask = AttributeWriteMask.None,
-                UserWriteMask = AttributeWriteMask.None,
-            };
-
-            variable.Create(
-                SystemContext,
-                null,
-                variable.BrowseName,
-                null,
-                true);
-
-            variable.SymbolicName = name;
-            variable.ReferenceTypeId = ReferenceTypes.Organizes;
-            variable.DataType = (nodeId == null) ? DataTypeIds.UInt32 : nodeId;
-            variable.ValueRank = ValueRanks.Scalar;
-            variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.Historizing = false;
-            variable.Value = (uint)0;
-            variable.StatusCode = StatusCodes.Good;
-            variable.Timestamp = DateTime.UtcNow;
-            variable.OnWriteValue = OnWriteValueDiscrete;
-
-            // there are two enumerations for this type:
-            // EnumStrings = the string representations for enumerated values
-            // ValueAsText = the actual enumerated value
-
-            // set the enumerated strings
-            var strings = new LocalizedText[enumNames.Length];
-            for (int ii = 0; ii < strings.Length; ii++)
-            {
-                strings[ii] = enumNames[ii];
-            }
-
-            // set the enumerated values
-            var values = new EnumValueType[enumNames.Length];
-            for (int ii = 0; ii < values.Length; ii++)
-            {
-                values[ii] = new EnumValueType();
-                values[ii].Value = ii;
-                values[ii].Description = strings[ii];
-                values[ii].DisplayName = strings[ii];
-            }
-            variable.EnumValues.Value = values;
-            variable.EnumValues.AccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.EnumValues.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-            variable.ValueAsText.Value = variable.EnumValues.Value[0].DisplayName;
-
-            parent?.AddChild(variable);
-
-            return variable;
-        }
-
-        private ServiceResult OnWriteDiscrete(
-            ISystemContext context,
-            NodeState node,
-            NumericRange indexRange,
-            QualifiedName dataEncoding,
-            ref object value,
-            ref StatusCode statusCode,
-            ref DateTime timestamp)
-        {
-            var variable = node as MultiStateDiscreteState;
-
-            // verify data type.
-            TypeInfo typeInfo = TypeInfo.IsInstanceOfDataType(
-                value,
-                variable.DataType,
-                variable.ValueRank,
-                context.NamespaceUris,
-                context.TypeTable);
-
-            if (typeInfo == null || typeInfo == TypeInfo.Unknown)
-            {
-                return StatusCodes.BadTypeMismatch;
-            }
-
-            if (indexRange != NumericRange.Empty)
-            {
-                return StatusCodes.BadIndexRangeInvalid;
-            }
-
-            double number = Convert.ToDouble(value);
-
-            if (number >= variable.EnumStrings.Value.Length | number < 0)
-            {
-                return StatusCodes.BadOutOfRange;
-            }
-
-            return ServiceResult.Good;
-        }
-
-        private ServiceResult OnWriteValueDiscrete(
-            ISystemContext context,
-            NodeState node,
-            NumericRange indexRange,
-            QualifiedName dataEncoding,
-            ref object value,
-            ref StatusCode statusCode,
-            ref DateTime timestamp)
-        {
-            var variable = node as MultiStateValueDiscreteState;
-
-            TypeInfo typeInfo = TypeInfo.Construct(value);
-
-            if (variable == null ||
-                typeInfo == null ||
-                typeInfo == TypeInfo.Unknown ||
-                !TypeInfo.IsNumericType(typeInfo.BuiltInType))
-            {
-                return StatusCodes.BadTypeMismatch;
-            }
-
-            if (indexRange != NumericRange.Empty)
-            {
-                return StatusCodes.BadIndexRangeInvalid;
-            }
-
-            Int32 number = Convert.ToInt32(value);
-            if (number >= variable.EnumValues.Value.Length || number < 0)
-            {
-                return StatusCodes.BadOutOfRange;
-            }
-
-            if (!node.SetChildValue(context, BrowseNames.ValueAsText, variable.EnumValues.Value[number].DisplayName, true))
-            {
-                return StatusCodes.BadOutOfRange;
-            }
-
-            node.ClearChangeMasks(context, true);
-
-            return ServiceResult.Good;
-        }
-
-        private ServiceResult OnWriteAnalog(
-            ISystemContext context,
-            NodeState node,
-            NumericRange indexRange,
-            QualifiedName dataEncoding,
-            ref object value,
-            ref StatusCode statusCode,
-            ref DateTime timestamp)
-        {
-            AnalogItemState variable = node as AnalogItemState;
-
-            // verify data type.
-            TypeInfo typeInfo = TypeInfo.IsInstanceOfDataType(
-                value,
-                variable.DataType,
-                variable.ValueRank,
-                context.NamespaceUris,
-                context.TypeTable);
-
-            if (typeInfo == null || typeInfo == TypeInfo.Unknown)
-            {
-                return StatusCodes.BadTypeMismatch;
-            }
-
-            // check index range.
-            if (variable.ValueRank >= 0)
-            {
-                if (indexRange != NumericRange.Empty)
-                {
-                    object target = variable.Value;
-                    ServiceResult result = indexRange.UpdateRange(ref target, value);
-
-                    if (ServiceResult.IsBad(result))
-                    {
-                        return result;
-                    }
-
-                    value = target;
-                }
-            }
-
-            // check instrument range.
-            else
-            {
-                if (indexRange != NumericRange.Empty)
-                {
-                    return StatusCodes.BadIndexRangeInvalid;
-                }
-
-                double number = Convert.ToDouble(value);
-
-                if (variable.InstrumentRange != null && (number < variable.InstrumentRange.Value.Low || number > variable.InstrumentRange.Value.High))
-                {
-                    return StatusCodes.BadOutOfRange;
-                }
-            }
-
-            return ServiceResult.Good;
-        }
-
-        private ServiceResult OnWriteAnalogRange(
-            ISystemContext context,
-            NodeState node,
-            NumericRange indexRange,
-            QualifiedName dataEncoding,
-            ref object value,
-            ref StatusCode statusCode,
-            ref DateTime timestamp)
-        {
-            var variable = node as PropertyState<Range>;
-            var extensionObject = value as ExtensionObject;
-            var typeInfo = TypeInfo.Construct(value);
-
-            if (variable == null ||
-                extensionObject == null ||
-                typeInfo == null ||
-                typeInfo == TypeInfo.Unknown)
-            {
-                return StatusCodes.BadTypeMismatch;
-            }
-
-            var newRange = extensionObject.Body as Range;
-            var parent = variable.Parent as AnalogItemState;
-            if (newRange == null ||
-                parent == null)
-            {
-                return StatusCodes.BadTypeMismatch;
-            }
-
-            if (indexRange != NumericRange.Empty)
-            {
-                return StatusCodes.BadIndexRangeInvalid;
-            }
-
-            TypeInfo parentTypeInfo = TypeInfo.Construct(parent.Value);
-            Range parentRange = GetAnalogRange(parentTypeInfo.BuiltInType);
-            if (parentRange.High < newRange.High ||
-                parentRange.Low > newRange.Low)
-            {
-                return StatusCodes.BadOutOfRange;
-            }
-
-            value = newRange;
-
-            return ServiceResult.Good;
+            return ReferenceDataItemFactory.CreateMultiStateValue(
+                SystemContext, NamespaceIndex, parent, path, name, nodeId, enumNames);
         }
 
         /// <summary>
@@ -2150,7 +1563,7 @@ namespace OpcPlc.Reference
         /// </summary>
         private BaseDataVariableState CreateVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank)
         {
-            return CreateVariable(parent, path, name, (uint)dataType, valueRank);
+            return CreateVariable(parent, path, name, new NodeId((uint)dataType), valueRank);
         }
 
         /// <summary>
@@ -2158,43 +1571,13 @@ namespace OpcPlc.Reference
         /// </summary>
         private BaseDataVariableState CreateVariable(NodeState parent, string path, string name, NodeId dataType, int valueRank)
         {
-            var variable = new BaseDataVariableState(parent) {
-                SymbolicName = name,
-                ReferenceTypeId = ReferenceTypes.Organizes,
-                TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
-                NodeId = new NodeId(path, NamespaceIndex),
-                BrowseName = new QualifiedName(path, NamespaceIndex),
-                DisplayName = new LocalizedText("en", name),
-                WriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description,
-                UserWriteMask = AttributeWriteMask.DisplayName | AttributeWriteMask.Description,
-                DataType = dataType,
-                ValueRank = valueRank,
-                AccessLevel = AccessLevels.CurrentReadOrWrite,
-                UserAccessLevel = AccessLevels.CurrentReadOrWrite,
-                Historizing = false,
-            };
-
-            variable.Value = GetNewValue(variable);
-            variable.StatusCode = StatusCodes.Good;
-            variable.Timestamp = DateTime.UtcNow;
-
-            if (valueRank == ValueRanks.OneDimension)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
-            }
-            else if (valueRank == ValueRanks.TwoDimensions)
-            {
-                variable.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
-            }
-
-            parent?.AddChild(variable);
-
-            return variable;
+            return ReferenceDataItemFactory.CreateVariable(
+                NamespaceIndex, parent, path, name, dataType, valueRank, GetNewValue);
         }
 
         private BaseDataVariableState[] CreateVariables(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, UInt16 numVariables)
         {
-            return CreateVariables(parent, path, name, (uint)dataType, valueRank, numVariables);
+            return CreateVariables(parent, path, name, new NodeId((uint)dataType), valueRank, numVariables);
         }
 
         private BaseDataVariableState[] CreateVariables(NodeState parent, string path, string name, NodeId dataType, int valueRank, UInt16 numVariables)
@@ -2218,7 +1601,7 @@ namespace OpcPlc.Reference
         /// </summary>
         private BaseDataVariableState CreateDynamicVariable(NodeState parent, string path, string name, BuiltInType dataType, int valueRank)
         {
-            return CreateDynamicVariable(parent, path, name, (uint)dataType, valueRank);
+            return CreateDynamicVariable(parent, path, name, new NodeId((uint)dataType), valueRank);
         }
 
         /// <summary>
@@ -2233,7 +1616,7 @@ namespace OpcPlc.Reference
 
         private BaseDataVariableState[] CreateDynamicVariables(NodeState parent, string path, string name, BuiltInType dataType, int valueRank, uint numVariables)
         {
-            return CreateDynamicVariables(parent, path, name, (uint)dataType, valueRank, numVariables);
+            return CreateDynamicVariables(parent, path, name, new NodeId((uint)dataType), valueRank, numVariables);
 
         }
 
@@ -2266,13 +1649,13 @@ namespace OpcPlc.Reference
                 BrowseName = new QualifiedName(name, NamespaceIndex),
             };
 
-            type.DisplayName = type.BrowseName.Name;
+            type.DisplayName = new LocalizedText(type.BrowseName.Name);
             type.WriteMask = AttributeWriteMask.None;
             type.UserWriteMask = AttributeWriteMask.None;
             type.IsAbstract = false;
-            type.DataType = (uint)dataType;
+            type.DataType = new NodeId((uint)dataType);
             type.ValueRank = valueRank;
-            type.Value = null;
+            type.Value = Variant.Null;
 
             IList<IReference> references = null;
 
@@ -2281,15 +1664,15 @@ namespace OpcPlc.Reference
                 externalReferences[VariableTypeIds.BaseDataVariableType] = references = new List<IReference>();
             }
 
-            references.Add(new NodeStateReference(ReferenceTypes.HasSubtype, false, type.NodeId));
+            references.Add(new NodeStateReference(ReferenceTypeIds.HasSubtype, false, type.NodeId));
 
             if (parent != null)
             {
-                parent.AddReference(ReferenceTypes.Organizes, false, type.NodeId);
-                type.AddReference(ReferenceTypes.Organizes, true, parent.NodeId);
+                parent.AddReference(ReferenceTypeIds.Organizes, false, type.NodeId);
+                type.AddReference(ReferenceTypeIds.Organizes, true, parent.NodeId);
             }
 
-            AddPredefinedNode(SystemContext, type);
+            AddPredefinedNodeSynchronously(type);
             return type;
         }
 
@@ -2305,7 +1688,7 @@ namespace OpcPlc.Reference
                 BrowseName = new QualifiedName(name, NamespaceIndex),
             };
 
-            type.DisplayName = type.BrowseName.Name;
+            type.DisplayName = new LocalizedText(type.BrowseName.Name);
             type.WriteMask = AttributeWriteMask.None;
             type.UserWriteMask = AttributeWriteMask.None;
             type.IsAbstract = false;
@@ -2321,11 +1704,11 @@ namespace OpcPlc.Reference
 
             if (parent != null)
             {
-                parent.AddReference(ReferenceTypes.Organizes, false, type.NodeId);
-                type.AddReference(ReferenceTypes.Organizes, true, parent.NodeId);
+                parent.AddReference(ReferenceTypeIds.Organizes, false, type.NodeId);
+                type.AddReference(ReferenceTypeIds.Organizes, true, parent.NodeId);
             }
 
-            AddPredefinedNode(SystemContext, type);
+            AddPredefinedNodeSynchronously(type);
             return type;
         }
 
@@ -2341,12 +1724,12 @@ namespace OpcPlc.Reference
                 BrowseName = new QualifiedName(name, NamespaceIndex),
             };
 
-            type.DisplayName = type.BrowseName.Name;
+            type.DisplayName = new LocalizedText(type.BrowseName.Name);
             type.WriteMask = AttributeWriteMask.None;
             type.UserWriteMask = AttributeWriteMask.None;
             type.IsAbstract = false;
             type.Symmetric = true;
-            type.InverseName = name;
+            type.InverseName = new LocalizedText(name);
 
             IList<IReference> references = null;
 
@@ -2359,11 +1742,11 @@ namespace OpcPlc.Reference
 
             if (parent != null)
             {
-                parent.AddReference(ReferenceTypes.Organizes, false, type.NodeId);
-                type.AddReference(ReferenceTypes.Organizes, true, parent.NodeId);
+                parent.AddReference(ReferenceTypeIds.Organizes, false, type.NodeId);
+                type.AddReference(ReferenceTypeIds.Organizes, true, parent.NodeId);
             }
 
-            AddPredefinedNode(SystemContext, type);
+            AddPredefinedNodeSynchronously(type);
             return type;
         }
 
@@ -2378,7 +1761,7 @@ namespace OpcPlc.Reference
                 BrowseName = new QualifiedName(name, NamespaceIndex),
             };
 
-            type.DisplayName = type.BrowseName.Name;
+            type.DisplayName = new LocalizedText(type.BrowseName.Name);
             type.WriteMask = AttributeWriteMask.None;
             type.UserWriteMask = AttributeWriteMask.None;
             type.ContainsNoLoops = true;
@@ -2395,11 +1778,11 @@ namespace OpcPlc.Reference
 
             if (parent != null)
             {
-                parent.AddReference(ReferenceTypes.Organizes, false, type.NodeId);
-                type.AddReference(ReferenceTypes.Organizes, true, parent.NodeId);
+                parent.AddReference(ReferenceTypeIds.Organizes, false, type.NodeId);
+                type.AddReference(ReferenceTypeIds.Organizes, true, parent.NodeId);
             }
 
-            AddPredefinedNode(SystemContext, type);
+            AddPredefinedNodeSynchronously(type);
             return type;
         }
 
@@ -2425,189 +1808,6 @@ namespace OpcPlc.Reference
             return method;
         }
 
-        private ServiceResult OnVoidCall(
-            ISystemContext context,
-            MethodState method,
-            IList<object> inputArguments,
-            IList<object> outputArguments)
-        {
-            return ServiceResult.Good;
-        }
-
-        private ServiceResult OnAddCall(
-            ISystemContext context,
-            MethodState method,
-            IList<object> inputArguments,
-            IList<object> outputArguments)
-        {
-
-            // all arguments must be provided.
-            if (inputArguments.Count < 2)
-            {
-                return StatusCodes.BadArgumentsMissing;
-            }
-
-            try
-            {
-                float floatValue = (float)inputArguments[0];
-                UInt32 uintValue = (UInt32)inputArguments[1];
-
-                // set output parameter
-                outputArguments[0] = (float)(floatValue + uintValue);
-                return ServiceResult.Good;
-            }
-            catch
-            {
-                return new ServiceResult(StatusCodes.BadInvalidArgument);
-            }
-        }
-
-        private ServiceResult OnMultiplyCall(
-            ISystemContext context,
-            MethodState method,
-            IList<object> inputArguments,
-            IList<object> outputArguments)
-        {
-
-            // all arguments must be provided.
-            if (inputArguments.Count < 2)
-            {
-                return StatusCodes.BadArgumentsMissing;
-            }
-
-            try
-            {
-                Int16 op1 = (Int16)inputArguments[0];
-                UInt16 op2 = (UInt16)inputArguments[1];
-
-                // set output parameter
-                outputArguments[0] = (Int32)(op1 * op2);
-                return ServiceResult.Good;
-            }
-            catch
-            {
-                return new ServiceResult(StatusCodes.BadInvalidArgument);
-            }
-        }
-
-        private ServiceResult OnDivideCall(
-            ISystemContext context,
-            MethodState method,
-            IList<object> inputArguments,
-            IList<object> outputArguments)
-        {
-
-            // all arguments must be provided.
-            if (inputArguments.Count < 2)
-            {
-                return StatusCodes.BadArgumentsMissing;
-            }
-
-            try
-            {
-                Int32 op1 = (Int32)inputArguments[0];
-                UInt16 op2 = (UInt16)inputArguments[1];
-
-                // set output parameter
-                outputArguments[0] = (float)((float)op1 / (float)op2);
-                return ServiceResult.Good;
-            }
-            catch
-            {
-                return new ServiceResult(StatusCodes.BadInvalidArgument);
-            }
-        }
-
-        private ServiceResult OnSubtractCall(
-            ISystemContext context,
-            MethodState method,
-            IList<object> inputArguments,
-            IList<object> outputArguments)
-        {
-
-            // all arguments must be provided.
-            if (inputArguments.Count < 2)
-            {
-                return StatusCodes.BadArgumentsMissing;
-            }
-
-            try
-            {
-                Int16 op1 = (Int16)inputArguments[0];
-                Byte op2 = (Byte)inputArguments[1];
-
-                // set output parameter
-                outputArguments[0] = (Int16)(op1 - op2);
-                return ServiceResult.Good;
-            }
-            catch
-            {
-                return new ServiceResult(StatusCodes.BadInvalidArgument);
-            }
-        }
-
-        private ServiceResult OnHelloCall(
-            ISystemContext context,
-            MethodState method,
-            IList<object> inputArguments,
-            IList<object> outputArguments)
-        {
-
-            // all arguments must be provided.
-            if (inputArguments.Count < 1)
-            {
-                return StatusCodes.BadArgumentsMissing;
-            }
-
-            try
-            {
-                string op1 = (string)inputArguments[0];
-
-                // set output parameter
-                outputArguments[0] = "hello " + op1;
-                return ServiceResult.Good;
-            }
-            catch
-            {
-                return new ServiceResult(StatusCodes.BadInvalidArgument);
-            }
-        }
-
-        private ServiceResult OnInputCall(
-            ISystemContext context,
-            MethodState method,
-            IList<object> inputArguments,
-            IList<object> outputArguments)
-        {
-
-            // all arguments must be provided.
-            if (inputArguments.Count < 1)
-            {
-                return StatusCodes.BadArgumentsMissing;
-            }
-
-            return ServiceResult.Good;
-        }
-
-        private ServiceResult OnOutputCall(
-            ISystemContext context,
-            MethodState method,
-            IList<object> inputArguments,
-            IList<object> outputArguments)
-        {
-            // all arguments must be provided.
-            try
-            {
-                // set output parameter
-                outputArguments[0] = "Output";
-                return ServiceResult.Good;
-            }
-            catch
-            {
-                return new ServiceResult(StatusCodes.BadInvalidArgument);
-            }
-        }
-
         private void ResetRandomGenerator(int seed, int boundaryValueFrequency = 0)
         {
             m_randomSource = new RandomSource(seed);
@@ -2615,38 +1815,23 @@ namespace OpcPlc.Reference
             m_generator.BoundaryValueFrequency = boundaryValueFrequency;
         }
 
-        private object GetNewValue(BaseVariableState variable)
+        private Variant GetNewValue(BaseVariableState variable)
         {
-            ArgumentNullException.ThrowIfNull(m_generator);
-
-            object value = null;
-            int retryCount = 0;
-
-            while (value == null && retryCount < 10)
-            {
-                value = m_generator.GetRandom(variable.DataType, variable.ValueRank, new uint[] { 10 }, Server.TypeTree);
-
-                // Skip Variant Null.
-                if (value is Variant variant &&
-                    variant.Value is null)
-                {
-                    value = null;
-                }
-
-                retryCount++;
-            }
-
-            return value;
+            return ReferenceDataItemFactory.GetNewValue(m_generator, variable, Server.TypeTree);
         }
 
         private void DoSimulation(object state)
         {
             try
             {
-                lock (Lock)
+                lock (_simulationLock)
                 {
                     foreach (BaseDataVariableState variable in m_dynamicNodes)
                     {
+                        if (Volatile.Read(ref m_simulationTimer) is null)
+                        {
+                            return;
+                        }
                         variable.Value = GetNewValue(variable);
                         variable.Timestamp = DateTime.UtcNow;
                         variable.ClearChangeMasks(SystemContext, false);
@@ -2664,30 +1849,41 @@ namespace OpcPlc.Reference
         /// <summary>
         /// Frees any resources allocated for the address space.
         /// </summary>
-        public override void DeleteAddressSpace()
+        public override async ValueTask DeleteAddressSpaceAsync(CancellationToken cancellationToken = default)
         {
-            lock (Lock)
+            cancellationToken.ThrowIfCancellationRequested();
+            Timer timer = Interlocked.Exchange(ref m_simulationTimer, null);
+            if (timer is not null)
             {
-                // TBD
+                await timer.DisposeAsync().ConfigureAwait(false);
+            }
+
+            await base.DeleteAddressSpaceAsync(cancellationToken).ConfigureAwait(false);
+            lock (_simulationLock)
+            {
+                m_dynamicNodes.Clear();
             }
         }
 
         /// <summary>
         /// Returns a unique handle for the node.
         /// </summary>
-        protected override NodeHandle GetManagerHandle(ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache)
+        protected override ValueTask<NodeHandle> GetManagerHandleAsync(
+            ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache,
+            CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             // quickly exclude nodes that are not in the namespace.
             if (!IsNodeIdInNamespace(nodeId))
             {
-                return null;
+                return ValueTask.FromResult<NodeHandle>(null);
             }
 
             NodeState node = null;
 
             if (!PredefinedNodes.TryGetValue(nodeId, out node))
             {
-                return null;
+                return ValueTask.FromResult<NodeHandle>(null);
             }
 
             var handle = new NodeHandle {
@@ -2696,32 +1892,34 @@ namespace OpcPlc.Reference
                 Validated = true,
             };
 
-            return handle;
+            return ValueTask.FromResult(handle);
         }
 
         /// <summary>
         /// Verifies that the specified node exists.
         /// </summary>
-        protected override NodeState ValidateNode(
+          protected override ValueTask<NodeState> ValidateNodeAsync(
            ServerSystemContext context,
            NodeHandle handle,
-           IDictionary<NodeId, NodeState> cache)
+              IDictionary<NodeId, NodeState> cache,
+              CancellationToken cancellationToken = default)
         {
+                cancellationToken.ThrowIfCancellationRequested();
             // not valid if no root.
             if (handle == null)
             {
-                return null;
+                return ValueTask.FromResult<NodeState>(null);
             }
 
             // check if previously validated.
             if (handle.Validated)
             {
-                return handle.Node;
+                return ValueTask.FromResult(handle.Node);
             }
 
             // TBD
 
-            return null;
+            return ValueTask.FromResult<NodeState>(null);
         }
         #endregion
 
@@ -2729,6 +1927,7 @@ namespace OpcPlc.Reference
         #endregion
 
         #region Private Fields
+        private readonly object _simulationLock = new();
         private Opc.Ua.Test.DataGenerator m_generator;
         private Timer m_simulationTimer;
         private UInt16 m_simulationInterval = 1000;

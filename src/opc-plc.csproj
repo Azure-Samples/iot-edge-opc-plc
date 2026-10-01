@@ -39,6 +39,7 @@
     <PackageReference Include="KubernetesClient" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Mono.Options" />
+    <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="OpenTelemetry" />
     <PackageReference Include="OpenTelemetry.Api" />
     <PackageReference Include="OpenTelemetry.Api.ProviderBuilderExtensions" />
@@ -51,69 +52,35 @@
     <PackageReference Include="Serilog.Extensions.Logging.File" />
   </ItemGroup>
 
-  <!-- When referencing a local build of the OPC UA stack for testing, define the constant UseLocalOpcUaSdk in the file Directory.Build.targets -->
-  <Choose>
-    <When Condition="'$(Configuration)'=='Debug'">
-      <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types.Debug" NoWarn="NU5104" />
-      </ItemGroup>
-      <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Types\Opc.Ua.Types.csproj" />
-      </ItemGroup>
-    </When>
-    <When Condition="'$(Configuration)'=='Release'">
-      <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types" NoWarn="NU5104" />
-      </ItemGroup>
-      <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Types\Opc.Ua.Types.csproj" />
-      </ItemGroup>
-    </When>
-  </Choose>
+  <ItemGroup>
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration$(OpcUaPackageSuffix)" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server$(OpcUaPackageSuffix)" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core$(OpcUaPackageSuffix)" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types$(OpcUaPackageSuffix)" NoWarn="NU5104" />
+  </ItemGroup>
 
   <ItemGroup>
-    <None Update="Boilers\Boiler1\BoilerModel1.PredefinedNodes.uanodes">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Boilers\Boiler2\BoilerModel2.PredefinedNodes.uanodes">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="CompanionSpecs\DI\Opc.Ua.DI.PredefinedNodes.uanodes">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="CompanionSpecs\IA\Opc.Ua.IA.NodeSet2.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="CompanionSpecs\Machinery\Opc.Ua.Machinery.NodeSet2.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="CompanionSpecs\Pumps\Opc.Ua.Pumps.NodeSet2.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="CompanionSpecs\WotCon\Opc.Ua.WotCon.NodeSet2.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="wwwroot\stacklight.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="nodesfile.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="SimpleEvent\SimpleEvents.PredefinedNodes.uanodes">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <Compile Remove="Boilers\**\*.Classes.cs;Boilers\**\*.Constants.cs;Boilers\**\*.DataTypes.cs" />
+    <Compile Remove="CompanionSpecs\**\*.Classes.cs;CompanionSpecs\**\*.Constants.cs;CompanionSpecs\**\*.DataTypes.cs" />
+    <Compile Remove="SimpleEvent\*.Classes.cs;SimpleEvent\*.Constants.cs;SimpleEvent\*.DataTypes.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_PlcRuntimeAsset Include="Boilers\Boiler1\BoilerModel1.NodeSet2.xml" />
+    <_PlcRuntimeAsset Include="Boilers\Boiler2\BoilerModel2.NodeSet2.xml" />
+    <_PlcRuntimeAsset Include="CompanionSpecs\DI\Opc.Ua.DI.NodeSet2.xml" />
+    <_PlcRuntimeAsset Include="CompanionSpecs\IA\Opc.Ua.IA.NodeSet2.xml" />
+    <_PlcRuntimeAsset Include="CompanionSpecs\Machinery\Opc.Ua.Machinery.NodeSet2.xml" />
+    <_PlcRuntimeAsset Include="CompanionSpecs\Pumps\Opc.Ua.Pumps.NodeSet2.xml" />
+    <_PlcRuntimeAsset Include="CompanionSpecs\WotCon\Opc.Ua.WotCon.NodeSet2.xml" />
+    <_PlcRuntimeAsset Include="SimpleEvent\SimpleEvents.NodeSet2.xml" />
+    <_PlcRuntimeAsset Include="wwwroot\stacklight.html" />
+    <_PlcRuntimeAsset Include="nodesfile.json" />
+    <None Update="@(_PlcRuntimeAsset)"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          Pack="true"
+          PackagePath="contentFiles/%(Identity)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -122,18 +89,6 @@
 
   <ItemGroup>
     <Content Include="Microsoft.IoTEdge.OpcPlc.targets" PackagePath="build/Microsoft.IoTEdge.OpcPlc.targets" />
-    <Content Include="Boilers/**/*.*">
-      <PackagePath>contentFiles\Boilers</PackagePath>
-    </Content>
-    <Content Include="CompanionSpecs/**/*.*">
-      <PackagePath>contentFiles\CompanionSpecs</PackagePath>
-    </Content>
-    <Content Include="SimpleEvent/**/*.*">
-      <PackagePath>contentFiles\SimpleEvent</PackagePath>
-    </Content>
-    <Content Include="nodesfile.json">
-      <PackagePath>contentFiles</PackagePath>
-    </Content>
     <None Include="..\README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

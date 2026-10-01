@@ -51,6 +51,9 @@
       <opc:Variable SymbolicName="BoilerStatus" DataType="BoilerDataType">
         <opc:DefaultValue>
           <uax:ExtensionObject>
+            <uax:TypeId>
+              <uax:Identifier>ns=1;i=15084</uax:Identifier>
+            </uax:TypeId>
             <uax:Body>
               <BoilerDataType>
 

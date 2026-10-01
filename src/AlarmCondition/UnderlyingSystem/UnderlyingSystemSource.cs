@@ -187,7 +187,7 @@ public class UnderlyingSystemSource
                 alarm.UserName = userName;
 
                 // only change the comment if a non-null comment was provided.
-                if (comment != null && (!String.IsNullOrEmpty(comment.Text) || !String.IsNullOrEmpty(comment.Locale)))
+                if (!String.IsNullOrEmpty(comment.Text) || !String.IsNullOrEmpty(comment.Locale))
                 {
                     alarm.Comment = Utils.Format("{0}", comment);
                 }

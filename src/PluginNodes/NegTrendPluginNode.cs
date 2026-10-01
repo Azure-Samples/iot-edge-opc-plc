@@ -6,6 +6,8 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Node with a value that shows a negative trend.
@@ -29,8 +31,11 @@ public partial class NegTrendPluginNode(TimeService timeService, ILogger logger)
             (string s) => _isEnabled = s == null);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (_isEnabled)
@@ -44,6 +49,8 @@ public partial class NegTrendPluginNode(TimeService timeService, ILogger logger)
             AddNodes(folder);
             AddMethods(methodsFolder);
         }
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()
@@ -132,7 +139,8 @@ public partial class NegTrendPluginNode(TimeService timeService, ILogger logger)
     /// <summary>
     /// Method to reset the trend values. Executes synchronously.
     /// </summary>
-    private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnResetTrendCall(ISystemContext context, MethodState method,
+        ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
         ResetTrendData();
         LogResetNegTrendMethodCalled();

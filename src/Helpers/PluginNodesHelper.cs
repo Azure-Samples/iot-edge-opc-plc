@@ -19,9 +19,7 @@ public static class PluginNodesHelper
 
         return new NodeWithIntervals
         {
-            NodeId = expandedNodeId.IdType == IdType.Opaque
-                ? Convert.ToBase64String((byte[])expandedNodeId.Identifier)
-                : expandedNodeId.Identifier.ToString(),
+            NodeId = expandedNodeId.IdentifierAsString,
             NodeIdTypePrefix = GetTypePrefix(expandedNodeId.IdType),
             Namespace = expandedNodeId.NamespaceUri,
         };

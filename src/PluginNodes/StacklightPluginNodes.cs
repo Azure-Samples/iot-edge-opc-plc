@@ -6,6 +6,8 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 
 /// <summary>
@@ -61,14 +63,19 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
             (string s) => _isEnabled = s != null);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (_isEnabled)
         {
             AddNodes();
         }
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()
@@ -102,7 +109,7 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
             BrowseName = new QualifiedName("Stacklight", appNamespaceIndex),
             DisplayName = new LocalizedText("en", "Stacklight"),
             TypeDefinitionId = new NodeId(IaStacklightTypeId, iaNamespaceIndex),
-            ReferenceTypeId = ReferenceTypes.Organizes,
+            ReferenceTypeId = ReferenceTypeIds.Organizes,
             WriteMask = AttributeWriteMask.None,
             UserWriteMask = AttributeWriteMask.None,
             EventNotifier = EventNotifiers.None,
@@ -252,7 +259,7 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
 
     private void ApplyStacklightMode()
     {
-        int stacklightMode = Convert.ToInt32(_stacklightModeNode?.Value ?? LampModeRed);
+        int stacklightMode = _stacklightModeNode?.Value.GetInt32() ?? LampModeRed;
 
         switch (stacklightMode)
         {
@@ -279,8 +286,12 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
         }
     }
 
-    private ServiceResult OnWriteStacklightMode(ISystemContext context, NodeState node, ref object value)
+    private ServiceResult OnWriteStacklightMode(ISystemContext context, NodeState node, ref Variant value)
     {
+        if (!value.TryGetValue(out int mode))
+        {
+            return StatusCodes.BadTypeMismatch;
+        }
         try
         {
             _stacklightModeNode.Value = value;
@@ -309,7 +320,7 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
 
         return new StacklightState
         {
-            StacklightMode = Convert.ToInt32(_stacklightModeNode?.Value ?? 0),
+            StacklightMode = _stacklightModeNode?.Value.GetInt32() ?? 0,
             Lamps =
             [
                 GetLampState(0, "Red"),
@@ -325,8 +336,8 @@ public partial class StacklightPluginNodes(TimeService timeService, ILogger logg
         {
             Name = name,
             SignalOn = (bool)(_signalOnNodes[index]?.Value ?? false),
-            SignalColor = Convert.ToInt32(_signalColorNodes[index]?.Value ?? 0),
-            SignalMode = Convert.ToInt32(_signalModeNodes[index]?.Value ?? 0),
+            SignalColor = _signalColorNodes[index]?.Value.GetInt32() ?? 0,
+            SignalMode = _signalModeNodes[index]?.Value.GetInt32() ?? 0,
         };
     }
 

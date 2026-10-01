@@ -2,6 +2,8 @@ namespace OpcPlc.PluginNodes.Models;
 
 using Opc.Ua;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 public interface IPluginNodes
 {
@@ -9,7 +11,15 @@ public interface IPluginNodes
 
     void AddOptions(Mono.Options.OptionSet optionSet);
 
-    void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager);
+    ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder,
+        FolderState methodsFolder,
+        PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default);
+
+    void OnAddressSpaceReady()
+    {
+    }
 
     void StartSimulation();
 

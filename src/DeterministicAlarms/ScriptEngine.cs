@@ -3,9 +3,11 @@
 using OpcPlc.DeterministicAlarms.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 
-public class ScriptEngine
+public class ScriptEngine : IDisposable, IAsyncDisposable
 {
     public delegate void NextScriptStepAvailable(Step step, long numberOfLoops);
 
@@ -13,11 +15,13 @@ public class ScriptEngine
 
     private LinkedList<Step> _steps;
     private LinkedListNode<Step> _currentStep;
-    private ITimer _stepsTimer;
+    private OpcPlc.ITimer _stepsTimer;
     private readonly Script _script;
     private long _numberOfLoops = 1;
     private DateTime _scriptStopTime;
     private readonly TimeService _timeService;
+    private readonly SemaphoreSlim _stepGate = new(1, 1);
+    private int _disposed;
 
     /// <summary>
     /// Initialize ScriptEngine
@@ -45,8 +49,39 @@ public class ScriptEngine
 
     private void StopScript()
     {
-        _stepsTimer.Close();
+        var timer = _stepsTimer;
         _stepsTimer = null;
+        timer?.Close();
+    }
+
+    public void Dispose()
+    {
+        Interlocked.Exchange(ref _disposed, 1);
+        _stepGate.Wait();
+        try
+        {
+            StopScript();
+        }
+        finally
+        {
+            _stepGate.Release();
+        }
+        GC.SuppressFinalize(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Interlocked.Exchange(ref _disposed, 1);
+        await _stepGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            StopScript();
+        }
+        finally
+        {
+            _stepGate.Release();
+        }
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -122,6 +157,21 @@ public class ScriptEngine
     /// <param name="e"></param>
     private void OnStepTimedEvent(Object source, ElapsedEventArgs e)
     {
-        ActivateCurrentStep(GetNextValue(_currentStep));
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+        _stepGate.Wait();
+        try
+        {
+            if (Volatile.Read(ref _disposed) == 0 && _stepsTimer is not null)
+            {
+                ActivateCurrentStep(GetNextValue(_currentStep));
+            }
+        }
+        finally
+        {
+            _stepGate.Release();
+        }
     }
 }

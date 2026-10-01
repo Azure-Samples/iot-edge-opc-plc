@@ -6,6 +6,8 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Node with a sine wave value with a dip anomaly.
@@ -28,8 +30,11 @@ public partial class DipPluginNode(TimeService timeService, ILogger logger) : Pl
             (string s) => _isEnabled = s == null);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (_isEnabled)
@@ -42,6 +47,8 @@ public partial class DipPluginNode(TimeService timeService, ILogger logger) : Pl
 
             AddNodes(folder);
         }
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()

@@ -28,6 +28,9 @@ jobs:
   pool:
     vmImage: $(poolImage)
   steps:
+  - checkout: self
+    fetchDepth: 0
+
   - task: UseDotNet@2
     displayName: 'Install .NET Core SDK'
     inputs:
@@ -48,14 +51,17 @@ jobs:
     inputs:
       command: build
       projects: '$(file)'
-      arguments: '--configuration Release'
+      arguments: '--configuration Release -p:NuGetAudit=true -p:NuGetAuditMode=all'
+
+  - task: NuGetAuthenticate@1
+    displayName: Authenticate Debug Package Feed
 
   - task: DotNetCoreCLI@2
     displayName: Debug Build
     inputs:
       command: build
       projects: '$(file)'
-      arguments: '--configuration Debug'
+      arguments: '--configuration Debug -p:RestoreSources=$(OpcUaDebugNuGetFeed) -p:NuGetAudit=true -p:NuGetAuditMode=all'
 
 - job: testprep
   displayName: Prepare Test Jobs
@@ -89,6 +95,9 @@ jobs:
   pool:
     vmImage: $(poolImage)
   steps:
+  - checkout: self
+    fetchDepth: 0
+
   - task: UseDotNet@2
     displayName: 'Install .NET Core SDK'
     inputs:
@@ -111,4 +120,4 @@ jobs:
       command: test
       # projects: '$(folder)/**/tests/*.csproj'
       projects: '**/tests/*.csproj'
-      arguments: '--configuration Release'
+      arguments: '--configuration Release -p:NuGetAudit=true -p:NuGetAuditMode=all'
