@@ -46,6 +46,7 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
     private TimeSpan _overheatInterval = TimeSpan.FromSeconds(120); // 2 min.
 
     private bool _isOverheated;
+    private volatile bool _stopped;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
@@ -89,12 +90,15 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     public void StartSimulation()
     {
+        _stopped = false;
         _nodeGenerator = _timeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
         StartTimers();
     }
 
     public void StopSimulation()
     {
+        _stopped = true;
+
         if (_nodeGenerator is not null)
         {
             _nodeGenerator.Enabled = false;
@@ -402,6 +406,11 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
         await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
+            if (_stopped)
+            {
+                return;
+            }
+
             callback();
         }
         catch (Exception ex)
