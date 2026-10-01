@@ -13,15 +13,18 @@ its build identity. Restore again when switching build configurations.
 To use a repaired sibling `UA-.NETStandard` checkout explicitly, pass `-p:UseLocalOpcUaStack=true`. See the
 [OPC UA 2.0 migration notes](../docs/opc-ua-v2-migration.md) for package-feed and local-source setup.
 
-Model source generation is test-only: the test assembly and BoilerModel1 project provide independent
-reference identities, states, and wire codecs. The PLC server imports NodeSet2 XML and builds runtime
-codecs through the SDK instead of referencing these generated model classes.
+Model source generation is test-only: the test assembly provides reference identities, states and wire
+codecs for Boiler2 and the companion/event models. Boiler1 uses retained model baselines and runtime
+codec checks; there is no separate BoilerModel1 project. The PLC server imports NodeSet2 XML and builds
+runtime codecs through the SDK instead of referencing generated model classes.
 
 The shared client fixture creates `ManagedSession` and exposes `ISession`, with automatic
 reconnection and asynchronous teardown. Its reconnect policy fails promptly on rejected fixed credentials
 while preserving the SDK defaults for transient connection failures.
 Boiler tests discover types with `DefaultComplexTypeSystemFactory`,
-verify runtime structures, and then register generated reference codecs. This needs only the `Client`
+read and write runtime `IStructure` values, and retain independent schema and binary-layout checks.
+Name-only enum defaults are verified in their original XML rather than through the runtime decoder.
+This needs only the `Client`
 package, not the optional Reflection.Emit `Client.ComplexTypes` package.
 
 Shared monitoring and throughput helpers use the native V2 subscription manager and typed notification

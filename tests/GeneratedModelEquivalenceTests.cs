@@ -1,6 +1,5 @@
 namespace OpcPlc.Tests;
 
-using BoilerModel1;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Microsoft.VisualBasic.FileIO;
@@ -23,7 +22,6 @@ using System.Xml.Linq;
 [TestFixture]
 public partial class GeneratedModelEquivalenceTests
 {
-    [TestCase("Boiler1", typeof(BoilerModel1.Objects))]
     [TestCase("Boiler2", typeof(BoilerModel2.Objects))]
     [TestCase("Di", typeof(Opc.Ua.DI.Objects))]
     [TestCase("WotCon", typeof(Opc.Ua.WotCon.Objects))]
@@ -57,10 +55,36 @@ public partial class GeneratedModelEquivalenceTests
     }
 
     [Test]
+    public void RuntimeBindings_Boiler1MatchRetainedModel()
+    {
+        var document = XDocument.Load(BaselinePath("BoilerModel1"));
+        XNamespace schema = document.Root.Name.Namespace;
+        Type catalog = typeof(PlcServer).Assembly.GetType("OpcPlc.RuntimeModelIds")
+            .GetNestedType("Boiler1", BindingFlags.NonPublic);
+        foreach (Type group in catalog.GetNestedTypes(BindingFlags.NonPublic))
+        {
+            foreach (FieldInfo field in group.GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                var identifier = (ExpandedNodeId)field.GetValue(null);
+                identifier.NamespaceUri.Should().Be(OpcPlc.Namespaces.OpcPlcBoiler);
+                string name = group.Name == "VariableIds" ? field.Name.Split('_').Last() : field.Name;
+                XElement retained = document.Root.Elements().Single(node =>
+                    node.Name == schema + (group.Name == "VariableIds" ? "UAVariable" : "UADataType") &&
+                    node.Attribute("BrowseName")?.Value == "1:" + name &&
+                    (group.Name != "VariableIds" || node.Attribute("ParentNodeId")?.Value == "ns=1;i=15070"));
+                uint numeric = uint.Parse(retained.Attribute("NodeId").Value.Split('=')[^1], CultureInfo.InvariantCulture);
+                identifier.Should().Be(BoilerId(numeric), field.Name);
+            }
+        }
+    }
+
+    [Test]
     public void RuntimeModels_ServerHasNoGeneratedModelDependency()
     {
         Assembly server = typeof(PlcServer).Assembly;
         server.GetReferencedAssemblies().Should().NotContain(assembly => assembly.Name == "BoilerModel1");
+        typeof(GeneratedModelEquivalenceTests).Assembly.GetReferencedAssemblies()
+            .Should().NotContain(assembly => assembly.Name == "BoilerModel1");
         server.GetTypes().Should().NotContain(type => type.Namespace == "BoilerModel1" ||
             type.Namespace == "BoilerModel2" || type.Namespace == "Opc.Ua.DI" || type.Namespace == "Opc.Ua.WotCon");
         server.GetTypes().Should().NotContain(type => typeof(IEncodeable).IsAssignableFrom(type));
@@ -991,7 +1015,6 @@ public partial class GeneratedModelEquivalenceTests
     {
         (string Model, Type Anchor)[] models =
         [
-            ("BoilerModel1", typeof(BoilerModel1.Objects)),
             ("BoilerModel2", typeof(BoilerModel2.Objects)),
             ("Opc.Ua.DI", typeof(Opc.Ua.DI.Objects)),
             ("Opc.Ua.WotCon", typeof(Opc.Ua.WotCon.Objects)),
@@ -1039,7 +1062,7 @@ public partial class GeneratedModelEquivalenceTests
             }
             int expectedCount = model.Model switch
             {
-                "BoilerModel1" or "BoilerModel2" => 1,
+                "BoilerModel2" => 1,
                 "Opc.Ua.DI" => 44,
                 "Opc.Ua.WotCon" => 10,
                 "SimpleEvents" => 4,
@@ -1280,8 +1303,7 @@ public partial class GeneratedModelEquivalenceTests
         namespaces.GetIndexOrAppend(OpcPlc.Namespaces.WotCon);
         namespaces.GetIndexOrAppend(OpcPlc.Namespaces.OpcPlcSimpleEvents);
         var factory = EncodeableFactory.Create();
-        foreach (Type type in new[] { typeof(BoilerDataType).Assembly, typeof(GeneratedModelEquivalenceTests).Assembly }
-            .SelectMany(assembly => assembly.GetExportedTypes()).Where(type =>
+        foreach (Type type in typeof(GeneratedModelEquivalenceTests).Assembly.GetExportedTypes().Where(type =>
                 !type.IsAbstract && !type.ContainsGenericParameters && typeof(IEncodeable).IsAssignableFrom(type)))
         {
             factory.Builder.AddEncodeableType(type).Commit();
@@ -1314,47 +1336,74 @@ public partial class GeneratedModelEquivalenceTests
     [GeneratedRegex("\"(?<value>[A-Za-z0-9+/=]+)\"", RegexOptions.CultureInvariant)]
     private static partial Regex RetainedLiteralPattern();
 
-    [Test]
-    public void BoilerNodeState_InitializesMandatoryChildAndRetainedDefault()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void BoilerNodeState_ImportsMandatoryChildAndRetainedDefault(bool useRetainedInitializer)
     {
-        var namespaces = new NamespaceTable();
-        ushort namespaceIndex = namespaces.GetIndexOrAppend(OpcPlc.Namespaces.OpcPlcBoiler);
-        var factory = EncodeableFactory.Create();
-        factory.Builder.AddEncodeableType(typeof(BoilerDataType))
-            .AddEncodeableType(typeof(BoilerTemperatureType)).Commit();
-        var context = new SystemContext(DefaultTelemetry.Create(_ => { }))
+        var context = CreateModelContext();
+        ushort namespaceIndex = (ushort)context.NamespaceUris.GetIndex(OpcPlc.Namespaces.OpcPlcBoiler);
+        BaseVariableState status;
+        if (useRetainedInitializer)
         {
-            NamespaceUris = namespaces,
-            EncodeableFactory = factory,
-            TypeTable = new TypeTable(namespaces)
-        };
-        var boiler = new Boiler1State(null);
-        boiler.Create(context, new NodeId("DefaultBoiler", namespaceIndex),
-            new QualifiedName("DefaultBoiler", namespaceIndex), new LocalizedText("DefaultBoiler"), false);
-
-        boiler.TypeDefinitionId.Should().Be(new NodeId(3, namespaceIndex));
-        boiler.BoilerStatus.Should().NotBeNull();
-        boiler.BoilerStatus.Parent.Should().BeSameAs(boiler);
-        boiler.BoilerStatus.BrowseName.Should().Be(new QualifiedName("BoilerStatus", namespaceIndex));
-        boiler.BoilerStatus.DataType.Should().Be(new NodeId(15032, namespaceIndex));
-        boiler.BoilerStatus.ValueRank.Should().Be(ValueRanks.Scalar);
-        using var stream = File.OpenRead(BaselinePath("BoilerModel1"));
-        var nodes = new NodeStateCollection();
-        Opc.Ua.Export.UANodeSet.Read(stream).Import(context, nodes);
-        var declaration = nodes.OfType<BaseVariableState>()
-            .Single(node => node.NodeId == new NodeId(4, namespaceIndex));
-        declaration.Value.TryGetStructure(out BoilerDataType retainedValue).Should().BeTrue(
-            "the retained NodeSet default must decode with the same factory");
-        retainedValue.Temperature.Top.Should().Be(20);
-        retainedValue.Pressure.Should().Be(100020);
-        boiler.BoilerStatus.Value.Should().NotBeNull("the generated state must retain the declared structured default");
-        boiler.BoilerStatus.Value.Temperature.Top.Should().Be(20);
-        boiler.BoilerStatus.Value.Temperature.Bottom.Should().Be(20);
-        boiler.BoilerStatus.Value.Pressure.Should().Be(100020);
-        boiler.BoilerStatus.Value.HeaterState.Should().Be(BoilerHeaterStateType.On);
+            string source = File.ReadAllText(Path.Combine(TestContext.CurrentContext.TestDirectory,
+                "ModelBaselines", "BoilerModel1.Classes.cs"));
+            var initializer = RetainedInitializerPattern().Match(source);
+            initializer.Success.Should().BeTrue();
+            string encoded = string.Concat(RetainedLiteralPattern().Matches(initializer.Groups["chunks"].Value)
+                .Select(chunk => chunk.Groups["value"].Value));
+            var boiler = new BaseObjectState(null);
+            boiler.Initialize(context, encoded);
+            boiler.TypeDefinitionId.Should().Be(new NodeId(3, namespaceIndex));
+            var children = new List<BaseInstanceState>();
+            boiler.GetChildren(context, children);
+            status = children.OfType<BaseVariableState>().Should().ContainSingle().Subject;
+            status.Parent.Should().BeSameAs(boiler);
+        }
+        else
+        {
+            using var stream = File.OpenRead(BaselinePath("BoilerModel1"));
+            var nodes = new NodeStateCollection();
+            Opc.Ua.Export.UANodeSet.Read(stream).Import(context, nodes);
+            status = nodes.OfType<BaseVariableState>().Single(node => node.NodeId == new NodeId(4, namespaceIndex));
+        }
+        status.BrowseName.Should().Be(new QualifiedName("BoilerStatus", namespaceIndex));
+        status.DataType.Should().Be(new NodeId(15032, namespaceIndex));
+        status.ValueRank.Should().Be(ValueRanks.Scalar);
+        status.ModellingRuleId.Should().Be(useRetainedInitializer
+            ? NodeId.Null : Opc.Ua.ObjectIds.ModellingRule_Mandatory);
+        var extension = status.Value.GetExtensionObject();
+        extension.Encoding.Should().Be(ExtensionObjectEncoding.Xml);
+        extension.TryGetAsXml(out var raw).Should().BeTrue();
+        XElement value = XElement.Parse(raw.OuterXml);
+        XNamespace modelNamespace = OpcPlc.Namespaces.OpcPlcBoiler;
+        value.Name.Should().Be(modelNamespace + "BoilerDataType");
+        var temperature = value.Element(modelNamespace + "Temperature");
+        ((int)temperature.Element(modelNamespace + "Top")).Should().Be(20);
+        ((int)temperature.Element(modelNamespace + "Bottom")).Should().Be(20);
+        ((int)value.Element(modelNamespace + "Pressure")).Should().Be(100020);
+        value.Element(modelNamespace + "HeaterState").Value.Should().Be("On");
     }
 
-    [TestCase("BoilerModel1", typeof(BoilerModel1.Objects), OpcPlc.Namespaces.OpcPlcBoiler)]
+    [Test]
+    public void BoilerIdentifiers_MatchRetainedNodeSet()
+    {
+        var document = XDocument.Load(BaselinePath("BoilerModel1"));
+        using var parser = new TextFieldParser(Path.Combine(TestContext.CurrentContext.TestDirectory,
+            "ModelBaselines", "BoilerModel1.NodeIds.csv"));
+        parser.SetDelimiters(",");
+        int count = 0;
+        while (!parser.EndOfData)
+        {
+            string[] row = parser.ReadFields();
+            row.Should().HaveCount(3);
+            var retained = document.Root.Elements().Single(node =>
+                node.Attribute("NodeId")?.Value == "ns=1;i=" + row[1]);
+            retained.Name.LocalName.Should().Be("UA" + row[2], row[0]);
+            count++;
+        }
+        count.Should().Be(14);
+    }
+
     [TestCase("BoilerModel2", typeof(BoilerModel2.Objects), OpcPlc.Namespaces.OpcPlcBoiler)]
     [TestCase("Opc.Ua.DI", typeof(Opc.Ua.DI.Objects), "http://opcfoundation.org/UA/DI/")]
     [TestCase("Opc.Ua.WotCon", typeof(Opc.Ua.WotCon.Objects), "http://opcfoundation.org/UA/WoT-Con/")]
@@ -1438,18 +1487,19 @@ public partial class GeneratedModelEquivalenceTests
     }
 
     [Test]
-    public void BoilerStructure_IdentifiersMatchRetainedModel()
+    public async Task BoilerStructure_IdentifiersMatchRetainedModelAsync()
     {
-        var value = new BoilerDataType();
-        value.TypeId.Should().Be(BoilerId(15032));
-        value.BinaryEncodingId.Should().Be(BoilerId(15072));
-        value.XmlEncodingId.Should().Be(BoilerId(15084));
-        var temperature = new BoilerTemperatureType();
-        temperature.TypeId.Should().Be(BoilerId(15001));
-        temperature.BinaryEncodingId.Should().Be(BoilerId(15004));
-        temperature.XmlEncodingId.Should().Be(BoilerId(15008));
-        ((int)BoilerHeaterStateType.Off).Should().Be(0);
-        ((int)BoilerHeaterStateType.On).Should().Be(1);
+        await WithBoilerRuntimeAsync((context, factory) =>
+        {
+            var value = (IEncodeable)CreateBoilerStructure(factory, 15032);
+            value.TypeId.Should().Be(BoilerId(15032));
+            value.BinaryEncodingId.Should().Be(BoilerId(15072));
+            value.XmlEncodingId.Should().Be(BoilerId(15084));
+            var temperature = (IEncodeable)CreateBoilerStructure(factory, 15001);
+            temperature.TypeId.Should().Be(BoilerId(15001));
+            temperature.BinaryEncodingId.Should().Be(BoilerId(15004));
+            temperature.XmlEncodingId.Should().Be(BoilerId(15008));
+        }).ConfigureAwait(false);
     }
 
     [TestCase(15096u, 15032u)]
@@ -1466,37 +1516,40 @@ public partial class GeneratedModelEquivalenceTests
                 reference.Attribute("IsForward").Value == "false" && reference.Value == $"ns=1;i={dataTypeId}");
     }
 
-    [TestCase(95, 100, 100100, BoilerHeaterStateType.On)]
-    [TestCase(int.MinValue, int.MaxValue, -1, BoilerHeaterStateType.Off)]
-    public void BoilerStructure_BinaryLayoutMatchesRetainedCodec(
-        int top, int bottom, int pressure, BoilerHeaterStateType heater)
+    [TestCase(95, 100, 100100, 1)]
+    [TestCase(int.MinValue, int.MaxValue, -1, 0)]
+    public async Task BoilerStructure_BinaryLayoutMatchesRetainedCodecAsync(
+        int top, int bottom, int pressure, int heater)
     {
-        var value = new BoilerDataType
+        await WithBoilerRuntimeAsync((systemContext, factory) =>
         {
-            Temperature = new BoilerTemperatureType { Top = top, Bottom = bottom },
-            Pressure = pressure,
-            HeaterState = heater
-        };
-        using var expectedStream = new MemoryStream();
-        using var writer = new BinaryWriter(expectedStream);
-        writer.Write(top);
-        writer.Write(bottom);
-        writer.Write(pressure);
-        writer.Write((int)heater);
-        byte[] expected = expectedStream.ToArray();
-        var context = ServiceMessageContext.CreateEmpty(null);
-        using var encoder = new BinaryEncoder(context);
-
-        value.Encode(encoder);
-
-        encoder.CloseAndReturnBuffer().Should().Equal(expected);
-        using var decoder = new BinaryDecoder(expected, context);
-        var decoded = new BoilerDataType();
-        decoded.Decode(decoder);
-        decoded.Temperature.Top.Should().Be(top);
-        decoded.Temperature.Bottom.Should().Be(bottom);
-        decoded.Pressure.Should().Be(pressure);
-        decoded.HeaterState.Should().Be(heater);
+            IStructure value = CreateBoilerStructure(factory, 15032);
+            IStructure temperature = CreateBoilerStructure(factory, 15001);
+            temperature["Top"] = top;
+            temperature["Bottom"] = bottom;
+            value["Temperature"] = new ExtensionObject((IEncodeable)temperature);
+            value["Pressure"] = pressure;
+            value["HeaterState"] = heater;
+            using var expectedStream = new MemoryStream();
+            using var writer = new BinaryWriter(expectedStream);
+            writer.Write(top);
+            writer.Write(bottom);
+            writer.Write(pressure);
+            writer.Write(heater);
+            byte[] expected = expectedStream.ToArray();
+            var context = CreateRuntimeMessageContext(systemContext);
+            using var encoder = new BinaryEncoder(context);
+            ((IEncodeable)value).Encode(encoder);
+            encoder.CloseAndReturnBuffer().Should().Equal(expected);
+            using var decoder = new BinaryDecoder(expected, context);
+            IStructure decoded = CreateBoilerStructure(factory, 15032);
+            ((IEncodeable)decoded).Decode(decoder);
+            IStructure decodedTemperature = ReadBoilerStructure(decoded["Temperature"]);
+            decodedTemperature["Top"].GetInt32().Should().Be(top);
+            decodedTemperature["Bottom"].GetInt32().Should().Be(bottom);
+            decoded["Pressure"].GetInt32().Should().Be(pressure);
+            decoded["HeaterState"].GetInt32().Should().Be(heater);
+        }).ConfigureAwait(false);
     }
 
     [Test]
@@ -1556,7 +1609,17 @@ public partial class GeneratedModelEquivalenceTests
         AssertBinary(result, resultStream.ToArray(), () => new Opc.Ua.DI.TransferResultDataDataType());
     }
 
-    [TestCase("BoilerModel1", typeof(BoilerHeaterStateType))]
+    [Test]
+    public void BoilerEnumeration_MatchesRetainedDefinition()
+    {
+        var document = XDocument.Load(BaselinePath("BoilerModel1"));
+        XNamespace schema = document.Root.Name.Namespace;
+        XElement definition = document.Descendants(schema + "Definition").Single(element =>
+            element.Attribute("Name").Value.Split(':').Last() == "BoilerHeaterStateType");
+        definition.Elements(schema + "Field").Select(field =>
+            (field.Attribute("Name").Value, (int)field.Attribute("Value"))).Should().Equal(("Off", 0), ("On", 1));
+    }
+
     [TestCase("Opc.Ua.DI", typeof(Opc.Ua.DI.DeviceHealthEnumeration))]
     [TestCase("Opc.Ua.DI", typeof(Opc.Ua.DI.SoftwareVersionFileType))]
     [TestCase("Opc.Ua.DI", typeof(Opc.Ua.DI.UpdateBehavior))]
@@ -1582,8 +1645,28 @@ public partial class GeneratedModelEquivalenceTests
         }
     }
 
-    [TestCase("BoilerModel1", typeof(BoilerDataType))]
-    [TestCase("BoilerModel1", typeof(BoilerTemperatureType))]
+    [TestCase("BoilerDataType", 15032u)]
+    [TestCase("BoilerTemperatureType", 15001u)]
+    public async Task BoilerStructure_EncodingIdsAndTextFieldsMatchRetainedSchemaAsync(string typeName, uint identifier)
+    {
+        await WithBoilerRuntimeAsync((systemContext, factory) =>
+        {
+            IStructure value = CreateBoilerStructure(factory, identifier);
+            IStructure temperature = identifier == 15001 ? value : CreateBoilerStructure(factory, 15001);
+            temperature["Top"] = -10;
+            temperature["Bottom"] = 90;
+            if (identifier == 15032)
+            {
+                value["Temperature"] = new ExtensionObject((IEncodeable)temperature);
+                value["Pressure"] = 100090;
+                value["HeaterState"] = 1;
+            }
+            AssertStructureEncoding("BoilerModel1", typeName, (IEncodeable)value,
+                () => (IEncodeable)CreateBoilerStructure(factory, identifier), null,
+                CreateRuntimeMessageContext(systemContext));
+        }).ConfigureAwait(false);
+    }
+
     [TestCase("SimpleEvents", typeof(SimpleEvents.CycleStepDataType))]
     [TestCase("Opc.Ua.DI", typeof(Opc.Ua.DI.FetchResultDataType))]
     [TestCase("Opc.Ua.DI", typeof(Opc.Ua.DI.ParameterResultDataType))]
@@ -1591,15 +1674,21 @@ public partial class GeneratedModelEquivalenceTests
     [TestCase("Opc.Ua.DI", typeof(Opc.Ua.DI.TransferResultDataDataType))]
     public void Structure_EncodingIdsAndTextFieldsMatchRetainedSchema(string model, Type type)
     {
+        AssertStructureEncoding(model, type.Name, CreateSample(type),
+            () => (IEncodeable)Activator.CreateInstance(type), type, ServiceMessageContext.CreateEmpty(null));
+    }
+
+    private static void AssertStructureEncoding(string model, string typeName, IEncodeable value,
+        Func<IEncodeable> create, Type systemType, IServiceMessageContext context)
+    {
         var document = XDocument.Load(BaselinePath(model));
         XNamespace schema = document.Root.Name.Namespace;
         XElement dataType = document.Root.Elements(schema + "UADataType").Single(node =>
-            node.Attribute("BrowseName").Value.Split(':').Last() == type.Name);
+            node.Attribute("BrowseName").Value.Split(':').Last() == typeName);
         string localId = dataType.Attribute("NodeId").Value;
         string namespaceUri = document.Root.Element(schema + "NamespaceUris").Elements().First().Value;
         string[] expectedFields = dataType.Element(schema + "Definition").Elements(schema + "Field")
             .Select(field => field.Attribute("Name").Value).ToArray();
-        IEncodeable value = CreateSample(type);
         value.TypeId.Should().Be(ToExpanded(localId));
         foreach ((string name, ExpandedNodeId actual) in new[]
         {
@@ -1610,11 +1699,10 @@ public partial class GeneratedModelEquivalenceTests
                 node.Attribute("BrowseName").Value == name &&
                 node.Element(schema + "References").Elements(schema + "Reference").Any(reference =>
                     reference.Attribute("ReferenceType").Value == "HasEncoding" && reference.Value == localId));
-            actual.Should().Be(ToExpanded(encoding.Attribute("NodeId").Value), type.Name + " " + name);
+            actual.Should().Be(ToExpanded(encoding.Attribute("NodeId").Value), typeName + " " + name);
         }
 
-        var context = ServiceMessageContext.CreateEmpty(null);
-        using var xmlEncoder = new XmlEncoder(new System.Xml.XmlQualifiedName(type.Name, namespaceUri), null, context);
+        using var xmlEncoder = new XmlEncoder(new System.Xml.XmlQualifiedName(typeName, namespaceUri), null, context);
         value.Encode(xmlEncoder);
         string xml = xmlEncoder.CloseAndReturnText();
         XElement encoded = XElement.Parse(xml);
@@ -1622,10 +1710,10 @@ public partial class GeneratedModelEquivalenceTests
         encoded.Elements().Select(element => element.Name.NamespaceName)
             .Should().Equal(Enumerable.Repeat(namespaceUri, expectedFields.Length));
         using var reader = System.Xml.XmlReader.Create(new StringReader(xml));
-        using var xmlDecoder = new XmlDecoder(type, reader, context);
-        var xmlValue = (IEncodeable)Activator.CreateInstance(type);
+        using var xmlDecoder = new XmlDecoder(systemType, reader, context);
+        IEncodeable xmlValue = create();
         xmlValue.Decode(xmlDecoder);
-        xmlValue.IsEqual(value).Should().BeTrue(type.Name + " XML");
+        xmlValue.IsEqual(value).Should().BeTrue(typeName + " XML");
 
         using var jsonEncoder = new JsonEncoder(context);
         value.Encode(jsonEncoder);
@@ -1633,9 +1721,9 @@ public partial class GeneratedModelEquivalenceTests
         using var jsonDocument = JsonDocument.Parse(json);
         jsonDocument.RootElement.EnumerateObject().Select(property => property.Name).Should().Equal(expectedFields);
         using var jsonDecoder = new JsonDecoder(json, context);
-        var jsonValue = (IEncodeable)Activator.CreateInstance(type);
+        IEncodeable jsonValue = create();
         jsonValue.Decode(jsonDecoder);
-        jsonValue.IsEqual(value).Should().BeTrue(type.Name + " JSON");
+        jsonValue.IsEqual(value).Should().BeTrue(typeName + " JSON");
 
         ExpandedNodeId ToExpanded(string id)
         {
@@ -1781,12 +1869,6 @@ public partial class GeneratedModelEquivalenceTests
 
     private static IEncodeable CreateSample(Type type) => type.Name switch
     {
-        nameof(BoilerDataType) => new BoilerDataType
-        {
-            Temperature = new BoilerTemperatureType { Top = -10, Bottom = 90 },
-            Pressure = 100090, HeaterState = BoilerHeaterStateType.On
-        },
-        nameof(BoilerTemperatureType) => new BoilerTemperatureType { Top = -10, Bottom = 90 },
         nameof(SimpleEvents.CycleStepDataType) => new SimpleEvents.CycleStepDataType
         {
             Name = "Step <1> & ready", Duration = 1000.5
@@ -1813,6 +1895,49 @@ public partial class GeneratedModelEquivalenceTests
 
     private static ExpandedNodeId BoilerId(uint identifier) =>
         new(new NodeId(identifier), OpcPlc.Namespaces.OpcPlcBoiler, 0);
+
+    private static IStructure CreateBoilerStructure(IEncodeableFactory factory, uint identifier)
+    {
+        factory.TryGetEncodeableType(BoilerId(identifier), out var type).Should().BeTrue();
+        return type.CreateInstance().Should().BeAssignableTo<IStructure>().Subject;
+    }
+
+    private static IStructure ReadBoilerStructure(Variant value)
+    {
+        value.TryGetStructure(out IEncodeable body).Should().BeTrue();
+        return body.Should().BeAssignableTo<IStructure>().Subject;
+    }
+
+    private static async Task WithBoilerRuntimeAsync(Action<SystemContext, IEncodeableFactory> verify)
+    {
+        var fixture = new PlcSimulatorFixture(["--str=false"]);
+        await fixture.StartAsync().ConfigureAwait(false);
+        try
+        {
+            NamespaceTable namespaces = fixture.Server.CurrentInstance.NamespaceUris;
+            var context = new SystemContext(DefaultTelemetry.Create(_ => { }))
+            {
+                NamespaceUris = namespaces,
+                TypeTable = new TypeTable(namespaces),
+                EncodeableFactory = fixture.Server.CurrentInstance.Factory
+            };
+            verify(context, context.EncodeableFactory);
+        }
+        finally
+        {
+            await fixture.StopAsync().WaitAsync(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
+        }
+    }
+
+    private static ServiceMessageContext CreateRuntimeMessageContext(SystemContext systemContext)
+    {
+        var context = new ServiceMessageContext(DefaultTelemetry.Create(_ => { }), systemContext.EncodeableFactory);
+        foreach (string namespaceUri in systemContext.NamespaceUris.ToArray().Skip(1))
+        {
+            context.NamespaceUris.GetIndexOrAppend(namespaceUri);
+        }
+        return context;
+    }
 
     private static string BaselinePath(string model) => Path.Combine(
         TestContext.CurrentContext.TestDirectory, "ModelBaselines", model + ".NodeSet2.xml");

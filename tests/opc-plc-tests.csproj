@@ -38,7 +38,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\opc-plc.csproj" />
-    <ProjectReference Include="..\models\BoilerModel1\BoilerModel1.csproj" />
     <AdditionalFiles Include="..\src\Boilers\Boiler2\BoilerModel2.NodeSet2.xml"
                      ModelSourceGeneratorModelUri="http://microsoft.com/Opc/OpcPlc/Boiler"
                      ModelSourceGeneratorName="BoilerModel2" ModelSourceGeneratorPrefix="BoilerModel2" />

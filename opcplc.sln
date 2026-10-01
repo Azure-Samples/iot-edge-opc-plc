@@ -38,8 +38,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "opc-plc-tests", "tests\opc-plc-tests.csproj", "{978DA9FC-4211-46CE-8548-D16E3DC3550F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BoilerModel1", "models\BoilerModel1\BoilerModel1.csproj", "{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -74,18 +72,6 @@ Global
 		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|x64.Build.0 = Release|Any CPU
 		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|x86.ActiveCfg = Release|Any CPU
 		{978DA9FC-4211-46CE-8548-D16E3DC3550F}.Release|x86.Build.0 = Release|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|x64.Build.0 = Debug|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Debug|x86.Build.0 = Debug|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|x64.ActiveCfg = Release|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|x64.Build.0 = Release|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|x86.ActiveCfg = Release|Any CPU
-		{F3517E73-E7AB-4F4C-9A71-E2069DA6AEF2}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

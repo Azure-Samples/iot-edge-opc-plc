@@ -1,6 +1,6 @@
 # OPC UA 2.0 migration
 
-Status as of **2026-09-30**: OPC PLC **2.16.0** uses exact **2.0.0-preview.6** SDK packages.
+Status as of **2026-10-01**: OPC PLC **2.16.0** uses exact **2.0.0-preview.6** SDK packages.
 Debug builds automatically select the SDK's **`.Debug` packages**, including the model generator;
 Release keeps the ordinary package IDs. Test clients now use native runtime type loading and managed
 sessions instead of the Reflection.Emit package and raw sessions. Full Release and Debug suites each
@@ -85,11 +85,11 @@ source-mode run is not evidence that the selected NuGet packages work.
   from transport and node registration.
 - [RuntimeModelIds.cs](../src/RuntimeModelIds.cs) contains only the identifiers needed by runtime
   bindings. Tests compare them with generated reference models and retained NodeSet identities.
-- Model generation is test-only. The [BoilerModel1 project](../models/BoilerModel1/BoilerModel1.csproj)
-  uses authored ModelDesign XML and CSV to preserve its reference identifiers. It isolates Boiler1
-  from Boiler2, which shares its model URI. Neither the project nor its assembly is a server runtime
-  dependency. Retained generated source files remain available as test baselines, not compiled into
-  the application.
+- Model generation is test-only and runs in the test assembly for Boiler2, DI, WoT and SimpleEvents.
+  The separate BoilerModel1 project has been removed. Boiler1 tests use discovered runtime structures
+  and retained CSV/NodeSet declarations instead of generated CLR types. Its production NodeSet and
+  authored model files remain unchanged. Retained generated source is test baseline data, not compiled
+  into either the application or a separate model assembly.
 - [PlcServerHost](../src/PlcServerHost.cs) and the configuration provider manage startup, background
   faults, cancellation, restart, and disposal. Authentication and certificate stores use supported
   injected providers and the SDK's certificate ownership contracts.
@@ -135,7 +135,8 @@ The tests reference `OPCFoundation.NetStandard.Opc.Ua.Client` directly, in both 
 and local-source mode. `Client.ComplexTypes` is no longer a dependency. Boiler tests use the
 `DefaultComplexTypeSystemFactory` from `Client` and the shared runtime codecs in `Core.Schema`;
 the CLR namespace remains `Opc.Ua.Client.ComplexTypes`. Namespace loading is awaited and its loader
-disposed. Tests check runtime `IStructure` decoding before registering independent generated codecs.
+disposed. Boiler1 tests now read and write `IStructure` directly; no generated Boiler1 codec is registered.
+Independent byte-layout assertions and retained schema checks cover identifiers, fields and encodings.
 
 The shared fixture creates `ManagedSession` with its client telemetry and returns `ISession`.
 Managed sessions add automatic reconnection and use the SDK's current subscription engine; connection
@@ -166,6 +167,20 @@ Subscriptions are disposed asynchronously, and payload pooling must remain disab
 retain notification values. Dedicated low-level classic-subscription tests and heterogeneous object-valued
 comparisons remain separate coverage; this is not a blanket rewrite of all test representations.
 
+### Boiler1 project removal
+
+The solution now contains only the server and test projects. Combining Boiler1 and Boiler2 generator
+inputs was checked and rejected by the pinned generator with `MODELGEN003` (duplicate `Boilers`
+symbol in their shared model URI). Instead, Boiler1 tests use the existing runtime codec path. The 220
+model checks and five live Boiler1 tests remain, with Boiler1-specific generated API checks replaced by
+retained CSV/NodeSet, runtime encoding-ID, exact binary-layout and XML/JSON round-trip checks.
+
+Retained initializer/default XML is inspected without a Boiler1 codec so its name-only enum `On` stays
+intact. The preview-6 runtime decoder otherwise resolves that name-only XML to zero/`Off`; this limitation
+is recorded rather than accepted as the expected default. Live heater values and binary/round-trip enum
+values remain checked numerically, and production initializes its heater explicitly. No SDK source or
+production model was changed to remove the test project.
+
 ## Validation
 
 The following are local results for preview 6, not hosted pipeline results:
@@ -176,7 +191,7 @@ The following are local results for preview 6, not hosted pipeline results:
 | Release and Debug builds before Debug package selection | All three projects build successfully using ordinary SDK packages |
 | Debug-package audited cold restore before client modernization | External cache and mapped GitHub/general feeds; 7 application, 12 test, and 8 reference-model OPC dependencies, all `.Debug` at exact preview 6 |
 | Debug-package regressions before client modernization | All three projects build; 367 model, boiler, security, and certificate-store tests passed, 0 failed, 0 skipped |
-| Configuration selection and Release rebuild | Default/explicit Debug, explicit Release and local-source mode evaluated across all three projects; audited Release restore/build passes with no `.Debug` dependencies |
+| Configuration selection before Boiler1 project removal | Default/explicit Debug, explicit Release and local-source mode evaluated across all three projects; audited Release restore/build passes with no `.Debug` dependencies |
 | Capacity and live boiler checks | 15 passed |
 | Generated model equivalence | 220 passed, including five identifier tables |
 | Full Release suite after compatibility fixes | 902 passed, 0 failed, 0 skipped; reported duration 7m 2s |
@@ -185,21 +200,26 @@ The following are local results for preview 6, not hosted pipeline results:
 | Native complex-type loader | Release restore/build and all 5 Boiler tests passed without `Client.ComplexTypes` |
 | Managed-session initial checks | 10 fault-injection, data-monitoring and throughput tests passed with unchanged assertions |
 | Managed identity policy and lifecycle | 13 lifecycle/fault tests passed; rejected identities fail promptly and automatic reconnect remains enabled |
-| Current Release full suite after helper cleanup | 903 passed, 0 failed, 0 skipped; 8m 30s; exit code 0 |
-| Current Debug full suite after helper cleanup | 903 passed, 0 failed, 0 skipped; 10m 1s; exit code 0 |
-| Current package graphs | 7 application, 11 test, 8 reference-model OPC dependencies at exact preview 6; matching configuration only, no `Client.ComplexTypes` |
+| Current Release full suite without Boiler1 project | 903 passed, 0 failed, 0 skipped; 10m 12s; exit code 0 |
+| Current Debug full confirmation without Boiler1 project | 903 passed, 0 failed, 0 skipped; 10m 32s; exit code 0 |
+| Current package graphs | 7 application and 11 test OPC dependencies at exact preview 6; matching configuration only, no `Client.ComplexTypes` or BoilerModel1 project/assembly reference |
 | Clean Release NuGet consumer | External standalone sample, audited isolated restore, build and publish; 3 tests pass from build output and 3 from published output, exit codes 0 |
 | Package asset propagation | Automatic package-target import and SHA-256 equality for all 10 runtime assets in both build and publish output; no source-project references |
 | Approved Debug mirror | 11 upstream Debug packages mirrored unchanged; SHA-512 equality verified after downloading from Azure Artifacts |
-| Cold restore from Azure Artifacts | Audited empty-cache Debug restore of all three projects passed using only `aio-brokers`, followed by a successful Debug build |
+| Cold restore from Azure Artifacts before Boiler1 project removal | Audited empty-cache Debug restore of all three projects passed using only `aio-brokers`, followed by a successful Debug build |
 | Debug Linux/amd64 image with mirrored feed | Build and publish passed with a BuildKit token secret; runs as UID 1654; no token in final image metadata; image not pushed |
 
 Current restores kept auditing enabled. Debug reused the previously authenticated external package
 cache, so this is not a new cold-restore result or proof of hosted feed availability. During earlier client
 modernization, a generated-version file lock interrupted the first Debug build before tests; a serialized
 MSBuild retry passed. The added
-managed reconnect regression accounts for the change from 902 to 903 tests. In both full runs, rejected
+managed reconnect regression accounts for the change from 902 to 903 tests. In the client-modernization runs, rejected
 credentials completed in about three seconds and restart recovery in about 17 seconds.
+
+The first Debug full run after project removal had one failure in the unchanged event-monitoring test
+(eight notifications instead of six). Its focused rerun with all model/Boiler1 checks passed 226/226,
+followed by the full 903/903 confirmation above. The initial failure is retained in the evidence;
+no timing thresholds, notification assertions or tests were weakened or skipped.
 
 Focused tests overlap with the full suite and are not additive. Replacing 28 obsolete allowance
 tests with eight stricter cases and adding eight capacity cases changed the suite count; no runtime
@@ -223,6 +243,12 @@ Local evidence is under the ignored `tests/TestResults/stack-v2-migration/` dire
 - `20260930-optional-cleanup-release-full.trx` and `.log`
 - `20260930-optional-cleanup-debug-full.trx` and `.log`
 - `20260930-aio-debug-image.log`
+- `20261001-runtime-boiler-model-equivalence.trx` and `.log`
+- `20261001-symbolic-enum-default-limitation.trx`
+- `20261001-no-boiler-project-release-full.trx` and `.log`
+- `20261001-no-boiler-project-debug-full.trx` and `.log` (initial event-count failure)
+- `20261001-no-boiler-project-debug-focused.trx` and `.log`
+- `20261001-no-boiler-project-debug-confirmation.trx` and `.log`
 
 Earlier SDK checkpoints passed independent 1.5.378.176-client interoperability and Linux/amd64
 non-root image checks. Those results do not qualify the current preview-6 binaries or Docker changes.
