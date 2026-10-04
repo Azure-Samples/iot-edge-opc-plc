@@ -74,6 +74,8 @@ public class PlcSimulatorFixture
 
     public IReadOnlyCollection<IPluginNodes> PluginNodes => _opcPlcServer.PluginNodes;
 
+    public PlcServer PlcServer => _opcPlcServer.PlcServer;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="PlcSimulatorFixture"/> class.
     /// </summary>
@@ -173,10 +175,25 @@ public class PlcSimulatorFixture
     /// </summary>
     /// <param name="sessionName">The name to assign to the session.</param>
     /// <returns>The created session.</returns>
-    public async Task<Session> CreateSessionAsync(string sessionName)
+    public Task<Session> CreateSessionAsync(string sessionName)
+    {
+        return CreateSessionAsync(sessionName, new UserIdentity(new AnonymousIdentityToken()), useSecurity: false);
+    }
+
+    /// <summary>
+    /// Create a OPC-UA Session with the specified user identity.
+    /// </summary>
+    /// <param name="sessionName">The name to assign to the session.</param>
+    /// <param name="userIdentity">The user identity used to activate the session.</param>
+    /// <param name="useSecurity">Whether to connect to the most secure endpoint (SignAndEncrypt) instead of the unsecure one.</param>
+    /// <returns>The created session.</returns>
+    public async Task<Session> CreateSessionAsync(string sessionName, IUserIdentity userIdentity, bool useSecurity)
     {
         await _log.WriteLineAsync("Create a session with OPC UA server ...").ConfigureAwait(false);
-        var userIdentity = new UserIdentity(new AnonymousIdentityToken());
+
+        ConfiguredEndpoint endpoint = useSecurity
+            ? await GetServerEndpointAsync(EndpointUrl, useSecurity: true).ConfigureAwait(false)
+            : _serverEndpoint;
 
         // When unit test certificate expires,
         // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
@@ -184,7 +201,7 @@ public class PlcSimulatorFixture
         var session = await sessionFactory.CreateAsync(
             _config,
             reverseConnectManager: null,
-            _serverEndpoint,
+            endpoint,
             updateBeforeConnect: false,
             checkDomain: false,
             sessionName,
@@ -193,6 +210,20 @@ public class PlcSimulatorFixture
             preferredLocales: null,
             CancellationToken.None).ConfigureAwait(false);
         return (Session)session;
+    }
+
+    /// <summary>
+    /// Calls the GetEndpoints service without a session, like a client discovering the server.
+    /// </summary>
+    public async Task<EndpointDescriptionCollection> GetEndpointsAsync(CancellationToken cancellationToken)
+    {
+        using var client = await DiscoveryClient.CreateAsync(
+            _config,
+            new Uri(EndpointUrl),
+            DiagnosticsMasks.None,
+            cancellationToken).ConfigureAwait(false);
+
+        return await client.GetEndpointsAsync(profileUris: null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -213,6 +244,23 @@ public class PlcSimulatorFixture
             {
                 handler();
             }
+        }
+    }
+
+    /// <summary>
+    /// Advance the mocked time by one period and queue the matching timer handlers on the thread pool,
+    /// like <see cref="System.Timers.Timer"/> does, so a handler that blocks cannot block the caller.
+    /// </summary>
+    /// <param name="periodInMilliseconds">Defines the timers to fire: only timers with this interval are fired.</param>
+    public void QueueTimersWithPeriod(uint periodInMilliseconds)
+    {
+        var matchedHandlers = GetTimerHandlersForPeriod(periodInMilliseconds);
+        matchedHandlers.Should().NotBeEmpty("expected Timer(s) to be setup with interval {0} ms", periodInMilliseconds);
+
+        _now += TimeSpan.FromMilliseconds(periodInMilliseconds);
+        foreach (var handler in matchedHandlers)
+        {
+            ThreadPool.QueueUserWorkItem(_ => handler());
         }
     }
 
@@ -290,7 +338,7 @@ public class PlcSimulatorFixture
     /// </summary>
     /// <param name="endpointUrl"></param>
     /// <exception cref="Exception"></exception>
-    private async Task<ConfiguredEndpoint> GetServerEndpointAsync(string endpointUrl)
+    private async Task<ConfiguredEndpoint> GetServerEndpointAsync(string endpointUrl, bool useSecurity = false)
     {
         var sw = Stopwatch.StartNew();
 
@@ -301,7 +349,7 @@ public class PlcSimulatorFixture
                 var endpoint = await CoreClientUtils.SelectEndpointAsync(
                     _config,
                     endpointUrl,
-                    useSecurity: false,
+                    useSecurity,
                     discoverTimeout: 15000,
                     telemetry: null,
                     CancellationToken.None).ConfigureAwait(false);

@@ -866,7 +866,7 @@ public partial class PlcServer : ReverseConnectServer
     /// </summary>
     public int InjectErrorResponseRate { get; set; }
 
-    private NodeId[] Sessions => CurrentInstance.SessionManager
+    private NodeId[] Sessions => ServerInternal.SessionManager
         .GetSessions()
         .Select(s => s.Id)
         .ToArray();
@@ -887,11 +887,11 @@ public partial class PlcServer : ReverseConnectServer
         }
         foreach (var session in Sessions)
         {
-            await CurrentInstance.CloseSessionAsync(null, session, deleteSubscriptions, ct).ConfigureAwait(false);
+            await ServerInternal.CloseSessionAsync(null, session, deleteSubscriptions, ct).ConfigureAwait(false);
         }
     }
 
-    private uint[] Subscriptions => CurrentInstance.SubscriptionManager
+    private uint[] Subscriptions => ServerInternal.SubscriptionManager
         .GetSubscriptions()
         .Select(s => s.Id)
         .ToArray();
@@ -932,20 +932,20 @@ public partial class PlcServer : ReverseConnectServer
             NotifySubscriptionExpiration(subscriptionId);
         }
 
-        await CurrentInstance.DeleteSubscriptionAsync(subscriptionId, ct).ConfigureAwait(false);
+        await ServerInternal.DeleteSubscriptionAsync(subscriptionId, ct).ConfigureAwait(false);
     }
 
     private void NotifySubscriptionExpiration(uint subscriptionId)
     {
         try
         {
-            var subscription = CurrentInstance.SubscriptionManager
+            var subscription = ServerInternal.SubscriptionManager
                 .GetSubscriptions()
                 .FirstOrDefault(s => s.Id == subscriptionId);
             if (subscription != null)
             {
                 var expireMethod = typeof(SubscriptionManager).GetMethod("SubscriptionExpired", BindingFlags.NonPublic | BindingFlags.Instance);
-                expireMethod?.Invoke(CurrentInstance.SubscriptionManager, new object[] { subscription });
+                expireMethod?.Invoke(ServerInternal.SubscriptionManager, new object[] { subscription });
             }
         }
         catch
@@ -993,7 +993,7 @@ public partial class PlcServer : ReverseConnectServer
                         var session = sessions[Random.Shared.Next(0, sessions.Length)];
                         var delete = Random.Shared.Next() % 2 == 0;
                         LogClosingSession(session, delete);
-                        await CurrentInstance.CloseSessionAsync(null, session, delete, ct).ConfigureAwait(false);
+                        await ServerInternal.CloseSessionAsync(null, session, delete, ct).ConfigureAwait(false);
                         break;
                     case > 10 and < 13:
                         if (InjectErrorResponseRate != 0)
@@ -1077,6 +1077,25 @@ public partial class PlcServer : ReverseConnectServer
         return base.ValidateRequest(secureChannelContext, requestHeader, requestType);
     }
 #pragma warning restore CA5394 // Do not use insecure randomness
+
+    /// <summary>
+    /// Completes a request without taking the <see cref="StandardServer"/> semaphore.
+    /// </summary>
+    /// <remarks>
+    /// The SDK (1.5.378) implementation blocks synchronously on the same <c>SemaphoreSlim</c> that
+    /// GetEndpoints, FindServers and CreateSession acquire with <c>WaitAsync</c>. When <c>Release</c> grants
+    /// the semaphore to one of those async waiters, its continuation is queued to the local queue of the
+    /// releasing thread-pool thread. If that thread then completes the next request synchronously, it blocks
+    /// here on the semaphore owned by a continuation in its own local queue, which is only stolen by other
+    /// threads once the global queue is empty. On a starved pool (e.g. low CPU limits) that never happens:
+    /// every completed request then parks one more thread forever and GetEndpoints/CreateSession time out.
+    /// <see cref="RequestManager"/> is thread-safe, so the semaphore is not needed. Fixed upstream in
+    /// OPCFoundation/UA-.NETStandard#4503.
+    /// </remarks>
+    protected override void OnRequestComplete(OperationContext context)
+    {
+        ServerInternal.RequestManager.RequestCompleted(context);
+    }
 
     private void AddPublishMetrics(NotificationMessage notificationMessage)
     {
