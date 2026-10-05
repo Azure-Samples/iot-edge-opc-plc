@@ -5,6 +5,11 @@ using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.DI;
+using OpcPlc.PluginNodes;
+using System;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using static System.TimeSpan;
 
@@ -111,6 +116,61 @@ public class Boiler2Tests : SimulatorTestsBase
         {
             _ = await WriteValueAsync(overheatThresholdNodeId, originalThreshold).ConfigureAwait(false);
         }
+    }
+
+    [Test]
+    public async Task TimerCallbacksWaitForLockInsteadOfBeingSkipped()
+    {
+        var boiler2 = PluginNodes.OfType<Boiler2PluginNodes>().Single();
+        var callbackLock = (SemaphoreSlim)typeof(Boiler2PluginNodes)
+            .GetField("_lock", BindingFlags.Instance | BindingFlags.NonPublic)
+            .GetValue(boiler2);
+
+        var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var overheatThresholdNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatedThresholdTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var baseTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        var temperatureChangeSpeedNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+
+        float overheatThreshold = await ReadValueAsync<float>(overheatThresholdNodeId).ConfigureAwait(false);
+        float baseTemperature = await ReadValueAsync<float>(baseTemperatureNodeId).ConfigureAwait(false);
+        float temperatureChangeSpeed = await ReadValueAsync<float>(temperatureChangeSpeedNodeId).ConfigureAwait(false);
+        float temperatureBefore = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
+
+        // Overheat sets the temperature to threshold + 10 and turns the heater off, then one 1 s tick cools it down.
+        float overheatTemperature = overheatThreshold + 10f;
+        float expectedTemperature = overheatTemperature - Math.Min(temperatureChangeSpeed, Math.Abs(overheatTemperature - baseTemperature));
+
+        // Simulate a long-running callback holding the lock while the overheat and 1 s timers fire.
+        await callbackLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            FireTimersWithPeriod(FromSeconds(678), numberOfTimes: 1);
+            FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
+
+            float temperatureWhileLocked = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
+            temperatureWhileLocked.Should().Be(temperatureBefore, "callbacks must wait while the lock is held");
+        }
+        finally
+        {
+            callbackLock.Release();
+        }
+
+        // Both queued callbacks must run, in order, once the lock is released.
+        float temperatureAfterRelease = float.NaN;
+        var deadline = DateTime.UtcNow + FromSeconds(10);
+        while (DateTime.UtcNow < deadline)
+        {
+            temperatureAfterRelease = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
+            if (temperatureAfterRelease == expectedTemperature && callbackLock.CurrentCount == 1)
+            {
+                break;
+            }
+
+            await Task.Delay(50).ConfigureAwait(false);
+        }
+
+        temperatureAfterRelease.Should().Be(expectedTemperature, "the overheat and 1 s callbacks must not be skipped");
+        callbackLock.CurrentCount.Should().Be(1, "the lock must be released after the queued callbacks ran");
     }
 
     [TestCase, Order(2)]

@@ -183,16 +183,20 @@ public class PlcSimulatorFixture
     /// <param name="sessionName">The name to assign to the session.</param>
     /// <returns>The created session.</returns>
     public async Task<ISession> CreateSessionAsync(string sessionName, IUserIdentity userIdentity = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, bool useSecurity = false)
     {
         await _log.WriteLineAsync("Create a session with OPC UA server ...").ConfigureAwait(false);
         userIdentity ??= new UserIdentity(new AnonymousIdentityToken());
+
+        ConfiguredEndpoint endpoint = useSecurity
+            ? await GetServerEndpointAsync(EndpointUrl, useSecurity: true, cancellationToken).ConfigureAwait(false)
+            : _serverEndpoint;
 
         // When unit test certificate expires,
         // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
         return await ManagedSession.CreateAsync(
             _config,
-            _serverEndpoint,
+            endpoint,
             sessionFactory: new DefaultSessionFactory(_clientTelemetry),
             identity: userIdentity,
             reconnectPolicy: new FailFastIdentityReconnectPolicy(),
@@ -203,6 +207,20 @@ public class PlcSimulatorFixture
             checkDomain: false,
             updateBeforeConnect: false,
             ct: cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Calls the GetEndpoints service without a session, like a client discovering the server.
+    /// </summary>
+    public async Task<ArrayOf<EndpointDescription>> GetEndpointsAsync(CancellationToken cancellationToken)
+    {
+        using var client = await DiscoveryClient.CreateAsync(
+            _config,
+            new Uri(EndpointUrl),
+            DiagnosticsMasks.None,
+            cancellationToken).ConfigureAwait(false);
+
+        return await client.GetEndpointsAsync(profileUris: default, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -223,6 +241,23 @@ public class PlcSimulatorFixture
             {
                 handler();
             }
+        }
+    }
+
+    /// <summary>
+    /// Advance the mocked time by one period and queue the matching timer handlers on the thread pool,
+    /// like <see cref="System.Timers.Timer"/> does, so a handler that blocks cannot block the caller.
+    /// </summary>
+    /// <param name="periodInMilliseconds">Defines the timers to fire: only timers with this interval are fired.</param>
+    public void QueueTimersWithPeriod(uint periodInMilliseconds)
+    {
+        var matchedHandlers = GetTimerHandlersForPeriod(periodInMilliseconds);
+        matchedHandlers.Should().NotBeEmpty("expected Timer(s) to be setup with interval {0} ms", periodInMilliseconds);
+
+        _now += TimeSpan.FromMilliseconds(periodInMilliseconds);
+        foreach (var handler in matchedHandlers)
+        {
+            ThreadPool.QueueUserWorkItem(_ => handler());
         }
     }
 
@@ -313,7 +348,8 @@ public class PlcSimulatorFixture
     /// </summary>
     /// <param name="endpointUrl"></param>
     /// <exception cref="Exception"></exception>
-    private async Task<ConfiguredEndpoint> GetServerEndpointAsync(string endpointUrl)
+    private async Task<ConfiguredEndpoint> GetServerEndpointAsync(string endpointUrl, bool useSecurity = false,
+        CancellationToken cancellationToken = default)
     {
         var sw = Stopwatch.StartNew();
 
@@ -324,10 +360,10 @@ public class PlcSimulatorFixture
                 var endpoint = await CoreClientUtils.SelectEndpointAsync(
                     _config,
                     endpointUrl,
-                    useSecurity: false,
+                    useSecurity,
                     discoverTimeout: 15000,
                     telemetry: _clientTelemetry,
-                    CancellationToken.None).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
 
                 var endpointConfiguration = EndpointConfiguration.Create(_config);
                 return new ConfiguredEndpoint(collection: null, endpoint, endpointConfiguration);
@@ -335,7 +371,7 @@ public class PlcSimulatorFixture
             catch (ServiceResultException) when (sw.Elapsed < TimeSpan.FromSeconds(10))
             {
                 await _log.WriteLineAsync("Retrying to access endpoint...").ConfigureAwait(false);
-                await Task.Delay(100).ConfigureAwait(false);
+                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
             }
         }
     }

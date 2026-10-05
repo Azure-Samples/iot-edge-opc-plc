@@ -129,6 +129,31 @@ Its ancestry includes the fixes contributed during this migration:
 No SDK source was modified to accommodate preview 6. Package ancestry establishes inclusion of the
 merged fixes; the PLC regression suite supplies separate behavioral evidence.
 
+### Main integration (2026-10-05)
+
+Merged `main` through `776a6c7122983056596d793900555a7c0f4d4e4d` (2.15.9), retaining this branch's
+2.16.0 version and exact preview-6 package pins. The CodeQL action update is retained. The merge was
+reviewed against the pinned stack's
+[session/subscription migration guide](https://github.com/OPCFoundation/UA-.NETStandard/blob/d5092e9207816ba26aa18841032e148d19ace6a7/docs/migrate/2.0.x/sessions-subscriptions.md)
+and its `StandardServer` implementation.
+
+- Boiler2 now queues overlapping timer callbacks with `WaitAsync` instead of skipping ticks. Callback
+  exceptions remain logged, the lock is released in `finally`, and queued callbacks check the stopped
+  flag before touching simulation state. The incoming contention regression retains its temperature
+  assertions and uses the existing typed read helper.
+- The 1.5.378 `OnRequestComplete` override is intentionally omitted: in preview 6, disposing
+  `OperationContext` completes the request, and `RequestManager.RequestCompleted` is obsolete. The
+  existing `OnRequestValidatedAsync` hook remains. `CurrentInstance` already uses a non-blocking volatile
+  read, so the incoming accessor replacements are unnecessary.
+- The incoming server-event regressions remain, covering username and anonymous secure sessions,
+  discovery, reads, event/data publishing, and a held server semaphore. They use the managed-session
+  fixture, native `ArrayOf<EndpointDescription>` and explicit `QualifiedName` values. The guide explicitly
+  supports the classic subscription surface alongside V2; these targeted regressions retain it, while
+  shared monitoring/throughput helpers continue to use native V2 APIs.
+- Secure endpoint selection preserves cancellation and existing session-factory call sites. Probe
+  failures are awaited rather than treated as success, and bounded teardown disposes the managed
+  session before stopping the server, including when close fails.
+
 ### Client modernization
 
 The tests reference `OPCFoundation.NetStandard.Opc.Ua.Client` directly, in both build configurations
@@ -200,8 +225,11 @@ The following are local results for preview 6, not hosted pipeline results:
 | Native complex-type loader | Release restore/build and all 5 Boiler tests passed without `Client.ComplexTypes` |
 | Managed-session initial checks | 10 fault-injection, data-monitoring and throughput tests passed with unchanged assertions |
 | Managed identity policy and lifecycle | 13 lifecycle/fault tests passed; rejected identities fail promptly and automatic reconnect remains enabled |
-| Current Release full suite without Boiler1 project | 903 passed, 0 failed, 0 skipped; 10m 12s; exit code 0 |
-| Current Debug full confirmation without Boiler1 project | 903 passed, 0 failed, 0 skipped; 10m 32s; exit code 0 |
+| Release full suite after Boiler1 project removal, before main integration | 903 passed, 0 failed, 0 skipped; 10m 12s; exit code 0 |
+| Debug full confirmation after Boiler1 project removal, before main integration | 903 passed, 0 failed, 0 skipped; 10m 32s; exit code 0 |
+| Main integration focused regressions | 22 passed, including queued Boiler2 callbacks and both authentication variants of the server-event regressions |
+| Current Release full suite after main integration | 908 passed, 0 failed, 0 skipped; 9m 9s; exit code 0 |
+| Current Debug full suite after main integration | 908 passed, 0 failed, 0 skipped; 10m 51s; exit code 0 |
 | Current package graphs | 7 application and 11 test OPC dependencies at exact preview 6; matching configuration only, no `Client.ComplexTypes` or BoilerModel1 project/assembly reference |
 | Clean Release NuGet consumer | External standalone sample, audited isolated restore, build and publish; 3 tests pass from build output and 3 from published output, exit codes 0 |
 | Package asset propagation | Automatic package-target import and SHA-256 equality for all 10 runtime assets in both build and publish output; no source-project references |
@@ -209,12 +237,16 @@ The following are local results for preview 6, not hosted pipeline results:
 | Cold restore from Azure Artifacts before Boiler1 project removal | Audited empty-cache Debug restore of all three projects passed using only `aio-brokers`, followed by a successful Debug build |
 | Debug Linux/amd64 image with mirrored feed | Build and publish passed with a BuildKit token secret; runs as UID 1654; no token in final image metadata; image not pushed |
 
-Current restores kept auditing enabled. Debug reused the previously authenticated external package
-cache, so this is not a new cold-restore result or proof of hosted feed availability. During earlier client
+Current restores kept auditing enabled and builds treated warnings as errors. The main-integration runs
+used a command-scoped workstation proxy; Debug reused the previously verified external package cache,
+so this is not a new cold-restore result or proof of hosted feed availability. The resolved graphs contained
+7 application and 11 test SDK packages, all exact preview 6 and matching the build configuration.
+During earlier client
 modernization, a generated-version file lock interrupted the first Debug build before tests; a serialized
 MSBuild retry passed. The added
 managed reconnect regression accounts for the change from 902 to 903 tests. In the client-modernization runs, rejected
 credentials completed in about three seconds and restart recovery in about 17 seconds.
+Main integration adds one Boiler2 contention case and four server-event cases, bringing the total to 908.
 
 The first Debug full run after project removal had one failure in the unchanged event-monitoring test
 (eight notifications instead of six). Its focused rerun with all model/Boiler1 checks passed 226/226,
@@ -249,6 +281,9 @@ Local evidence is under the ignored `tests/TestResults/stack-v2-migration/` dire
 - `20261001-no-boiler-project-debug-full.trx` and `.log` (initial event-count failure)
 - `20261001-no-boiler-project-debug-focused.trx` and `.log`
 - `20261001-no-boiler-project-debug-confirmation.trx` and `.log`
+- `20261005-main-merge-focused.trx` and `.log`
+- `20261005-main-merge-release-full.trx` and `.log`
+- `20261005-main-merge-debug-full.trx` and `.log`
 
 Earlier SDK checkpoints passed independent 1.5.378.176-client interoperability and Linux/amd64
 non-root image checks. Those results do not qualify the current preview-6 binaries or Docker changes.

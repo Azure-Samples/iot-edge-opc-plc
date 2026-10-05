@@ -45,8 +45,8 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
     private TimeSpan _overheatInterval = TimeSpan.FromSeconds(120); // 2 min.
 
     private bool _isOverheated;
+    private volatile bool _stopped;
     private readonly SemaphoreSlim _lock = new(1, 1);
-    private int _timerCallbackBlocked;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -92,12 +92,15 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     public void StartSimulation()
     {
+        _stopped = false;
         _nodeGenerator = _timeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
         StartTimers();
     }
 
     public void StopSimulation()
     {
+        _stopped = true;
+
         if (_nodeGenerator is not null)
         {
             _nodeGenerator.Enabled = false;
@@ -244,7 +247,7 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     public void UpdateBoiler2(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        ExecuteTimerCallback(nameof(UpdateBoiler2), () =>
+        _ = ExecuteTimerCallbackAsync(nameof(UpdateBoiler2), () =>
         {
             float currentTemperatureDegrees = (float)_currentTempDegreesNode.Value;
             float newTemperature;
@@ -343,7 +346,7 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     private void UpdateMaintenance(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        ExecuteTimerCallback(nameof(UpdateMaintenance), () =>
+        _ = ExecuteTimerCallbackAsync(nameof(UpdateMaintenance), () =>
         {
             SetValue(_deviceHealth, DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
 
@@ -356,7 +359,7 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     private void UpdateOverheat(object state, ElapsedEventArgs elapsedEventArgs)
     {
-        ExecuteTimerCallback(nameof(UpdateOverheat), () =>
+        _ = ExecuteTimerCallbackAsync(nameof(UpdateOverheat), () =>
         {
             SetValue(_currentTempDegreesNode, (float)_overheatThresholdDegreesNode.Value + 10.0f);
             SetValue(_heaterStateNode, false);
@@ -371,21 +374,20 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
         });
     }
 
-    private void ExecuteTimerCallback(string callbackName, Action callback)
+    /// <summary>
+    /// Serializes timer callbacks without skipping ticks or blocking thread-pool threads:
+    /// waiters are queued asynchronously and run once the lock is released.
+    /// </summary>
+    private async Task ExecuteTimerCallbackAsync(string callbackName, Action callback)
     {
-        if (!_lock.Wait(0))
-        {
-            if (Interlocked.Exchange(ref _timerCallbackBlocked, 1) == 0)
-            {
-                LogTimerCallbackSkipped(callbackName);
-            }
-
-            return;
-        }
-
-        _ = Interlocked.Exchange(ref _timerCallbackBlocked, 0);
+        await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
+            if (_stopped)
+            {
+                return;
+            }
+
             callback();
         }
         catch (Exception ex)
@@ -448,9 +450,6 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "SwitchOnCall method called with argument: {Argument}")]
     partial void LogSwitchOnCallMethodCalled(string argument);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Skipping {CallbackName} because another Boiler #2 timer callback is still running.")]
-    partial void LogTimerCallbackSkipped(string callbackName);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "{CallbackName} failed.")]
     partial void LogTimerCallbackFailed(Exception exception, string callbackName);
