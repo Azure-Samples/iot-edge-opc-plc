@@ -111,7 +111,7 @@ public static class SimAlarmNodeModel
             }
         }
 
-        if ((alarm.State & SimConditionStatesEnum.Deleted) != 0)
+        if (alarm is not null && (alarm.State & SimConditionStatesEnum.Deleted) != 0)
         {
             node.Retain.Value = false;
         }

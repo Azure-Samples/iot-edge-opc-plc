@@ -1,10 +1,13 @@
 namespace OpcPlc.Tests;
 
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using OpcPlc.PluginNodes;
 using System;
+using System.IO;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -38,6 +41,8 @@ public class UserDefinedNodesTests : SubscriptionTestsBase
 
     [TestCase("123", typeof(long), "123")]
     [TestCase("\"string-id\"", typeof(string), "string-id")]
+    [TestCase("\"2026-10-07T12:34:56Z\"", typeof(string), "2026-10-07T12:34:56Z")]
+    [TestCase("\"2026-10-07T12:34:56+02:00\"", typeof(string), "2026-10-07T12:34:56+02:00")]
     [TestCase("\"c6522393-5ca1-4547-9551-29d110ca4a3f\"", typeof(string),
         "c6522393-5ca1-4547-9551-29d110ca4a3f")]
     public void Configuration_NodeIdentifiersKeepTheirRuntimeTypes(string jsonId, Type type, string expected)
@@ -83,6 +88,74 @@ public class UserDefinedNodesTests : SubscriptionTestsBase
         object value = UserDefinedPluginNodes.UpdateArrayValue(node, (JsonElement)node.Value);
         value.Should().BeOfType(type);
         value.Should().BeEquivalentTo(JsonSerializer.Deserialize(jsonValue, type));
+    }
+
+    [Test]
+    public void Configuration_DateConversionDependsOnDataType()
+    {
+        const string text = "2026-10-07T12:34:56Z";
+        var folder = UserDefinedPluginNodes.DeserializeConfiguration(
+            $$"""{"NodeList":[{"NodeId":"{{text}}","Value":"{{text}}","DataType":"String"}]}""");
+        var node = folder.NodeList[0];
+        UserDefinedPluginNodes.GetScalarValue(node).Should().Be(text);
+        node.DataType = "DateTime";
+        UserDefinedPluginNodes.GetScalarValue(node)
+            .Should().Be(new DateTime(2026, 10, 7, 12, 34, 56, DateTimeKind.Utc));
+        ((object)node.NodeId).Should().Be(text);
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task Registration_CancellationPropagatesAsync(bool preCanceled)
+    {
+        using var cancellation = new CancellationTokenSource();
+        string path = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(path, """{"Folder":"Root","NodeList":[]}""").ConfigureAwait(false);
+            var logger = new CancelOnFolderLogger(cancellation);
+            var plugin = new UserDefinedPluginNodes(new TimeService(), logger);
+            var options = new Mono.Options.OptionSet();
+            plugin.AddOptions(options);
+            options.Parse([$"--nodesfile={path}"]);
+            var root = new Opc.Ua.FolderState(null);
+            var telemetry = new Opc.Ua.FolderState(root);
+            if (preCanceled)
+            {
+                cancellation.Cancel();
+            }
+            Func<Task> register = () => plugin.AddToAddressSpaceAsync(
+                telemetry, null, null, cancellation.Token).AsTask();
+
+            var failure = await register.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(false);
+            failure.Which.CancellationToken.Should().Be(cancellation.Token);
+            plugin.Nodes.Should().BeEmpty();
+            logger.SawFolder.Should().Be(!preCanceled);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private sealed class CancelOnFolderLogger(CancellationTokenSource cancellation) : ILogger
+    {
+        public bool SawFolder { get; private set; }
+
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception exception,
+            Func<TState, Exception, string> formatter)
+        {
+            if (formatter(state, exception).StartsWith("Create folder", StringComparison.Ordinal))
+            {
+                SawFolder = true;
+                cancellation.Cancel();
+            }
+        }
     }
 
     [Test]

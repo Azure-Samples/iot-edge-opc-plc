@@ -58,7 +58,7 @@ internal sealed class ConfigValueConverter : JsonConverter<object>
             case JsonTokenType.Number:
                 return reader.TryGetInt64(out long value) ? (object)value : reader.GetDouble();
             case JsonTokenType.String:
-                return reader.TryGetDateTime(out var dateTime) ? (object)dateTime : reader.GetString();
+                return reader.GetString();
             default:
                 using (var document = JsonDocument.ParseValue(ref reader))
                 {

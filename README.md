@@ -64,6 +64,9 @@ If the module (application) is started with the argument `--nodesfile` then the 
 Configuration is read using .NET's built-in `System.Text.Json` serializer. Property names are case-insensitive;
 comments and trailing commas are accepted. Each node requires a non-null `NodeId`. Omitted `DataType`,
 `ValueRank`, and `AccessLevel` default to `Int32`, `-1`, and `CurrentReadOrWrite`, respectively.
+String node identifiers are preserved verbatim, including date-like strings. Scalar date values are
+converted only for nodes with `DataType` set to `DateTime`. File parsing and recursive node registration
+observe startup cancellation.
 Nodes defined in the JSON file will be published by the server. This enables another OPC-UA client application to set the state/value of the node. Please note that nodes specified in the JSON file are NOT part of the simulation. They remain visible in an unchanged state until an OPC UA client changes their status.
 
 The following command shows how to use a configuration file on Windows:

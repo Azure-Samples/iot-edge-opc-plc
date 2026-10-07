@@ -37,7 +37,7 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
             (string s) => _nodesFileName = s);
     }
 
-    public ValueTask AddToAddressSpaceAsync(
+    public async ValueTask AddToAddressSpaceAsync(
         FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
         CancellationToken cancellationToken = default)
     {
@@ -46,10 +46,9 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
 
         if (!string.IsNullOrEmpty(_nodesFileName))
         {
-            AddNodes((FolderState)telemetryFolder.Parent); // Root.
+            await AddNodesAsync((FolderState)telemetryFolder.Parent, cancellationToken).ConfigureAwait(false); // Root.
         }
 
-        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()
@@ -62,19 +61,22 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
         // No simulation.
     }
 
-    private void AddNodes(FolderState folder)
+    private async Task AddNodesAsync(FolderState folder, CancellationToken cancellationToken)
     {
         try
         {
-            string json = File.ReadAllText(_nodesFileName);
-
-            var cfgFolder = DeserializeConfiguration(json);
+            var stream = new FileStream(
+                _nodesFileName, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
+            await using var streamLifetime = stream.ConfigureAwait(false);
+            var cfgFolder = await JsonSerializer.DeserializeAsync<ConfigFolder>(
+                stream, ConfigurationJsonOptions, cancellationToken).ConfigureAwait(false)
+                ?? throw new JsonException("The nodes file must contain a configuration folder.");
 
             LogProcessingNodeInformation(_nodesFileName);
 
-            Nodes = AddNodes(folder, cfgFolder).ToList();
+            Nodes = AddNodes(folder, cfgFolder, cancellationToken).ToList();
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             LogErrorLoadingUserDefinedNodeFile(e, _nodesFileName, e.Message);
         }
@@ -88,9 +90,12 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
             ?? throw new JsonException("The nodes file must contain a configuration folder.");
     }
 
-    private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder)
+    private IEnumerable<NodeWithIntervals> AddNodes(
+        FolderState folder, ConfigFolder cfgFolder, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         LogCreateFolder(cfgFolder.Folder);
+        cancellationToken.ThrowIfCancellationRequested();
         FolderState userNodesFolder = _plcNodeManager.CreateFolder(
             folder,
             path: cfgFolder.Folder,
@@ -99,6 +104,7 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
 
         foreach (var node in cfgFolder.NodeList)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             bool isDecimal = node.NodeId is long;
             bool isString = node.NodeId is string;
 
@@ -147,13 +153,14 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
             yield return PluginNodesHelper.GetNodeWithIntervals(nodeId, _plcNodeManager);
         }
 
-        foreach (var childNode in AddFolders(userNodesFolder, cfgFolder))
+        foreach (var childNode in AddFolders(userNodesFolder, cfgFolder, cancellationToken))
         {
             yield return childNode;
         }
     }
 
-    private IEnumerable<NodeWithIntervals> AddFolders(FolderState folder, ConfigFolder cfgFolder)
+    private IEnumerable<NodeWithIntervals> AddFolders(
+        FolderState folder, ConfigFolder cfgFolder, CancellationToken cancellationToken)
     {
         if (cfgFolder.FolderList is null)
         {
@@ -162,7 +169,8 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
 
         foreach (var childFolder in cfgFolder.FolderList)
         {
-            foreach (var node in AddNodes(folder, childFolder))
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var node in AddNodes(folder, childFolder, cancellationToken))
             {
                 yield return node;
             }
@@ -193,7 +201,14 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
             accessLevel = AccessLevels.CurrentReadOrWrite;
         }
 
-        _plcNodeManager.CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications, node?.Value);
+        _plcNodeManager.CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications, GetScalarValue(node));
+    }
+
+    internal static object GetScalarValue(ConfigNode node)
+    {
+        return node.DataType == "DateTime" && node.Value is string text
+            ? DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
+            : node.Value;
     }
 
     internal static object UpdateArrayValue(ConfigNode node, JsonElement arrayValue)

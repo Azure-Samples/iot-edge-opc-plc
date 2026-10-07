@@ -181,6 +181,27 @@ public class AlarmModelTests
     }
 
     [Test]
+    public void Update_NullAlarmRefreshesCommonFields()
+    {
+        var fixture = new ModelFixture(AlarmObjectStates.TripAlarmType);
+        ConditionState node = SimAlarmNodeModel.Create(fixture.Context, fixture.Source, fixture.Alarm, NodeId.Null);
+        node.EnabledState.Id.Value = true;
+        LocalizedText message = node.Message.Value;
+        ushort severity = node.Severity.Value;
+
+        SimAlarmNodeModel.Update(fixture.Context, node, null, "refresh");
+
+        node.EventId.Value.ToArray().Should().Equal(Encoding.UTF8.GetBytes("refresh"));
+        node.ReceiveTime.Value.Should().Be(node.Time.Value);
+        node.Retain.Value.Should().BeTrue();
+        node.Message.Value.Should().Be(message);
+        node.Severity.Value.Should().Be(severity);
+        node.EnabledState.Id.Value = false;
+        SimAlarmNodeModel.Update(fixture.Context, node, null);
+        node.Retain.Value.Should().BeFalse();
+    }
+
+    [Test]
     public void Update_ReplacesEventIdOnEachUpdate()
     {
         var fixture = new ModelFixture(AlarmObjectStates.ConditionType);
