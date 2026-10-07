@@ -80,7 +80,10 @@ elseif ($namespace.StartsWith("release/") -or ($namespace -eq "main")) {
     $namespace = "public"
     $releaseBuild = $true
 }
-$namespace = $namespace.Replace("_", "/").Substring(0, [Math]::Min($namespace.Length, 24))
+# Docker repository names must be lowercase and only contain [a-z0-9] separated by '.', '_', '-' or '/'
+$namespace = $namespace.ToLowerInvariant().Replace("_", "/")
+$namespace = $namespace -replace "[^a-z0-9./-]", "-" -replace "/{2,}", "/"
+$namespace = $namespace.Substring(0, [Math]::Min($namespace.Length, 24)).Trim(".", "-", "/")
 $namespace = "$($namespace)/"
 
 if (![string]::IsNullOrEmpty($Registry) -and ($Registry -ne "industrialiot")) {

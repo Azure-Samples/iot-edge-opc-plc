@@ -34,7 +34,8 @@ public class Boiler2Tests : SimulatorTestsBase
     {
     }
 
-    [TestCase, Order(9)]
+    [Test]
+    [DependsOnTest(nameof(SetBaseTemperature), AllowFailure = true)]
     public async Task VerifyFixedConfiguration()
     {
         var nodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
@@ -54,7 +55,7 @@ public class Boiler2Tests : SimulatorTestsBase
         overheatThresholdDegrees.Should().Be(123f + 10f);
     }
 
-    [TestCase, Order(1)]
+    [Test]
     public async Task TemperatureRisesAndFallsHeaterToggles()
     {
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
@@ -84,6 +85,7 @@ public class Boiler2Tests : SimulatorTestsBase
     }
 
     [Test]
+    [DependsOnTest(nameof(SetDeviceManual), AllowFailure = true)]
     public async Task TimerCallbackExceptionDoesNotBlockSubsequentUpdates()
     {
         var overheatThresholdNodeId = NodeId.Create(
@@ -119,6 +121,7 @@ public class Boiler2Tests : SimulatorTestsBase
     }
 
     [Test]
+    [DependsOnTest(nameof(TimerCallbackExceptionDoesNotBlockSubsequentUpdates), AllowFailure = true)]
     public async Task TimerCallbacksWaitForLockInsteadOfBeingSkipped()
     {
         var boiler2 = PluginNodes.OfType<Boiler2PluginNodes>().Single();
@@ -173,7 +176,8 @@ public class Boiler2Tests : SimulatorTestsBase
         callbackLock.CurrentCount.Should().Be(1, "the lock must be released after the queued callbacks ran");
     }
 
-    [TestCase, Order(2)]
+    [Test]
+    [DependsOnTest(nameof(TemperatureRisesAndFallsHeaterToggles), AllowFailure = true)]
     public async Task DeviceHealth_Normal()
     {
         // 1. NORMAL: Base temperature <= temperature <= target temperature
@@ -184,7 +188,8 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.NORMAL);
     }
 
-    [TestCase, Order(3)]
+    [Test]
+    [DependsOnTest(nameof(DeviceHealth_Normal), AllowFailure = true)]
     public async Task DeviceHealth_MaintenanceRequired()
     {
         // 2. MAINTENANCE_REQUIRED: Triggered by the maintenance interval
@@ -199,7 +204,8 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
     }
 
-    [TestCase, Order(4)]
+    [Test]
+    [DependsOnTest(nameof(DeviceHealth_MaintenanceRequired), AllowFailure = true)]
     public async Task DeviceHealth_Failure()
     {
         // 3. FAILURE: Temperature > overheated temperature
@@ -219,7 +225,8 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.FAILURE);
     }
 
-    [TestCase, Order(5)]
+    [Test]
+    [DependsOnTest(nameof(DeviceHealth_Failure), AllowFailure = true)]
     public async Task DeviceHealth_CheckFunction()
     {
         // 4. CHECK_FUNCTION: Target temperature < Temperature < overheated temperature
@@ -238,7 +245,8 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.CHECK_FUNCTION);
     }
 
-    [TestCase, Order(6)]
+    [Test]
+    [DependsOnTest(nameof(DeviceHealth_CheckFunction), AllowFailure = true)]
     public async Task DeviceHealth_OffSpec1()
     {
         // 5. OFF_SPEC 1: Temperature < base temperature
@@ -259,7 +267,8 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.OFF_SPEC);
     }
 
-    [TestCase, Order(7)]
+    [Test]
+    [DependsOnTest(nameof(DeviceHealth_OffSpec1), AllowFailure = true)]
     public async Task DeviceHealth_OffSpec2()
     {
         // 6. OFF_SPEC 2: Temperature > overheated temperature + 5
@@ -277,7 +286,8 @@ public class Boiler2Tests : SimulatorTestsBase
         deviceHealth.Should().Be(DeviceHealthEnumeration.OFF_SPEC);
     }
 
-    [TestCase, Order(8)]
+    [Test]
+    [DependsOnTest(nameof(DeviceHealth_OffSpec2), AllowFailure = true)]
     public async Task SetBaseTemperature()
     {
         var newValue = 25f;
@@ -288,7 +298,8 @@ public class Boiler2Tests : SimulatorTestsBase
         currentBaseTemperature.Should().Be(newValue);
     }
 
-    [TestCase, Order(10)]
+    [Test]
+    [DependsOnTest(nameof(VerifyFixedConfiguration), AllowFailure = true)]
     public async Task SetTargetTemperature()
     {
         var newValue = 125f;
@@ -299,7 +310,8 @@ public class Boiler2Tests : SimulatorTestsBase
         currentTargetTemperature.Should().Be(newValue);
     }
 
-    [TestCase, Order(11)]
+    [Test]
+    [DependsOnTest(nameof(SetTargetTemperature), AllowFailure = true)]
     public async Task SetTemperatureChangeSpeed()
     {
         var newValue = 10f;
@@ -310,7 +322,8 @@ public class Boiler2Tests : SimulatorTestsBase
         currentTemperatureChangeSpeed.Should().Be(newValue);
     }
 
-    [TestCase, Order(12)]
+    [Test]
+    [DependsOnTest(nameof(SetTemperatureChangeSpeed), AllowFailure = true)]
     public async Task SetOverheatedThresholdTemperature()
     {
         var newValue = 100f;
@@ -322,7 +335,8 @@ public class Boiler2Tests : SimulatorTestsBase
         currentOverheatedThresholdTemperature.Should().Be(newValue);
     }
 
-    [TestCase, Order(13)]
+    [Test]
+    [DependsOnTest(nameof(SetOverheatedThresholdTemperature), AllowFailure = true)]
     public async Task SetMaintenanceInterval()
     {
         var newValue = 360u;
@@ -333,7 +347,8 @@ public class Boiler2Tests : SimulatorTestsBase
         currentMaintenanceInterval.Should().Be(newValue);
     }
 
-    [TestCase, Order(14)]
+    [Test]
+    [DependsOnTest(nameof(SetMaintenanceInterval), AllowFailure = true)]
     public async Task SetOverheatInterval()
     {
         var newValue = 150u;
@@ -344,7 +359,8 @@ public class Boiler2Tests : SimulatorTestsBase
         currentMaintenanceInterval.Should().Be(newValue);
     }
 
-    [TestCase, Order(15)]
+    [Test]
+    [DependsOnTest(nameof(SetOverheatInterval), AllowFailure = true)]
     public async Task SetAssetId()
     {
         var newValue = "Asset-12345";
@@ -355,7 +371,8 @@ public class Boiler2Tests : SimulatorTestsBase
         currentAssetId.Should().Be(newValue);
     }
 
-    [TestCase, Order(16)]
+    [Test]
+    [DependsOnTest(nameof(SetAssetId), AllowFailure = true)]
     public async Task SetDeviceManual()
     {
         var newValue = "https://example.com/manual/boiler2.pdf";

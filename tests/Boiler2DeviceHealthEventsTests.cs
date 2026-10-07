@@ -41,7 +41,7 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         await AddMonitoredItemAsync().ConfigureAwait(false);
     }
 
-    [TestCase, Order(1)]
+    [Test]
     public void FiresEvent_Maintenance()
     {
         // 1. MAINTENANCE_REQUIRED: Triggered by the maintenance interval
@@ -68,7 +68,8 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         }
     }
 
-    [TestCase, Order(2)]
+    [Test]
+    [DependsOnTest(nameof(FiresEvent_Maintenance), AllowFailure = true)]
     public void FiresEvent_Failure()
     {
         // 2. FAILURE: Temperature > overheated temperature
@@ -101,7 +102,8 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         }
     }
 
-    [TestCase, Order(3)]
+    [Test]
+    [DependsOnTest(nameof(FiresEvent_Failure), AllowFailure = true)]
     public void FiresEvent_CheckFunction()
     {
         // 3. CHECK_FUNCTION: Target temperature < Temperature < overheated temperature
@@ -140,7 +142,8 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
     }
 
 
-    [TestCase, Order(4)]
+    [Test]
+    [DependsOnTest(nameof(FiresEvent_CheckFunction), AllowFailure = true)]
     public async Task FiresEvent_OffSpec1()
     {
         // 4. OFF_SPEC 1: Temperature < base temperature
@@ -174,7 +177,8 @@ public class Boiler2DeviceHealthEventsTests : SubscriptionTestsBase
         }
     }
 
-    [TestCase, Order(5)]
+    [Test]
+    [DependsOnTest(nameof(FiresEvent_OffSpec1), AllowFailure = true)]
     public void FiresEvent_OffSpec2()
     {
         // 5. OFF_SPEC 2: Temperature > overheated temperature + 5
