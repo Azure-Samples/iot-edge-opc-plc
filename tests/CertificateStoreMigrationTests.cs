@@ -1,6 +1,7 @@
 namespace OpcPlc.Tests;
 
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NUnit.Framework;
@@ -503,12 +504,122 @@ public class CertificateStoreMigrationTests
         }
     }
 
-    private static Certificate CreateCertificate(string name)
+    [TestCase(false, false)]
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    [TestCase(true, true)]
+    public async Task MixedPemStore_PreservesLegacyIdentityAndUriFallbackAsync(bool kubernetes, bool uriFallback)
+    {
+        using var fixture = new StoreFixture(kubernetes);
+        var plc = new OpcPlcConfiguration();
+        plc.OpcUa.OpcOwnCertStoreType = fixture.Provider.StoreTypeName;
+        plc.OpcUa.OpcOwnCertStorePath = fixture.Path[(fixture.Provider.StoreTypeName.Length + 1)..];
+        const string applicationUri = "urn:OpcPlc:mixed-store";
+        using Certificate other = CreateCertificate("OtherApplication", "urn:OtherApplication:mixed-store");
+        using Certificate expected = CreateCertificate(plc.ProgramName, applicationUri, ", O=Existing, OU=PLC, DC=host");
+        await fixture.SeedKeyPairAsync("00-other", other).ConfigureAwait(false);
+        await fixture.SeedKeyPairAsync("01-plc", expected).ConfigureAwait(false);
+        var security = new SecurityConfiguration
+        {
+            ApplicationCertificates = PlcSecurityConfiguration.CreateApplicationCertificates(plc)
+        };
+        security.ApplicationCertificates[0].SubjectName = uriFallback ? "CN=" + plc.ProgramName : plc.ProgramName;
+
+        for (int restart = 0; restart < 2; restart++)
+        {
+            using var manager = new CertificateManager(DefaultTelemetry.Create(_ => { }), [fixture.Provider]);
+            await manager.LoadApplicationCertificatesAsync(security, applicationUri).ConfigureAwait(false);
+            using CertificateEntry loaded = manager.AcquireApplicationCertificateByType(
+                ObjectTypeIds.RsaSha256ApplicationCertificateType);
+            loaded.Should().NotBeNull();
+            loaded.Certificate.Thumbprint.Should().Be(expected.Thumbprint);
+            VerifySignature(loaded.Certificate);
+        }
+
+        using Certificate missing = await fixture.Store.LoadPrivateKeyAsync(
+            null, null, "urn:missing", ObjectTypeIds.RsaSha256ApplicationCertificateType, null).ConfigureAwait(false);
+        missing.Should().BeNull();
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task PemRead_InFlightCancellationIsPropagatedAsync(bool findByThumbprint)
+    {
+        using var fixture = new StoreFixture(false);
+        using Certificate certificate = CreateCertificate("cancel-read");
+        await fixture.Store.AddAsync(certificate).ConfigureAwait(false);
+        await fixture.SeedAsync("first.crt", []).ConfigureAwait(false);
+        await fixture.SeedAsync("second.crt", []).ConfigureAwait(false);
+        byte[] pem = Encoding.UTF8.GetBytes(PemEncoding.WriteString("CERTIFICATE", certificate.RawData));
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var logger = new Mock<ILogger>();
+        int reads = 0;
+        using var store = new FlatDirectoryCertificateStore(logger.Object, DefaultTelemetry.Create(_ => { }),
+            async (_, ct) =>
+            {
+                if (++reads == 1)
+                {
+                    return pem;
+                }
+                entered.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct).ConfigureAwait(false);
+                throw new InvalidOperationException("The in-flight read must be cancelled.");
+            });
+        store.Open(fixture.Path);
+        using var cancellation = new CancellationTokenSource();
+        Task<CertificateCollection> operation = findByThumbprint
+            ? store.FindByThumbprintAsync(certificate.Thumbprint, cancellation.Token)
+            : store.EnumerateAsync(cancellation.Token);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+        operation.IsCompleted.Should().BeFalse();
+        await cancellation.CancelAsync().ConfigureAwait(false);
+        Func<Task> read = () => operation.WaitAsync(TimeSpan.FromSeconds(5));
+        await read.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(false);
+        reads.Should().Be(2);
+        logger.Verify(instance => instance.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Never());
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    public async Task PemThumbprintLookup_EmptySelectorDoesNotEnumerateCertificatesAsync(string thumbprint)
+    {
+        using var fixture = new StoreFixture(false);
+        using Certificate certificate = CreateCertificate("pem-thumbprint");
+        await fixture.SeedKeyPairAsync("application", certificate).ConfigureAwait(false);
+        using CertificateCollection found = await fixture.Store.FindByThumbprintAsync(thumbprint)
+            .ConfigureAwait(false);
+        found.Should().BeEmpty();
+        using CertificateCollection all = await fixture.Store.EnumerateAsync().ConfigureAwait(false);
+        all.Should().ContainSingle(candidate => candidate.Thumbprint == certificate.Thumbprint);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ApplicationUri_DoesNotOverrideExplicitCertificateIdentityAsync(bool kubernetes)
+    {
+        using var fixture = new StoreFixture(kubernetes);
+        using Certificate certificate = CreateCertificate("other", "urn:other");
+        await fixture.Store.AddAsync(certificate).ConfigureAwait(false);
+        using Certificate selected = await fixture.Store.LoadPrivateKeyAsync(
+            certificate.Thumbprint, certificate.Subject, "urn:plc", ObjectTypeIds.RsaSha256ApplicationCertificateType, null)
+            .ConfigureAwait(false);
+        selected.Should().BeNull();
+    }
+
+    private static Certificate CreateCertificate(string name, string applicationUri = null, string subjectSuffix = "")
     {
         using RSA key = RSA.Create(2048);
-        var request = new CertificateRequest("CN=" + name, key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var request = new CertificateRequest("CN=" + name + subjectSuffix,
+            key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
         request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
+        if (applicationUri is not null)
+        {
+            var names = new SubjectAlternativeNameBuilder();
+            names.AddUri(new Uri(applicationUri));
+            request.CertificateExtensions.Add(names.Build());
+        }
         return Certificate.From(request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(30)));
     }
 
@@ -574,6 +685,15 @@ public class CertificateStoreMigrationTests
             string pem = string.Join("\n", certificates.Select(certificate =>
                 PemEncoding.WriteString("CERTIFICATE", certificate.RawData)));
             await SeedAsync("tls.crt", Encoding.UTF8.GetBytes(pem)).ConfigureAwait(false);
+        }
+
+        public async Task SeedKeyPairAsync(string name, Certificate certificate)
+        {
+            await SeedAsync(name + ".crt", Encoding.UTF8.GetBytes(
+                PemEncoding.WriteString("CERTIFICATE", certificate.RawData))).ConfigureAwait(false);
+            using RSA key = certificate.GetRSAPrivateKey();
+            await SeedAsync(name + ".key", Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem()))
+                .ConfigureAwait(false);
         }
 
         public async Task SeedAsync(string name, byte[] data)

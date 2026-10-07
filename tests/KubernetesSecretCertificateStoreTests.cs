@@ -34,10 +34,10 @@ public class KubernetesSecretCertificateStoreTests
         using Certificate owned = Certificate.From(new X509Certificate2(certificate));
         await store.AddAsync(owned, ct: CancellationToken.None).ConfigureAwait(false);
 
-        var certificates = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+        using var certificates = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
         certificates.Should().ContainSingle(certificateInStore => certificateInStore.Thumbprint == certificate.Thumbprint);
 
-        var matchingCertificates = await store.FindByThumbprintAsync(certificate.Thumbprint, CancellationToken.None).ConfigureAwait(false);
+        using var matchingCertificates = await store.FindByThumbprintAsync(certificate.Thumbprint, CancellationToken.None).ConfigureAwait(false);
         matchingCertificates.Should().ContainSingle();
 
         using var certificateWithPrivateKey = await store.LoadPrivateKeyAsync(certificate.Thumbprint, certificate.Subject, string.Empty, CancellationToken.None).ConfigureAwait(false);
@@ -47,7 +47,7 @@ public class KubernetesSecretCertificateStoreTests
         var deleted = await store.DeleteAsync(certificate.Thumbprint, CancellationToken.None).ConfigureAwait(false);
         deleted.Should().BeTrue();
 
-        var remainingCertificates = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+        using var remainingCertificates = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
         remainingCertificates.Should().BeEmpty();
         client.GetSecret("opcplc-tests", "pki-own").Should().NotBeNull();
     }
@@ -77,12 +77,13 @@ public class KubernetesSecretCertificateStoreTests
         var factory = new OpcUaAppConfigFactory(config, loggerMock.Object, loggerFactoryMock.Object, telemetryContext, fakeFactory);
 
         var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+        using var manager = (CertificateManager)appConfig.CertificateManager;
 
         appConfig.SecurityConfiguration.ApplicationCertificate.StoreType.Should().Be(KubernetesSecretCertificateStore.StoreTypeName);
         appConfig.SecurityConfiguration.TrustedUserCertificates.StorePath.Should().Be(KubernetesSecretCertificateStore.StoreTypePrefix + config.OpcUa.OpcTrustedUserCertStorePath);
 
         using var trustedUserStore = appConfig.CertificateManager.OpenTrustedStore(TrustListIdentifier.Users);
-        var trustedUserCertificates = await trustedUserStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+        using var trustedUserCertificates = await trustedUserStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
         trustedUserCertificates.Should().Contain(certificate => certificate.Thumbprint == trustedUserCertificate.Thumbprint);
         fakeFactory.Client.GetSecret("opcplc-tests", "trusted-users").Should().ContainKey(trustedUserCertificate.Thumbprint.ToUpperInvariant() + ".der");
@@ -139,7 +140,7 @@ public class KubernetesSecretCertificateStoreTests
 
         store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\own", noPrivateKeys: false);
 
-        var certificates = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+        using var certificates = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
         certificates.Should().ContainSingle(certificateInStore => certificateInStore.Thumbprint == certificate.Thumbprint);
 
         using var certificateWithPrivateKey = await store.LoadPrivateKeyAsync(certificate.Thumbprint, certificate.Subject, string.Empty, CancellationToken.None).ConfigureAwait(false);
@@ -176,7 +177,7 @@ public class KubernetesSecretCertificateStoreTests
     {
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest($"CN={subjectName}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-        var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+        using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         return X509CertificateLoader.LoadCertificate(certificate.Export(X509ContentType.Cert));
     }
 
@@ -184,7 +185,7 @@ public class KubernetesSecretCertificateStoreTests
     {
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest($"CN={subjectName}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-        var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+        using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         return X509CertificateLoader.LoadPkcs12(certificate.Export(X509ContentType.Pkcs12), string.Empty, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
     }
 

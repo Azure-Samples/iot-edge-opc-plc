@@ -10,6 +10,7 @@ public sealed class PlcApplicationConfigurationProvider : IOpcUaApplicationConfi
 {
     private readonly OpcUaAppConfigFactory _factory;
     private readonly object _lock = new();
+    private readonly CancellationTokenSource _configurationCancellation = new();
     private Task<ApplicationConfiguration> _creation;
     private Task _disposal;
 
@@ -29,7 +30,7 @@ public sealed class PlcApplicationConfigurationProvider : IOpcUaApplicationConfi
         lock (_lock)
         {
             ObjectDisposedException.ThrowIf(_disposal is not null, this);
-            _creation ??= _factory.ConfigureAsync(Application);
+            _creation ??= _factory.ConfigureAsync(Application, _configurationCancellation.Token);
             return _creation.WaitAsync(ct);
         }
     }
@@ -45,10 +46,24 @@ public sealed class PlcApplicationConfigurationProvider : IOpcUaApplicationConfi
 
     private async Task DisposeCoreAsync(Task creation)
     {
-        if (creation is not null)
+        try
         {
-            await Task.WhenAny(creation).ConfigureAwait(false);
+            await _configurationCancellation.CancelAsync().ConfigureAwait(false);
+            if (creation is not null)
+            {
+                await Task.WhenAny(creation).ConfigureAwait(false);
+            }
         }
-        await Application.DisposeAsync().ConfigureAwait(false);
+        finally
+        {
+            try
+            {
+                await Application.DisposeAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                _configurationCancellation.Dispose();
+            }
+        }
     }
 }

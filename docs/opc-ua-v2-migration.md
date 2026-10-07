@@ -1,10 +1,13 @@
 # OPC UA 2.0 migration
 
-Status as of **2026-10-01**: OPC PLC **2.16.0** uses exact **2.0.0-preview.6** SDK packages.
+Status as of **2026-10-07**: OPC PLC **2.16.0** uses exact **2.0.0-preview.6** SDK packages.
 Debug builds automatically select the SDK's **`.Debug` packages**, including the model generator;
 Release keeps the ordinary package IDs. Test clients now use native runtime type loading and managed
-sessions instead of the Reflection.Emit package and raw sessions. Full Release and Debug suites each
-pass **903 tests, 0 failed, 0 skipped**. Hosted CI and containers still need current qualification.
+sessions instead of the Reflection.Emit package and raw sessions. Published head `f8e90ec` includes
+these changes, Boiler1 project removal, and main integration. Recorded main-integration Release and
+Debug suites each passed **908 tests, 0 failed, 0 skipped**; the earlier 903-test results predate main
+integration. Hosted build `184540190` passed Linux build/tests and image validation for the published
+head. Review fixes described below are local follow-up changes, not covered by that hosted run.
 
 ## Constraints
 
@@ -98,6 +101,30 @@ source-mode run is not evidence that the selected NuGet packages work.
   [package target](../src/Microsoft.IoTEdge.OpcPlc.targets) preserves their relative paths for consumer
   build and publish without repacking them. Test models, scripts, loose generated C#, and PKI are not
   runtime assets.
+
+### Certificate identity, cancellation, and ownership
+
+New application certificates retain a valid `CN=OpcPlc` distinguished name for preview-6 issuance.
+Before configuration creation, the factory resolves persisted identities using the legacy simple
+program-name selector and pins the selected certificate's full subject and thumbprint. This preserves
+existing identities with additional O/OU/DC attributes without passing an invalid simple name to the
+SDK certificate factory. FlatDirectory and KubernetesSecret private-key lookups enforce every supplied
+selector, including application URI; URI fallback cannot select an unrelated keypair from a mixed PEM
+store. Both stores retain restart and private-key signing regression coverage.
+
+The configuration provider shares one initialization operation. Cancelling a caller cancels only that
+waiter; disposing the provider cancels the underlying operation, awaits termination, and disposes the
+application and its certificate manager. Cancellation flows through configuration creation, certificate
+discovery/management, CSR writes, and diagnostic store reads. PEM enumeration and thumbprint searches
+propagate cancellation rather than returning partial success or logging cancellation as a bad
+certificate; partially accumulated owning collections are disposed.
+
+Hosted callers let the provider own the application and certificate manager. A successful direct
+`OpcUaAppConfigFactory.ConfigureAsync` caller owns the returned configuration's concrete
+`Opc.Ua.CertificateManager` and must dispose it after use. Failed or cancelled direct initialization
+disposes the internally created application and manager before propagating the error. Owning certificate
+collections and entries must also be disposed; retained entries remain usable after manager disposal
+until their own references are released.
 
 ### Preview-6 compatibility
 
@@ -228,16 +255,16 @@ The following are local results for preview 6, not hosted pipeline results:
 | Release full suite after Boiler1 project removal, before main integration | 903 passed, 0 failed, 0 skipped; 10m 12s; exit code 0 |
 | Debug full confirmation after Boiler1 project removal, before main integration | 903 passed, 0 failed, 0 skipped; 10m 32s; exit code 0 |
 | Main integration focused regressions | 22 passed, including queued Boiler2 callbacks and both authentication variants of the server-event regressions |
-| Current Release full suite after main integration | 908 passed, 0 failed, 0 skipped; 9m 9s; exit code 0 |
-| Current Debug full suite after main integration | 908 passed, 0 failed, 0 skipped; 10m 51s; exit code 0 |
+| Release full suite after main integration, before review fixes | 908 passed, 0 failed, 0 skipped; 9m 9s; exit code 0 |
+| Debug full suite after main integration, before review fixes | 908 passed, 0 failed, 0 skipped; 10m 51s; exit code 0 |
 | Current package graphs | 7 application and 11 test OPC dependencies at exact preview 6; matching configuration only, no `Client.ComplexTypes` or BoilerModel1 project/assembly reference |
-| Clean Release NuGet consumer | External standalone sample, audited isolated restore, build and publish; 3 tests pass from build output and 3 from published output, exit codes 0 |
+| Release NuGet consumer at the `8daebfd` working-tree checkpoint | External standalone sample, audited isolated restore, build and publish; 3 tests pass from build output and 3 from published output, exit codes 0; not rerun for review fixes |
 | Package asset propagation | Automatic package-target import and SHA-256 equality for all 10 runtime assets in both build and publish output; no source-project references |
 | Approved Debug mirror | 11 upstream Debug packages mirrored unchanged; SHA-512 equality verified after downloading from Azure Artifacts |
 | Cold restore from Azure Artifacts before Boiler1 project removal | Audited empty-cache Debug restore of all three projects passed using only `aio-brokers`, followed by a successful Debug build |
 | Debug Linux/amd64 image with mirrored feed | Build and publish passed with a BuildKit token secret; runs as UID 1654; no token in final image metadata; image not pushed |
 
-Current restores kept auditing enabled and builds treated warnings as errors. The main-integration runs
+Recorded main-integration restores kept auditing enabled and builds treated warnings as errors. Those runs
 used a command-scoped workstation proxy; Debug reused the previously verified external package cache,
 so this is not a new cold-restore result or proof of hosted feed availability. The resolved graphs contained
 7 application and 11 test SDK packages, all exact preview 6 and matching the build configuration.
@@ -252,6 +279,38 @@ The first Debug full run after project removal had one failure in the unchanged 
 (eight notifications instead of six). Its focused rerun with all model/Boiler1 checks passed 226/226,
 followed by the full 903/903 confirmation above. The initial failure is retained in the evidence;
 no timing thresholds, notification assertions or tests were weakened or skipped.
+
+### Published-head hosted evidence
+
+[Azure Pipelines build 184540190](https://msazure.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_build/results?buildId=184540190)
+passed Linux build/tests and Release/Debug image validation without publishing for `f8e90ec`.
+CodeQL and CLA checks also passed. This supersedes the earlier Debug restore failure in build
+`183536411`; mirrored-feed CI wiring is already committed and published. Image build/UID validation
+does not establish runtime health, interoperability, ARM64 support, or qualification of the local
+review fixes.
+
+### Local review-fix validation, 2026-10-07
+
+The local follow-up to `f8e90ec` was validated with matching, already-restored Release assets:
+
+- `dotnet build opcplc.sln -c Release --no-restore`: passed with zero warnings and errors.
+- `dotnet test tests\opc-plc-tests.csproj -c Release --no-build --no-restore --filter 'FullyQualifiedName~CertificateStoreMigrationTests|FullyQualifiedName~DiSecurityMigrationTests|FullyQualifiedName~OpcUaAppConfigFactoryTests|FullyQualifiedName~KubernetesSecretCertificateStoreTests'`:
+  158 passed, zero failed/skipped.
+- Full Release suite using `dotnet test tests\opc-plc-tests.csproj -c Release --no-build --no-restore`,
+  with TRX logging to the external session-results directory: **923 passed, zero failed/skipped**;
+  reported duration **14m 35s**, exit code 0. Evidence: `pr535-fixes-release.trx`.
+- IDE diagnostics for modified C# files reported no errors; `git diff --check` passed.
+
+The 15 additional cases cover mixed PEM identity/URI matching, existing richer-DN provider identities,
+stalled initialization and in-flight PEM cancellation, direct-factory failure/cancellation cleanup,
+and unchanged empty-thumbprint lookup semantics. Focused cases overlap with the full suite.
+One earlier full-suite attempt was stopped to finish the empty-thumbprint regression; it is not counted
+as validation. No tests, thresholds or assertions were weakened or skipped.
+
+No new restore, Debug run, container run, independent cross-version client run, or clean package-consumer
+run was performed for these uncommitted fixes. Historical and published-head results remain separate.
+
+### Historical validation artifacts
 
 Focused tests overlap with the full suite and are not additive. Replacing 28 obsolete allowance
 tests with eight stricter cases and adding eight capacity cases changed the suite count; no runtime
@@ -371,9 +430,10 @@ outputs passed 3 tests with no failures/skips; all ten asset hashes matched the 
 
 ## Remaining qualification
 
-- [ ] Commit/push the mirrored-feed CI changes and rerun hosted validation. Build `183536411` passed
-  Release build and Linux tests but failed Debug restore against nuget.org; the new pipeline wiring
-  still needs its hosted run. Mirror contents, cold restore, Debug build and Linux/amd64 image build pass locally.
+- [x] Publish mirrored-feed CI changes and rerun hosted validation: build `184540190` passed for
+  `f8e90ec`, superseding the earlier Debug restore failure in build `183536411`.
+- [ ] Commit/push the local review fixes when authorized, then rerun hosted checks, Debug validation,
+  and clean package-consumer qualification against those fixes.
 - [ ] Exercise current Release/Debug Linux images, including ARM64. The Debug Linux/amd64 build and
   UID check now pass, but these checks alone do not prove server health or production security.
 - [ ] Repeat independent 1.5.x-client interoperability against the current binaries, including

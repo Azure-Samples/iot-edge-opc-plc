@@ -31,9 +31,12 @@ public class DiSecurityMigrationTests
     private const string ApplicationUri = "urn:localhost:OpcPlcDiSecurityProbe";
     private const string ProductUri = "urn:opcplc:test:di-security";
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task PlcProvider_CustomStorePersistsAndReusesIdentityWithoutDirectoryFallbackAsync(bool kubernetes)
+    [TestCase(false, false)]
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    [TestCase(true, true)]
+    public async Task PlcProvider_CustomStorePersistsAndReusesIdentityWithoutDirectoryFallbackAsync(
+        bool kubernetes, bool existingIdentity)
     {
         string root = Path.Combine(Path.GetTempPath(), "opcplc-provider-custom-" + Guid.NewGuid().ToString("N"));
         try
@@ -56,6 +59,23 @@ public class DiSecurityMigrationTests
             }
             var logging = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
             string thumbprint = null;
+            if (existingIdentity)
+            {
+                ICertificateStoreProvider storeProvider = kubernetes
+                    ? new KubernetesSecretCertificateStoreType(logging, clientFactory.Object, "provider-tests")
+                    : new FlatDirectoryCertificateStoreType(logging);
+                using ICertificateStore store = storeProvider.CreateStore(DefaultTelemetry.Create(_ => { }));
+                store.Open(prefix + plc.OpcUa.OpcOwnCertStorePath, noPrivateKeys: false);
+                using Certificate other = CreateApplicationReplacement(
+                    applicationUri: "urn:OtherApplication:existing", applicationName: "OtherApplication");
+                using Certificate original = CreateApplicationReplacement(
+                    applicationUri: "urn:OpcPlc:" + plc.OpcUa.HostnameLabel,
+                    subjectSuffix: ", O=ExistingDeployment, OU=PLC, DC=host",
+                    domainName: plc.OpcUa.Hostname);
+                await store.AddAsync(other).ConfigureAwait(false);
+                await store.AddAsync(original).ConfigureAwait(false);
+                thumbprint = original.Thumbprint;
+            }
             for (int restart = 0; restart < 2; restart++)
             {
                 var provider = new PlcApplicationConfigurationProvider(new OpcUaAppConfigFactory(plc,
@@ -84,8 +104,11 @@ public class DiSecurityMigrationTests
                     }
                     else
                     {
-                        Directory.EnumerateFiles(plc.OpcUa.OpcOwnCertStorePath, "*.der").Should().ContainSingle();
-                        Directory.EnumerateFiles(plc.OpcUa.OpcOwnCertStorePath, "*.pfx").Should().ContainSingle();
+                        int expectedCount = existingIdentity ? 2 : 1;
+                        Directory.EnumerateFiles(plc.OpcUa.OpcOwnCertStorePath, "*.der")
+                            .Should().HaveCount(expectedCount);
+                        Directory.EnumerateFiles(plc.OpcUa.OpcOwnCertStorePath, "*.pfx")
+                            .Should().HaveCount(expectedCount);
                     }
                 }
             }
@@ -118,6 +141,16 @@ public class DiSecurityMigrationTests
             using CertificateEntry entry = configuration.CertificateManager.AcquireApplicationCertificateByType(
                 ObjectTypeIds.RsaSha256ApplicationCertificateType);
             VerifyCertificateKey(entry.Certificate);
+            ((CertificateManager)configuration.CertificateManager).Dispose();
+            VerifyCertificateKey(entry.Certificate);
+            configuration.CertificateManager.AcquireApplicationCertificateByType(
+                ObjectTypeIds.RsaSha256ApplicationCertificateType).Should().BeNull();
+            Action openAfterDispose = () =>
+            {
+                using ICertificateStore store = ((CertificateManager)configuration.CertificateManager)
+                    .OpenCertificateStore(plc.OpcUa.OpcOwnCertStorePath, plc.OpcUa.OpcOwnCertStoreType);
+            };
+            openAfterDispose.Should().Throw<ObjectDisposedException>();
         }
         finally
         {
@@ -126,6 +159,88 @@ public class DiSecurityMigrationTests
             {
                 Directory.Delete(root, recursive: true);
             }
+        }
+    }
+
+    [Test]
+    public async Task PlcProvider_DirectFactoryFailureDisposesCertificateManagerAsync()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "opcplc-direct-failure-" + Guid.NewGuid().ToString("N"));
+        var plc = CreatePlcConfiguration(root, false);
+        try
+        {
+            plc.OpcUa.NewCertificateBase64String = "!";
+            var logging = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
+            var factory = new OpcUaAppConfigFactory(plc, logging.CreateLogger("direct-failure"), logging,
+                DefaultTelemetry.Create(_ => { }));
+            Func<Task> configure = () => factory.ConfigureAsync();
+            await configure.Should().ThrowAsync<Exception>()
+                .WithMessage("Update/Setting of the application certificate failed.").ConfigureAwait(false);
+            plc.OpcUa.ApplicationConfiguration.CertificateManager.Should().NotBeNull();
+            Action openAfterFailure = () =>
+            {
+                using ICertificateStore store = ((CertificateManager)plc.OpcUa.ApplicationConfiguration.CertificateManager)
+                    .OpenCertificateStore(plc.OpcUa.OpcOwnCertStorePath, plc.OpcUa.OpcOwnCertStoreType);
+            };
+            openAfterFailure.Should().Throw<ObjectDisposedException>();
+        }
+        finally
+        {
+            (plc.OpcUa.ApplicationConfiguration?.CertificateManager as IDisposable)?.Dispose();
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Test]
+    public async Task PlcProvider_DirectFactoryCancellationDisposesCertificateManagerAsync()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "opcplc-direct-cancel-" + Guid.NewGuid().ToString("N"));
+        var plc = CreatePlcConfiguration(root, false);
+        plc.OpcUa.OpcOwnCertStoreType = KubernetesSecretCertificateStore.StoreTypeName;
+        plc.OpcUa.OpcKubernetesSecretNamespace = "provider-tests";
+        plc.OpcUa.OpcOwnCertStorePath = @"pki\own";
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new Mock<IKubernetesSecretStoreClient>(MockBehavior.Strict);
+        client.Setup(instance => instance.ReadAsync(
+            "provider-tests", "pki-own", It.IsAny<CancellationToken>()))
+            .Returns(async (string _, string _, CancellationToken ct) =>
+            {
+                entered.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct).ConfigureAwait(false);
+                throw new InvalidOperationException("The stalled read must be cancelled.");
+            });
+        var clientFactory = new Mock<IKubernetesSecretStoreClientFactory>();
+        clientFactory.Setup(instance => instance.Create()).Returns(client.Object);
+        var logging = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
+        var factory = new OpcUaAppConfigFactory(plc, logging.CreateLogger("direct-cancel"), logging,
+            DefaultTelemetry.Create(_ => { }), clientFactory.Object);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        Task<ApplicationConfiguration> pending = factory.ConfigureAsync(cancellation.Token);
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            await cancellation.CancelAsync().ConfigureAwait(false);
+            Func<Task> configure = () => pending;
+            await configure.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(false);
+            plc.OpcUa.ApplicationConfiguration.CertificateManager.Should().NotBeNull();
+            Action openAfterCancellation = () =>
+            {
+                using ICertificateStore store = ((CertificateManager)plc.OpcUa.ApplicationConfiguration.CertificateManager)
+                    .OpenCertificateStore(
+                        KubernetesSecretCertificateStore.StoreTypePrefix + plc.OpcUa.OpcOwnCertStorePath,
+                        plc.OpcUa.OpcOwnCertStoreType);
+            };
+            openAfterCancellation.Should().Throw<ObjectDisposedException>();
+            Directory.Exists(root).Should().BeFalse();
+        }
+        finally
+        {
+            await cancellation.CancelAsync().ConfigureAwait(false);
+            await Task.WhenAny(pending).ConfigureAwait(false);
+            (plc.OpcUa.ApplicationConfiguration?.CertificateManager as IDisposable)?.Dispose();
         }
     }
 
@@ -262,6 +377,53 @@ public class DiSecurityMigrationTests
             {
                 Directory.Delete(root, recursive: true);
             }
+        }
+    }
+
+    [Test]
+    public async Task PlcProvider_DisposalCancelsStalledStoreWithoutCancellingSharedWaitersAsync()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "opcplc-provider-cancel-" + Guid.NewGuid().ToString("N"));
+        var plc = CreatePlcConfiguration(root, false);
+        plc.OpcUa.OpcOwnCertStoreType = KubernetesSecretCertificateStore.StoreTypeName;
+        plc.OpcUa.OpcKubernetesSecretNamespace = "provider-tests";
+        plc.OpcUa.OpcOwnCertStorePath = "pki/own";
+        var entered = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new Mock<IKubernetesSecretStoreClient>(MockBehavior.Strict);
+        client.Setup(instance => instance.ReadAsync(
+            "provider-tests", "pki-own", It.IsAny<CancellationToken>()))
+            .Returns(async (string _, string _, CancellationToken ct) =>
+            {
+                entered.TrySetResult(ct);
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct).ConfigureAwait(false);
+                throw new InvalidOperationException("The stalled read must be cancelled.");
+            });
+        var clientFactory = new Mock<IKubernetesSecretStoreClientFactory>();
+        clientFactory.Setup(instance => instance.Create()).Returns(client.Object);
+        var logging = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
+        var provider = new PlcApplicationConfigurationProvider(new OpcUaAppConfigFactory(plc,
+            logging.CreateLogger("provider-cancel"), logging, DefaultTelemetry.Create(_ => { }), clientFactory.Object));
+        await using (provider.ConfigureAwait(false))
+        {
+            using var waiterCancellation = new CancellationTokenSource();
+            Task<ApplicationConfiguration> cancelledWaiter = provider.GetAsync(waiterCancellation.Token);
+            Task<ApplicationConfiguration> sharedWaiter = provider.GetAsync();
+            CancellationToken operationToken = await entered.Task.WaitAsync(TimeSpan.FromSeconds(5))
+                .ConfigureAwait(false);
+            operationToken.CanBeCanceled.Should().BeTrue();
+
+            await waiterCancellation.CancelAsync().ConfigureAwait(false);
+            Func<Task> wait = () => cancelledWaiter;
+            await wait.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(false);
+            operationToken.IsCancellationRequested.Should().BeFalse();
+            sharedWaiter.IsCompleted.Should().BeFalse();
+
+            await provider.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            operationToken.IsCancellationRequested.Should().BeTrue();
+            Func<Task> shared = () => sharedWaiter;
+            await shared.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(false);
+            await provider.DisposeAsync().ConfigureAwait(false);
+            Directory.Exists(root).Should().BeFalse();
         }
     }
 
@@ -862,11 +1024,12 @@ public class DiSecurityMigrationTests
     }
 
     private static Certificate CreateApplicationReplacement(Certificate issuer = null, RSA existingKey = null,
-        bool expired = false)
+        bool expired = false, string applicationUri = ApplicationUri, string subjectSuffix = "",
+        string domainName = "localhost", string applicationName = ApplicationName)
     {
         using RSA generatedKey = existingKey is null ? RSA.Create(2048) : null;
         RSA key = existingKey ?? generatedKey;
-        var request = new CertificateRequest("CN=" + ApplicationName, key, HashAlgorithmName.SHA256,
+        var request = new CertificateRequest("CN=" + applicationName + subjectSuffix, key, HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
         request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature |
@@ -874,8 +1037,12 @@ public class DiSecurityMigrationTests
         request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
             new OidCollection { new("1.3.6.1.5.5.7.3.1"), new("1.3.6.1.5.5.7.3.2") }, false));
         var names = new SubjectAlternativeNameBuilder();
-        names.AddUri(new Uri(ApplicationUri));
+        names.AddUri(new Uri(applicationUri));
         names.AddDnsName("localhost");
+        if (!string.Equals(domainName, "localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            names.AddDnsName(domainName);
+        }
         request.CertificateExtensions.Add(names.Build());
         if (issuer is not null)
         {

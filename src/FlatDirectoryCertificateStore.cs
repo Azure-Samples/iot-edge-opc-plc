@@ -21,6 +21,7 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
 
     private readonly DirectoryCertificateStore _innerStore;
     private readonly ILogger _logger;
+    private readonly Func<string, CancellationToken, Task<byte[]>> _readFileAsync;
 
     /// <summary>
     /// Identifier for flat directory certificate store.
@@ -36,9 +37,16 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
     /// Initializes a new instance of the <see cref="FlatDirectoryCertificateStore"/> class.
     /// </summary>
     public FlatDirectoryCertificateStore(ILogger logger, ITelemetryContext telemetry)
+        : this(logger, telemetry, File.ReadAllBytesAsync)
+    {
+    }
+
+    internal FlatDirectoryCertificateStore(
+        ILogger logger, ITelemetryContext telemetry, Func<string, CancellationToken, Task<byte[]>> readFileAsync)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _innerStore = new DirectoryCertificateStore(noSubDirs: true, telemetry);
+        _readFileAsync = readFileAsync ?? throw new ArgumentNullException(nameof(readFileAsync));
     }
 
     /// <inheritdoc/>
@@ -80,32 +88,9 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
 
     public async Task<CertificateCollection> EnumerateAsync(CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var certificatesCollection = await _innerStore.EnumerateAsync(ct).ConfigureAwait(false);
-
-        if (ct.IsCancellationRequested || !_innerStore.Directory.Exists) { return certificatesCollection; }
-
-        foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
-        {
-            if (ct.IsCancellationRequested)
-            {
-                break;
-            }
-
-            try
-            {
-                using var certificates = CertificateCollection.From(
-                    PEMReader.ImportPublicKeysFromPEM(await File.ReadAllBytesAsync(filePath, ct).ConfigureAwait(false)));
-                foreach (var certificate in certificates)
-                {
-                    certificatesCollection.Add(certificate);
-                }
-            }
-            catch (Exception e)
-            {
-                LogCouldNotLoadCertificate(e, filePath);
-            }
-        }
-        return certificatesCollection;
+        return await LoadPemCertificatesAsync(certificatesCollection, null, false, ct).ConfigureAwait(false);
     }
 
     public Task AddCRLAsync(X509CRL crl, CancellationToken ct = default) => _innerStore.AddCRLAsync(crl, ct);
@@ -118,32 +103,52 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
 
     public async Task<CertificateCollection> FindByThumbprintAsync(string thumbprint, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var certificatesCollection = await _innerStore.FindByThumbprintAsync(thumbprint, ct).ConfigureAwait(false);
+        return await LoadPemCertificatesAsync(certificatesCollection, thumbprint, true, ct).ConfigureAwait(false);
+    }
 
-        if (ct.IsCancellationRequested || !_innerStore.Directory.Exists) { return certificatesCollection; }
-
-        foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
+    private async Task<CertificateCollection> LoadPemCertificatesAsync(
+        CertificateCollection certificatesCollection, string thumbprint, bool filterByThumbprint, CancellationToken ct)
+    {
+        try
         {
-            if (ct.IsCancellationRequested)
+            ct.ThrowIfCancellationRequested();
+            if (!_innerStore.Directory.Exists)
             {
-                break;
+                return certificatesCollection;
             }
 
-            try
+            foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
             {
-                using var certificates = CertificateCollection.From(
-                    PEMReader.ImportPublicKeysFromPEM(await File.ReadAllBytesAsync(filePath, ct).ConfigureAwait(false)));
-                foreach (var certificate in certificates.Where(candidate => string.Equals(candidate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase)))
+                ct.ThrowIfCancellationRequested();
+                try
                 {
-                    certificatesCollection.Add(certificate);
+                    using var certificates = CertificateCollection.From(
+                        PEMReader.ImportPublicKeysFromPEM(await _readFileAsync(filePath, ct).ConfigureAwait(false)));
+                    ct.ThrowIfCancellationRequested();
+                    foreach (var certificate in certificates)
+                    {
+                        if (!filterByThumbprint ||
+                            string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
+                        {
+                            certificatesCollection.Add(certificate);
+                        }
+                    }
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    LogCouldNotLoadCertificate(e, filePath);
                 }
             }
-            catch (Exception e)
-            {
-                LogCouldNotLoadCertificate(e, filePath);
-            }
+            ct.ThrowIfCancellationRequested();
+            return certificatesCollection;
         }
-        return certificatesCollection;
+        catch
+        {
+            certificatesCollection.Dispose();
+            throw;
+        }
     }
 
     public Task<StatusCode> IsRevokedAsync(Certificate issuer, Certificate certificate, CancellationToken ct = default) => _innerStore.IsRevokedAsync(issuer, certificate, ct);
@@ -153,7 +158,8 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
 
     public async Task<Certificate> LoadPrivateKeyAsync(string thumbprint, string subjectName, string applicationUri, NodeId certificateType, char[] password = null, CancellationToken ct = default)
     {
-        if (NoPrivateKeys || ct.IsCancellationRequested)
+        ct.ThrowIfCancellationRequested();
+        if (NoPrivateKeys)
         {
             return null;
         }
@@ -165,20 +171,17 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
 
         foreach (var filePath in _innerStore.Directory.GetFiles('*' + CrtExtension).Select(f => f.FullName))
         {
-            if (ct.IsCancellationRequested)
-            {
-                break;
-            }
+            ct.ThrowIfCancellationRequested();
 
             try
             {
                 var keyFilePath = filePath.Replace(CrtExtension, KeyExtension, StringComparison.OrdinalIgnoreCase);
                 if (!File.Exists(keyFilePath)) continue;
                 using var certificate = new Certificate(filePath);
-                if (!MatchCertificate(certificate, thumbprint, subjectName, certificateType)) continue;
+                if (!MatchCertificate(certificate, thumbprint, subjectName, applicationUri, certificateType)) continue;
                 return Certificate.From(X509Certificate2.CreateFromPemFile(filePath, keyFilePath));
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
                 LogCouldNotLoadPrivateKey(e, filePath);
             }
@@ -187,12 +190,15 @@ public sealed partial class FlatDirectoryCertificateStore : ICertificateStore
         return await _innerStore.LoadPrivateKeyAsync(thumbprint, subjectName, applicationUri, certificateType, password, ct).ConfigureAwait(false);
     }
 
-    private static bool MatchCertificate(Certificate certificate, string thumbprint, string subjectName, NodeId certificateType)
+    private static bool MatchCertificate(
+        Certificate certificate, string thumbprint, string subjectName, string applicationUri, NodeId certificateType)
     {
         if (certificateType.IsNull || certificateType == ObjectTypeIds.RsaSha256ApplicationCertificateType || certificateType == ObjectTypeIds.RsaMinApplicationCertificateType || certificateType == ObjectTypeIds.ApplicationCertificateType)
         {
             if (!string.IsNullOrEmpty(thumbprint) && !string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase)) return false;
             if (!string.IsNullOrEmpty(subjectName) && !X509Utils.CompareDistinguishedName(subjectName, certificate.Subject) && (subjectName.Contains('=', StringComparison.OrdinalIgnoreCase) || !X509Utils.ParseDistinguishedName(certificate.Subject).Any(s => s.Equals("CN=" + subjectName, StringComparison.Ordinal)))) return false;
+            if (!string.IsNullOrEmpty(applicationUri) &&
+                !X509Utils.CompareApplicationUriWithCertificate(certificate, applicationUri)) return false;
             return X509Utils.GetRSAPublicKeySize(certificate) >= 0;
         }
 

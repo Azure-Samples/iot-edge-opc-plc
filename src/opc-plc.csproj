@@ -29,6 +29,7 @@
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0-azurelinux3.0-distroless</ContainerBaseImage>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="opc-plc-tests" />
     <ContainerEnvironmentVariable Include="APP_UID" Value="" />
     <ContainerEnvironmentVariable Include="DOTNET_ReadyToRun" Value="0" />
     <ContainerEnvironmentVariable Include="DOTNET_TieredPGO" Value="1" />

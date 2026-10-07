@@ -290,10 +290,14 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
 
         if (!string.IsNullOrWhiteSpace(thumbprint) && secretData.TryGetValue(GetPrivateKeyEntryKey(thumbprint), out var privateKeyBytes))
         {
-            return new Certificate(
+            using var certificate = new Certificate(
                 privateKeyBytes,
                 password is null ? string.Empty : new string(password),
                 X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+            if (MatchCertificate(certificate, thumbprint, subjectName, applicationUri, certificateType))
+            {
+                return certificate.AddRef();
+            }
         }
 
         foreach (var certificateEntry in secretData.Where(pair => IsCertificateEntryKey(pair.Key)))
@@ -303,7 +307,7 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
                 using var loadedCertificates = LoadCertificates(certificateEntry.Key, certificateEntry.Value);
                 foreach (var certificate in loadedCertificates)
                 {
-                    if (!MatchCertificate(certificate, thumbprint, subjectName, certificateType))
+                    if (!MatchCertificate(certificate, thumbprint, subjectName, applicationUri, certificateType))
                     {
                         continue;
                     }
@@ -427,7 +431,8 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             Encoding.UTF8.GetString(privateKeyBytes)));
     }
 
-    private static bool MatchCertificate(Certificate certificate, string thumbprint, string subjectName, NodeId certificateType)
+    private static bool MatchCertificate(
+        Certificate certificate, string thumbprint, string subjectName, string applicationUri, NodeId certificateType)
     {
         if (certificateType.IsNull || certificateType == ObjectTypeIds.RsaSha256ApplicationCertificateType || certificateType == ObjectTypeIds.RsaMinApplicationCertificateType || certificateType == ObjectTypeIds.ApplicationCertificateType)
         {
@@ -437,6 +442,12 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             }
 
             if (!string.IsNullOrEmpty(subjectName) && !X509Utils.CompareDistinguishedName(subjectName, certificate.Subject) && (subjectName.Contains('=', StringComparison.OrdinalIgnoreCase) || !X509Utils.ParseDistinguishedName(certificate.Subject).Any(subject => subject.Equals("CN=" + subjectName, StringComparison.Ordinal))))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(applicationUri) &&
+                !X509Utils.CompareApplicationUriWithCertificate(certificate, applicationUri))
             {
                 return false;
             }

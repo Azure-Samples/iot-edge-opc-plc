@@ -25,10 +25,11 @@ public partial class CertificateManagementService(
     /// <summary>
     /// Delete certificates with the given thumbprints from the trusted peer and issuer certifiate store.
     /// </summary>
-    public Task<bool> RemoveCertificatesAsync(List<string> thumbprintsToRemove)
+    public Task<bool> RemoveCertificatesAsync(
+        List<string> thumbprintsToRemove, CancellationToken cancellationToken = default)
     {
         return new CertificateTrustListOperations(_config.OpcUa.ApplicationConfiguration.CertificateManager, _logger)
-            .RemovePeerCertificatesAsync(thumbprintsToRemove);
+            .RemovePeerCertificatesAsync(thumbprintsToRemove, cancellationToken);
     }
 
     /// <summary>
@@ -37,10 +38,12 @@ public partial class CertificateManagementService(
     public Task<bool> AddCertificatesAsync(
         List<string> certificateBase64Strings,
         List<string> certificateFileNames,
-        bool issuerCertificate = true)
+        bool issuerCertificate = true,
+        CancellationToken cancellationToken = default)
     {
         return new CertificateTrustListOperations(_config.OpcUa.ApplicationConfiguration.CertificateManager, _logger)
-            .AddAsync(certificateBase64Strings, certificateFileNames, TrustListIdentifier.Peers, issuerCertificate);
+            .AddAsync(certificateBase64Strings, certificateFileNames, TrustListIdentifier.Peers,
+                issuerCertificate, cancellationToken);
     }
 
     /// <summary>
@@ -49,20 +52,23 @@ public partial class CertificateManagementService(
     public Task<bool> AddUserCertificatesAsync(
         List<string> certificateBase64Strings,
         List<string> certificateFileNames,
-        bool issuerCertificate = true)
+        bool issuerCertificate = true,
+        CancellationToken cancellationToken = default)
     {
         return new CertificateTrustListOperations(_config.OpcUa.ApplicationConfiguration.CertificateManager, _logger)
-            .AddAsync(certificateBase64Strings, certificateFileNames, TrustListIdentifier.Users, issuerCertificate);
+            .AddAsync(certificateBase64Strings, certificateFileNames, TrustListIdentifier.Users,
+                issuerCertificate, cancellationToken);
     }
 
     /// <summary>
     /// Update the CRL in the corresponding store.
     /// </summary>
-    public Task<bool> UpdateCrlAsync(string newCrlBase64String, string newCrlFileName)
+    public Task<bool> UpdateCrlAsync(
+        string newCrlBase64String, string newCrlFileName, CancellationToken cancellationToken = default)
     {
         ICertificateManager manager = _config.OpcUa.ApplicationConfiguration.CertificateManager;
         return new CertificateTrustListOperations(manager, _logger)
-            .ReplaceCrlAsync(manager, newCrlBase64String, newCrlFileName);
+            .ReplaceCrlAsync(manager, newCrlBase64String, newCrlFileName, cancellationToken);
     }
 
     /// <summary>
@@ -73,8 +79,10 @@ public partial class CertificateManagementService(
         string newCertificateFileName,
         string certificatePassword,
         string privateKeyBase64String,
-        string privateKeyFileName)
+        string privateKeyFileName,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(newCertificateFileName) && string.IsNullOrEmpty(newCertificateBase64String))
         {
             LogNoNewCertificateData();
@@ -86,7 +94,7 @@ public partial class CertificateManagementService(
         {
             byte[] certificateData = string.IsNullOrEmpty(newCertificateFileName)
                 ? Convert.FromBase64String(newCertificateBase64String)
-                : await File.ReadAllBytesAsync(newCertificateFileName).ConfigureAwait(false);
+                : await File.ReadAllBytesAsync(newCertificateFileName, cancellationToken).ConfigureAwait(false);
             using var newCertificate = new Certificate(certificateData);
             if (!string.IsNullOrEmpty(privateKeyBase64String))
             {
@@ -98,7 +106,7 @@ public partial class CertificateManagementService(
                 {
                     CryptographicOperations.ZeroMemory(privateKey);
                 }
-                privateKey = await File.ReadAllBytesAsync(privateKeyFileName).ConfigureAwait(false);
+                privateKey = await File.ReadAllBytesAsync(privateKeyFileName, cancellationToken).ConfigureAwait(false);
             }
             ICertificateManager manager = _config.OpcUa.ApplicationConfiguration.CertificateManager;
             using CertificateEntry current = manager.AcquireApplicationCertificateByType(
@@ -112,21 +120,21 @@ public partial class CertificateManagementService(
 
             if (!X509Utils.CompareDistinguishedName(newCertificate.Subject, newCertificate.Issuer))
             {
-                await VerifyReplacementTrustAsync(newCertificate, manager).ConfigureAwait(false);
+                await VerifyReplacementTrustAsync(newCertificate, manager, cancellationToken).ConfigureAwait(false);
                 using var chain = new CertificateCollection { newCertificate };
                 var validation = await manager.ValidateAsync(chain, TrustListIdentifier.Peers,
                     new Opc.Ua.Security.Certificates.CertificateValidationOptions
                     {
                         AutoAcceptUntrustedCertificates = false,
                         AcceptError = (_, error) => error.StatusCode == StatusCodes.BadCertificateUntrusted
-                    }, CancellationToken.None).ConfigureAwait(false);
+                    }, cancellationToken).ConfigureAwait(false);
                 validation.ThrowIfInvalid();
             }
 
             using Certificate candidate = CombinePrivateKey(newCertificate, privateKey, certificatePassword, current);
             LogActivatingNewAppCert(candidate.Thumbprint);
             await ApplicationCertificateLifecycle.PersistAndActivateAsync(_config.OpcUa.ApplicationConfiguration,
-                candidate, _certificateStoreProviders, _telemetryContext).ConfigureAwait(false);
+                candidate, _certificateStoreProviders, _telemetryContext, cancellationToken).ConfigureAwait(false);
             return true;
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -143,10 +151,12 @@ public partial class CertificateManagementService(
         }
     }
 
-    private static async Task VerifyReplacementTrustAsync(Certificate certificate, ITrustListFileAccess manager)
+    private static async Task VerifyReplacementTrustAsync(
+        Certificate certificate, ITrustListFileAccess manager, CancellationToken cancellationToken)
     {
         using TrustListData trust = await manager.ReadTrustListAsync(TrustListIdentifier.Peers,
-            TrustListMasks.TrustedCertificates | TrustListMasks.IssuerCertificates).ConfigureAwait(false);
+            TrustListMasks.TrustedCertificates | TrustListMasks.IssuerCertificates, cancellationToken)
+            .ConfigureAwait(false);
         using var chain = new X509Chain();
         chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
         chain.ChainPolicy.DisableCertificateDownloads = true;
