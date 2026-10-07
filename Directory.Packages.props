@@ -30,20 +30,20 @@
 
   <!-- OPC UA SDK (OPC Foundation) -->
   <ItemGroup>
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration.Debug" Version="[2.0.0-preview.6]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types.Debug" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.Debug" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Debug" Version="[2.0.0-preview.7]" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration.Debug" Version="[2.0.0-preview.7]" />
   </ItemGroup>
 
   <!-- Test dependencies -->
