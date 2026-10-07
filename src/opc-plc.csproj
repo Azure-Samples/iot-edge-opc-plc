@@ -40,7 +40,6 @@
     <PackageReference Include="KubernetesClient" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Mono.Options" />
-    <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="OpenTelemetry" />
     <PackageReference Include="OpenTelemetry.Api" />
     <PackageReference Include="OpenTelemetry.Api.ProviderBuilderExtensions" />

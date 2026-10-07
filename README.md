@@ -61,6 +61,9 @@ Note: Make sure that your OPC UA client uses security policy `Basic256Sha256` an
 
 ## User node configuration via JSON configuration file
 If the module (application) is started with the argument `--nodesfile` then the specified JSON configuration file is loaded.
+Configuration is read using .NET's built-in `System.Text.Json` serializer. Property names are case-insensitive;
+comments and trailing commas are accepted. Each node requires a non-null `NodeId`. Omitted `DataType`,
+`ValueRank`, and `AccessLevel` default to `Int32`, `-1`, and `CurrentReadOrWrite`, respectively.
 Nodes defined in the JSON file will be published by the server. This enables another OPC-UA client application to set the state/value of the node. Please note that nodes specified in the JSON file are NOT part of the simulation. They remain visible in an unchanged state until an OPC UA client changes their status.
 
 The following command shows how to use a configuration file on Windows:

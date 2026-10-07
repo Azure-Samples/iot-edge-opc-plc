@@ -1,15 +1,16 @@
 namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,6 +21,13 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
 {
     private string _nodesFileName;
     private PlcNodeManager _plcNodeManager;
+    private static readonly JsonSerializerOptions ConfigurationJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
+    };
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -60,9 +68,7 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
         {
             string json = File.ReadAllText(_nodesFileName);
 
-            var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings {
-                TypeNameHandling = TypeNameHandling.None,
-            });
+            var cfgFolder = DeserializeConfiguration(json);
 
             LogProcessingNodeInformation(_nodesFileName);
 
@@ -73,8 +79,13 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
             LogErrorLoadingUserDefinedNodeFile(e, _nodesFileName, e.Message);
         }
 
-
         LogCompletedProcessingUserDefinedNodeFile();
+    }
+
+    internal static ConfigFolder DeserializeConfiguration(string json)
+    {
+        return JsonSerializer.Deserialize<ConfigFolder>(json, ConfigurationJsonOptions)
+            ?? throw new JsonException("The nodes file must contain a configuration folder.");
     }
 
     private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder)
@@ -110,9 +121,9 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
                     ? $"g={node.NodeId.ToString()}"
                     : $"s={node.NodeId.ToString()}";
 
-            if (node.ValueRank == 1 && node.Value is JArray jArrayValue)
+            if (node.ValueRank == 1 && node.Value is JsonElement { ValueKind: JsonValueKind.Array } arrayValue)
             {
-                node.Value = UpdateArrayValue(node, jArrayValue);
+                node.Value = UpdateArrayValue(node, arrayValue);
             }
 
             if (string.IsNullOrEmpty(node.Name))
@@ -185,16 +196,33 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
         _plcNodeManager.CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications, node?.Value);
     }
 
-    private static object UpdateArrayValue(ConfigNode node, JArray jArrayValue)
+    internal static object UpdateArrayValue(ConfigNode node, JsonElement arrayValue)
     {
         return node.DataType switch {
-            "String" => jArrayValue.ToObject<string[]>(),
-            "Boolean" => jArrayValue.ToObject<bool[]>(),
-            "Float" => jArrayValue.ToObject<float[]>(),
-            "UInt32" => jArrayValue.ToObject<uint[]>(),
-            "Int32" => jArrayValue.ToObject<int[]>(),
+            "String" => ConvertArrayValue<string>(arrayValue),
+            "Boolean" => ConvertArrayValue<bool>(arrayValue),
+            "Float" => ConvertArrayValue<float>(arrayValue),
+            "UInt32" => ConvertArrayValue<uint>(arrayValue),
+            "Int32" => ConvertArrayValue<int>(arrayValue),
             _ => throw new NotImplementedException($"Node type not implemented: {node.DataType}."),
         };
+    }
+
+    private static T[] ConvertArrayValue<T>(JsonElement arrayValue)
+    {
+        return arrayValue.EnumerateArray().Select(element =>
+        {
+            object value = element.ValueKind switch
+            {
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Number => element.TryGetInt64(out long integer) ? (object)integer : element.GetDouble(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Null when !typeof(T).IsValueType => null,
+                _ => throw new JsonException($"Cannot convert {element.ValueKind} to {typeof(T).Name}."),
+            };
+            return (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
+        }).ToArray();
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Processing node information configured in {NodesFileName}")]
