@@ -160,9 +160,9 @@ Plugins are discovered via **reflection** at runtime -- any non-abstract class i
 ## Test Conventions
 
 ### Framework & Libraries
-- **NUnit 4.5** (`[Test]`, `[TestCase]`, `[OneTimeSetUp]`, `[OneTimeTearDown]`)
+- **NUnit 5.0** (`[Test]`, `[TestCase]`, `[OneTimeSetUp]`, `[OneTimeTearDown]`)
 - **FluentAssertions 7.2** for all assertions
-- **Moq 4.20** for mocking (`TimeService`, `ITimer`)
+- **Moq 4.21** for mocking (`TimeService`, `ITimer`)
 
 ### Test Architecture
 Tests are **integration tests** that start a real OPC PLC server in-process:
