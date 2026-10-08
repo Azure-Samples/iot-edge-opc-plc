@@ -25,11 +25,11 @@ public partial class WotConTests
         var (openStatus, openOutputs) = await CallAsync(
             objectId: fileId,
             methodId: new NodeId(Methods.FileType_Open, 0),
-            arguments: new VariantCollection { new Variant((byte)6) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant((byte)6) }).ConfigureAwait(false);
 
         StatusCode.IsGood(openStatus).Should().BeTrue("Open should succeed, got status {0}", openStatus);
         openOutputs.Should().HaveCountGreaterThanOrEqualTo(1);
-        uint handle = Convert.ToUInt32(openOutputs[0].Value);
+        uint handle = Convert.ToUInt32(openOutputs[0].AsBoxedObject(Variant.BoxingBehavior.Legacy));
         handle.Should().BeGreaterThan(0u, "Open should return a non-zero file handle");
 
         // Write a small TD-ish payload.
@@ -37,10 +37,10 @@ public partial class WotConTests
         var (writeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: new NodeId(Methods.FileType_Write, 0),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant(handle),
-                new Variant(payload),
+                Variant.From((ByteString)payload),
             }).ConfigureAwait(false);
 
         StatusCode.IsGood(writeStatus).Should().BeTrue("Write should succeed, got status {0}", writeStatus);
@@ -49,7 +49,7 @@ public partial class WotConTests
         var (closeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(handle) }).ConfigureAwait(false);
 
         StatusCode.IsGood(closeStatus).Should().BeTrue(
             "CloseAndUpdate should succeed, got status {0}", closeStatus);
@@ -64,26 +64,26 @@ public partial class WotConTests
         var (_, openOutputs) = await CallAsync(
             objectId: fileId,
             methodId: new NodeId(Methods.FileType_Open, 0),
-            arguments: new VariantCollection { new Variant((byte)6) }).ConfigureAwait(false);
-        uint handle = Convert.ToUInt32(openOutputs[0].Value);
+            arguments: new List<Variant> { new Variant((byte)6) }).ConfigureAwait(false);
+        uint handle = Convert.ToUInt32(openOutputs[0].AsBoxedObject(Variant.BoxingBehavior.Legacy));
 
         var (closeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: new NodeId(Methods.FileType_Close, 0),
-            arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(handle) }).ConfigureAwait(false);
         StatusCode.IsGood(closeStatus).Should().BeTrue();
 
         // Subsequent Write on the released handle must be rejected.
         var (writeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: new NodeId(Methods.FileType_Write, 0),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant(handle),
                 new Variant(new byte[] { 1, 2, 3 }),
             }).ConfigureAwait(false);
 
-        writeStatus.Code.Should().Be(StatusCodes.BadInvalidArgument,
+        writeStatus.Should().Be(StatusCodes.BadInvalidArgument,
             "writing on a released handle must fail with BadInvalidArgument");
     }
 
@@ -103,21 +103,21 @@ public partial class WotConTests
         var (_, openOutputs) = await CallAsync(
             objectId: fileId,
             methodId: new NodeId(Methods.FileType_Open, 0),
-            arguments: new VariantCollection { new Variant((byte)6) }).ConfigureAwait(false);
-        uint handle = Convert.ToUInt32(openOutputs[0].Value);
+            arguments: new List<Variant> { new Variant((byte)6) }).ConfigureAwait(false);
+        uint handle = Convert.ToUInt32(openOutputs[0].AsBoxedObject(Variant.BoxingBehavior.Legacy));
 
         byte[] tooLarge = new byte[MaxByteStringLength + 1];
 
         var (writeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: new NodeId(Methods.FileType_Write, 0),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant(handle),
-                new Variant(tooLarge),
+                Variant.From((ByteString)tooLarge),
             }).ConfigureAwait(false);
 
-        writeStatus.Code.Should().Be(StatusCodes.BadRequestTooLarge,
+        writeStatus.Should().Be(StatusCodes.BadRequestTooLarge,
             "Write past MaxByteStringLength must be rejected with Bad_RequestTooLarge");
     }
 
@@ -137,16 +137,16 @@ public partial class WotConTests
         var (_, openAOutputs) = await CallAsync(
             objectId: fileA,
             methodId: new NodeId(Methods.FileType_Open, 0),
-            arguments: new VariantCollection { new Variant((byte)6) }).ConfigureAwait(false);
-        uint handleA = Convert.ToUInt32(openAOutputs[0].Value);
+            arguments: new List<Variant> { new Variant((byte)6) }).ConfigureAwait(false);
+        uint handleA = Convert.ToUInt32(openAOutputs[0].AsBoxedObject(Variant.BoxingBehavior.Legacy));
 
         var (writeAStatus, _) = await CallAsync(
             objectId: fileA,
             methodId: new NodeId(Methods.FileType_Write, 0),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant(handleA),
-                new Variant(Encoding.UTF8.GetBytes(@"{""@context"":""https://www.w3.org/2022/wot/td/v1.1"",""title"":""IsoA""}")),
+                Variant.From((ByteString)Encoding.UTF8.GetBytes(@"{""@context"":""https://www.w3.org/2022/wot/td/v1.1"",""title"":""IsoA""}")),
             }).ConfigureAwait(false);
         StatusCode.IsGood(writeAStatus).Should().BeTrue();
 
@@ -154,19 +154,19 @@ public partial class WotConTests
         var (writeAOnBStatus, _) = await CallAsync(
             objectId: fileB,
             methodId: new NodeId(Methods.FileType_Write, 0),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant(handleA),
-                new Variant(Encoding.UTF8.GetBytes("should-not-land")),
+                Variant.From((ByteString)Encoding.UTF8.GetBytes("should-not-land")),
             }).ConfigureAwait(false);
-        writeAOnBStatus.Code.Should().Be(StatusCodes.BadInvalidArgument,
+        writeAOnBStatus.Should().Be(StatusCodes.BadInvalidArgument,
             "a handle minted by asset A.Open must not be valid on asset B");
 
         // A's CloseAndUpdate still finalizes only A's buffer.
         var (closeAStatus, _) = await CallAsync(
             objectId: fileA,
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            arguments: new VariantCollection { new Variant(handleA) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(handleA) }).ConfigureAwait(false);
         StatusCode.IsGood(closeAStatus).Should().BeTrue();
     }
 
@@ -201,10 +201,10 @@ public partial class WotConTests
 
         var resp = await Session.BrowseAsync(
             null, null, 0,
-            new BrowseDescriptionCollection { bd },
+            new List<BrowseDescription> { bd },
             CancellationToken.None).ConfigureAwait(false);
-        resp.Results.Should().ContainSingle();
-        var children = resp.Results[0].References;
+        resp.Results.ToArray().Should().ContainSingle();
+        var children = resp.Results[0].References.ToArray();
 
         var variableNames = children
             .Where(r => r.NodeClass == NodeClass.Variable)

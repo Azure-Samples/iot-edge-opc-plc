@@ -24,6 +24,7 @@ public partial class WotConNodeManager
     // Qualified: System.Threading is in scope here and also declares an ITimer.
     private OpcPlc.ITimer _simulationTimer;
     private long _simulationTick;
+    private readonly SemaphoreSlim _simulationGate = new(1, 1);
 
     /// <summary>
     /// Starts the value simulation. Safe to call when no asset exists yet: the tick walks the
@@ -40,12 +41,32 @@ public partial class WotConNodeManager
     /// Advances every materialized property Variable of every live asset by one tick.
     /// </summary>
     /// <remarks>
-    /// Each asset is advanced under its <see cref="WotAsset.LifecycleLock"/> — the same lock
+    /// Each asset is advanced under its <see cref="WotAsset.LifecycleGate"/> — the same gate
     /// <c>CloseAndUpdate</c> materialization and <c>DeleteAsset</c> teardown hold — so the tick
     /// can never write into a node generation that is being replaced or removed. Assets are
     /// snapshotted first because <c>_assets</c> can be mutated concurrently.
     /// </remarks>
     private void AdvanceMaterializedValues()
+    {
+        if (Volatile.Read(ref _stopping) != 0)
+        {
+            return;
+        }
+        _simulationGate.Wait();
+        try
+        {
+            if (Volatile.Read(ref _stopping) == 0)
+            {
+                AdvanceMaterializedValuesCore();
+            }
+        }
+        finally
+        {
+            _simulationGate.Release();
+        }
+    }
+
+    private void AdvanceMaterializedValuesCore()
     {
         // The timer can re-enter if a tick outlives its interval, so the counter must be atomic.
         long tick = Interlocked.Increment(ref _simulationTick);
@@ -55,17 +76,26 @@ public partial class WotConNodeManager
         {
             foreach (var asset in _assets.Values)
             {
-                lock (asset.LifecycleLock)
+                asset.LifecycleGate.Wait();
+                try
                 {
-                    if (asset.IsDeleted)
+                    if (asset.IsDeleted || Volatile.Read(ref _stopping) != 0)
                     {
                         continue;
                     }
 
                     foreach (var nodeId in asset.MaterializedPropertyNodeIds.Values)
                     {
+                        if (Volatile.Read(ref _stopping) != 0)
+                        {
+                            return;
+                        }
                         AdvanceVariable(nodeId, tick, utcNow);
                     }
+                }
+                finally
+                {
+                    asset.LifecycleGate.Release();
                 }
             }
         }

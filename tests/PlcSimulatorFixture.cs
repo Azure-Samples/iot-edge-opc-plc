@@ -7,6 +7,7 @@ using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Configuration;
+using Opc.Ua.Security.Certificates;
 using OpcPlc;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
@@ -66,15 +67,21 @@ public class PlcSimulatorFixture
 
     private ApplicationConfiguration _config;
 
+    private ITelemetryContext _clientTelemetry;
+
     private ConfiguredEndpoint _serverEndpoint;
 
     public ApplicationConfiguration ClientConfiguration => _config;
 
+    public PlcServer Server => _opcPlcServer.PlcServer;
+
+    public bool Ready => _opcPlcServer.Ready;
+
+    public Task RestartAsync() => _opcPlcServer.RestartAsync();
+
     public string EndpointUrl => _serverEndpoint?.EndpointUrl?.ToString();
 
     public IReadOnlyCollection<IPluginNodes> PluginNodes => _opcPlcServer.PluginNodes;
-
-    public PlcServer PlcServer => _opcPlcServer.PlcServer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PlcSimulatorFixture"/> class.
@@ -175,47 +182,37 @@ public class PlcSimulatorFixture
     /// </summary>
     /// <param name="sessionName">The name to assign to the session.</param>
     /// <returns>The created session.</returns>
-    public Task<Session> CreateSessionAsync(string sessionName)
-    {
-        return CreateSessionAsync(sessionName, new UserIdentity(new AnonymousIdentityToken()), useSecurity: false);
-    }
-
-    /// <summary>
-    /// Create a OPC-UA Session with the specified user identity.
-    /// </summary>
-    /// <param name="sessionName">The name to assign to the session.</param>
-    /// <param name="userIdentity">The user identity used to activate the session.</param>
-    /// <param name="useSecurity">Whether to connect to the most secure endpoint (SignAndEncrypt) instead of the unsecure one.</param>
-    /// <returns>The created session.</returns>
-    public async Task<Session> CreateSessionAsync(string sessionName, IUserIdentity userIdentity, bool useSecurity)
+    public async Task<ISession> CreateSessionAsync(string sessionName, IUserIdentity userIdentity = null,
+        CancellationToken cancellationToken = default, bool useSecurity = false)
     {
         await _log.WriteLineAsync("Create a session with OPC UA server ...").ConfigureAwait(false);
+        userIdentity ??= new UserIdentity(new AnonymousIdentityToken());
 
         ConfiguredEndpoint endpoint = useSecurity
-            ? await GetServerEndpointAsync(EndpointUrl, useSecurity: true).ConfigureAwait(false)
+            ? await GetServerEndpointAsync(EndpointUrl, useSecurity: true, cancellationToken).ConfigureAwait(false)
             : _serverEndpoint;
 
         // When unit test certificate expires,
         // remove the pki folder from \tests\bin\<CONFIG>\<ARCH>
-        var sessionFactory = new DefaultSessionFactory(null);
-        var session = await sessionFactory.CreateAsync(
+        return await ManagedSession.CreateAsync(
             _config,
-            reverseConnectManager: null,
             endpoint,
-            updateBeforeConnect: false,
-            checkDomain: false,
-            sessionName,
+            sessionFactory: new DefaultSessionFactory(_clientTelemetry),
+            identity: userIdentity,
+            reconnectPolicy: new FailFastIdentityReconnectPolicy(),
+            telemetry: _clientTelemetry,
+            sessionName: sessionName,
             sessionTimeout: 60000,
-            userIdentity,
-            preferredLocales: null,
-            CancellationToken.None).ConfigureAwait(false);
-        return (Session)session;
+            preferredLocales: default,
+            checkDomain: false,
+            updateBeforeConnect: false,
+            ct: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Calls the GetEndpoints service without a session, like a client discovering the server.
     /// </summary>
-    public async Task<EndpointDescriptionCollection> GetEndpointsAsync(CancellationToken cancellationToken)
+    public async Task<ArrayOf<EndpointDescription>> GetEndpointsAsync(CancellationToken cancellationToken)
     {
         using var client = await DiscoveryClient.CreateAsync(
             _config,
@@ -223,7 +220,7 @@ public class PlcSimulatorFixture
             DiagnosticsMasks.None,
             cancellationToken).ConfigureAwait(false);
 
-        return await client.GetEndpointsAsync(profileUris: null, cancellationToken).ConfigureAwait(false);
+        return await client.GetEndpointsAsync(profileUris: default, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -291,16 +288,32 @@ public class PlcSimulatorFixture
         }
     }
 
+    private sealed class FailFastIdentityReconnectPolicy : ReconnectPolicy, IReconnectPolicy
+    {
+        bool IReconnectPolicy.TryGetNextDelay(int attempt, StatusCode lastStatus, TimeSpan? serverRetryAfter,
+            out TimeSpan? delay, CancellationToken ct)
+        {
+            if (lastStatus == StatusCodes.BadIdentityTokenInvalid ||
+                lastStatus == StatusCodes.BadIdentityTokenRejected ||
+                lastStatus == StatusCodes.BadUserAccessDenied)
+            {
+                delay = null;
+                return true;
+            }
+            return base.TryGetNextDelay(attempt, lastStatus, serverRetryAfter, out delay, ct);
+        }
+    }
+
     private static bool CloseTo(double a, double b) => Math.Abs(a - b) <= Math.Abs(a * .00001);
 
     private async Task<ApplicationConfiguration> GetConfigurationAsync()
     {
         await _log.WriteLineAsync("Create Application Configuration").ConfigureAwait(false);
 
-        var loggerFactory = LoggerFactory.Create(_ => { });
-        var telemetryContext = new OpcTelemetryContext(loggerFactory, "OpcPlc", OpcTelemetryContext.ResolveOpcPlcVersion());
+        _clientTelemetry = new OpcTelemetryContext(
+            _opcPlcServer.LoggerFactory, "OpcPlc.Tests", OpcTelemetryContext.ResolveOpcPlcVersion());
 
-        var application = new ApplicationInstance(telemetryContext) {
+        var application = new ApplicationInstance(_clientTelemetry) {
             ApplicationName = nameof(PlcSimulatorFixture),
             ApplicationType = ApplicationType.Client,
             ConfigSectionName = nameof(PlcSimulatorFixture) // Defines name of *.Config.xml file read
@@ -316,18 +329,15 @@ public class PlcSimulatorFixture
             throw new Exception("Application instance certificate invalid!");
         }
 
-        var applicationUris = X509Utils.GetApplicationUrisFromCertificate(config.SecurityConfiguration.ApplicationCertificate.Certificate);
+        using CertificateEntry certificate = config.CertificateManager.AcquireApplicationCertificateByType(
+            ObjectTypeIds.RsaSha256ApplicationCertificateType);
+        var applicationUris = X509Utils.GetApplicationUrisFromCertificate(certificate.Certificate);
         config.ApplicationUri = applicationUris.Count > 0 ? applicationUris[0] : null;
 
         // Auto-accept server certificate
-        config.CertificateValidator.CertificateValidation += CertificateValidator_AutoAccept;
+        config.CertificateManager.AcceptError = (_, error) => error.StatusCode == StatusCodes.BadCertificateUntrusted;
 
         return config;
-    }
-
-    private static void CertificateValidator_AutoAccept(CertificateValidator validator, CertificateValidationEventArgs e)
-    {
-        e.Accept = true;
     }
 
     /// <summary>
@@ -338,7 +348,8 @@ public class PlcSimulatorFixture
     /// </summary>
     /// <param name="endpointUrl"></param>
     /// <exception cref="Exception"></exception>
-    private async Task<ConfiguredEndpoint> GetServerEndpointAsync(string endpointUrl, bool useSecurity = false)
+    private async Task<ConfiguredEndpoint> GetServerEndpointAsync(string endpointUrl, bool useSecurity = false,
+        CancellationToken cancellationToken = default)
     {
         var sw = Stopwatch.StartNew();
 
@@ -351,8 +362,8 @@ public class PlcSimulatorFixture
                     endpointUrl,
                     useSecurity,
                     discoverTimeout: 15000,
-                    telemetry: null,
-                    CancellationToken.None).ConfigureAwait(false);
+                    telemetry: _clientTelemetry,
+                    cancellationToken).ConfigureAwait(false);
 
                 var endpointConfiguration = EndpointConfiguration.Create(_config);
                 return new ConfiguredEndpoint(collection: null, endpoint, endpointConfiguration);
@@ -360,7 +371,7 @@ public class PlcSimulatorFixture
             catch (ServiceResultException) when (sw.Elapsed < TimeSpan.FromSeconds(10))
             {
                 await _log.WriteLineAsync("Retrying to access endpoint...").ConfigureAwait(false);
-                await Task.Delay(100).ConfigureAwait(false);
+                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
             }
         }
     }

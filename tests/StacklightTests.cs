@@ -50,10 +50,10 @@ public class StacklightTests : SimulatorTestsBase
             requestHeader: null,
             view: null,
             requestedMaxReferencesPerNode: 0,
-            nodesToBrowse: new BrowseDescriptionCollection { browseDescription },
+            nodesToBrowse: new List<BrowseDescription> { browseDescription },
             ct: CancellationToken.None).ConfigureAwait(false);
 
-        var references = results.Results[0].References;
+        var references = results.Results[0].References.ToArray();
         references.Should().ContainSingle("node should have exactly one HasTypeDefinition reference");
 
         return ExpandedNodeId.ToNodeId(references[0].NodeId, Session.NamespaceUris);
@@ -84,7 +84,7 @@ public class StacklightTests : SimulatorTestsBase
     public async Task Stacklight_StacklightMode_DefaultValueIsRed()
     {
         var stacklightModeNodeId = GetOpcPlcNodeId("Stacklight_StacklightMode");
-        var value = Convert.ToInt32((await ReadDataValueAsync(stacklightModeNodeId).ConfigureAwait(false)).Value);
+        var value = Convert.ToInt32((await ReadDataValueAsync(stacklightModeNodeId).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy));
 
         value.Should().Be(0, "default StacklightMode should be 0 (Red lamp active)");
     }
@@ -98,7 +98,7 @@ public class StacklightTests : SimulatorTestsBase
         var statusCode = await WriteValueAsync(stacklightModeNodeId, 2).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
 
-        var value = Convert.ToInt32((await ReadDataValueAsync(stacklightModeNodeId).ConfigureAwait(false)).Value);
+        var value = Convert.ToInt32((await ReadDataValueAsync(stacklightModeNodeId).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy));
         value.Should().Be(2);
 
         // Restore to 0 (Red).
@@ -122,7 +122,7 @@ public class StacklightTests : SimulatorTestsBase
     public async Task Stacklight_LampElement_NumberInList(string colorName, int expectedNumber)
     {
         var nodeId = GetOpcPlcNodeId($"Stacklight_Lamp_{colorName}_NumberInList");
-        var value = Convert.ToInt32((await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value);
+        var value = Convert.ToInt32((await ReadDataValueAsync(nodeId).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy));
 
         value.Should().Be(expectedNumber, $"Lamp_{colorName} NumberInList should be {expectedNumber}");
     }
@@ -142,7 +142,7 @@ public class StacklightTests : SimulatorTestsBase
         actualDataTypeNodeId.Should().Be(expectedDataTypeNodeId, $"SignalColor should use IA SignalColor data type");
 
         // Verify value.
-        var value = Convert.ToInt32((await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value);
+        var value = Convert.ToInt32((await ReadDataValueAsync(nodeId).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy));
         value.Should().Be(expectedColor, $"Lamp_{colorName} SignalColor should be {expectedColor}");
     }
 
@@ -161,7 +161,7 @@ public class StacklightTests : SimulatorTestsBase
         actualDataTypeNodeId.Should().Be(expectedDataTypeNodeId, $"SignalMode should use IA SignalModeLight data type");
 
         // Verify value.
-        var value = Convert.ToInt32((await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value);
+        var value = Convert.ToInt32((await ReadDataValueAsync(nodeId).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy));
         value.Should().Be(expectedMode, $"Lamp_{colorName} SignalMode should be {expectedMode} (Continuous)");
     }
 
@@ -169,9 +169,9 @@ public class StacklightTests : SimulatorTestsBase
     public async Task Stacklight_DefaultState_RedLampOn()
     {
         // After initial ApplyStacklightMode (mode=0=Red), only the red lamp should be on.
-        var redSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Red_SignalOn")).ConfigureAwait(false)).Value;
-        var yellowSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Yellow_SignalOn")).ConfigureAwait(false)).Value;
-        var greenSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Green_SignalOn")).ConfigureAwait(false)).Value;
+        var redSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Red_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
+        var yellowSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Yellow_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
+        var greenSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Green_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
 
         redSignalOn.Should().BeTrue("Red lamp should be on in default mode");
         yellowSignalOn.Should().BeFalse("Yellow lamp should be off in default mode");
@@ -187,9 +187,9 @@ public class StacklightTests : SimulatorTestsBase
         await WriteValueAsync(stacklightModeNodeId, 1).ConfigureAwait(false);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
-        var redSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Red_SignalOn")).ConfigureAwait(false)).Value;
-        var yellowSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Yellow_SignalOn")).ConfigureAwait(false)).Value;
-        var greenSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Green_SignalOn")).ConfigureAwait(false)).Value;
+        var redSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Red_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
+        var yellowSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Yellow_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
+        var greenSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Green_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
 
         redSignalOn.Should().BeFalse("Red lamp should be off in Yellow mode");
         yellowSignalOn.Should().BeTrue("Yellow lamp should be on in Yellow mode");
@@ -209,9 +209,9 @@ public class StacklightTests : SimulatorTestsBase
         await WriteValueAsync(stacklightModeNodeId, 2).ConfigureAwait(false);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
-        var redSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Red_SignalOn")).ConfigureAwait(false)).Value;
-        var yellowSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Yellow_SignalOn")).ConfigureAwait(false)).Value;
-        var greenSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Green_SignalOn")).ConfigureAwait(false)).Value;
+        var redSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Red_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
+        var yellowSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Yellow_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
+        var greenSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Green_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
 
         redSignalOn.Should().BeFalse("Red lamp should be off in Green mode");
         yellowSignalOn.Should().BeFalse("Yellow lamp should be off in Green mode");
@@ -231,9 +231,9 @@ public class StacklightTests : SimulatorTestsBase
         await WriteValueAsync(stacklightModeNodeId, 99).ConfigureAwait(false);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
-        var redSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Red_SignalOn")).ConfigureAwait(false)).Value;
-        var yellowSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Yellow_SignalOn")).ConfigureAwait(false)).Value;
-        var greenSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Green_SignalOn")).ConfigureAwait(false)).Value;
+        var redSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Red_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
+        var yellowSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Yellow_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
+        var greenSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Green_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
 
         redSignalOn.Should().BeFalse("All lamps should be off for invalid mode");
         yellowSignalOn.Should().BeFalse("All lamps should be off for invalid mode");
@@ -262,10 +262,10 @@ public class StacklightTests : SimulatorTestsBase
             null,
             null,
             0,
-            new BrowseDescriptionCollection { browseDescription },
+            new List<BrowseDescription> { browseDescription },
             CancellationToken.None).ConfigureAwait(false);
 
-        var references = results.Results[0].References;
+        var references = results.Results[0].References.ToArray();
         references.Should().HaveCount(3, "Stacklight should have 3 lamp elements connected via HasOrderedComponent");
 
         var displayNames = references.Select(r => r.DisplayName.Text).ToList();

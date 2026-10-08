@@ -25,15 +25,15 @@ public partial class WotConTests
         var (createStatus, createOutputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(assetName) }).ConfigureAwait(false);
         StatusCode.IsGood(createStatus).Should().BeTrue();
-        var assetId = createOutputs[0].Value as NodeId;
+        var assetId = createOutputs[0].GetNodeId();
         assetId.Should().NotBeNull();
 
         var (deleteStatus, _) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(DeleteAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(assetId) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(assetId) }).ConfigureAwait(false);
 
         StatusCode.IsGood(deleteStatus).Should().BeTrue(
             "DeleteAsset with the AssetId from CreateAsset should succeed, got {0}", deleteStatus);
@@ -53,11 +53,11 @@ public partial class WotConTests
             null,
             null,
             0,
-            new BrowseDescriptionCollection { browseDescription },
+            new List<BrowseDescription> { browseDescription },
             CancellationToken.None).ConfigureAwait(false);
 
-        results.Results.Should().ContainSingle();
-        results.Results[0].References.Should().NotContain(
+        results.Results.ToArray().Should().ContainSingle();
+        results.Results[0].References.ToArray().Should().NotContain(
             r => r.BrowseName.Name == assetName,
             "the deleted asset must not be browseable from WoTAssetConnectionManagement");
     }
@@ -70,8 +70,8 @@ public partial class WotConTests
         var (status, _) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(DeleteAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(bogus) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(bogus) }).ConfigureAwait(false);
 
-        status.Code.Should().Be(StatusCodes.BadNotFound);
+        status.Should().Be(StatusCodes.BadNotFound);
     }
 }

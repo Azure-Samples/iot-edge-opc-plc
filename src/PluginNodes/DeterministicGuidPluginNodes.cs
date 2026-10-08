@@ -6,6 +6,8 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Nodes with deterministic GUIDs as ID.
@@ -28,8 +30,11 @@ public partial class DeterministicGuidPluginNodes(TimeService timeService, ILogg
             (uint i) => NodeCount = i);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         FolderState folder = _plcNodeManager.CreateFolder(
@@ -39,6 +44,8 @@ public partial class DeterministicGuidPluginNodes(TimeService timeService, ILogg
             NamespaceType.OpcPlcApplications);
 
         AddNodes(folder);
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()

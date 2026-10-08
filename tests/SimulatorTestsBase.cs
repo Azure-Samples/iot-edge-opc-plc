@@ -32,13 +32,16 @@ public abstract class SimulatorTestsBase
 
     protected IReadOnlyCollection<IPluginNodes> PluginNodes => _simulator.PluginNodes;
 
+    protected TimeSpan MinimumSubscriptionLifetime => TimeSpan.FromMilliseconds(
+        _simulator.ClientConfiguration.ClientConfiguration.MinSubscriptionLifetime);
+
     protected SimulatorTestsBase(string[] args = default)
     {
         _simulator = new PlcSimulatorFixture(args);
     }
 
     /// <summary>The current OPC-UA Session.</summary>
-    protected Session Session { get; private set; }
+    protected ISession Session { get; private set; }
 
     /// <summary>Starts the simulator and creates a new OPC-UA session, shared by all test methods in a class.</summary>
     [OneTimeSetUp]
@@ -52,8 +55,31 @@ public abstract class SimulatorTestsBase
     [OneTimeTearDown]
     public async Task TearDown()
     {
-        await Session.CloseAsync().ConfigureAwait(false);
-        await _simulator.StopAsync().ConfigureAwait(false);
+        try
+        {
+            if (Session is not null)
+            {
+                await Session.CloseAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            try
+            {
+                if (Session is IAsyncDisposable asyncSession)
+                {
+                    await asyncSession.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    Session?.Dispose();
+                }
+            }
+            finally
+            {
+                await _simulator.StopAsync().ConfigureAwait(false);
+            }
+        }
     }
 
     /// <summary>
@@ -99,7 +125,7 @@ public abstract class SimulatorTestsBase
 
     private async Task<NodeId> FindNodeAsync(NodeId startingNode, string relativePath)
     {
-        var browsePaths = new BrowsePathCollection
+        var browsePaths = new List<BrowsePath>
             {
                 new BrowsePath
                 {
@@ -113,9 +139,9 @@ public abstract class SimulatorTestsBase
             browsePaths,
             CancellationToken.None).ConfigureAwait(false);
 
-        var nodeId = results.Results
+        var nodeId = results.Results.ToArray()
             .Should().ContainSingle("search should contain a result")
-            .Subject.Targets
+            .Subject.Targets.ToArray()
             .Should().ContainSingle("search for {0} should contain a result target (Results: {1})", relativePath, JsonSerializer.Serialize(results))
             .Subject.TargetId;
 
@@ -124,12 +150,17 @@ public abstract class SimulatorTestsBase
 
     protected async Task<T> ReadValueAsync<T>(NodeId nodeId)
     {
-        return (T)(await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value;
+        Variant value = (await ReadDataValueAsync(nodeId).ConfigureAwait(false)).WrappedValue;
+        if (value.IsNull && default(T) is not null)
+        {
+            throw new InvalidCastException($"Cannot read a null value as {typeof(T).Name}.");
+        }
+        return value.CastTo<T>();
     }
 
     protected async Task<DataValue> ReadDataValueAsync(NodeId nodeId, CancellationToken ct = default)
     {
-        var nodesToRead = new ReadValueIdCollection
+        var nodesToRead = new List<ReadValueId>
         {
             new ReadValueId
             {
@@ -150,16 +181,13 @@ public abstract class SimulatorTestsBase
 
     protected async Task<StatusCode> WriteValueAsync(NodeId nodeId, object newValue)
     {
-        var valuesToWrite = new WriteValueCollection
+        var valuesToWrite = new List<WriteValue>
             {
                 new WriteValue
                 {
                     NodeId = nodeId,
                     AttributeId = Attributes.Value,
-                    Value =
-                    {
-                        Value = newValue,
-                    },
+                    Value = new DataValue(VariantHelper.CastFrom(newValue)),
                 }
             };
 
@@ -169,14 +197,16 @@ public abstract class SimulatorTestsBase
             valuesToWrite,
             CancellationToken.None).ConfigureAwait(false);
 
-        return results.Results.FirstOrDefault();
+        return results.Results.ToArray().FirstOrDefault();
     }
 
     /// <summary>
     /// Calls OPC UA method over active session
     /// </summary>
-    protected Task<IList<object>> CallMethodAsync(string methodName, string objectName = "Methods", params object[] args)
+    protected async Task<ArrayOf<Variant>> CallMethodAsync(
+        string methodName, string objectName = "Methods", params Variant[] args)
     {
-        return Session.CallAsync(GetOpcPlcNodeId(objectName), GetOpcPlcNodeId(methodName), args: args);
+        return await Session.CallAsync(GetOpcPlcNodeId(objectName), GetOpcPlcNodeId(methodName),
+            CancellationToken.None, args).ConfigureAwait(false);
     }
 }

@@ -5,6 +5,8 @@ using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
 
 /// <summary>
@@ -22,8 +24,11 @@ public class SpecialCharNamePluginNode(TimeService timeService, ILogger logger) 
         // Enabled by default.
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         FolderState folder = _plcNodeManager.CreateFolder(
@@ -33,6 +38,8 @@ public class SpecialCharNamePluginNode(TimeService timeService, ILogger logger) 
             NamespaceType.OpcPlcApplications);
 
         AddNodes(folder);
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()

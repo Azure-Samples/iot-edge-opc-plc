@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
+using Opc.Ua;
 using OpcPlc.Configuration;
 using OpcPlc.Certs;
 using OpcPlc.Helpers;
@@ -23,7 +24,7 @@ public class OpcUaAppConfigFactoryTests
     {
         using var rsa = RSA.Create(2048);
         var req = new CertificateRequest($"CN={subjectName}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-        var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+        using var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         // Ensure exported cert without private key for trusted stores
         return X509CertificateLoader.LoadCertificate(cert.Export(X509ContentType.Cert));
     }
@@ -56,7 +57,7 @@ public class OpcUaAppConfigFactoryTests
             Directory.CreateDirectory(config.OpcUa.OpcUserIssuerCertStorePath);
 
             // create self-signed cert and encode as base64 DER
-            var cert = CreateSelfSignedCertificate("unit-test-user");
+            using var cert = CreateSelfSignedCertificate("unit-test-user");
             var der = cert.Export(X509ContentType.Cert);
             var base64 = Convert.ToBase64String(der);
 
@@ -73,10 +74,11 @@ public class OpcUaAppConfigFactoryTests
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+            using var manager = (CertificateManager)appConfig.CertificateManager;
 
             // Assert - open the configured trusted user store and find our certificate
-            using var store = appConfig.SecurityConfiguration.TrustedUserCertificates.OpenStore(telemetryContext);
-            var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+            using var store = appConfig.CertificateManager.OpenTrustedStore(TrustListIdentifier.Users);
+            using var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
             certs.Count.Should().BeGreaterThanOrEqualTo(1, "Trusted user store should contain at least one certificate");
@@ -118,7 +120,7 @@ public class OpcUaAppConfigFactoryTests
             Directory.CreateDirectory(config.OpcUa.OpcTrustedUserCertStorePath);
 
             // create cert and write to temp file in DER
-            var cert = CreateSelfSignedCertificate("unit-test-trusted-user");
+            using var cert = CreateSelfSignedCertificate("unit-test-trusted-user");
             var der = cert.Export(X509ContentType.Cert);
             await File.WriteAllBytesAsync(certFile, der).ConfigureAwait(false);
 
@@ -133,10 +135,11 @@ public class OpcUaAppConfigFactoryTests
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+            using var manager = (CertificateManager)appConfig.CertificateManager;
 
             // Assert - open the configured trusted user store and find our certificate
-            using var store = appConfig.SecurityConfiguration.TrustedUserCertificates.OpenStore(telemetryContext);
-            var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+            using var store = appConfig.CertificateManager.OpenTrustedStore(TrustListIdentifier.Users);
+            using var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
             certs.Count.Should().BeGreaterThanOrEqualTo(1, "Trusted user store should contain at least one certificate");
@@ -178,7 +181,7 @@ public class OpcUaAppConfigFactoryTests
             Directory.CreateDirectory(config.OpcUa.OpcUserIssuerCertStorePath);
 
             // create cert and write to temp file in DER
-            var cert = CreateSelfSignedCertificate("unit-test-issuer");
+            using var cert = CreateSelfSignedCertificate("unit-test-issuer");
             var der = cert.Export(X509ContentType.Cert);
             string certFile = Path.Combine(Path.GetTempPath(), "userissuer_" + Guid.NewGuid().ToString("N") + ".der");
             await File.WriteAllBytesAsync(certFile, der).ConfigureAwait(false);
@@ -194,10 +197,11 @@ public class OpcUaAppConfigFactoryTests
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+            using var manager = (CertificateManager)appConfig.CertificateManager;
 
             // Assert
-            using var store = appConfig.SecurityConfiguration.UserIssuerCertificates.OpenStore(telemetryContext);
-            var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+            using var store = appConfig.CertificateManager.OpenIssuerStore(TrustListIdentifier.Users);
+            using var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
             certs.Count.Should().BeGreaterThanOrEqualTo(1, "User issuer store should contain at least one certificate");
@@ -241,7 +245,7 @@ public class OpcUaAppConfigFactoryTests
             Directory.CreateDirectory(config.OpcUa.OpcUserIssuerCertStorePath);
 
             // create self-signed cert and encode as base64 DER
-            var cert = CreateSelfSignedCertificate("unit-test-user-issuer");
+            using var cert = CreateSelfSignedCertificate("unit-test-user-issuer");
             var der = cert.Export(X509ContentType.Cert);
             var base64 = Convert.ToBase64String(der);
 
@@ -257,10 +261,11 @@ public class OpcUaAppConfigFactoryTests
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+            using var manager = (CertificateManager)appConfig.CertificateManager;
 
             // Assert - open the configured user issuer store and find our certificate
-            using var store = appConfig.SecurityConfiguration.UserIssuerCertificates.OpenStore(telemetryContext);
-            var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+            using var store = appConfig.CertificateManager.OpenIssuerStore(TrustListIdentifier.Users);
+            using var certs = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
 
             certs.Should().NotBeNull();
             certs.Count.Should().BeGreaterThanOrEqualTo(1, "User issuer store should contain at least one certificate");
@@ -316,6 +321,7 @@ public class OpcUaAppConfigFactoryTests
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+            using var manager = (CertificateManager)appConfig.CertificateManager;
 
             // Assert - store paths should include FlatDirectory prefix
             var expectedTrustedUserPath = FlatDirectoryCertificateStore.StoreTypePrefix + config.OpcUa.OpcTrustedUserCertStorePath;
@@ -362,6 +368,7 @@ public class OpcUaAppConfigFactoryTests
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+            using var manager = (CertificateManager)appConfig.CertificateManager;
 
             // Assert - security configuration should reflect the requested minimum key size
             appConfig.SecurityConfiguration.MinimumCertificateKeySize.Should().Be(keySize);
@@ -401,9 +408,12 @@ public class OpcUaAppConfigFactoryTests
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+            using var manager = (CertificateManager)appConfig.CertificateManager;
 
             // Assert - the generated application certificate key size should meet the minimum
-            var certificate = appConfig.SecurityConfiguration.ApplicationCertificate.Certificate;
+            using CertificateEntry entry = appConfig.CertificateManager.AcquireApplicationCertificateByType(
+                Opc.Ua.ObjectTypeIds.RsaSha256ApplicationCertificateType);
+            var certificate = entry.Certificate;
             certificate.Should().NotBeNull("a self-signed application certificate should have been created");
 
             using var rsaKey = certificate.GetRSAPublicKey();
@@ -448,6 +458,7 @@ public class OpcUaAppConfigFactoryTests
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+            using var manager = (CertificateManager)appConfig.CertificateManager;
 
             // Assert
             appConfig.SecurityConfiguration.RejectSHA1SignedCertificates.Should().Be(rejectSha1);
@@ -477,6 +488,7 @@ public class OpcUaAppConfigFactoryTests
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+            using var manager = (CertificateManager)appConfig.CertificateManager;
 
             // Assert
             appConfig.ServerConfiguration.ReverseConnect.Should().BeNull();
@@ -511,6 +523,7 @@ public class OpcUaAppConfigFactoryTests
 
             // Act
             var appConfig = await factory.ConfigureAsync().ConfigureAwait(false);
+            using var manager = (CertificateManager)appConfig.CertificateManager;
 
             // Assert
             var reverseConnect = appConfig.ServerConfiguration.ReverseConnect;
@@ -519,12 +532,12 @@ public class OpcUaAppConfigFactoryTests
             reverseConnect.ConnectTimeout.Should().Be(2000);
             reverseConnect.RejectTimeout.Should().Be(3000);
 
-            reverseConnect.Clients.Should().HaveCount(2);
-            reverseConnect.Clients.Select(c => c.EndpointUrl).Should()
+            reverseConnect.Clients.ToArray().Should().HaveCount(2);
+            reverseConnect.Clients.ToArray().Select(c => c.EndpointUrl).Should()
                 .Equal("opc.tcp://client1:65300", "opc.tcp://client2:65301");
-            reverseConnect.Clients.Should().OnlyContain(c => c.Enabled);
-            reverseConnect.Clients.Should().OnlyContain(c => c.Timeout == 2000);
-            reverseConnect.Clients.Should().OnlyContain(c => c.MaxSessionCount == 4);
+            reverseConnect.Clients.ToArray().Should().OnlyContain(c => c.Enabled);
+            reverseConnect.Clients.ToArray().Should().OnlyContain(c => c.Timeout == 2000);
+            reverseConnect.Clients.ToArray().Should().OnlyContain(c => c.MaxSessionCount == 4);
         }
         finally
         {

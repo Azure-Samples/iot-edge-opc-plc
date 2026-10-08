@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Nodes that are configured via binary *.PredefinedNodes.uanodes file(s).
@@ -19,7 +21,6 @@ public partial class UaNodesPluginNodes(TimeService timeService, ILogger logger)
 
     private List<string> _nodesFileNames;
     private PlcNodeManager _plcNodeManager;
-    private Stream _uanodesFile;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -29,13 +30,16 @@ public partial class UaNodesPluginNodes(TimeService timeService, ILogger logger)
             (string s) => _nodesFileNames = CliHelper.ParseListOfFileNames(s, "unf"));
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public async ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (_nodesFileNames?.Any() ?? false)
         {
-            AddNodes();
+            await AddNodesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -49,18 +53,20 @@ public partial class UaNodesPluginNodes(TimeService timeService, ILogger logger)
         // No simulation.
     }
 
-    private void AddNodes()
+    private async ValueTask AddNodesAsync(CancellationToken cancellationToken)
     {
         foreach (var file in _nodesFileNames)
         {
             try
             {
-                _uanodesFile = File.OpenRead(file);
+                cancellationToken.ThrowIfCancellationRequested();
+                using var stream = File.OpenRead(file);
 
                 // Load complex types from binary uanodes file.
-                _plcNodeManager.LoadPredefinedNodes(LoadPredefinedNodes);
+                await _plcNodeManager.LoadPredefinedNodesAsync(
+                    context => LoadPredefinedNodes(context, stream), cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
                 LogErrorLoadingUaNodesFile(e, file, e.Message);
             }
@@ -72,16 +78,11 @@ public partial class UaNodesPluginNodes(TimeService timeService, ILogger logger)
     /// <summary>
     /// Loads a node set from a file and adds them to the set of predefined nodes.
     /// </summary>
-    private NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    private NodeStateCollection LoadPredefinedNodes(ISystemContext context, Stream stream)
     {
         var predefinedNodes = new NodeStateCollection();
 
-        using (_uanodesFile)
-        {
-            predefinedNodes.LoadFromBinary(context,
-                    _uanodesFile,
-                    updateTables: true);
-        }
+        predefinedNodes.LoadFromBinary(context, stream, updateTables: true);
 
         // Add to node list for creation of pn.json.
         Nodes ??= new List<NodeWithIntervals>();

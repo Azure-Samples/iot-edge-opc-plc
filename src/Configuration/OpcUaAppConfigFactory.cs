@@ -3,6 +3,7 @@ namespace OpcPlc.Configuration;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Configuration;
+using Opc.Ua.Security.Certificates;
 using OpcPlc.Certs;
 using System;
 using System.Collections.Generic;
@@ -19,25 +20,59 @@ public partial class OpcUaAppConfigFactory(
     ITelemetryContext telemetryContext,
     IKubernetesSecretStoreClientFactory kubernetesSecretStoreClientFactory = null)
 {
+    private const int SecureChannelHeadroom = 3;
     private readonly OpcPlcConfiguration _config = config;
     private readonly IKubernetesSecretStoreClientFactory _kubernetesSecretStoreClientFactory = kubernetesSecretStoreClientFactory ?? new KubernetesSecretStoreClientFactory(config.OpcUa.OpcKubernetesKubeConfigFilePath, loggerFactory.CreateLogger<KubernetesSecretStoreClient>());
     private readonly ILogger _logger = logger;
     private readonly ILoggerFactory _loggerFactory = loggerFactory;
     private readonly ITelemetryContext _telemetryContext = telemetryContext ?? throw new ArgumentNullException(nameof(telemetryContext));
-    private readonly CertificateManagementService _certificateManagementService = new(config, logger, telemetryContext);
+    private CertificateManagementService _certificateManagementService;
+    private ICertificateStoreProvider[] _certificateStoreProviders;
 
     /// OpcApplicationConfiguration
 
     /// <summary>
-    /// Configures all OPC stack settings.
+    /// Configures all OPC stack settings. The caller owns the returned configuration's
+    /// <see cref="CertificateManager"/> and must dispose it after use.
     /// </summary>
-    public async Task<ApplicationConfiguration> ConfigureAsync()
+    public async Task<ApplicationConfiguration> ConfigureAsync(CancellationToken cancellationToken = default)
     {
-        // instead of using a configuration XML file, configure everything programmatically
-        var application = new ApplicationInstance(_telemetryContext) {
-            ApplicationName = _config.ProgramName, // Name in the certificate, e.g. OpcPlc.
+        cancellationToken.ThrowIfCancellationRequested();
+        var application = CreateApplication();
+        try
+        {
+            return await ConfigureAsync(application, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            await application.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    internal ApplicationInstance CreateApplication()
+    {
+        return new ApplicationInstance(_telemetryContext)
+        {
+            ApplicationName = _config.ProgramName,
             ApplicationType = ApplicationType.Server,
         };
+    }
+
+    internal async Task<ApplicationConfiguration> ConfigureAsync(
+        IApplicationInstance application, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_config.DisableAnonymousAuth && _config.DisableCertAuth && !_config.UsernamePasswordAuthEnabled)
+        {
+            throw new InvalidOperationException("At least one user authentication method must be enabled.");
+        }
+
+        if (_config.OpcUa.MaxSessionCount <= 0 || _config.OpcUa.MaxSessionCount > int.MaxValue - SecureChannelHeadroom)
+        {
+            throw new ArgumentOutOfRangeException(nameof(_config.OpcUa.MaxSessionCount),
+            "Session capacity must be positive and leave room for reserved and reconnect SecureChannels.");
+        }
 
         var transportQuotas = new TransportQuotas {
             MaxStringLength = _config.OpcUa.OpcMaxStringLength,
@@ -121,12 +156,11 @@ public partial class OpcUaAppConfigFactory(
             .SetMaxSubscriptionCount(_config.OpcUa.MaxSubscriptionCount)
             .SetMaxQueuedRequestCount(_config.OpcUa.MaxQueuedRequestCount)
             .SetOperationLimits(operationLimits)
-            // Ignore max channel count.
-            // TODO: Remove this when the OPC UA stack supports more than 100 channels.
-            .SetMaxChannelCount(0);
+            .SetMaxChannelCount(_config.OpcUa.MaxSessionCount + SecureChannelHeadroom);
 
         // Security configuration.
-        _config.OpcUa.ApplicationConfiguration = await InitApplicationSecurityAsync(securityBuilder).ConfigureAwait(false);
+        _config.OpcUa.ApplicationConfiguration = await InitApplicationSecurityAsync(securityBuilder, cancellationToken)
+            .ConfigureAwait(false);
 
         foreach (var policy in _config.OpcUa.ApplicationConfiguration.ServerConfiguration.SecurityPolicies)
         {
@@ -146,58 +180,42 @@ public partial class OpcUaAppConfigFactory(
         bool customCertificateProvided = !string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) ||
                                          !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName);
 
-        // log certificate status - refetch after InitApplicationSecurityAsync
-        var certificate = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
-        if (certificate == null)
+        using CertificateEntry existingCertificate = _config.OpcUa.ApplicationConfiguration.CertificateManager
+            .AcquireApplicationCertificateByType(ObjectTypeIds.RsaSha256ApplicationCertificateType);
+        if (existingCertificate is null)
         {
             LogNoExistingCertificateFound(CertificateFactory.DefaultLifeTime, CertificateFactory.DefaultKeySize, CertificateFactory.DefaultHashSize);
         }
         else
         {
-            LogCertificateFound(certificate.Thumbprint);
+            LogCertificateFound(existingCertificate.Certificate.Thumbprint);
         }
 
-        // Check the certificate, create new self-signed certificate if necessary (but not if custom cert was provided)
-        bool isCertValid;
+        using CertificateEntry certificateEntry = await ApplicationCertificateLifecycle.EnsureAndAcquireAsync(
+            application, customCertificateProvided, cancellationToken).ConfigureAwait(false);
+        Certificate certificate = certificateEntry.Certificate;
         if (customCertificateProvided)
         {
-            // Custom certificate was provided, just validate it without creating a new one
-            isCertValid = certificate != null;
-            if (!isCertValid)
-            {
-                throw new Exception("Custom application certificate was provided but could not be loaded.");
-            }
             LogUsingCustomCertificate();
         }
-        else
+        else if (existingCertificate is null)
         {
-            // No custom certificate, let the system create a self-signed one if needed
-            isCertValid = await application.CheckApplicationInstanceCertificatesAsync(silent: true, lifeTimeInMonths: CertificateFactory.DefaultLifeTime).ConfigureAwait(false);
-            if (!isCertValid)
-            {
-                throw new Exception("Application certificate invalid.");
-            }
-
-            if (certificate == null)
-            {
-                certificate = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate;
-                LogCertificateCreated(certificate.Thumbprint);
-            }
+            LogCertificateCreated(certificate.Thumbprint);
         }
 
         LogApplicationCertificateInfo(
             _config.OpcUa.ApplicationConfiguration.ApplicationUri,
             _config.OpcUa.ApplicationConfiguration.ApplicationName,
-            _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate.Subject);
+            certificate.Subject);
 
         // show CreateSigningRequest data
         if (_config.OpcUa.ShowCreateSigningRequestInfo)
         {
-            await ShowCreateSigningRequestInformationAsync(_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate).ConfigureAwait(false);
+            await ShowCreateSigningRequestInformationAsync(certificate, cancellationToken).ConfigureAwait(false);
         }
 
         // show certificate store information
-        await ShowCertificateStoreInformationAsync().ConfigureAwait(false);
+        await ShowCertificateStoreInformationAsync(cancellationToken).ConfigureAwait(false);
 
         LogApplicationConfigured(
             _config.OpcUa.ApplicationConfiguration.ServerConfiguration.MaxSessionCount,
@@ -211,34 +229,16 @@ public partial class OpcUaAppConfigFactory(
     /// </summary>
     private void ConfigureReverseConnect()
     {
-        List<string> clientUrls = _config.OpcUa.ReverseConnectClientUrls;
-
-        if (clientUrls is null || clientUrls.Count == 0)
+        ReverseConnectServerConfiguration reverseConnect = _config.OpcUa.CreateReverseConnectConfiguration();
+        if (reverseConnect is null)
         {
             return;
-        }
-
-        var reverseConnect = new ReverseConnectServerConfiguration {
-            ConnectInterval = _config.OpcUa.ReverseConnectInterval,
-            ConnectTimeout = _config.OpcUa.ReverseConnectTimeout,
-            RejectTimeout = _config.OpcUa.ReverseConnectRejectTimeout,
-            Clients = [],
-        };
-
-        foreach (string clientUrl in clientUrls)
-        {
-            reverseConnect.Clients.Add(new ReverseConnectClient {
-                EndpointUrl = clientUrl,
-                Timeout = _config.OpcUa.ReverseConnectTimeout,
-                MaxSessionCount = _config.OpcUa.ReverseConnectMaxSessionCount,
-                Enabled = true,
-            });
         }
 
         _config.OpcUa.ApplicationConfiguration.ServerConfiguration.ReverseConnect = reverseConnect;
 
         LogReverseConnectEnabled(
-            clientUrls,
+            _config.OpcUa.ReverseConnectClientUrls,
             _config.OpcUa.ReverseConnectInterval,
             _config.OpcUa.ReverseConnectTimeout,
             _config.OpcUa.ReverseConnectRejectTimeout);
@@ -265,63 +265,52 @@ public partial class OpcUaAppConfigFactory(
     /// <summary>
     /// Configures OPC stack security.
     /// </summary>
-    public async Task<ApplicationConfiguration> InitApplicationSecurityAsync(IApplicationConfigurationBuilderServerOptions securityBuilder)
+    public async Task<ApplicationConfiguration> InitApplicationSecurityAsync(
+        IApplicationConfigurationBuilderServerOptions securityBuilder, CancellationToken cancellationToken = default)
     {
-        RegisterCustomCertificateStoreType();
-
+        cancellationToken.ThrowIfCancellationRequested();
+        _certificateManagementService ??= new CertificateManagementService(
+            _config, _logger, _telemetryContext, GetCertificateStoreProviders());
         // Update/install the custom application certificate first if provided, before setting up stores
         if (!string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) || !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName))
         {
             LogCustomCertificateProvided();
         }
 
-        var applicationCerts = new CertificateIdentifierCollection
-        {
-            new CertificateIdentifier
-            {
-                StoreType = _config.OpcUa.OpcOwnCertStoreType,
-                SubjectName = _config.ProgramName,
-                CertificateType = ObjectTypeIds.RsaSha256ApplicationCertificateType,
-            }
-        };
-        var options = securityBuilder.AddSecurityConfiguration(applicationCerts, _config.OpcUa.OpcOwnPKIRootDefault, rejectedRoot: null)
-            .SetAutoAcceptUntrustedCertificates(_config.OpcUa.AutoAcceptCerts)
-            .SetRejectUnknownRevocationStatus(!_config.OpcUa.DontRejectUnknownRevocationStatus)
-            .SetRejectSHA1SignedCertificates(_config.OpcUa.RejectSHA1SignedCertificates)
-            .SetMinimumCertificateKeySize(_config.OpcUa.MinimumCertificateKeySize)
-            .SetAddAppCertToTrustedStore(_config.OpcUa.TrustMyself);
+        var options = PlcSecurityConfiguration.Configure(securityBuilder.AddSecurityConfiguration(
+            PlcSecurityConfiguration.CreateApplicationCertificates(_config),
+            _config.OpcUa.OpcOwnPKIRootDefault, rejectedRoot: null), _config);
 
         var securityConfiguration = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration;
+        PlcSecurityConfiguration.ConfigureStores(securityConfiguration, _config);
 
-        if (UsesCustomCertificateStoreType(_config.OpcUa.OpcOwnCertStoreType))
+        _config.OpcUa.ApplicationConfiguration.CertificateManager ??= CertificateManagerFactory.Create(
+            securityConfiguration, _telemetryContext, options =>
+            {
+                foreach (ICertificateStoreProvider provider in GetCertificateStoreProviders())
+                {
+                    options.AddStoreProvider(provider);
+                }
+            });
+
+        CertificateIdentifier identifier = securityConfiguration.ApplicationCertificates[0];
+        var legacyIdentifier = new CertificateIdentifier
         {
-            ConfigureCustomCertificateStores(securityConfiguration);
-        }
-        else
+            StoreType = identifier.StoreType,
+            StorePath = identifier.StorePath,
+            SubjectName = _config.ProgramName,
+            CertificateType = identifier.CertificateType
+        };
+        using (Certificate existing = await CertificateIdentifierResolver.LoadPrivateKeyWithStoreResolverAsync(
+            legacyIdentifier, _config.OpcUa.ApplicationConfiguration.CertificateManager as ICertificateStoreResolver,
+            securityConfiguration.CertificatePasswordProvider, _config.OpcUa.ApplicationConfiguration.ApplicationUri,
+            _telemetryContext, cancellationToken).ConfigureAwait(false))
         {
-            securityConfiguration.ApplicationCertificate.StoreType = _config.OpcUa.OpcOwnCertStoreType;
-            securityConfiguration.ApplicationCertificate.StorePath = _config.OpcUa.OpcOwnCertStorePath;
-
-            // configure trusted issuer certificates store
-            securityConfiguration.TrustedIssuerCertificates.StoreType = CertificateStoreType.Directory;
-            securityConfiguration.TrustedIssuerCertificates.StorePath = _config.OpcUa.OpcIssuerCertStorePath;
-
-            // configure trusted peer certificates store
-            securityConfiguration.TrustedPeerCertificates.StoreType = CertificateStoreType.Directory;
-            securityConfiguration.TrustedPeerCertificates.StorePath = _config.OpcUa.OpcTrustedCertStorePath;
-
-            // configure trusted user certificates store
-            securityConfiguration.TrustedUserCertificates.StoreType = CertificateStoreType.Directory;
-            securityConfiguration.TrustedUserCertificates.StorePath = _config.OpcUa.OpcTrustedUserCertStorePath;
-
-            // configure user issuer certificates store
-            securityConfiguration.UserIssuerCertificates.StoreType = CertificateStoreType.Directory;
-            securityConfiguration.UserIssuerCertificates.StorePath = _config.OpcUa.OpcUserIssuerCertStorePath;
-
-            // configure rejected certificates store
-            securityConfiguration.RejectedCertificateStore.StoreType = CertificateStoreType.Directory;
-            securityConfiguration.RejectedCertificateStore.StorePath = _config.OpcUa.OpcRejectedCertStorePath;
-
+            if (existing is not null)
+            {
+                identifier.SubjectName = existing.Subject;
+                identifier.Thumbprint = existing.Thumbprint;
+            }
         }
 
         // update application certificate if requested BEFORE creating configuration
@@ -329,9 +318,12 @@ public partial class OpcUaAppConfigFactory(
         if ((!string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) || !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName)))
         {
             // Temporarily create the configuration so we can install the custom certificate
-            _config.OpcUa.ApplicationConfiguration = await options.CreateAsync().ConfigureAwait(false);
+            _config.OpcUa.ApplicationConfiguration = await options.CreateAsync(cancellationToken).ConfigureAwait(false);
 
-            if (!await _certificateManagementService.UpdateApplicationCertificateAsync(_config.OpcUa.NewCertificateBase64String, _config.OpcUa.NewCertificateFileName, _config.OpcUa.CertificatePassword, _config.OpcUa.PrivateKeyBase64String, _config.OpcUa.PrivateKeyFileName).ConfigureAwait(false))
+            if (!await _certificateManagementService.UpdateApplicationCertificateAsync(
+                _config.OpcUa.NewCertificateBase64String, _config.OpcUa.NewCertificateFileName,
+                _config.OpcUa.CertificatePassword, _config.OpcUa.PrivateKeyBase64String,
+                _config.OpcUa.PrivateKeyFileName, cancellationToken).ConfigureAwait(false))
             {
                 throw new Exception("Update/Setting of the application certificate failed.");
             }
@@ -340,7 +332,7 @@ public partial class OpcUaAppConfigFactory(
         }
         else
         {
-            _config.OpcUa.ApplicationConfiguration = await options.CreateAsync().ConfigureAwait(false);
+            _config.OpcUa.ApplicationConfiguration = await options.CreateAsync(cancellationToken).ConfigureAwait(false);
         }
 
         LogStoreTypeInfo("Application Certificate", securityConfiguration.ApplicationCertificate.StoreType);
@@ -371,46 +363,52 @@ public partial class OpcUaAppConfigFactory(
             LogAutoAcceptWarning();
         }
 
-        _config.OpcUa.ApplicationConfiguration.CertificateValidator.CertificateValidation += CertificateValidator_CertificateValidation;
+        _config.OpcUa.ApplicationConfiguration.CertificateManager.AcceptError = AcceptCertificateError;
 
         // remove issuer and trusted certificates with the given thumbprints
         if (_config.OpcUa.ThumbprintsToRemove?.Count > 0 &&
-            !await _certificateManagementService.RemoveCertificatesAsync(_config.OpcUa.ThumbprintsToRemove).ConfigureAwait(false))
+            !await _certificateManagementService.RemoveCertificatesAsync(_config.OpcUa.ThumbprintsToRemove,
+                cancellationToken).ConfigureAwait(false))
         {
             throw new Exception("Removing certificates failed.");
         }
 
         // add trusted issuer certificates
         if ((_config.OpcUa.IssuerCertificateBase64Strings?.Count > 0 || _config.OpcUa.IssuerCertificateFileNames?.Count > 0) &&
-            !await _certificateManagementService.AddCertificatesAsync(_config.OpcUa.IssuerCertificateBase64Strings, _config.OpcUa.IssuerCertificateFileNames, true).ConfigureAwait(false))
+            !await _certificateManagementService.AddCertificatesAsync(_config.OpcUa.IssuerCertificateBase64Strings,
+                _config.OpcUa.IssuerCertificateFileNames, true, cancellationToken).ConfigureAwait(false))
         {
             throw new Exception("Adding trusted issuer certificate(s) failed.");
         }
 
         // add trusted peer certificates
         if ((_config.OpcUa.TrustedCertificateBase64Strings?.Count > 0 || _config.OpcUa.TrustedCertificateFileNames?.Count > 0) &&
-            !await _certificateManagementService.AddCertificatesAsync(_config.OpcUa.TrustedCertificateBase64Strings, _config.OpcUa.TrustedCertificateFileNames, false).ConfigureAwait(false))
+            !await _certificateManagementService.AddCertificatesAsync(_config.OpcUa.TrustedCertificateBase64Strings,
+                _config.OpcUa.TrustedCertificateFileNames, false, cancellationToken).ConfigureAwait(false))
         {
             throw new Exception("Adding trusted peer certificate(s) failed.");
         }
 
         // add user issuer certificates (for user certificate chain validation)
         if ((_config.OpcUa.UserIssuerCertificateBase64Strings?.Count > 0 || _config.OpcUa.UserIssuerCertificateFileNames?.Count > 0) &&
-            !await _certificateManagementService.AddUserCertificatesAsync(_config.OpcUa.UserIssuerCertificateBase64Strings, _config.OpcUa.UserIssuerCertificateFileNames, issuerCertificate: true).ConfigureAwait(false))
+            !await _certificateManagementService.AddUserCertificatesAsync(_config.OpcUa.UserIssuerCertificateBase64Strings,
+                _config.OpcUa.UserIssuerCertificateFileNames, true, cancellationToken).ConfigureAwait(false))
         {
             throw new Exception("Adding user issuer certificate(s) failed.");
         }
 
         // add trusted user certificates (user identity certificates)
         if ((_config.OpcUa.TrustedUserCertificateBase64Strings?.Count > 0 || _config.OpcUa.TrustedUserCertificateFileNames?.Count > 0) &&
-            !await _certificateManagementService.AddUserCertificatesAsync(_config.OpcUa.TrustedUserCertificateBase64Strings, _config.OpcUa.TrustedUserCertificateFileNames, issuerCertificate: false).ConfigureAwait(false))
+            !await _certificateManagementService.AddUserCertificatesAsync(_config.OpcUa.TrustedUserCertificateBase64Strings,
+                _config.OpcUa.TrustedUserCertificateFileNames, false, cancellationToken).ConfigureAwait(false))
         {
             throw new Exception("Adding trusted user certificate(s) failed.");
         }
 
         // update CRL if requested
         if ((!string.IsNullOrEmpty(_config.OpcUa.CrlBase64String) || !string.IsNullOrEmpty(_config.OpcUa.CrlFileName)) &&
-            !await _certificateManagementService.UpdateCrlAsync(_config.OpcUa.CrlBase64String, _config.OpcUa.CrlFileName).ConfigureAwait(false))
+            !await _certificateManagementService.UpdateCrlAsync(_config.OpcUa.CrlBase64String,
+                _config.OpcUa.CrlFileName, cancellationToken).ConfigureAwait(false))
         {
             throw new Exception("CRL update failed.");
         }
@@ -418,102 +416,27 @@ public partial class OpcUaAppConfigFactory(
         return _config.OpcUa.ApplicationConfiguration;
     }
 
-    private void ConfigureCustomCertificateStores(SecurityConfiguration securityConfiguration)
-    {
-        var storeType = _config.OpcUa.OpcOwnCertStoreType;
-        var storePathPrefix = GetCustomStorePathPrefix(storeType);
-
-        securityConfiguration.ApplicationCertificate.StoreType = storeType;
-        securityConfiguration.ApplicationCertificate.StorePath = storePathPrefix + _config.OpcUa.OpcOwnCertStorePath;
-
-        securityConfiguration.TrustedIssuerCertificates.StoreType = storeType;
-        securityConfiguration.TrustedIssuerCertificates.StorePath = storePathPrefix + _config.OpcUa.OpcIssuerCertStorePath;
-
-        securityConfiguration.TrustedPeerCertificates.StoreType = storeType;
-        securityConfiguration.TrustedPeerCertificates.StorePath = storePathPrefix + _config.OpcUa.OpcTrustedCertStorePath;
-
-        securityConfiguration.TrustedUserCertificates.StoreType = storeType;
-        securityConfiguration.TrustedUserCertificates.StorePath = storePathPrefix + _config.OpcUa.OpcTrustedUserCertStorePath;
-
-        securityConfiguration.UserIssuerCertificates.StoreType = storeType;
-        securityConfiguration.UserIssuerCertificates.StorePath = storePathPrefix + _config.OpcUa.OpcUserIssuerCertStorePath;
-
-        securityConfiguration.RejectedCertificateStore.StoreType = storeType;
-        securityConfiguration.RejectedCertificateStore.StorePath = storePathPrefix + _config.OpcUa.OpcRejectedCertStorePath;
-    }
-
-    private static string GetCustomStorePathPrefix(string storeType) => storeType switch
-    {
-        FlatDirectoryCertificateStore.StoreTypeName => FlatDirectoryCertificateStore.StoreTypePrefix,
-        KubernetesSecretCertificateStore.StoreTypeName => KubernetesSecretCertificateStore.StoreTypePrefix,
-        _ => throw new ArgumentOutOfRangeException(nameof(storeType), $"Unsupported custom certificate store type '{storeType}'."),
-    };
-
-    private void RegisterCustomCertificateStoreType()
-    {
-        if (!UsesCustomCertificateStoreType(_config.OpcUa.OpcOwnCertStoreType))
-        {
-            return;
-        }
-
-        var certStoreTypeName = CertificateStoreType.GetCertificateStoreTypeByName(_config.OpcUa.OpcOwnCertStoreType);
-        if (certStoreTypeName is not null)
-        {
-            return;
-        }
-
-        switch (_config.OpcUa.OpcOwnCertStoreType)
-        {
-            case FlatDirectoryCertificateStore.StoreTypeName:
-                CertificateStoreType.RegisterCertificateStoreType(
-                    FlatDirectoryCertificateStore.StoreTypeName,
-                    new FlatDirectoryCertificateStoreType(_loggerFactory));
-                break;
-            case KubernetesSecretCertificateStore.StoreTypeName:
-                CertificateStoreType.RegisterCertificateStoreType(
-                    KubernetesSecretCertificateStore.StoreTypeName,
-                    new KubernetesSecretCertificateStoreType(_loggerFactory, _kubernetesSecretStoreClientFactory, _config.OpcUa.OpcKubernetesSecretNamespace));
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(_config.OpcUa.OpcOwnCertStoreType), $"Unsupported custom certificate store type '{_config.OpcUa.OpcOwnCertStoreType}'.");
-        }
-    }
-
-    private static bool UsesCustomCertificateStoreType(string storeType)
-    {
-        return storeType == FlatDirectoryCertificateStore.StoreTypeName ||
-            storeType == KubernetesSecretCertificateStore.StoreTypeName;
-    }
-
     /// <summary>
     /// Show information needed for the Create Signing Request process.
     /// </summary>
-    public async Task ShowCreateSigningRequestInformationAsync(X509Certificate2 certificate)
+    public async Task ShowCreateSigningRequestInformationAsync(
+        X509Certificate2 certificate, CancellationToken cancellationToken = default)
     {
+        using Certificate owned = Certificate.From(new X509Certificate2(certificate));
+        await ShowCreateSigningRequestInformationAsync(owned, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ShowCreateSigningRequestInformationAsync(
+        Certificate certificate, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            // we need a certificate with a private key
-            if (!certificate.HasPrivateKey)
-            {
-                // fetch the certificate with the private key
-                try
-                {
-                    certificate = await LoadCertificatePrivateKeyAsync(
-                        _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate,
-                        null,
-                        CancellationToken.None).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    LogErrorLoadingPrivateKey(e);
-                    return;
-                }
-            }
-
             byte[] certificateSigningRequest = null;
             try
             {
-                certificateSigningRequest = CertificateFactory.CreateSigningRequest(certificate);
+                certificateSigningRequest = ApplicationCertificateLifecycle.CreateSigningRequest(
+                    certificate, _config.OpcUa.ApplicationConfiguration.CertificateManager);
             }
             catch (Exception e)
             {
@@ -550,15 +473,16 @@ public partial class OpcUaAppConfigFactory(
 
             try
             {
-                await File.WriteAllBytesAsync($"{_config.OpcUa.ApplicationConfiguration.ApplicationName}.csr", certificateSigningRequest).ConfigureAwait(false);
+                await File.WriteAllBytesAsync($"{_config.OpcUa.ApplicationConfiguration.ApplicationName}.csr",
+                    certificateSigningRequest, cancellationToken).ConfigureAwait(false);
                 LogBinaryCsrWritten($"{_config.OpcUa.ApplicationConfiguration.ApplicationName}.csr");
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
                 LogErrorWritingCsrFile(e);
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             LogErrorInCsrCreation(e);
         }
@@ -567,22 +491,24 @@ public partial class OpcUaAppConfigFactory(
     /// <summary>
     /// Show all certificates in the certificate stores.
     /// </summary>
-    public async Task ShowCertificateStoreInformationAsync()
+    public async Task ShowCertificateStoreInformationAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         // show application certs
         try
         {
-            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.OpenStore(_telemetryContext);
-            var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+            using CertificateCollection certs = await ApplicationCertificateLifecycle.EnumerateApplicationCertificatesAsync(
+                _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificates[0],
+                GetCertificateStoreProviders(), _telemetryContext, cancellationToken).ConfigureAwait(false);
             int certNum = 1;
             LogStoreContainsCerts("Application", certs.Count);
 
             foreach (var cert in certs)
             {
-                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.Thumbprint);
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             LogErrorReadingStore(e, "application");
         }
@@ -590,18 +516,19 @@ public partial class OpcUaAppConfigFactory(
         // show trusted issuer certs
         try
         {
-            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedIssuerCertificates.OpenStore(_telemetryContext);
-            var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.CertificateManager
+                .OpenIssuerStore(TrustListIdentifier.Peers);
+            using CertificateCollection certs = await certStore.EnumerateAsync(cancellationToken).ConfigureAwait(false);
             int certNum = 1;
             LogStoreContainsCerts("Trusted issuer", certs.Count);
             foreach (var cert in certs)
             {
-                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.Thumbprint);
             }
 
             if (certStore.SupportsCRLs)
             {
-                var crls = await certStore.EnumerateCRLsAsync(CancellationToken.None).ConfigureAwait(false);
+                var crls = await certStore.EnumerateCRLsAsync(cancellationToken).ConfigureAwait(false);
                 int crlNum = 1;
                 LogStoreHasCrls("Trusted issuer", crls.Count);
 
@@ -611,7 +538,7 @@ public partial class OpcUaAppConfigFactory(
                 }
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             LogErrorReadingStore(e, "trusted issuer");
         }
@@ -619,19 +546,20 @@ public partial class OpcUaAppConfigFactory(
         // show trusted peer certs
         try
         {
-            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.OpenStore(_telemetryContext);
-            var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.CertificateManager
+                .OpenTrustedStore(TrustListIdentifier.Peers);
+            using CertificateCollection certs = await certStore.EnumerateAsync(cancellationToken).ConfigureAwait(false);
             int certNum = 1;
             LogStoreContainsCerts("Trusted peer", certs.Count);
 
             foreach (var cert in certs)
             {
-                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.Thumbprint);
             }
 
             if (certStore.SupportsCRLs)
             {
-                var crls = await certStore.EnumerateCRLsAsync(CancellationToken.None).ConfigureAwait(false);
+                var crls = await certStore.EnumerateCRLsAsync(cancellationToken).ConfigureAwait(false);
                 int crlNum = 1;
                 LogStoreHasCrls("Trusted peer", crls.Count);
 
@@ -641,7 +569,7 @@ public partial class OpcUaAppConfigFactory(
                 }
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             LogErrorReadingStore(e, "trusted peer");
         }
@@ -649,19 +577,20 @@ public partial class OpcUaAppConfigFactory(
         // show trusted user certs
         try
         {
-            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedUserCertificates.OpenStore(_telemetryContext);
-            var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.CertificateManager
+                .OpenTrustedStore(TrustListIdentifier.Users);
+            using CertificateCollection certs = await certStore.EnumerateAsync(cancellationToken).ConfigureAwait(false);
             int certNum = 1;
             LogStoreContainsCerts("Trusted user", certs.Count);
 
             foreach (var cert in certs)
             {
-                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.Thumbprint);
             }
 
             if (certStore.SupportsCRLs)
             {
-                var crls = await certStore.EnumerateCRLsAsync(CancellationToken.None).ConfigureAwait(false);
+                var crls = await certStore.EnumerateCRLsAsync(cancellationToken).ConfigureAwait(false);
                 int crlNum = 1;
                 LogStoreHasCrls("Trusted user", crls.Count);
 
@@ -671,7 +600,7 @@ public partial class OpcUaAppConfigFactory(
                 }
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             LogErrorReadingStore(e, "trusted user");
         }
@@ -679,19 +608,20 @@ public partial class OpcUaAppConfigFactory(
         // show user issuer certs
         try
         {
-            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.UserIssuerCertificates.OpenStore(_telemetryContext);
-            var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.CertificateManager
+                .OpenIssuerStore(TrustListIdentifier.Users);
+            using CertificateCollection certs = await certStore.EnumerateAsync(cancellationToken).ConfigureAwait(false);
             int certNum = 1;
             LogStoreContainsCerts("User issuer", certs.Count);
 
             foreach (var cert in certs)
             {
-                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.Thumbprint);
             }
 
             if (certStore.SupportsCRLs)
             {
-                var crls = await certStore.EnumerateCRLsAsync(CancellationToken.None).ConfigureAwait(false);
+                var crls = await certStore.EnumerateCRLsAsync(cancellationToken).ConfigureAwait(false);
                 int crlNum = 1;
                 LogStoreHasCrls("User issuer", crls.Count);
 
@@ -701,7 +631,7 @@ public partial class OpcUaAppConfigFactory(
                 }
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             LogErrorReadingStore(e, "user issuer");
         }
@@ -709,59 +639,60 @@ public partial class OpcUaAppConfigFactory(
         // show rejected peer certs
         try
         {
-            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.OpenStore(_telemetryContext);
-            var certs = await certStore.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+            using ICertificateStore certStore = _config.OpcUa.ApplicationConfiguration.CertificateManager
+                .OpenTrustedStore(TrustListIdentifier.Rejected);
+            using CertificateCollection certs = await certStore.EnumerateAsync(cancellationToken).ConfigureAwait(false);
             int certNum = 1;
             LogStoreContainsCerts("Rejected certificate", certs.Count);
 
             foreach (var cert in certs)
             {
-                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.GetCertHashString());
+                LogCertificateDetails($"{certNum++:D2}", cert.Subject, cert.Thumbprint);
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             LogErrorReadingStore(e, "rejected certificate");
         }
     }
 
     /// <summary>
-    /// Event handler to validate certificates.
+    /// Applies the configured policy to suppressible certificate validation errors.
     /// </summary>
-    private void CertificateValidator_CertificateValidation(CertificateValidator validator, CertificateValidationEventArgs e)
+    private bool AcceptCertificateError(Opc.Ua.Security.Certificates.Certificate certificate, ServiceResult error)
     {
-        if (e.Error.StatusCode == StatusCodes.BadCertificateUntrusted)
+        if (error.StatusCode == StatusCodes.BadCertificateUntrusted)
         {
-            e.Accept = _config.OpcUa.AutoAcceptCerts;
             if (_config.OpcUa.AutoAcceptCerts)
             {
-                LogTrustingCertificate(e.Certificate.Subject);
+                LogTrustingCertificate(certificate.Subject);
             }
             else
             {
                 LogRejectingCertificate(
-                    e.Certificate.Subject,
+                    certificate.Subject,
                     $"{_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.RejectedCertificateStore.StorePath}{Path.DirectorySeparatorChar}certs",
                     $"{_config.OpcUa.ApplicationConfiguration.SecurityConfiguration.TrustedPeerCertificates.StorePath}{Path.DirectorySeparatorChar}certs");
             }
+
+            return _config.OpcUa.AutoAcceptCerts;
         }
+
+        return false;
     }
 
-    private async Task<X509Certificate2> LoadCertificatePrivateKeyAsync(CertificateIdentifier certificateIdentifier, string password, CancellationToken ct)
+    private ICertificateStoreProvider[] GetCertificateStoreProviders()
     {
-        if (certificateIdentifier is null)
+        return _certificateStoreProviders ??= _config.OpcUa.OpcOwnCertStoreType switch
         {
-            return null;
-        }
-
-        using ICertificateStore store = certificateIdentifier.OpenStore(_telemetryContext);
-        return await store.LoadPrivateKeyAsync(
-            certificateIdentifier.Thumbprint,
-            certificateIdentifier.SubjectName,
-            null,
-            certificateIdentifier.CertificateType,
-            password?.ToCharArray(),
-            ct).ConfigureAwait(false);
+            FlatDirectoryCertificateStore.StoreTypeName => [new FlatDirectoryCertificateStoreType(_loggerFactory)],
+            KubernetesSecretCertificateStore.StoreTypeName =>
+            [
+                new KubernetesSecretCertificateStoreType(
+                    _loggerFactory, _kubernetesSecretStoreClientFactory, _config.OpcUa.OpcKubernetesSecretNamespace)
+            ],
+            _ => []
+        };
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not get hostname.")]

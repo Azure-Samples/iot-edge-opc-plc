@@ -35,7 +35,7 @@ public partial class WotConTests
         var (status, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetForEndpointTypeMethodId),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant(assetName),
                 new Variant(endpoint),
@@ -44,8 +44,8 @@ public partial class WotConTests
         StatusCode.IsGood(status).Should().BeTrue(
             "CreateAssetForEndpoint must succeed for fresh inputs (§6.3.5), got {0}", status);
         outputs.Should().ContainSingle("§6.3.5 declares a single AssetId output argument");
-        var assetId = outputs[0].Value as NodeId;
-        NodeId.IsNull(assetId).Should().BeFalse("AssetId output must be a non-null NodeId");
+        var assetId = outputs[0].GetNodeId();
+        assetId.IsNull.Should().BeFalse("AssetId output must be a non-null NodeId");
 
         // The supplied endpoint must surface via DiscoverAssets immediately — no TD upload
         // round-trip required for the endpoint-first onboarding flow.
@@ -60,12 +60,12 @@ public partial class WotConTests
             isProperty: true).ConfigureAwait(false);
         var read = await Session.ReadAsync(
             null, 0, TimestampsToReturn.Neither,
-            new ReadValueIdCollection
+            new List<ReadValueId>
             {
                 new ReadValueId { NodeId = endpointPropId, AttributeId = Attributes.Value },
             },
             CancellationToken.None).ConfigureAwait(false);
-        read.Results[0].Value.Should().Be(endpoint, "AssetEndpoint Property must carry the supplied URI verbatim");
+        read.Results[0].WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().Be(endpoint, "AssetEndpoint Property must carry the supplied URI verbatim");
     }
 
     [Test]
@@ -77,7 +77,7 @@ public partial class WotConTests
         var (status1, _) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetForEndpointTypeMethodId),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant(assetName),
                 new Variant($"opc.tcp://first-{suffix}.invalid:4840"),
@@ -87,12 +87,12 @@ public partial class WotConTests
         var (status2, _) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetForEndpointTypeMethodId),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant(assetName),
                 new Variant($"opc.tcp://second-{suffix}.invalid:4840"),
             }).ConfigureAwait(false);
-        status2.Code.Should().Be(StatusCodes.BadBrowseNameDuplicated,
+        status2.Should().Be(StatusCodes.BadBrowseNameDuplicated,
             "§6.3.5 inherits the §6.3.2 duplicate-name rule — a second create with the same AssetName must fail, got {0}", status2);
     }
 
@@ -107,7 +107,7 @@ public partial class WotConTests
         var (createStatus, _) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetForEndpointTypeMethodId),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant("ConnTestKnown_" + suffix),
                 new Variant(endpoint),
@@ -117,13 +117,13 @@ public partial class WotConTests
         var (status, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(ConnectionTestTypeMethodId),
-            arguments: new VariantCollection { new Variant(endpoint) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(endpoint) }).ConfigureAwait(false);
 
         StatusCode.IsGood(status).Should().BeTrue(
             "ConnectionTest method itself must return Good; the verdict travels on the outputs (§6.3.6), got {0}", status);
         outputs.Should().HaveCount(2, "§6.3.6 declares two output arguments (Success, Status)");
-        outputs[0].Value.Should().Be(true, "Success must be true for a known endpoint");
-        outputs[1].Value.Should().Be("Simulated",
+        outputs[0].AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().Be(true, "Success must be true for a known endpoint");
+        outputs[1].AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().Be("Simulated",
             "the simulator never opens a real southbound connection — a hit on the endpoint table reports 'Simulated'");
     }
 
@@ -136,12 +136,12 @@ public partial class WotConTests
         var (status, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(ConnectionTestTypeMethodId),
-            arguments: new VariantCollection { new Variant(endpoint) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(endpoint) }).ConfigureAwait(false);
 
         StatusCode.IsGood(status).Should().BeTrue(
             "ConnectionTest method itself must return Good even for unknown endpoints (§6.3.6), got {0}", status);
-        outputs[0].Value.Should().Be(false, "Success must be false for an unknown endpoint");
-        outputs[1].Value.Should().Be("UnknownEndpoint",
+        outputs[0].AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().Be(false, "Success must be false for an unknown endpoint");
+        outputs[1].AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().Be("UnknownEndpoint",
             "Status reports the failure category in a clientreadable form");
     }
 
@@ -159,7 +159,7 @@ public partial class WotConTests
             childBrowseName: "SupportedWoTBindings",
             isProperty: true).ConfigureAwait(false);
 
-        var nodesToRead = new ReadValueIdCollection
+        var nodesToRead = new List<ReadValueId>
         {
             new ReadValueId { NodeId = fileId, AttributeId = Attributes.Value },
         };
@@ -168,9 +168,9 @@ public partial class WotConTests
         var result = resp.Results[0];
         StatusCode.IsGood(result.StatusCode).Should().BeTrue(
             "SupportedWoTBindings must be readable, got {0}", result.StatusCode);
-        result.Value.Should().BeAssignableTo<string[]>(
+        result.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().BeAssignableTo<string[]>(
             "SupportedWoTBindings is declared as WoTBindingType[] which the NodeSet backs with UriString[]");
-        ((string[])result.Value).Should().Contain(SimulatorBindingUri,
+        ((string[])result.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy)).Should().Contain(SimulatorBindingUri,
             "the server advertises the OPC PLC simulator binding so TDs can target it");
     }
 
@@ -197,10 +197,10 @@ public partial class WotConTests
         };
         var typeDefResp = await Session.BrowseAsync(
             null, null, 0,
-            new BrowseDescriptionCollection { typeDefBrowse },
+            new List<BrowseDescription> { typeDefBrowse },
             CancellationToken.None).ConfigureAwait(false);
-        typeDefResp.Results.Should().ContainSingle();
-        var typeDefRefs = typeDefResp.Results[0].References;
+        typeDefResp.Results.ToArray().Should().ContainSingle();
+        var typeDefRefs = typeDefResp.Results[0].References.ToArray();
         typeDefRefs.Should().ContainSingle("Configuration must have exactly one HasTypeDefinition");
         var typeDefNodeId = ExpandedNodeId.ToNodeId(typeDefRefs[0].NodeId, Session.NamespaceUris);
         typeDefNodeId.Should().Be(WotConNodeId(WoTAssetConfigurationTypeId),
@@ -212,7 +212,7 @@ public partial class WotConTests
             childBrowseName: "License",
             isProperty: true).ConfigureAwait(false);
 
-        var nodesToRead = new ReadValueIdCollection
+        var nodesToRead = new List<ReadValueId>
         {
             new ReadValueId { NodeId = licenseId, AttributeId = Attributes.Value },
         };
@@ -221,7 +221,7 @@ public partial class WotConTests
         var result = resp.Results[0];
         StatusCode.IsGood(result.StatusCode).Should().BeTrue(
             "Configuration/License must be readable, got {0}", result.StatusCode);
-        result.Value.Should().Be("MIT",
+        result.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().Be("MIT",
             "License surfaces the SPDX identifier of the simulator's license per §6.3.7");
     }
 
@@ -244,16 +244,16 @@ public partial class WotConTests
         };
         var resp = await Session.BrowseAsync(
             null, null, 0,
-            new BrowseDescriptionCollection { bd },
+            new List<BrowseDescription> { bd },
             CancellationToken.None).ConfigureAwait(false);
-        resp.Results.Should().ContainSingle();
-        var matches = resp.Results[0].References
+        resp.Results.ToArray().Should().ContainSingle();
+        var matches = resp.Results[0].References.ToArray()
             .Where(r => r.BrowseName.Name == childBrowseName)
             .ToList();
         matches.Should().ContainSingle(
             "expected exactly one '{0}' child of {1}", childBrowseName, parent);
         var nodeId = ExpandedNodeId.ToNodeId(matches[0].NodeId, Session.NamespaceUris);
-        NodeId.IsNull(nodeId).Should().BeFalse();
+        nodeId.IsNull.Should().BeFalse();
         return nodeId;
     }
 }

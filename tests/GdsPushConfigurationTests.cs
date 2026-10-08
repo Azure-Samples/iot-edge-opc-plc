@@ -36,29 +36,31 @@ public class GdsPushConfigurationTests
     {
         var client = new ServerPushConfigurationClient(_simulator.ClientConfiguration)
         {
-            AdminCredentials = new UserIdentity(new UserNameIdentityToken
-            {
-                UserName = "sysadmin",
-                DecryptedPassword = Encoding.UTF8.GetBytes("demo")
-            })
+            AdminCredentials = new UserIdentity("sysadmin", Encoding.UTF8.GetBytes("demo"))
         };
 
         await client.ConnectAsync(_simulator.EndpointUrl).ConfigureAwait(false);
 
-        byte[] certificateRequest = await client.CreateSigningRequestAsync(
+        ByteString certificateRequest = await client.CreateSigningRequestAsync(
             client.DefaultApplicationGroup,
             client.ApplicationCertificateType,
             subjectName: null,
             regeneratePrivateKey: false,
             nonce: [1, 2, 3, 4]).ConfigureAwait(false);
 
-        certificateRequest.Should().NotBeNullOrEmpty();
+        certificateRequest.ToArray().Should().NotBeNullOrEmpty();
         certificateRequest[0].Should().Be(0x30, "DER encoded CSR starts with ASN.1 SEQUENCE");
 
         var rejectedCertificates = await client.GetRejectedListAsync().ConfigureAwait(false);
         rejectedCertificates.Should().NotBeNull();
 
+        TrustListDataType unchanged = await client.ReadTrustListAsync().ConfigureAwait(false);
+        (await client.UpdateTrustListAsync(unchanged).ConfigureAwait(false)).Should().BeTrue(
+            "a staged trust-list update requires ApplyChanges in the same session");
         await client.ApplyChangesAsync().ConfigureAwait(false);
+        Func<Task> emptyApply = () => client.ApplyChangesAsync().AsTask();
+        await emptyApply.Should().ThrowAsync<ServiceResultException>()
+            .Where(exception => exception.StatusCode == StatusCodes.BadNothingToDo).ConfigureAwait(false);
 
         await client.DisconnectAsync().ConfigureAwait(false);
     }
@@ -68,11 +70,7 @@ public class GdsPushConfigurationTests
     {
         var client = new ServerPushConfigurationClient(_simulator.ClientConfiguration)
         {
-            AdminCredentials = new UserIdentity(new UserNameIdentityToken
-            {
-                UserName = "user1",
-                DecryptedPassword = Encoding.UTF8.GetBytes("password")
-            })
+            AdminCredentials = new UserIdentity("user1", Encoding.UTF8.GetBytes("password"))
         };
 
         await client.ConnectAsync(_simulator.EndpointUrl).ConfigureAwait(false);
@@ -97,11 +95,7 @@ public class GdsPushConfigurationTests
     {
         var client = new ServerPushConfigurationClient(_simulator.ClientConfiguration)
         {
-            AdminCredentials = new UserIdentity(new UserNameIdentityToken
-            {
-                UserName = "sysadmin",
-                DecryptedPassword = Encoding.UTF8.GetBytes("demo")
-            })
+            AdminCredentials = new UserIdentity("sysadmin", Encoding.UTF8.GetBytes("demo"))
         };
 
         await client.ConnectAsync(_simulator.EndpointUrl).ConfigureAwait(false);
@@ -109,8 +103,12 @@ public class GdsPushConfigurationTests
         TrustListDataType trustList = await client.ReadTrustListAsync().ConfigureAwait(false);
         trustList.Should().NotBeNull();
 
-        bool reboot = await client.UpdateTrustListAsync(trustList).ConfigureAwait(false);
-        reboot.Should().BeFalse("updating the trust list with the existing entries should not require a reboot");
+        bool applyChangesRequired = await client.UpdateTrustListAsync(trustList).ConfigureAwait(false);
+        applyChangesRequired.Should().BeTrue("the SDK stages trust-list writes until same-session ApplyChanges");
+        await client.ApplyChangesAsync().ConfigureAwait(false);
+        TrustListDataType readBack = await client.ReadTrustListAsync().ConfigureAwait(false);
+        readBack.TrustedCertificates.Should().Be(trustList.TrustedCertificates);
+        readBack.IssuerCertificates.Should().Be(trustList.IssuerCertificates);
 
         await client.DisconnectAsync().ConfigureAwait(false);
     }
@@ -120,11 +118,7 @@ public class GdsPushConfigurationTests
     {
         var client = new ServerPushConfigurationClient(_simulator.ClientConfiguration)
         {
-            AdminCredentials = new UserIdentity(new UserNameIdentityToken
-            {
-                UserName = "user1",
-                DecryptedPassword = Encoding.UTF8.GetBytes("password")
-            })
+            AdminCredentials = new UserIdentity("user1", Encoding.UTF8.GetBytes("password"))
         };
 
         await client.ConnectAsync(_simulator.EndpointUrl).ConfigureAwait(false);
@@ -188,9 +182,9 @@ public class GdsPushConfigurationTests
                 DataValue writable = await client.Session.ReadValueAsync(writableId).ConfigureAwait(false);
                 DataValue userWritable = await client.Session.ReadValueAsync(userWritableId).ConfigureAwait(false);
 
-                writable.Value.Should().Be(true,
+                writable.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().Be(true,
                     $"GDS push orchestrators (e.g. Azure IoT Operations) refuse to attempt a TrustList update unless the {groupName} TrustList file node advertises Writable = true");
-                userWritable.Value.Should().Be(true,
+                userWritable.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().Be(true,
                     $"GDS push orchestrators may also probe UserWritable on the {groupName} TrustList before attempting a trust list update");
             }
         }

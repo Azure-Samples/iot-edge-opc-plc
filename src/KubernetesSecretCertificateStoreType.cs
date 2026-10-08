@@ -7,8 +7,10 @@ using System;
 /// <summary>
 /// Defines type for <see cref="KubernetesSecretCertificateStore"/>.
 /// </summary>
-public sealed class KubernetesSecretCertificateStoreType : ICertificateStoreType
+public sealed class KubernetesSecretCertificateStoreType : ICertificateStoreProvider
 {
+    public string StoreTypeName => KubernetesSecretCertificateStore.StoreTypeName;
+
     private readonly IKubernetesSecretStoreClientFactory _kubernetesSecretStoreClientFactory;
     private readonly ILoggerFactory _loggerFactory;
     private readonly string _secretNamespace;

@@ -54,8 +54,8 @@ namespace AlarmCondition
             this.SymbolicName = configuration.Name;
             this.NodeId = nodeId;
             this.BrowseName = new QualifiedName(Utils.Format("{0}", configuration.Name), nodeId.NamespaceIndex);
-            this.DisplayName = BrowseName.Name;
-            this.Description = null;
+            this.DisplayName = new LocalizedText(BrowseName.Name);
+            this.Description = default;
             this.ReferenceTypeId = ReferenceTypeIds.HasNotifier;
             this.TypeDefinitionId = ObjectTypeIds.FolderType;
             this.EventNotifier = EventNotifiers.SubscribeToEvents;

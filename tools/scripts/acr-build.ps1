@@ -69,6 +69,7 @@ if ([string]::IsNullOrEmpty($branchName) -or ($branchName -eq "HEAD")) {
 
 # Set namespace name based on branch name
 $releaseBuild = $false
+$previewBuild = $branchName -eq "preview"
 $namespace = $branchName
 if ($namespace.StartsWith("feature/")) {
     $namespace = $namespace.Replace("feature/", "")
@@ -93,10 +94,13 @@ if (![string]::IsNullOrEmpty($Registry) -and ($Registry -ne "industrialiot")) {
 # get and set build information from gitversion, git or version content
 $latestTag = "latest"
 $sourceTag = $env:Version_Prefix
+if ($previewBuild) {
+    $sourceTag = $env:NBGV_NuGetPackageVersion
+}
 if ([string]::IsNullOrEmpty($sourceTag)) {
     try {
         $version = & (Join-Path $PSScriptRoot "get-version.ps1")
-        $sourceTag = $version.Prefix
+        $sourceTag = if ($previewBuild) { $version.Full } else { $version.Prefix }
     }
     catch {
         $sourceTag = $null
@@ -126,6 +130,10 @@ else {
     }
 }
 
+if ($previewBuild -and $sourceTag -notmatch '^2\.16\.0-preview\.\d+$') {
+    throw "Preview images require a public 2.16.0-preview.<number> version; found $sourceTag."
+}
+
 # set default subscription
 if (![string]::IsNullOrEmpty($Subscription)) {
     Write-Debug "Setting subscription to $($Subscription)"
@@ -140,7 +148,7 @@ if (![string]::IsNullOrEmpty($Subscription)) {
 if ([string]::IsNullOrEmpty($Registry)) {
     $Registry = $env:BUILD_REGISTRY
     if ([string]::IsNullOrEmpty($Registry)) {
-        if ($releaseBuild) {
+        if ($releaseBuild -or $previewBuild) {
             # Make sure we do not override latest in release builds - this is done manually later.
             # For opcplc we do not need a manual step
             # $latestTag = "preview"

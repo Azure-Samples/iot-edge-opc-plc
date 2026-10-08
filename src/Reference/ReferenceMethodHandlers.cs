@@ -1,0 +1,196 @@
+/* ========================================================================
+ * Copyright (c) 2005-2020 The OPC Foundation, Inc. All rights reserved.
+ *
+ * OPC Foundation MIT License 1.00
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * The complete license agreement can be found here:
+ * http://opcfoundation.org/License/MIT/1.00/
+ * ======================================================================*/
+
+namespace OpcPlc.Reference;
+
+using Opc.Ua;
+using System.Collections.Generic;
+
+public static class ReferenceMethodHandlers
+{
+    public static PropertyState<ArrayOf<Argument>> CreateArguments(
+        MethodState method, bool input, params (string Name, NodeId DataType)[] arguments)
+    {
+        string browseName = input ? BrowseNames.InputArguments : BrowseNames.OutputArguments;
+        var property = PropertyState<ArrayOf<Argument>>.With<StructureBuilder<Argument>>(method);
+        property.NodeId = new NodeId(method.BrowseName.Name + (input ? "InArgs" : "OutArgs"),
+            method.BrowseName.NamespaceIndex);
+        property.BrowseName = new QualifiedName(browseName);
+        property.DisplayName = new LocalizedText(browseName);
+        property.TypeDefinitionId = VariableTypeIds.PropertyType;
+        property.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+        property.DataType = DataTypeIds.Argument;
+        property.ValueRank = ValueRanks.OneDimension;
+        property.Value = arguments.ToArrayOf(argument => new Argument
+        {
+            Name = argument.Name,
+            Description = new LocalizedText(argument.Name),
+            DataType = argument.DataType,
+            ValueRank = ValueRanks.Scalar
+        });
+        return property;
+    }
+
+    public static ServiceResult OnVoidCall(
+        ISystemContext context, MethodState method, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
+    {
+        return ServiceResult.Good;
+    }
+
+    public static ServiceResult OnAddCall(
+        ISystemContext context, MethodState method, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
+    {
+        if (inputArguments.Count < 2)
+        {
+            return StatusCodes.BadArgumentsMissing;
+        }
+        if (!inputArguments[0].TryGetValue(out float first) || !inputArguments[1].TryGetValue(out uint second))
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+        try
+        {
+            outputArguments[0] = first + second;
+            return ServiceResult.Good;
+        }
+        catch
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+    }
+
+    public static ServiceResult OnMultiplyCall(
+        ISystemContext context, MethodState method, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
+    {
+        if (inputArguments.Count < 2)
+        {
+            return StatusCodes.BadArgumentsMissing;
+        }
+        if (!inputArguments[0].TryGetValue(out short first) || !inputArguments[1].TryGetValue(out ushort second))
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+        try
+        {
+            outputArguments[0] = first * second;
+            return ServiceResult.Good;
+        }
+        catch
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+    }
+
+    public static ServiceResult OnDivideCall(
+        ISystemContext context, MethodState method, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
+    {
+        if (inputArguments.Count < 2)
+        {
+            return StatusCodes.BadArgumentsMissing;
+        }
+        if (!inputArguments[0].TryGetValue(out int first) || !inputArguments[1].TryGetValue(out ushort second))
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+        try
+        {
+            outputArguments[0] = (float)first / second;
+            return ServiceResult.Good;
+        }
+        catch
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+    }
+
+    public static ServiceResult OnSubtractCall(
+        ISystemContext context, MethodState method, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
+    {
+        if (inputArguments.Count < 2)
+        {
+            return StatusCodes.BadArgumentsMissing;
+        }
+        if (!inputArguments[0].TryGetValue(out short first) || !inputArguments[1].TryGetValue(out byte second))
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+        try
+        {
+            outputArguments[0] = (short)(first - second);
+            return ServiceResult.Good;
+        }
+        catch
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+    }
+
+    public static ServiceResult OnHelloCall(
+        ISystemContext context, MethodState method, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
+    {
+        if (inputArguments.Count < 1)
+        {
+            return StatusCodes.BadArgumentsMissing;
+        }
+        string value = null;
+        if (!inputArguments[0].IsNull && !inputArguments[0].TryGetValue(out value))
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+        try
+        {
+            outputArguments[0] = "hello " + value;
+            return ServiceResult.Good;
+        }
+        catch
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+    }
+
+    public static ServiceResult OnInputCall(
+        ISystemContext context, MethodState method, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
+    {
+        return inputArguments.Count < 1 ? StatusCodes.BadArgumentsMissing : ServiceResult.Good;
+    }
+
+    public static ServiceResult OnOutputCall(
+        ISystemContext context, MethodState method, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
+    {
+        try
+        {
+            outputArguments[0] = "Output";
+            return ServiceResult.Good;
+        }
+        catch
+        {
+            return StatusCodes.BadInvalidArgument;
+        }
+    }
+}

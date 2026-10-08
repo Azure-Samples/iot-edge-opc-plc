@@ -5,6 +5,8 @@ using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Node that shows current working set memory consumption in MB.
@@ -19,8 +21,11 @@ public class WorkingSetPluginNode(TimeService timeService, ILogger logger) : Plu
         // Enabled by default.
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         FolderState folder = _plcNodeManager.CreateFolder(
@@ -30,6 +35,8 @@ public class WorkingSetPluginNode(TimeService timeService, ILogger logger) : Plu
             NamespaceType.OpcPlcApplications);
 
         AddNodes(folder);
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()

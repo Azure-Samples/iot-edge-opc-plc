@@ -1,6 +1,53 @@
 <Project>
   <PropertyGroup>
-    <!-- Uncomment the following to test against a local OPC UA SDK and avoid error CS0433 -->
-    <!-- <DefineConstants>UseLocalOpcUaSdk</DefineConstants> -->
+    <UseLocalOpcUaStack Condition="'$(UseLocalOpcUaStack)' == ''">false</UseLocalOpcUaStack>
+    <OpcUaSourceRoot Condition="'$(OpcUaSourceRoot)' == '' And '$(UseLocalOpcUaStack)' == 'true'">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\UA-.NETStandard'))</OpcUaSourceRoot>
+    <GeneratePackageOnBuild Condition="'$(UseLocalOpcUaStack)' == 'true'">false</GeneratePackageOnBuild>
   </PropertyGroup>
+  <ItemGroup Condition="'$(UseLocalOpcUaStack)' == 'true'">
+    <PackageReference Remove="OPCFoundation.NetStandard.Opc.Ua.*" />
+    <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Server\Opc.Ua.Server.csproj"
+      AdditionalProperties="Configuration=$(Configuration);GeneratePackageOnBuild=false" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseLocalOpcUaStack)' == 'true' And '$(MSBuildProjectName)' == 'opc-plc'">
+    <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
+    <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Core\Opc.Ua.Core.csproj" />
+    <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Types\Opc.Ua.Types.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseLocalOpcUaStack)' == 'true' And '$(MSBuildProjectName)' == 'opc-plc-tests'">
+    <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
+    <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Client\Opc.Ua.Client.csproj" />
+    <ProjectReference Include="$(OpcUaSourceRoot)\src\Opc.Ua.Gds.Client\Opc.Ua.Gds.Client.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' != 'true'">
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration"
+      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true'">
+    <_OpcUaGeneratorDirectory>$(OpcUaSourceRoot)\tools\Opc.Ua.SourceGeneration</_OpcUaGeneratorDirectory>
+  </PropertyGroup>
+  <Import Project="$(_OpcUaGeneratorDirectory)\OPCFoundation.Opc.Ua.SourceGeneration.props"
+    Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true' And Exists('$(_OpcUaGeneratorDirectory)\OPCFoundation.Opc.Ua.SourceGeneration.props')" />
+  <ItemGroup Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true'">
+    <ProjectReference Include="$(_OpcUaGeneratorDirectory)\Opc.Ua.SourceGeneration.csproj"
+      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+  <Target Name="ValidateOpcUaModelSourceGenerator" BeforeTargets="CollectPackageReferences;CoreCompile"
+    Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true'">
+    <Error Condition="!Exists('$(_OpcUaGeneratorDirectory)\Opc.Ua.SourceGeneration.csproj')"
+      Text="OPC UA generator source is missing. Set OpcUaSourceRoot to a checkout compatible with the selected runtime; source mode uses the same checkout for both." />
+  </Target>
+  <Target Name="LoadOpcUaModelGeneratorDependencies" BeforeTargets="CoreCompile"
+    Condition="'$(UseOpcUaModelSourceGenerator)' == 'true' And '$(UseLocalOpcUaStack)' == 'true'">
+    <ItemGroup>
+      <_OpcUaGeneratorAssembly Include="@(Analyzer)" Condition="'%(Analyzer.Filename)' == 'Opc.Ua.SourceGeneration'" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_OpcUaGeneratorOutputDirectory>@(_OpcUaGeneratorAssembly->'%(RootDir)%(Directory)')</_OpcUaGeneratorOutputDirectory>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(_OpcUaGeneratorOutputDirectory)' != ''">
+      <Analyzer Include="$(_OpcUaGeneratorOutputDirectory)*.dll"
+        Exclude="@(_OpcUaGeneratorAssembly);$(_OpcUaGeneratorOutputDirectory)Microsoft.CodeAnalysis*.dll;$(_OpcUaGeneratorOutputDirectory)System.Collections.Immutable.dll;$(_OpcUaGeneratorOutputDirectory)System.Reflection.Metadata.dll" />
+    </ItemGroup>
+  </Target>
 </Project>

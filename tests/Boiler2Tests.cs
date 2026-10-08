@@ -39,36 +39,36 @@ public class Boiler2Tests : SimulatorTestsBase
     public async Task VerifyFixedConfiguration()
     {
         var nodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var tempSpeedDegreesPerSec = (float)(await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value;
+        float tempSpeedDegreesPerSec = await ReadValueAsync<float>(nodeId).ConfigureAwait(false);
         tempSpeedDegreesPerSec.Should().Be(5);
 
         nodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_MaintenanceInterval, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var maintenanceIntervalSeconds = (uint)(await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value;
+        uint maintenanceIntervalSeconds = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
         maintenanceIntervalSeconds.Should().Be(567);
 
         nodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatInterval, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var overheatIntervalSeconds = (uint)(await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value;
+        uint overheatIntervalSeconds = await ReadValueAsync<uint>(nodeId).ConfigureAwait(false);
         overheatIntervalSeconds.Should().Be(678);
 
         nodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatedThresholdTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var _overheatThresholdDegrees = (float)(await ReadDataValueAsync(nodeId).ConfigureAwait(false)).Value;
-        _overheatThresholdDegrees.Should().Be(123f + 10f);
+        float overheatThresholdDegrees = await ReadValueAsync<float>(nodeId).ConfigureAwait(false);
+        overheatThresholdDegrees.Should().Be(123f + 10f);
     }
 
     [Test]
     public async Task TemperatureRisesAndFallsHeaterToggles()
     {
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var currentTemperatureDegrees = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+        float currentTemperatureDegrees = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
         currentTemperatureDegrees.Should().Be(1f);
 
         // Temperature rises with heater on for the next 20 s starting at 1°, step 5°.
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 20);
 
-        currentTemperatureDegrees = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+        currentTemperatureDegrees = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
 
         var heaterStateNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_HeaterState, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var heaterState = (bool)(await ReadDataValueAsync(heaterStateNodeId).ConfigureAwait(false)).Value;
+        bool heaterState = await ReadValueAsync<bool>(heaterStateNodeId).ConfigureAwait(false);
 
         currentTemperatureDegrees.Should().Be(101f);
         heaterState.Should().BeTrue();
@@ -76,9 +76,9 @@ public class Boiler2Tests : SimulatorTestsBase
         // Temperature rises until 123°, then falls with heater off, step -5°.
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 20);
 
-        currentTemperatureDegrees = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+        currentTemperatureDegrees = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
 
-        heaterState = (bool)(await ReadDataValueAsync(heaterStateNodeId).ConfigureAwait(false)).Value;
+        heaterState = await ReadValueAsync<bool>(heaterStateNodeId).ConfigureAwait(false);
 
         currentTemperatureDegrees.Should().Be(48f);
         heaterState.Should().BeFalse();
@@ -96,7 +96,7 @@ public class Boiler2Tests : SimulatorTestsBase
             BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature,
             OpcPlc.Namespaces.OpcPlcBoiler,
             Session.NamespaceUris);
-        float originalThreshold = (float)(await ReadDataValueAsync(overheatThresholdNodeId).ConfigureAwait(false)).Value;
+        float originalThreshold = await ReadValueAsync<float>(overheatThresholdNodeId).ConfigureAwait(false);
 
         try
         {
@@ -111,7 +111,7 @@ public class Boiler2Tests : SimulatorTestsBase
 
             FireTimersWithPeriod(FromSeconds(678), numberOfTimes: 1);
 
-            float currentTemperatureDegrees = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+            float currentTemperatureDegrees = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
             currentTemperatureDegrees.Should().Be(originalThreshold + 10f);
         }
         finally
@@ -134,10 +134,10 @@ public class Boiler2Tests : SimulatorTestsBase
         var baseTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var temperatureChangeSpeedNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
 
-        float overheatThreshold = (float)(await ReadDataValueAsync(overheatThresholdNodeId).ConfigureAwait(false)).Value;
-        float baseTemperature = (float)(await ReadDataValueAsync(baseTemperatureNodeId).ConfigureAwait(false)).Value;
-        float temperatureChangeSpeed = (float)(await ReadDataValueAsync(temperatureChangeSpeedNodeId).ConfigureAwait(false)).Value;
-        float temperatureBefore = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+        float overheatThreshold = await ReadValueAsync<float>(overheatThresholdNodeId).ConfigureAwait(false);
+        float baseTemperature = await ReadValueAsync<float>(baseTemperatureNodeId).ConfigureAwait(false);
+        float temperatureChangeSpeed = await ReadValueAsync<float>(temperatureChangeSpeedNodeId).ConfigureAwait(false);
+        float temperatureBefore = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
 
         // Overheat sets the temperature to threshold + 10 and turns the heater off, then one 1 s tick cools it down.
         float overheatTemperature = overheatThreshold + 10f;
@@ -150,7 +150,7 @@ public class Boiler2Tests : SimulatorTestsBase
             FireTimersWithPeriod(FromSeconds(678), numberOfTimes: 1);
             FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
-            float temperatureWhileLocked = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+            float temperatureWhileLocked = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
             temperatureWhileLocked.Should().Be(temperatureBefore, "callbacks must wait while the lock is held");
         }
         finally
@@ -163,7 +163,7 @@ public class Boiler2Tests : SimulatorTestsBase
         var deadline = DateTime.UtcNow + FromSeconds(10);
         while (DateTime.UtcNow < deadline)
         {
-            temperatureAfterRelease = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+            temperatureAfterRelease = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
             if (temperatureAfterRelease == expectedTemperature && callbackLock.CurrentCount == 1)
             {
                 break;
@@ -183,7 +183,7 @@ public class Boiler2Tests : SimulatorTestsBase
         // 1. NORMAL: Base temperature <= temperature <= target temperature
 
         var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var deviceHealth = (DeviceHealthEnumeration)(await ReadDataValueAsync(deviceHealthNodeId).ConfigureAwait(false)).Value;
+        var deviceHealth = await ReadValueAsync<DeviceHealthEnumeration>(deviceHealthNodeId).ConfigureAwait(false);
 
         deviceHealth.Should().Be(DeviceHealthEnumeration.NORMAL);
     }
@@ -198,7 +198,7 @@ public class Boiler2Tests : SimulatorTestsBase
         FireTimersWithPeriod(FromSeconds(567), numberOfTimes: 1);
 
         var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var deviceHealth = (DeviceHealthEnumeration)(await ReadDataValueAsync(deviceHealthNodeId).ConfigureAwait(false)).Value;
+        var deviceHealth = await ReadValueAsync<DeviceHealthEnumeration>(deviceHealthNodeId).ConfigureAwait(false);
 
         // TODO: Fix spec, bcs state is overwritten immediately!
         deviceHealth.Should().Be(DeviceHealthEnumeration.MAINTENANCE_REQUIRED);
@@ -216,10 +216,10 @@ public class Boiler2Tests : SimulatorTestsBase
         FireTimersWithPeriod(FromSeconds(678), numberOfTimes: 1);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 2);
 
-        var currentTemperatureDegrees = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+        float currentTemperatureDegrees = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
 
         var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var deviceHealth = (DeviceHealthEnumeration)(await ReadDataValueAsync(deviceHealthNodeId).ConfigureAwait(false)).Value;
+        var deviceHealth = await ReadValueAsync<DeviceHealthEnumeration>(deviceHealthNodeId).ConfigureAwait(false);
 
         currentTemperatureDegrees.Should().Be(133);
         deviceHealth.Should().Be(DeviceHealthEnumeration.FAILURE);
@@ -236,10 +236,10 @@ public class Boiler2Tests : SimulatorTestsBase
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 3);
 
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var currentTemperatureDegrees = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+        float currentTemperatureDegrees = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
 
         var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var deviceHealth = (DeviceHealthEnumeration)(await ReadDataValueAsync(deviceHealthNodeId).ConfigureAwait(false)).Value;
+        var deviceHealth = await ReadValueAsync<DeviceHealthEnumeration>(deviceHealthNodeId).ConfigureAwait(false);
 
         currentTemperatureDegrees.Should().Be(128);
         deviceHealth.Should().Be(DeviceHealthEnumeration.CHECK_FUNCTION);
@@ -252,7 +252,7 @@ public class Boiler2Tests : SimulatorTestsBase
         // 5. OFF_SPEC 1: Temperature < base temperature
 
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var currentTemperatureDegrees = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+        float currentTemperatureDegrees = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
 
         var baseTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = await WriteValueAsync(baseTemperatureNodeId, currentTemperatureDegrees + 10f).ConfigureAwait(false);
@@ -262,7 +262,7 @@ public class Boiler2Tests : SimulatorTestsBase
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var deviceHealth = (DeviceHealthEnumeration)(await ReadDataValueAsync(deviceHealthNodeId).ConfigureAwait(false)).Value;
+        var deviceHealth = await ReadValueAsync<DeviceHealthEnumeration>(deviceHealthNodeId).ConfigureAwait(false);
 
         deviceHealth.Should().Be(DeviceHealthEnumeration.OFF_SPEC);
     }
@@ -277,10 +277,10 @@ public class Boiler2Tests : SimulatorTestsBase
         FireTimersWithPeriod(FromSeconds(678), numberOfTimes: 1);
 
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var currentTemperatureDegrees = (float)(await ReadDataValueAsync(currentTemperatureNodeId).ConfigureAwait(false)).Value;
+        float currentTemperatureDegrees = await ReadValueAsync<float>(currentTemperatureNodeId).ConfigureAwait(false);
 
         var deviceHealthNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceHealth, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
-        var deviceHealth = (DeviceHealthEnumeration)(await ReadDataValueAsync(deviceHealthNodeId).ConfigureAwait(false)).Value;
+        var deviceHealth = await ReadValueAsync<DeviceHealthEnumeration>(deviceHealthNodeId).ConfigureAwait(false);
 
         currentTemperatureDegrees.Should().Be(143);
         deviceHealth.Should().Be(DeviceHealthEnumeration.OFF_SPEC);
@@ -294,7 +294,7 @@ public class Boiler2Tests : SimulatorTestsBase
         var baseTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_BaseTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = await WriteValueAsync(baseTemperatureNodeId, newValue).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
-        var currentBaseTemperature = (float)(await ReadDataValueAsync(baseTemperatureNodeId).ConfigureAwait(false)).Value;
+        float currentBaseTemperature = await ReadValueAsync<float>(baseTemperatureNodeId).ConfigureAwait(false);
         currentBaseTemperature.Should().Be(newValue);
     }
 
@@ -306,7 +306,7 @@ public class Boiler2Tests : SimulatorTestsBase
         var targetTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TargetTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = await WriteValueAsync(targetTemperatureNodeId, newValue).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
-        var currentTargetTemperature = (float)(await ReadDataValueAsync(targetTemperatureNodeId).ConfigureAwait(false)).Value;
+        float currentTargetTemperature = await ReadValueAsync<float>(targetTemperatureNodeId).ConfigureAwait(false);
         currentTargetTemperature.Should().Be(newValue);
     }
 
@@ -318,7 +318,7 @@ public class Boiler2Tests : SimulatorTestsBase
         var temperatureChangeSpeedNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_TemperatureChangeSpeed, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = await WriteValueAsync(temperatureChangeSpeedNodeId, newValue).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
-        var currentTemperatureChangeSpeed = (float)(await ReadDataValueAsync(temperatureChangeSpeedNodeId).ConfigureAwait(false)).Value;
+        float currentTemperatureChangeSpeed = await ReadValueAsync<float>(temperatureChangeSpeedNodeId).ConfigureAwait(false);
         currentTemperatureChangeSpeed.Should().Be(newValue);
     }
 
@@ -330,7 +330,8 @@ public class Boiler2Tests : SimulatorTestsBase
         var overheatedThresholdTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatedThresholdTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = await WriteValueAsync(overheatedThresholdTemperatureNodeId, newValue).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
-        var currentOverheatedThresholdTemperature = (float)(await ReadDataValueAsync(overheatedThresholdTemperatureNodeId).ConfigureAwait(false)).Value;
+        float currentOverheatedThresholdTemperature = await ReadValueAsync<float>(overheatedThresholdTemperatureNodeId)
+            .ConfigureAwait(false);
         currentOverheatedThresholdTemperature.Should().Be(newValue);
     }
 
@@ -342,7 +343,7 @@ public class Boiler2Tests : SimulatorTestsBase
         var maintenanceIntervalNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_MaintenanceInterval, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = await WriteValueAsync(maintenanceIntervalNodeId, newValue).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
-        var currentMaintenanceInterval = (uint)(await ReadDataValueAsync(maintenanceIntervalNodeId).ConfigureAwait(false)).Value;
+        uint currentMaintenanceInterval = await ReadValueAsync<uint>(maintenanceIntervalNodeId).ConfigureAwait(false);
         currentMaintenanceInterval.Should().Be(newValue);
     }
 
@@ -354,7 +355,7 @@ public class Boiler2Tests : SimulatorTestsBase
         var overheatIntervalNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_OverheatInterval, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = await WriteValueAsync(overheatIntervalNodeId, newValue).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
-        var currentMaintenanceInterval = (uint)(await ReadDataValueAsync(overheatIntervalNodeId).ConfigureAwait(false)).Value;
+        uint currentMaintenanceInterval = await ReadValueAsync<uint>(overheatIntervalNodeId).ConfigureAwait(false);
         currentMaintenanceInterval.Should().Be(newValue);
     }
 
@@ -366,7 +367,7 @@ public class Boiler2Tests : SimulatorTestsBase
         var assetIdNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_AssetId, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = await WriteValueAsync(assetIdNodeId, newValue).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
-        var currentAssetId = (string)(await Session.ReadValueAsync(assetIdNodeId).ConfigureAwait(false)).Value;
+        string currentAssetId = await ReadValueAsync<string>(assetIdNodeId).ConfigureAwait(false);
         currentAssetId.Should().Be(newValue);
     }
 
@@ -378,7 +379,7 @@ public class Boiler2Tests : SimulatorTestsBase
         var deviceManualNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_DeviceManual, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
         var statusCode = await WriteValueAsync(deviceManualNodeId, newValue).ConfigureAwait(false);
         statusCode.Should().Be(StatusCodes.Good);
-        var currentDeviceManual = (string)(await Session.ReadValueAsync(deviceManualNodeId).ConfigureAwait(false)).Value;
+        string currentDeviceManual = await ReadValueAsync<string>(deviceManualNodeId).ConfigureAwait(false);
         currentDeviceManual.Should().Be(newValue);
     }
 }

@@ -14,41 +14,44 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using LocalizedText = Opc.Ua.LocalizedText;
 
 /// <summary>
 /// Node manager for the OPC UA WoT-Con (Web of Things Connectivity) companion specification.
 /// Manages WoT asset onboarding, Thing Description parsing, and asset property simulation.
 /// </summary>
-public partial class WotConNodeManager : CustomNodeManager2
+public partial class WotConNodeManager : AsyncCustomNodeManager
 {
     // Local aliases bound to the source-generated NodeIds in Opc.Ua.WotCon.Constants.cs
     // (produced by ModelCompiler from WotConnection.xml). They keep the readable, intent-
     // revealing names used throughout this file while ensuring a compile-time link to the
     // canonical NodeSet — a NodeSet regeneration that renames or removes any of these
     // breaks the build immediately instead of silently mismatching at runtime.
-    private const uint WotAssetConnectionManagementObjectId = Opc.Ua.WotCon.Objects.WoTAssetConnectionManagement;
-    private const uint IWoTAssetTypeId = Opc.Ua.WotCon.ObjectTypes.IWoTAssetType;
-    private const uint CreateAssetMethodTypeId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagementType_CreateAsset;
-    private const uint CreateAssetMethodInstanceId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagement_CreateAsset;
-    private const uint CreateAssetInputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagement_CreateAsset_InputArguments;
-    private const uint CreateAssetOutputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagement_CreateAsset_OutputArguments;
-    private const uint DeleteAssetMethodTypeId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagementType_DeleteAsset;
-    private const uint DeleteAssetMethodInstanceId = Opc.Ua.WotCon.Methods.WoTAssetConnectionManagement_DeleteAsset;
-    private const uint DeleteAssetInputArgumentsId = Opc.Ua.WotCon.Variables.WoTAssetConnectionManagement_DeleteAsset_InputArguments;
+    private const uint WotAssetConnectionManagementObjectId = RuntimeModelIds.WotCon.Objects.WoTAssetConnectionManagement;
+    private const uint IWoTAssetTypeId = RuntimeModelIds.WotCon.ObjectTypes.IWoTAssetType;
+    private const uint CreateAssetMethodTypeId = RuntimeModelIds.WotCon.Methods.WoTAssetConnectionManagementType_CreateAsset;
+    private const uint CreateAssetMethodInstanceId = RuntimeModelIds.WotCon.Methods.WoTAssetConnectionManagement_CreateAsset;
+    private const uint CreateAssetInputArgumentsId = RuntimeModelIds.WotCon.Variables.WoTAssetConnectionManagement_CreateAsset_InputArguments;
+    private const uint CreateAssetOutputArgumentsId = RuntimeModelIds.WotCon.Variables.WoTAssetConnectionManagement_CreateAsset_OutputArguments;
+    private const uint DeleteAssetMethodTypeId = RuntimeModelIds.WotCon.Methods.WoTAssetConnectionManagementType_DeleteAsset;
+    private const uint DeleteAssetMethodInstanceId = RuntimeModelIds.WotCon.Methods.WoTAssetConnectionManagement_DeleteAsset;
+    private const uint DeleteAssetInputArgumentsId = RuntimeModelIds.WotCon.Variables.WoTAssetConnectionManagement_DeleteAsset_InputArguments;
 
     // Per OPC 10100-1 §6.3.10: WoTAssetFileType (ns=WotCon;i=110) is a subtype of standard
     // FileType that adds a CloseAndUpdate method (type-method i=111). Each created asset
     // owns its own WoTAssetFileType instance; the singleton WoTFile node (i=144) shipped
     // in the NodeSet as a placeholder under <WoTAssetName> (i=2) is intentionally left
     // unreferenced.
-    private const uint WoTAssetFileTypeId = Opc.Ua.WotCon.ObjectTypes.WoTAssetFileType;
-    private const uint FileCloseAndUpdateTypeMethodId = Opc.Ua.WotCon.Methods.WoTAssetFileType_CloseAndUpdate;
+    private const uint WoTAssetFileTypeId = RuntimeModelIds.WotCon.ObjectTypes.WoTAssetFileType;
+    private const uint FileCloseAndUpdateTypeMethodId = RuntimeModelIds.WotCon.Methods.WoTAssetFileType_CloseAndUpdate;
 
     // Per OPC 10100-1 §6.3.11: HasWoTComponent (ns=WotCon;i=142) is a subtype of
     // HasComponent (i=47) used to link an asset to its materialized WoT affordances
     // (Variables for Properties, Methods for Actions). Generic HasComponent stays in
     // use for non-affordance plumbing such as the per-asset WoTFile.
-    private const uint HasWoTComponentReferenceTypeId = Opc.Ua.WotCon.ReferenceTypes.HasWoTComponent;
+    private const uint HasWoTComponentReferenceTypeId = RuntimeModelIds.WotCon.ReferenceTypes.HasWoTComponent;
 
     // Strict UTF-8 decoder: throws DecoderFallbackException on malformed byte sequences
     // instead of silently substituting U+FFFD. Used to validate uploaded TD payloads.
@@ -56,12 +59,11 @@ public partial class WotConNodeManager : CustomNodeManager2
 
     private readonly ILogger _logger;
     private readonly TimeService _timeService;
+    private readonly SemaphoreSlim _mutationGate = new(1, 1);
+    private int _stopping;
 
-    // ConcurrentDictionary closes the check-then-act race in CreateAssetInternal
-    // (two concurrent CreateAsset calls with the same name). CustomNodeManager2
-    // does not serialize method handlers across sessions, so the registry has to
-    // be its own synchronization boundary; the per-asset FileLock continues to
-    // guard intra-asset state.
+    // Registries support concurrent discovery and file calls. Address-space mutations
+    // are serialized by _mutationGate; per-asset file buffers retain their own lock.
     private readonly ConcurrentDictionary<string, WotAsset> _assets = new();
     private readonly ConcurrentDictionary<NodeId, WotAsset> _filesByNodeId = new();
 
@@ -79,11 +81,14 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// <summary>
     /// Loads the WoT-Con NodeSet and sets up the asset management surface.
     /// </summary>
-    protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    protected override ValueTask<NodeStateCollection> LoadPredefinedNodesAsync(
+        ISystemContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var predefinedNodes = new NodeStateCollection();
         LoadNodeSet(context, predefinedNodes);
-        return predefinedNodes;
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(predefinedNodes);
     }
 
     /// <summary>
@@ -122,9 +127,11 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// This is the correct hook for registering method handlers, because nodes are now
     /// reachable via FindPredefinedNode using the server-assigned namespace index.
     /// </summary>
-    public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+    public override async ValueTask CreateAddressSpaceAsync(
+        IDictionary<NodeId, IList<IReference>> externalReferences, CancellationToken cancellationToken = default)
     {
-        base.CreateAddressSpace(externalReferences);
+        await base.CreateAddressSpaceAsync(externalReferences, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         SetupMethodHandlers(SystemContext);
         StartValueSimulation();
     }
@@ -134,22 +141,99 @@ public partial class WotConNodeManager : CustomNodeManager2
     {
         if (disposing)
         {
-            _simulationTimer?.Dispose();
-            _simulationTimer = null;
+            Interlocked.Exchange(ref _stopping, 1);
+            Interlocked.Exchange(ref _simulationTimer, null)?.Dispose();
+            _mutationGate.Wait();
+            _simulationGate.Wait();
+            try
+            {
+                CloseAllAssetFiles();
+                base.Dispose(disposing);
+                _assets.Clear();
+                _filesByNodeId.Clear();
+                _optionalMethodRemap.Clear();
+            }
+            finally
+            {
+                _simulationGate.Release();
+                _mutationGate.Release();
+            }
+            return;
         }
 
         base.Dispose(disposing);
+    }
+
+    public override async ValueTask DeleteAddressSpaceAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        Interlocked.Exchange(ref _stopping, 1);
+        Interlocked.Exchange(ref _simulationTimer, null)?.Dispose();
+        await _mutationGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            await _simulationGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                CloseAllAssetFiles();
+                await base.DeleteAddressSpaceAsync(CancellationToken.None).ConfigureAwait(false);
+                _assets.Clear();
+                _filesByNodeId.Clear();
+                _optionalMethodRemap.Clear();
+            }
+            finally
+            {
+                _simulationGate.Release();
+            }
+        }
+        finally
+        {
+            _mutationGate.Release();
+        }
+    }
+
+    private void CloseAllAssetFiles()
+    {
+        foreach (WotAsset asset in _assets.Values)
+        {
+            lock (asset.FileLock)
+            {
+                asset.IsDeleted = true;
+                foreach (MemoryStream stream in asset.FileBuffers.Values)
+                {
+                    stream.Dispose();
+                }
+                asset.FileBuffers.Clear();
+                var file = FindPredefinedNode<FileState>(asset.FileNodeId);
+                if (file?.OpenCount is not null)
+                {
+                    file.OpenCount.Value = 0;
+                }
+            }
+        }
     }
 
     /// <summary>
     /// Diagnostic override: logs every incoming Call request and remaps type→instance MethodId
     /// as a workaround for clients that send the type-declaration MethodId on an instance object.
     /// </summary>
-    public override void Call(
+    public override ValueTask CallAsync(
         OperationContext context,
-        IList<CallMethodRequest> methodsToCall,
+        ArrayOf<CallMethodRequest> methodsToCall,
         IList<CallMethodResult> results,
-        IList<ServiceResult> errors)
+        IList<ServiceResult> errors,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Volatile.Read(ref _stopping) != 0)
+        {
+            throw new ServiceResultException(StatusCodes.BadServerHalted);
+        }
+        RemapMethods(methodsToCall);
+        return base.CallAsync(context, methodsToCall, results, errors, cancellationToken);
+    }
+
+    private void RemapMethods(ArrayOf<CallMethodRequest> methodsToCall)
     {
         try
         {
@@ -200,7 +284,6 @@ public partial class WotConNodeManager : CustomNodeManager2
             _logger?.LogWarning(ex, "[WotCon] Call override pre-processing failed");
         }
 
-        base.Call(context, methodsToCall, results, errors);
     }
 
     /// <summary>
@@ -275,7 +358,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             RehydrateChildLink(managementObject, createAssetMethod);
 
             // Register handler on the instance method
-            createAssetMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnCreateAsset);
+            createAssetMethod.OnCallMethod2Async = OnCreateAssetAsync;
 
             // Workaround for 1.5.378: also try to register on the type declaration (i=26)
             // This allows both type-based and instance-based Call dispatches to work
@@ -284,7 +367,7 @@ public partial class WotConNodeManager : CustomNodeManager2
 
             if (createAssetTypeMethod != null)
             {
-                createAssetTypeMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnCreateAsset);
+                createAssetTypeMethod.OnCallMethod2Async = OnCreateAssetAsync;
                 _logger?.LogInformation("[WotCon] Registered OnCreateAsset handler on both type (i={TypeMethodId}) and instance (i={InstanceMethodId})", CreateAssetMethodTypeId, CreateAssetMethodInstanceId);
             }
             else
@@ -301,13 +384,13 @@ public partial class WotConNodeManager : CustomNodeManager2
             {
                 RehydrateMethodArguments(deleteAssetMethod, DeleteAssetInputArgumentsId, outputArgumentsId: 0);
                 RehydrateChildLink(managementObject, deleteAssetMethod);
-                deleteAssetMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnDeleteAsset);
+                deleteAssetMethod.OnCallMethod2Async = OnDeleteAssetAsync;
 
                 var deleteAssetTypeId = new NodeId(DeleteAssetMethodTypeId, wotConNamespaceIndex);
                 var deleteAssetTypeMethod = FindPredefinedNode<MethodState>(deleteAssetTypeId);
                 if (deleteAssetTypeMethod != null)
                 {
-                    deleteAssetTypeMethod.OnCallMethod = new GenericMethodCalledEventHandler(OnDeleteAsset);
+                    deleteAssetTypeMethod.OnCallMethod2Async = OnDeleteAssetAsync;
                 }
 
                 _logger?.LogInformation("[WotCon] Registered OnDeleteAsset handler on instance (i={InstanceMethodId})", DeleteAssetMethodInstanceId);
@@ -331,28 +414,11 @@ public partial class WotConNodeManager : CustomNodeManager2
     }
 
     /// <summary>
-    /// Pulls an <see cref="Argument"/> array out of whatever the NodeSet importer stored
-    /// (raw <see cref="Argument"/>[], <see cref="ExtensionObject"/>[], or a wrapper).
+    /// Reads the typed argument array stored by the NodeSet importer.
     /// </summary>
-    private Argument[] ExtractArguments(object value)
+    private ArrayOf<Argument> ExtractArguments(Variant value)
     {
-        if (value is Argument[] args)
-        {
-            return args;
-        }
-
-        if (value is ExtensionObject[] extensions)
-        {
-            var list = new Argument[extensions.Length];
-            for (int i = 0; i < extensions.Length; i++)
-            {
-                list[i] = extensions[i]?.Body as Argument;
-            }
-
-            return list;
-        }
-
-        return null;
+        return value.GetStructureArray<Argument>(context: Server.MessageContext);
     }
 
     /// <summary>
@@ -405,7 +471,7 @@ public partial class WotConNodeManager : CustomNodeManager2
         }
 
         _logger?.LogInformation("[WotCon] Wired {Kind}Arguments {NodeId} ({Count} args) onto method {Method}",
-            input ? "Input" : "Output", propertyId, prop?.Value?.Length ?? 0, method.NodeId);
+            input ? "Input" : "Output", propertyId, prop?.Value.Count ?? 0, method.NodeId);
     }
 
     /// <summary>
@@ -413,23 +479,21 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// <see cref="PropertyState{T}"/> the MethodState API requires. If it's already the right
     /// type, return as-is; otherwise build a new property carrying the same Value/NodeId.
     /// </summary>
-    private PropertyState<Argument[]> ToArgumentProperty(BaseVariableState v)
+    private PropertyState<ArrayOf<Argument>> ToArgumentProperty(BaseVariableState v)
     {
-        if (v is PropertyState<Argument[]> p)
+        if (v is PropertyState<ArrayOf<Argument>> p)
         {
             return p;
         }
 
-        var prop = new PropertyState<Argument[]>(v.Parent)
-        {
-            NodeId = v.NodeId,
-            BrowseName = v.BrowseName,
-            DisplayName = v.DisplayName,
-            TypeDefinitionId = VariableTypeIds.PropertyType,
-            DataType = DataTypeIds.Argument,
-            ValueRank = ValueRanks.OneDimension,
-            Value = ExtractArguments(v.Value),
-        };
+        var prop = PropertyState<ArrayOf<Argument>>.With<StructureBuilder<Argument>>(v.Parent);
+        prop.NodeId = v.NodeId;
+        prop.BrowseName = v.BrowseName;
+        prop.DisplayName = v.DisplayName;
+        prop.TypeDefinitionId = VariableTypeIds.PropertyType;
+        prop.DataType = DataTypeIds.Argument;
+        prop.ValueRank = ValueRanks.OneDimension;
+        prop.Value = ExtractArguments(v.Value);
         return prop;
     }
 
@@ -460,26 +524,30 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// uploaded separately by the client via the WoTFile File API, after which properties
     /// are materialized.
     /// </summary>
-    private ServiceResult OnCreateAsset(
+    private async ValueTask<ServiceResult> OnCreateAssetAsync(
         ISystemContext context,
         MethodState method,
-        IList<object> inputArguments,
-        IList<object> outputArguments)
+        NodeId objectId,
+        ArrayOf<Variant> inputArguments,
+        List<Variant> outputArguments,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (inputArguments.Count < 1)
         {
             _logger?.LogWarning("[WotCon] CreateAsset called with insufficient arguments");
             return new ServiceResult(StatusCodes.BadArgumentsMissing);
         }
 
-        var assetName = inputArguments[0] as string;
+        string assetName = inputArguments[0].GetString();
         if (string.IsNullOrWhiteSpace(assetName))
         {
             // §6.3.2 specifies Bad_BrowseNameInvalid for an invalid AssetName.
-            return new ServiceResult(StatusCodes.BadBrowseNameInvalid, "AssetName cannot be empty");
+            return ServiceResult.Create(StatusCodes.BadBrowseNameInvalid, "{0}", "AssetName cannot be empty");
         }
 
-        var (result, assetId) = CreateAssetInternal(context, assetName, endpoint: null);
+        var (result, assetId) = await CreateAssetInternalAsync(context, assetName, endpoint: null, cancellationToken)
+            .ConfigureAwait(false);
         if (ServiceResult.IsBad(result))
         {
             return result;
@@ -490,7 +558,7 @@ public partial class WotConNodeManager : CustomNodeManager2
     }
 
     /// <summary>
-    /// Shared create-asset path used by both <see cref="OnCreateAsset"/> (\u00a76.3.2) and
+    /// Shared create-asset path used by both <see cref="OnCreateAssetAsync"/> (\u00a76.3.2) and
     /// <c>OnCreateAssetForEndpoint</c> (\u00a76.3.5). Enforces the \u00a76.3.2 duplicate-name rule
     /// (<c>Bad_BrowseNameDuplicated</c>), creates the asset object + per-asset
     /// <c>WoTAssetFileType</c> instance, and \u2014 when <paramref name="endpoint"/> is
@@ -498,24 +566,33 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// the \u00a76.3.8 <c>AssetEndpoint</c> Property the same way a TD upload with a
     /// top-level <c>base</c> would.
     /// </summary>
-    private (ServiceResult Result, NodeId AssetId) CreateAssetInternal(
+    private async ValueTask<(ServiceResult Result, NodeId AssetId)> CreateAssetInternalAsync(
         ISystemContext context,
         string assetName,
-        string endpoint)
+        string endpoint,
+        CancellationToken cancellationToken)
     {
+        await _mutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Volatile.Read(ref _stopping) != 0)
+            {
+                return (new ServiceResult(StatusCodes.BadServerHalted), NodeId.Null);
+            }
+            cancellationToken = CancellationToken.None;
             if (_assets.ContainsKey(assetName))
             {
                 _logger?.LogInformation("[WotCon] CreateAsset rejected: AssetName '{AssetName}' already exists", assetName);
-                return (new ServiceResult(StatusCodes.BadBrowseNameDuplicated, $"An asset named '{assetName}' already exists"), null);
+                return (ServiceResult.Create(StatusCodes.BadBrowseNameDuplicated,
+                    "An asset named '{0}' already exists", assetName), NodeId.Null);
             }
 
             var placeholder = new ThingDescriptionInfo { Name = assetName };
-            var asset = CreateAssetNode(context, placeholder);
+            var asset = await CreateAssetNodeAsync(context, placeholder, cancellationToken).ConfigureAwait(false);
             if (asset == null)
             {
-                return (new ServiceResult(StatusCodes.BadInternalError, "Failed to create asset node"), null);
+                return (ServiceResult.Create(StatusCodes.BadInternalError, "{0}", "Failed to create asset node"), NodeId.Null);
             }
 
             // Atomic insert closes the check-then-act race against a concurrent
@@ -525,12 +602,13 @@ public partial class WotConNodeManager : CustomNodeManager2
             // the per-asset WoTFile and its FileType children.
             if (!_assets.TryAdd(assetName, asset))
             {
-                DeleteNode(SystemContext, asset.AssetId);
+                await DeleteNodeAsync(SystemContext, asset.AssetId, cancellationToken).ConfigureAwait(false);
                 _logger?.LogInformation("[WotCon] CreateAsset rejected: AssetName '{AssetName}' created concurrently by another caller", assetName);
-                return (new ServiceResult(StatusCodes.BadBrowseNameDuplicated, $"An asset named '{assetName}' already exists"), null);
+                return (ServiceResult.Create(StatusCodes.BadBrowseNameDuplicated,
+                    "An asset named '{0}' already exists", assetName), NodeId.Null);
             }
 
-            if (asset.FileNodeId != null)
+            if (!asset.FileNodeId.IsNull)
             {
                 _filesByNodeId[asset.FileNodeId] = asset;
             }
@@ -538,7 +616,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             if (!string.IsNullOrWhiteSpace(endpoint))
             {
                 asset.AssetEndpoint = endpoint;
-                MaterializeAssetEndpoint(context, asset);
+                await MaterializeAssetEndpointAsync(context, asset, cancellationToken).ConfigureAwait(false);
             }
 
             _logger?.LogInformation(
@@ -548,10 +626,14 @@ public partial class WotConNodeManager : CustomNodeManager2
             ReportAssetModelChange(context, asset.AssetId, ModelChangeStructureVerbMask.NodeAdded);
             return (ServiceResult.Good, asset.AssetId);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger?.LogError(ex, "[WotCon] Exception in CreateAssetInternal for '{AssetName}'", assetName);
-            return (new ServiceResult(StatusCodes.BadInternalError, ex.Message), null);
+            return (ServiceResult.Create(StatusCodes.BadInternalError, "{0}", ex.Message), NodeId.Null);
+        }
+        finally
+        {
+            _mutationGate.Release();
         }
     }
 
@@ -561,24 +643,34 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// <c>Organizes</c> reference from WoTAssetConnectionManagement. Closes any open file
     /// handles for the asset.
     /// </summary>
-    private ServiceResult OnDeleteAsset(
+    private async ValueTask<ServiceResult> OnDeleteAssetAsync(
         ISystemContext context,
         MethodState method,
-        IList<object> inputArguments,
-        IList<object> outputArguments)
+        NodeId objectId,
+        ArrayOf<Variant> inputArguments,
+        List<Variant> outputArguments,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (inputArguments.Count < 1)
         {
             _logger?.LogWarning("[WotCon] DeleteAsset called with insufficient arguments");
             return new ServiceResult(StatusCodes.BadArgumentsMissing);
         }
 
+        await _mutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var assetId = inputArguments[0] as NodeId;
-            if (NodeId.IsNull(assetId))
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Volatile.Read(ref _stopping) != 0)
             {
-                return new ServiceResult(StatusCodes.BadInvalidArgument, "AssetId cannot be null");
+                return StatusCodes.BadServerHalted;
+            }
+            cancellationToken = CancellationToken.None;
+            NodeId assetId = inputArguments[0].GetNodeId();
+            if (assetId.IsNull)
+            {
+                return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "AssetId cannot be null");
             }
 
             // Locate the asset by its root NodeId. Small N — linear scan is fine.
@@ -600,24 +692,29 @@ public partial class WotConNodeManager : CustomNodeManager2
                 return new ServiceResult(StatusCodes.BadNotFound);
             }
 
-            // LifecycleLock serializes against an in-flight CloseAndUpdate materialization.
-            // Setting IsDeleted under the lock means a CloseAndUpdate that wins the lock
+            // LifecycleGate serializes against an in-flight CloseAndUpdate materialization.
+            // Setting IsDeleted under the gate means a CloseAndUpdate that wins the gate
             // after we release will short-circuit instead of writing into the address-space
             // subtree we're about to remove.
             bool deleted;
-            lock (asset.LifecycleLock)
+            await asset.LifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
             {
-                asset.IsDeleted = true;
-
                 // Close any open file handles for this asset so MemoryStreams don't leak.
                 lock (asset.FileLock)
                 {
+                    asset.IsDeleted = true;
                     foreach (var stream in asset.FileBuffers.Values)
                     {
                         stream.Dispose();
                     }
 
                     asset.FileBuffers.Clear();
+                    var file = FindPredefinedNode<FileState>(asset.FileNodeId);
+                    if (file?.OpenCount is not null)
+                    {
+                        file.OpenCount.Value = 0;
+                    }
                 }
 
                 // Remove the forward Organizes ref from WoTAssetConnectionManagement so the asset
@@ -630,10 +727,10 @@ public partial class WotConNodeManager : CustomNodeManager2
                 // DeleteNode recursively removes the asset and all HasComponent children
                 // (the per-asset WoTFile + its standard FileType properties and methods,
                 // plus any materialized TD properties).
-                deleted = DeleteNode(SystemContext, assetId);
+                deleted = await DeleteNodeAsync(SystemContext, assetId, cancellationToken).ConfigureAwait(false);
 
                 _assets.TryRemove(assetName, out _);
-                if (asset.FileNodeId != null)
+                if (!asset.FileNodeId.IsNull)
                 {
                     _filesByNodeId.TryRemove(asset.FileNodeId, out _);
                 }
@@ -642,6 +739,10 @@ public partial class WotConNodeManager : CustomNodeManager2
                 {
                     _logger?.LogWarning("[WotCon] DeleteAsset: DeleteNode returned false for {AssetId}", assetId);
                 }
+            }
+            finally
+            {
+                asset.LifecycleGate.Release();
             }
 
             _logger?.LogInformation("[WotCon] Deleted WoT asset '{AssetName}' AssetId={AssetId}", assetName, assetId);
@@ -652,10 +753,14 @@ public partial class WotConNodeManager : CustomNodeManager2
 
             return ServiceResult.Good;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger?.LogError(ex, "[WotCon] Exception in OnDeleteAsset");
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+            return ServiceResult.Create(StatusCodes.BadInternalError, "{0}", ex.Message);
+        }
+        finally
+        {
+            _mutationGate.Release();
         }
     }
 
@@ -675,7 +780,7 @@ public partial class WotConNodeManager : CustomNodeManager2
         modelChangeEvent.SetChildValue(
             context,
             BrowseNames.Changes,
-            new ModelChangeStructureDataType[]
+            Variant.FromStructure(new ModelChangeStructureDataType[]
             {
                 new()
                 {
@@ -683,7 +788,7 @@ public partial class WotConNodeManager : CustomNodeManager2
                     AffectedType = ObjectTypeIds.BaseObjectType,
                     Verb = (byte)verb,
                 },
-            },
+            }.ToArrayOf()),
             copy: false);
 
         Server.ReportEvent(modelChangeEvent);
@@ -693,9 +798,10 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// Creates an OPC UA asset node with properties from the Thing Description, plus a
     /// per-asset WoTAssetFileType instance for TD upload. Returns a populated
     /// <see cref="WotAsset"/> with AssetId, FileNodeId and the type-method to instance-method
-    /// remap table the <see cref="Call"/> override needs.
+    /// remap table the <see cref="CallAsync"/> override needs.
     /// </summary>
-    private WotAsset CreateAssetNode(ISystemContext context, ThingDescriptionInfo assetInfo)
+    private async ValueTask<WotAsset> CreateAssetNodeAsync(
+        ISystemContext context, ThingDescriptionInfo assetInfo, CancellationToken cancellationToken)
     {
         try
         {
@@ -705,7 +811,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             {
                 NodeId = assetNodeId,
                 BrowseName = new QualifiedName(assetInfo.Name, NamespaceIndex),
-                DisplayName = assetInfo.Name,
+                DisplayName = new LocalizedText(assetInfo.Name),
                 TypeDefinitionId = ObjectTypeIds.BaseObjectType,
             };
 
@@ -742,7 +848,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             // Add the asset to the server's address space. TD-driven Variables are materialized
             // later when the client uploads the Thing Description via CloseAndUpdate — see
             // MaterializeAssetProperties + OnPerAssetFileCloseAndUpdate.
-            AddPredefinedNode(context, assetNode);
+            await AddPredefinedNodeAsync(context, assetNode, cancellationToken).ConfigureAwait(false);
 
             // Forward Organizes ref on the management object (already loaded from NodeSet).
             // Pair to the inverse added on the asset above; together they make the asset
@@ -772,27 +878,50 @@ public partial class WotConNodeManager : CustomNodeManager2
 
     /// <summary>
     /// Creates a per-asset WoTAssetFileType instance (ns=WotCon;i=110) as a HasComponent
-    /// child of <paramref name="assetNode"/>. Uses the generated <see cref="Opc.Ua.WotCon.WoTAssetFileState"/>
-    /// so the full standard FileType layout (Size, Writable, UserWritable, OpenCount, MimeType,
-    /// MaxByteStringLength, LastModifiedTime + Open/Close/Read/Write/GetPosition/SetPosition)
-    /// and the WoT-Con-specific CloseAndUpdate method (type-method ns=WotCon;i=111) are both
-    /// materialized automatically from the model-compiler-generated initialization string.
+    /// child of <paramref name="assetNode"/>. Uses the SDK FileState layout and copies
+    /// CloseAndUpdate from the imported WoT-Con model.
     /// Populates <see cref="WotAsset.FileNodeId"/> and <see cref="WotAsset.FileMethodMap"/>
     /// so the Call override can rewrite incoming type-method IDs onto this instance.
     /// </summary>
     private void CreateAssetFileNode(ISystemContext context, BaseObjectState assetNode, WotAsset asset)
     {
         var fileNodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
-        var fileNode = new Opc.Ua.WotCon.WoTAssetFileState(assetNode)
+        var fileNode = new FileState(assetNode)
         {
             ReferenceTypeId = ReferenceTypeIds.HasComponent,
         };
         fileNode.Create(
             context,
             fileNodeId,
-            new QualifiedName(Opc.Ua.WotCon.BrowseNames.WoTFile, NamespaceIndex),
-            new Opc.Ua.LocalizedText(Opc.Ua.WotCon.BrowseNames.WoTFile),
+            new QualifiedName(RuntimeModelIds.WotCon.BrowseNames.WoTFile, NamespaceIndex),
+            new Opc.Ua.LocalizedText(RuntimeModelIds.WotCon.BrowseNames.WoTFile),
             assignNodeIds: true);
+
+        fileNode.TypeDefinitionId = new NodeId(RuntimeModelIds.WotCon.ObjectTypes.WoTAssetFileType, NamespaceIndex);
+        var closeAndUpdate = new MethodState(fileNode);
+        closeAndUpdate.Create(context,
+            FindPredefinedNode<MethodState>(new NodeId(FileCloseAndUpdateTypeMethodId, NamespaceIndex)));
+        closeAndUpdate.ReferenceTypeId = ReferenceTypeIds.HasComponent;
+        closeAndUpdate.InputArguments = PropertyState<ArrayOf<Argument>>.With<StructureBuilder<Argument>>(
+            closeAndUpdate);
+        closeAndUpdate.InputArguments.BrowseName = new QualifiedName(Opc.Ua.BrowseNames.InputArguments);
+        closeAndUpdate.InputArguments.DisplayName = new LocalizedText(Opc.Ua.BrowseNames.InputArguments);
+        closeAndUpdate.InputArguments.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+        closeAndUpdate.InputArguments.DataType = DataTypeIds.Argument;
+        closeAndUpdate.InputArguments.ValueRank = ValueRanks.OneDimension;
+        closeAndUpdate.InputArguments.Value = ExtractArguments(FindPredefinedNode<BaseVariableState>(new NodeId(
+            RuntimeModelIds.WotCon.Variables.WoTAssetFileType_CloseAndUpdate_InputArguments, NamespaceIndex)).Value);
+        fileNode.AddChild(closeAndUpdate);
+
+        fileNode.ReferenceTypeId = ReferenceTypeIds.HasComponent;
+        fileNode.BrowseName = new QualifiedName(RuntimeModelIds.WotCon.BrowseNames.WoTFile, NamespaceIndex);
+
+        fileNode.CreateOrReplaceMimeType(context, null, assignInstanceNodeIds: true);
+        fileNode.CreateOrReplaceMaxByteStringLength(context, null, assignInstanceNodeIds: true);
+        fileNode.CreateOrReplaceLastModifiedTime(context, null, assignInstanceNodeIds: true);
+        fileNode.MimeType.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+        fileNode.MaxByteStringLength.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+        fileNode.LastModifiedTime.ReferenceTypeId = ReferenceTypeIds.HasProperty;
 
         // Mandatory FileType properties.
         fileNode.Size.Value = 0UL;
@@ -800,7 +929,7 @@ public partial class WotConNodeManager : CustomNodeManager2
         fileNode.UserWritable.Value = true;
         fileNode.OpenCount.Value = 0;
 
-        // Optional FileType properties (materialized by InitializeOptionalChildren).
+        // Optional FileType properties created explicitly above.
         if (fileNode.MimeType != null)
         {
             fileNode.MimeType.Value = "application/td+json";
@@ -827,11 +956,8 @@ public partial class WotConNodeManager : CustomNodeManager2
         fileNode.GetPosition.OnCallMethod = (c, m, i, o) => OnPerAssetFileGetPosition(asset, i, o);
         fileNode.SetPosition.OnCallMethod = (c, m, i, o) => OnPerAssetFileSetPosition(asset, i);
 
-        // WoT-Con-specific CloseAndUpdate (OPC 10100-1 §6.3.10) is materialized as a typed
-        // child of WoTAssetFileState by the generator (see Opc.Ua.WotCon.WoTAssetFileState
-        // initialization string). Wire its per-asset handler; InputArguments are already
-        // populated from the model.
-        fileNode.CloseAndUpdate.OnCallMethod = (c, m, i, o) => OnPerAssetFileCloseAndUpdate(asset, fileNode, i);
+        closeAndUpdate.OnCallMethod2Async = (context, method, objectId, inputs, outputs, token) =>
+            OnPerAssetFileCloseAndUpdateAsync(asset, fileNode, inputs, token);
 
         // Reassign per-instance NodeIds to every child after they have all been wired up.
         // Passing assignNodeIds:true to Create() is too early — FileState's standard children
@@ -856,7 +982,7 @@ public partial class WotConNodeManager : CustomNodeManager2
         ReassignMethodNodeIds(fileNode.Write);
         ReassignMethodNodeIds(fileNode.GetPosition);
         ReassignMethodNodeIds(fileNode.SetPosition);
-        ReassignMethodNodeIds(fileNode.CloseAndUpdate);
+        ReassignMethodNodeIds(closeAndUpdate);
 
         // Defensive: remap NS=0 FileType type-method IDs onto this instance's method NodeIds
         // for clients that call the type-method instead of browsing for the instance method.
@@ -868,7 +994,7 @@ public partial class WotConNodeManager : CustomNodeManager2
         asset.FileMethodMap[new NodeId(Methods.FileType_Write, 0)] = fileNode.Write.NodeId;
         asset.FileMethodMap[new NodeId(Methods.FileType_GetPosition, 0)] = fileNode.GetPosition.NodeId;
         asset.FileMethodMap[new NodeId(Methods.FileType_SetPosition, 0)] = fileNode.SetPosition.NodeId;
-        asset.FileMethodMap[new NodeId(FileCloseAndUpdateTypeMethodId, NamespaceIndex)] = fileNode.CloseAndUpdate.NodeId;
+        asset.FileMethodMap[new NodeId(FileCloseAndUpdateTypeMethodId, NamespaceIndex)] = closeAndUpdate.NodeId;
 
         assetNode.AddChild(fileNode);
         asset.FileNodeId = fileNode.NodeId;
@@ -908,7 +1034,7 @@ public partial class WotConNodeManager : CustomNodeManager2
         }
     }
 
-    private ServiceResult OnPerAssetFileOpen(WotAsset asset, FileState fileNode, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnPerAssetFileOpen(WotAsset asset, FileState fileNode, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
         try
         {
@@ -916,6 +1042,10 @@ public partial class WotConNodeManager : CustomNodeManager2
             int openCount;
             lock (asset.FileLock)
             {
+                if (asset.IsDeleted || Volatile.Read(ref _stopping) != 0)
+                {
+                    return StatusCodes.BadObjectDeleted;
+                }
                 handle = asset.NextFileHandle++;
                 asset.FileBuffers[handle] = new MemoryStream();
                 openCount = asset.FileBuffers.Count;
@@ -933,11 +1063,11 @@ public partial class WotConNodeManager : CustomNodeManager2
         catch (Exception ex)
         {
             _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileOpen failed", asset.Name);
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+            return ServiceResult.Create(StatusCodes.BadInternalError, "{0}", ex.Message);
         }
     }
 
-    private ServiceResult OnPerAssetFileWrite(WotAsset asset, FileState fileNode, IList<object> inputArguments)
+    private ServiceResult OnPerAssetFileWrite(WotAsset asset, FileState fileNode, ArrayOf<Variant> inputArguments)
     {
         if (inputArguments.Count < 2)
         {
@@ -946,8 +1076,8 @@ public partial class WotConNodeManager : CustomNodeManager2
 
         try
         {
-            uint handle = Convert.ToUInt32(inputArguments[0]);
-            byte[] data = inputArguments[1] as byte[] ?? Array.Empty<byte>();
+            uint handle = (uint)inputArguments[0];
+            ByteString data = inputArguments[1].GetByteString();
 
             // FileLock has to cover the stream write itself: MemoryStream is not
             // thread-safe and a concurrent Close/CloseAndUpdate could dispose the
@@ -957,35 +1087,35 @@ public partial class WotConNodeManager : CustomNodeManager2
             {
                 if (!asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
-                    return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
+                    return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "Unknown file handle");
                 }
 
                 // Enforce the limit advertised on MaxByteStringLength so clients can trust
                 // the property instead of being able to grow the in-memory buffer unbounded.
                 uint maxBytes = fileNode.MaxByteStringLength?.Value ?? 0;
-                if (maxBytes > 0 && stream.Length + data.LongLength > maxBytes)
+                if (maxBytes > 0 && stream.Length + data.Span.Length > maxBytes)
                 {
-                    return new ServiceResult(StatusCodes.BadRequestTooLarge,
+                    return ServiceResult.Create(StatusCodes.BadRequestTooLarge, "{0}",
                         $"Write would exceed MaxByteStringLength ({maxBytes} bytes).");
                 }
 
-                stream.Write(data, 0, data.Length);
+                stream.Write(data.Span);
                 totalLength = stream.Length;
             }
 
             fileNode.Size.Value = (ulong)totalLength;
             _logger?.LogInformation("[WotCon] {Asset}.Write handle={Handle} wrote {Bytes} bytes (total {Total})",
-                asset.Name, handle, data.Length, totalLength);
+                asset.Name, handle, data.Span.Length, totalLength);
             return ServiceResult.Good;
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileWrite failed", asset.Name);
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+            return ServiceResult.Create(StatusCodes.BadInternalError, "{0}", ex.Message);
         }
     }
 
-    private ServiceResult OnPerAssetFileRead(WotAsset asset, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnPerAssetFileRead(WotAsset asset, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
         if (inputArguments.Count < 2)
         {
@@ -994,8 +1124,8 @@ public partial class WotConNodeManager : CustomNodeManager2
 
         try
         {
-            uint handle = Convert.ToUInt32(inputArguments[0]);
-            int length = Convert.ToInt32(inputArguments[1]);
+            uint handle = (uint)inputArguments[0];
+            int length = (int)inputArguments[1];
 
             // FileLock has to cover the stream read itself: MemoryStream is not
             // thread-safe and a concurrent Close/CloseAndUpdate could dispose the
@@ -1005,7 +1135,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             {
                 if (!asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
-                    return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
+                    return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "Unknown file handle");
                 }
 
                 var buffer = new byte[Math.Max(0, length)];
@@ -1014,17 +1144,17 @@ public partial class WotConNodeManager : CustomNodeManager2
                 Array.Copy(buffer, result, read);
             }
 
-            outputArguments[0] = result;
+            outputArguments[0] = (ByteString)result;
             return ServiceResult.Good;
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileRead failed", asset.Name);
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+            return ServiceResult.Create(StatusCodes.BadInternalError, "{0}", ex.Message);
         }
     }
 
-    private ServiceResult OnPerAssetFileClose(WotAsset asset, FileState fileNode, IList<object> inputArguments)
+    private ServiceResult OnPerAssetFileClose(WotAsset asset, FileState fileNode, ArrayOf<Variant> inputArguments)
     {
         if (inputArguments.Count < 1)
         {
@@ -1033,7 +1163,7 @@ public partial class WotConNodeManager : CustomNodeManager2
 
         try
         {
-            uint handle = Convert.ToUInt32(inputArguments[0]);
+            uint handle = (uint)inputArguments[0];
             int openCount = CloseAssetHandle(asset, handle);
             if (fileNode.OpenCount != null)
             {
@@ -1046,11 +1176,11 @@ public partial class WotConNodeManager : CustomNodeManager2
         catch (Exception ex)
         {
             _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileClose failed", asset.Name);
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+            return ServiceResult.Create(StatusCodes.BadInternalError, "{0}", ex.Message);
         }
     }
 
-    private ServiceResult OnPerAssetFileGetPosition(WotAsset asset, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnPerAssetFileGetPosition(WotAsset asset, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
         if (inputArguments.Count < 1)
         {
@@ -1059,13 +1189,13 @@ public partial class WotConNodeManager : CustomNodeManager2
 
         try
         {
-            uint handle = Convert.ToUInt32(inputArguments[0]);
+            uint handle = (uint)inputArguments[0];
             ulong position;
             lock (asset.FileLock)
             {
                 if (!asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
-                    return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
+                    return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "Unknown file handle");
                 }
 
                 position = (ulong)stream.Position;
@@ -1077,11 +1207,11 @@ public partial class WotConNodeManager : CustomNodeManager2
         catch (Exception ex)
         {
             _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileGetPosition failed", asset.Name);
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+            return ServiceResult.Create(StatusCodes.BadInternalError, "{0}", ex.Message);
         }
     }
 
-    private ServiceResult OnPerAssetFileSetPosition(WotAsset asset, IList<object> inputArguments)
+    private ServiceResult OnPerAssetFileSetPosition(WotAsset asset, ArrayOf<Variant> inputArguments)
     {
         if (inputArguments.Count < 2)
         {
@@ -1090,13 +1220,13 @@ public partial class WotConNodeManager : CustomNodeManager2
 
         try
         {
-            uint handle = Convert.ToUInt32(inputArguments[0]);
-            ulong position = Convert.ToUInt64(inputArguments[1]);
+            uint handle = (uint)inputArguments[0];
+            ulong position = (ulong)inputArguments[1];
             lock (asset.FileLock)
             {
                 if (!asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
-                    return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
+                    return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "Unknown file handle");
                 }
 
                 stream.Position = (long)position;
@@ -1107,20 +1237,29 @@ public partial class WotConNodeManager : CustomNodeManager2
         catch (Exception ex)
         {
             _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileSetPosition failed", asset.Name);
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+            return ServiceResult.Create(StatusCodes.BadInternalError, "{0}", ex.Message);
         }
     }
 
-    private ServiceResult OnPerAssetFileCloseAndUpdate(WotAsset asset, FileState fileNode, IList<object> inputArguments)
+    private async ValueTask<ServiceResult> OnPerAssetFileCloseAndUpdateAsync(
+        WotAsset asset, FileState fileNode, ArrayOf<Variant> inputArguments, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (inputArguments.Count < 1)
         {
             return new ServiceResult(StatusCodes.BadArgumentsMissing);
         }
 
+        await _mutationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            uint handle = Convert.ToUInt32(inputArguments[0]);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Volatile.Read(ref _stopping) != 0)
+            {
+                return StatusCodes.BadServerHalted;
+            }
+            cancellationToken = CancellationToken.None;
+            uint handle = (uint)inputArguments[0];
 
             // Snapshot + dispose under one lock acquisition so a concurrent Read/Write
             // can't observe the buffer between ToArray and Dispose.
@@ -1129,6 +1268,10 @@ public partial class WotConNodeManager : CustomNodeManager2
             int openCount;
             lock (asset.FileLock)
             {
+                if (asset.IsDeleted)
+                {
+                    return StatusCodes.BadObjectDeleted;
+                }
                 if (asset.FileBuffers.TryGetValue(handle, out var stream))
                 {
                     handleKnown = true;
@@ -1145,7 +1288,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             if (!handleKnown)
             {
                 _logger?.LogWarning("[WotCon] {Asset}.CloseAndUpdate received unknown handle={Handle}", asset.Name, handle);
-                return new ServiceResult(StatusCodes.BadInvalidState, "FileHandle is not open for writing.");
+                return ServiceResult.Create(StatusCodes.BadInvalidState, "{0}", "FileHandle is not open for writing.");
             }
 
             asset.LastFinalizedPayload = payload;
@@ -1170,7 +1313,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             if (payload == null || payload.Length == 0)
             {
                 _logger?.LogWarning("[WotCon] {Asset}.CloseAndUpdate handle={Handle} produced an empty payload", asset.Name, handle);
-                return new ServiceResult(StatusCodes.BadDecodingError, "Thing Description payload is empty.");
+                return ServiceResult.Create(StatusCodes.BadDecodingError, "{0}", "Thing Description payload is empty.");
             }
 
             string json;
@@ -1182,7 +1325,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             catch (DecoderFallbackException ex)
             {
                 _logger?.LogWarning(ex, "[WotCon] {Asset}.CloseAndUpdate handle={Handle} payload is not valid UTF-8", asset.Name, handle);
-                return new ServiceResult(StatusCodes.BadDecodingError, "Thing Description payload is not valid UTF-8.");
+                return ServiceResult.Create(StatusCodes.BadDecodingError, "{0}", "Thing Description payload is not valid UTF-8.");
             }
 
             ThingDescriptionInfo parsed;
@@ -1193,13 +1336,13 @@ public partial class WotConNodeManager : CustomNodeManager2
             catch (JsonException ex)
             {
                 _logger?.LogWarning(ex, "[WotCon] {Asset}.CloseAndUpdate handle={Handle} payload is malformed JSON", asset.Name, handle);
-                return new ServiceResult(StatusCodes.BadDecodingError, "Thing Description payload is not valid JSON.");
+                return ServiceResult.Create(StatusCodes.BadDecodingError, "{0}", "Thing Description payload is not valid JSON.");
             }
 
             if (parsed == null)
             {
                 // §6.3.10.2: a TD that omits a mandatory member fails to parse as a valid TD.
-                return new ServiceResult(StatusCodes.BadDecodingError, "Thing Description is missing a non-empty 'title'.");
+                return ServiceResult.Create(StatusCodes.BadDecodingError, "{0}", "Thing Description is missing a non-empty 'title'.");
             }
 
             // OPC 10100-1 §6.3.1: reject TDs that reference a WoT binding outside the
@@ -1213,37 +1356,44 @@ public partial class WotConNodeManager : CustomNodeManager2
 
             // Persist both the raw JSON (for diagnostics / re-export) and the parsed form
             // (for later materialization). Re-uploads overwrite both.
-            asset.ThingDescription = json;
-            asset.ParsedThingDescription = parsed;
-            asset.AssetEndpoint = string.IsNullOrWhiteSpace(parsed.Base) ? null : parsed.Base;
 
             // Per OPC 10100-1 §6.3.2 + §6.3.8 + §6.3.9: a successful TD upload materializes
             // the asset's information model. Today: WoT Properties → OPC UA Variables and WoT
             // Actions → OPC UA Methods under the asset.
             //
-            // LifecycleLock + IsDeleted gate closes the upload-vs-delete race: a concurrent
-            // DeleteAsset that beat us to the lock has already torn the asset down, and a
+            // LifecycleGate + IsDeleted closes the upload-vs-delete race: a concurrent
+            // DeleteAsset that beat us to the gate has already torn the asset down, and a
             // second concurrent CloseAndUpdate is serialized so the last writer's
             // materialization fully replaces the prior generation instead of interleaving.
-            lock (asset.LifecycleLock)
+            await asset.LifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
             {
                 if (asset.IsDeleted)
                 {
                     _logger?.LogInformation("[WotCon] {Asset}.CloseAndUpdate aborted: asset was deleted concurrently", asset.Name);
-                    return new ServiceResult(StatusCodes.BadObjectDeleted, "Asset was deleted before the upload could be materialized.");
+                    return ServiceResult.Create(StatusCodes.BadObjectDeleted, "{0}", "Asset was deleted before the upload could be materialized.");
                 }
 
                 try
                 {
-                    MaterializeAssetEndpoint(SystemContext, asset);
-                    MaterializeAssetProperties(SystemContext, asset, parsed);
-                    MaterializeAssetActions(SystemContext, asset, parsed);
+                    asset.ThingDescription = json;
+                    asset.ParsedThingDescription = parsed;
+                    asset.AssetEndpoint = string.IsNullOrWhiteSpace(parsed.Base) ? null : parsed.Base;
+                    await MaterializeAssetEndpointAsync(SystemContext, asset, cancellationToken).ConfigureAwait(false);
+                    await MaterializeAssetPropertiesAsync(SystemContext, asset, parsed, cancellationToken)
+                        .ConfigureAwait(false);
+                    await MaterializeAssetActionsAsync(SystemContext, asset, parsed, cancellationToken)
+                        .ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     _logger?.LogError(ex, "[WotCon] {Asset}.CloseAndUpdate materialization failed", asset.Name);
-                    return new ServiceResult(StatusCodes.BadInternalError, "Failed to materialize Thing Description.");
+                    return ServiceResult.Create(StatusCodes.BadInternalError, "{0}", "Failed to materialize Thing Description.");
                 }
+            }
+            finally
+            {
+                asset.LifecycleGate.Release();
             }
 
             _logger?.LogInformation(
@@ -1256,10 +1406,14 @@ public partial class WotConNodeManager : CustomNodeManager2
                 parsed.Actions.Count);
             return ServiceResult.Good;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger?.LogError(ex, "[WotCon] {Asset}.OnPerAssetFileCloseAndUpdate failed", asset.Name);
-            return new ServiceResult(StatusCodes.BadInternalError, ex.Message);
+            return ServiceResult.Create(StatusCodes.BadInternalError, "{0}", ex.Message);
+        }
+        finally
+        {
+            _mutationGate.Release();
         }
     }
 
@@ -1288,7 +1442,8 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// first; when the new TD omits <c>base</c>, no Property is re-created so the asset
     /// simply does not contribute to <see cref="OnDiscoverAssets"/>.
     /// </summary>
-    private void MaterializeAssetEndpoint(ISystemContext context, WotAsset asset)
+    private async ValueTask MaterializeAssetEndpointAsync(
+        ISystemContext context, WotAsset asset, CancellationToken cancellationToken)
     {
         var assetNode = FindPredefinedNode<BaseObjectState>(asset.AssetId);
         if (assetNode == null)
@@ -1297,10 +1452,10 @@ public partial class WotConNodeManager : CustomNodeManager2
             return;
         }
 
-        if (asset.AssetEndpointNodeId != null)
+        if (!asset.AssetEndpointNodeId.IsNull)
         {
-            DeleteNode(SystemContext, asset.AssetEndpointNodeId);
-            asset.AssetEndpointNodeId = null;
+            await DeleteNodeAsync(SystemContext, asset.AssetEndpointNodeId, cancellationToken).ConfigureAwait(false);
+            asset.AssetEndpointNodeId = NodeId.Null;
         }
 
         if (string.IsNullOrEmpty(asset.AssetEndpoint))
@@ -1308,24 +1463,22 @@ public partial class WotConNodeManager : CustomNodeManager2
             return;
         }
 
-        var endpointProp = new PropertyState<string>(assetNode)
-        {
-            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-            BrowseName = new QualifiedName(Opc.Ua.WotCon.BrowseNames.AssetEndpoint, NamespaceIndex),
-            DisplayName = Opc.Ua.WotCon.BrowseNames.AssetEndpoint,
-            ReferenceTypeId = ReferenceTypeIds.HasProperty,
-            TypeDefinitionId = VariableTypeIds.PropertyType,
-            DataType = DataTypeIds.String,
-            ValueRank = ValueRanks.Scalar,
-            AccessLevel = AccessLevels.CurrentRead,
-            UserAccessLevel = AccessLevels.CurrentRead,
-            Value = asset.AssetEndpoint,
-            StatusCode = StatusCodes.Good,
-            Timestamp = DateTime.UtcNow,
-        };
+        var endpointProp = PropertyState<string>.With<VariantBuilder>(assetNode);
+        endpointProp.NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
+        endpointProp.BrowseName = new QualifiedName(RuntimeModelIds.WotCon.BrowseNames.AssetEndpoint, NamespaceIndex);
+        endpointProp.DisplayName = new LocalizedText(RuntimeModelIds.WotCon.BrowseNames.AssetEndpoint);
+        endpointProp.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+        endpointProp.TypeDefinitionId = VariableTypeIds.PropertyType;
+        endpointProp.DataType = DataTypeIds.String;
+        endpointProp.ValueRank = ValueRanks.Scalar;
+        endpointProp.AccessLevel = AccessLevels.CurrentRead;
+        endpointProp.UserAccessLevel = AccessLevels.CurrentRead;
+        endpointProp.Value = asset.AssetEndpoint;
+        endpointProp.StatusCode = StatusCodes.Good;
+        endpointProp.Timestamp = DateTime.UtcNow;
 
         assetNode.AddChild(endpointProp);
-        AddPredefinedNode(context, endpointProp);
+        await AddPredefinedNodeAsync(context, endpointProp, cancellationToken).ConfigureAwait(false);
         asset.AssetEndpointNodeId = endpointProp.NodeId;
     }
 
@@ -1339,7 +1492,8 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// always reflect the most recently uploaded TD.
     /// </para>
     /// </summary>
-    private void MaterializeAssetProperties(ISystemContext context, WotAsset asset, ThingDescriptionInfo td)
+    private async ValueTask MaterializeAssetPropertiesAsync(
+        ISystemContext context, WotAsset asset, ThingDescriptionInfo td, CancellationToken cancellationToken)
     {
         var assetNode = FindPredefinedNode<BaseObjectState>(asset.AssetId);
         if (assetNode == null)
@@ -1352,7 +1506,7 @@ public partial class WotConNodeManager : CustomNodeManager2
         // node from PredefinedNodes and tears down the HasComponent references on both ends.
         foreach (var staleId in asset.MaterializedPropertyNodeIds.Values)
         {
-            DeleteNode(SystemContext, staleId);
+            await DeleteNodeAsync(SystemContext, staleId, cancellationToken).ConfigureAwait(false);
         }
 
         asset.MaterializedPropertyNodeIds.Clear();
@@ -1372,8 +1526,8 @@ public partial class WotConNodeManager : CustomNodeManager2
             {
                 NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
                 BrowseName = new QualifiedName(property.Name, NamespaceIndex),
-                DisplayName = property.Name,
-                Description = property.Description ?? string.Empty,
+                DisplayName = new LocalizedText(property.Name),
+                Description = new LocalizedText(property.Description ?? string.Empty),
                 ReferenceTypeId = new NodeId(HasWoTComponentReferenceTypeId, NamespaceIndex),
                 TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
                 DataType = dataType,
@@ -1396,7 +1550,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             }
 
             assetNode.AddChild(propertyNode);
-            AddPredefinedNode(context, propertyNode);
+            await AddPredefinedNodeAsync(context, propertyNode, cancellationToken).ConfigureAwait(false);
             asset.MaterializedPropertyNodeIds[property.Name] = propertyNode.NodeId;
         }
 
@@ -1412,22 +1566,21 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// </summary>
     private PropertyState<EUInformation> BuildEngineeringUnitsProperty(BaseDataVariableState parent, string unit)
     {
-        return new PropertyState<EUInformation>(parent)
+        var property = PropertyState<EUInformation>.With<StructureBuilder<EUInformation>>(parent);
+        property.NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
+        property.BrowseName = new QualifiedName(BrowseNames.EngineeringUnits, 0);
+        property.DisplayName = new LocalizedText(BrowseNames.EngineeringUnits);
+        property.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+        property.TypeDefinitionId = VariableTypeIds.PropertyType;
+        property.DataType = DataTypeIds.EUInformation;
+        property.ValueRank = ValueRanks.Scalar;
+        property.Value = new EUInformation
         {
-            NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-            BrowseName = new QualifiedName(BrowseNames.EngineeringUnits, 0),
-            DisplayName = BrowseNames.EngineeringUnits,
-            ReferenceTypeId = ReferenceTypeIds.HasProperty,
-            TypeDefinitionId = VariableTypeIds.PropertyType,
-            DataType = DataTypeIds.EUInformation,
-            ValueRank = ValueRanks.Scalar,
-            Value = new EUInformation
-            {
-                DisplayName = unit,
-                NamespaceUri = string.Empty,
-                UnitId = 0,
-            },
+            DisplayName = new LocalizedText(unit),
+            NamespaceUri = string.Empty,
+            UnitId = 0,
         };
+        return property;
     }
 
     /// <summary>
@@ -1444,7 +1597,8 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// most recently uploaded TD.
     /// </para>
     /// </summary>
-    private void MaterializeAssetActions(ISystemContext context, WotAsset asset, ThingDescriptionInfo td)
+    private async ValueTask MaterializeAssetActionsAsync(
+        ISystemContext context, WotAsset asset, ThingDescriptionInfo td, CancellationToken cancellationToken)
     {
         var assetNode = FindPredefinedNode<BaseObjectState>(asset.AssetId);
         if (assetNode == null)
@@ -1455,7 +1609,7 @@ public partial class WotConNodeManager : CustomNodeManager2
 
         foreach (var staleId in asset.MaterializedActionNodeIds.Values)
         {
-            DeleteNode(SystemContext, staleId);
+            await DeleteNodeAsync(SystemContext, staleId, cancellationToken).ConfigureAwait(false);
         }
 
         asset.MaterializedActionNodeIds.Clear();
@@ -1469,9 +1623,9 @@ public partial class WotConNodeManager : CustomNodeManager2
             {
                 NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
                 BrowseName = new QualifiedName(action.Name, NamespaceIndex),
-                DisplayName = action.Name,
+                DisplayName = new LocalizedText(action.Name),
                 SymbolicName = action.Name,
-                Description = action.Description ?? string.Empty,
+                Description = new LocalizedText(action.Description ?? string.Empty),
                 ReferenceTypeId = new NodeId(HasWoTComponentReferenceTypeId, NamespaceIndex),
                 Executable = true,
                 UserExecutable = true,
@@ -1483,36 +1637,16 @@ public partial class WotConNodeManager : CustomNodeManager2
 
             if (inputArgs != null)
             {
-                methodNode.InputArguments = new PropertyState<Argument[]>(methodNode)
-                {
-                    NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-                    BrowseName = BrowseNames.InputArguments,
-                    DisplayName = BrowseNames.InputArguments,
-                    TypeDefinitionId = VariableTypeIds.PropertyType,
-                    ReferenceTypeId = ReferenceTypeIds.HasProperty,
-                    DataType = DataTypeIds.Argument,
-                    ValueRank = ValueRanks.OneDimension,
-                    Value = inputArgs,
-                };
+                methodNode.InputArguments = CreateArgumentProperty(methodNode, BrowseNames.InputArguments, inputArgs);
             }
 
             if (outputArgs != null)
             {
-                methodNode.OutputArguments = new PropertyState<Argument[]>(methodNode)
-                {
-                    NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex),
-                    BrowseName = BrowseNames.OutputArguments,
-                    DisplayName = BrowseNames.OutputArguments,
-                    TypeDefinitionId = VariableTypeIds.PropertyType,
-                    ReferenceTypeId = ReferenceTypeIds.HasProperty,
-                    DataType = DataTypeIds.Argument,
-                    ValueRank = ValueRanks.OneDimension,
-                    Value = outputArgs,
-                };
+                methodNode.OutputArguments = CreateArgumentProperty(methodNode, BrowseNames.OutputArguments, outputArgs);
             }
 
             assetNode.AddChild(methodNode);
-            AddPredefinedNode(context, methodNode);
+            await AddPredefinedNodeAsync(context, methodNode, cancellationToken).ConfigureAwait(false);
             asset.MaterializedActionNodeIds[action.Name] = methodNode.NodeId;
         }
 
@@ -1542,7 +1676,7 @@ public partial class WotConNodeManager : CustomNodeManager2
             result[i] = new Argument
             {
                 Name = argInfo.Name,
-                Description = argInfo.Description ?? string.Empty,
+                Description = new LocalizedText(argInfo.Description ?? string.Empty),
                 DataType = dataType,
                 ValueRank = valueRank,
             };
@@ -1558,12 +1692,12 @@ public partial class WotConNodeManager : CustomNodeManager2
     private ServiceResult OnTdActionInvoked(
         WotAsset asset,
         ThingActionInfo action,
-        IList<object> inputArguments,
-        IList<object> outputArguments)
+        ArrayOf<Variant> inputArguments,
+        List<Variant> outputArguments)
     {
         _logger?.LogInformation(
             "[WotCon] {Asset}.{Action}: invoked with {InputCount} input(s); returning {OutputCount} canned output(s)",
-            asset.Name, action.Name, inputArguments?.Count ?? 0, outputArguments?.Count ?? 0);
+            asset.Name, action.Name, inputArguments.Count, outputArguments?.Count ?? 0);
 
         if (outputArguments == null || action.Output == null)
         {
@@ -1578,5 +1712,20 @@ public partial class WotConNodeManager : CustomNodeManager2
         }
 
         return ServiceResult.Good;
+    }
+
+    private PropertyState<ArrayOf<Argument>> CreateArgumentProperty(
+        MethodState method, string browseName, Argument[] arguments)
+    {
+        var property = PropertyState<ArrayOf<Argument>>.With<StructureBuilder<Argument>>(method);
+        property.NodeId = new NodeId(Guid.NewGuid(), NamespaceIndex);
+        property.BrowseName = new QualifiedName(browseName);
+        property.DisplayName = new LocalizedText(browseName);
+        property.ReferenceTypeId = ReferenceTypeIds.HasProperty;
+        property.TypeDefinitionId = VariableTypeIds.PropertyType;
+        property.DataType = DataTypeIds.Argument;
+        property.ValueRank = ValueRanks.OneDimension;
+        property.Value = arguments.ToArrayOf();
+        return property;
     }
 }
