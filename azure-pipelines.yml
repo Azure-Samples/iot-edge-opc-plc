@@ -1,5 +1,12 @@
+parameters:
+- name: publishPreview
+  displayName: Publish validated preview to aio-brokers
+  type: boolean
+  default: false
+
 variables:
   OpcUaDebugNuGetFeed: 'https://pkgs.dev.azure.com/msazure/One/_packaging/aio-brokers/nuget/v3/index.json'
+  PublishPreview: ${{ parameters.publishPreview }}
 
 stages:
 - stage: build
@@ -12,3 +19,11 @@ stages:
   - build
   jobs:
   - template: tools/templates/acrbuild.yml
+- stage: preview
+  displayName: Publish Preview Package
+  dependsOn:
+  - build
+  - images
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/preview'), eq(variables['Build.Reason'], 'Manual'), eq(variables['PublishPreview'], 'true'))
+  jobs:
+  - template: tools/templates/preview.yml

@@ -23,6 +23,45 @@ head. Review fixes described below are local follow-up changes, not covered by t
 
 ## Build and test
 
+### Preview release lane
+
+The migration targets `preview`, initially branched from the existing migration baseline
+`840e1b6`, rather than introducing the newer historian feature from main into this PR.
+Stable development and manual stable package publication continue on `main` independently.
+Port stable fixes and features to preview deliberately; merge the qualified migration back into
+main before publishing a stable `2.16.0`.
+
+Nerdbank.GitVersioning generates `2.16.0-preview.<height>` on `preview`. Other branches and PR builds
+also include a commit identifier and are not eligible for preview publication. Preview package
+publication is to the existing `aio-brokers` Azure Artifacts feed only, not nuget.org.
+
+To publish, queue the Azure DevOps pipeline manually on the **preview branch** with
+**publishPreview** enabled. The default is false. Build/test and non-publishing Release/Debug image
+validation must succeed first. The standalone sample is restored in an isolated package cache and
+tested against the exact Release package. That package is retained as the `opcplc-release` artifact.
+An independent reviewer must then approve the ManualValidation task before versioned preview images
+and the package are published. No package is rebuilt in the publishing job.
+
+The pipeline build identity needs **Feed Publisher (Contributor)** access to `aio-brokers`;
+configure this permission outside the repository. Restrict queue/approval permissions to release
+maintainers. Manual validation is a workflow gate, not a replacement for branch protection or ADO
+resource-level approvals. Configure PR validation and branch protection for `preview` in GitHub/ADO.
+PR validation and branch-trigger settings may be managed by the existing ADO pipeline definition.
+The existing stable triggers and publishing behavior are not changed by these templates.
+
+Preview images use the `preview/` repository namespace in the existing `industrialiot` registry and
+full `2.16.0-preview.<height>` tags (with `-debug` for Debug images). They do not write stable
+repositories or aliases. NuGet versions are immutable: rerunning publication of an already
+published version fails explicitly; do not silently skip conflicts. Different commits receive
+increasing version heights on the protected preview branch; do not reset its history. Use the package version printed in the build when overriding
+`OpcPlcPackageVersion` for a standalone consumer.
+
+For stable promotion, merge preview into main, set a stable version, restore the main/release public
+release ref specifications in `version.json`, and revalidate. Never publish
+a preview artifact under a rewritten stable version. Until then, keep stable publication manual:
+build the stable branch in Release and push its exact package to `aio-brokers` using externally
+configured credentials.
+
 Use the .NET 10 SDK and run commands from the repository root. Nerdbank.GitVersioning needs full Git
 history. [Directory.Packages.props](../Directory.Packages.props) pins all seven direct OPC runtime
 and analyzer packages; the validated dependency graphs contain only preview-6 OPC packages.

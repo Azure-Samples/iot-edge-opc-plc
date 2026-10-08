@@ -1,10 +1,15 @@
 #
 # Build images in acr
 #
+parameters:
+- name: previewApproved
+  type: boolean
+  default: false
+
 jobs:
 - job: validateimages
   displayName: Validate Images Without Publishing
-  condition: and(succeeded(), or(eq(variables['Build.Reason'], 'PullRequest'), and(ne(variables['Build.SourceBranch'], 'refs/heads/main'), not(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))))
+  condition: and(succeeded(), eq('${{ parameters.previewApproved }}', 'false'), or(eq(variables['Build.Reason'], 'PullRequest'), and(ne(variables['Build.SourceBranch'], 'refs/heads/main'), not(startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))))
   pool:
     vmImage: 'ubuntu-latest'
   steps:
@@ -28,7 +33,9 @@ jobs:
 
 - job: imagesprep
   displayName: Prepare Image Jobs
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))
+  ${{ if eq(parameters.previewApproved, true) }}:
+    dependsOn: approve
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), and(eq('${{ parameters.previewApproved }}', 'true'), eq(variables['Build.SourceBranch'], 'refs/heads/preview'), eq(variables['Build.Reason'], 'Manual'))))
   pool:
     vmImage: 'ubuntu-latest'
   variables:
@@ -44,7 +51,7 @@ jobs:
 
 - job: imagesall
   displayName: Build Images for
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/')))
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'), and(eq('${{ parameters.previewApproved }}', 'true'), eq(variables['Build.SourceBranch'], 'refs/heads/preview'), eq(variables['Build.Reason'], 'Manual'))))
   pool:
     vmImage: 'ubuntu-latest'
   dependsOn: imagesprep

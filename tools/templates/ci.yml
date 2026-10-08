@@ -121,3 +121,20 @@ jobs:
       # projects: '$(folder)/**/tests/*.csproj'
       projects: '**/tests/*.csproj'
       arguments: '--configuration Release -p:NuGetAudit=true -p:NuGetAuditMode=all'
+
+  - task: NuGetAuthenticate@1
+    displayName: Authenticate Packaged Consumer Feed
+
+  - task: PowerShell@2
+    displayName: Validate Release Package Consumer
+    inputs:
+      targetType: filePath
+      filePath: ./tools/scripts/test-package.ps1
+      arguments: '-PackageDirectory "$(Build.SourcesDirectory)/src/bin/Release" -WorkingDirectory "$(Agent.TempDirectory)/opcplc-consumer" -Source "$(OpcUaDebugNuGetFeed)"'
+      pwsh: true
+
+  - task: PublishPipelineArtifact@1
+    displayName: Preserve Validated Release Package
+    inputs:
+      targetPath: '$(Build.SourcesDirectory)/src/bin/Release'
+      artifact: opcplc-release
