@@ -34,7 +34,7 @@ public class OpcPlcBase
     /// Initializes a new instance of the <see cref="OpcPlcBase"/> class.
     /// Set the <paramref name="endpointUriOverride"/> to override spawning a server and use an existing one instead.
     /// </summary>
-    public OpcPlcBase(string[] args, int port = 0, string? endpointUriOverride = null)
+    public OpcPlcBase(string[] args, int port = 51234, string? endpointUriOverride = null)
     {
         _args = args;
         _port = port;
