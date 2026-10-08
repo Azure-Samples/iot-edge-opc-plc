@@ -24,4 +24,9 @@ public interface IPluginNodes
     void StartSimulation();
 
     void StopSimulation();
+
+    /// <summary>
+    /// Drain work queued by callbacks after simulation and timer dispatch have stopped.
+    /// </summary>
+    ValueTask DrainSimulationAsync() => ValueTask.CompletedTask;
 }

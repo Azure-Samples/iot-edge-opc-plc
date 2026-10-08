@@ -26,6 +26,7 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
     private BaseDataVariableState[] _veryFastByteStringNodes;
     private byte[] _byteString;
     private OpcPlc.ITimer _nodeGenerator;
+    private readonly object _valueLock = new();
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -126,13 +127,24 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
 
     private void UpdateNodes()
     {
+        lock (_valueLock)
+        {
+            PublishNodes();
+        }
+    }
+
+    private void PublishNodes()
+    {
+        var payload = (byte[])_byteString.Clone();
         // Update first byte in the range 0 to 255.
-        _byteString[0] = _byteString[0] == 255
+        payload[0] = payload[0] == 255
             ? (byte)0
-            : (byte)(_byteString[0] + 1);
+            : (byte)(payload[0] + 1);
+        _byteString = payload;
 
         for (int i = 0; i < _veryFastByteStringNodes.Length; i++)
         {
+            _veryFastByteStringNodes[i].Value = Variant.From((ByteString)payload);
             UpdateValue(_veryFastByteStringNodes[i]);
         }
     }

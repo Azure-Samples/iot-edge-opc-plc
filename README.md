@@ -67,6 +67,10 @@ comments and trailing commas are accepted. Each node requires a non-null `NodeId
 String node identifiers are preserved verbatim, including date-like strings. Scalar date values are
 converted only for nodes with `DataType` set to `DateTime`. File parsing and recursive node registration
 observe startup cancellation.
+Numeric scalar values are converted to their configured DataType without rounding integer JSON tokens.
+Fractional integers, out-of-range values, and non-finite floating-point values are rejected and logged.
+Scalar conversion also applies to scalar values with `ValueRank` set to `Any` (`-2`) or
+`ScalarOrOneDimension` (`-3`); one-dimensional arrays at these ranks use the configured array type.
 Nodes defined in the JSON file will be published by the server. This enables another OPC-UA client application to set the state/value of the node. Please note that nodes specified in the JSON file are NOT part of the simulation. They remain visible in an unchanged state until an OPC UA client changes their status.
 
 The following command shows how to use a configuration file on Windows:

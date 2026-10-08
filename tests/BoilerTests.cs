@@ -5,6 +5,10 @@ using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Client.ComplexTypes;
+using OpcPlc.PluginNodes;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using static System.TimeSpan;
@@ -19,6 +23,91 @@ public class BoilerTests : SimulatorTestsBase
 
     public BoilerTests() : base(["--ctb"])
     {
+    }
+
+    [Test]
+    public async Task HeaterMethod_PublishesNewSnapshotWithoutSimulationTickAsync()
+    {
+        var manager = PlcServer.CurrentInstance.NodeManager.AsyncNodeManagers.OfType<PlcNodeManager>().Single();
+        var variable = manager.FindPredefinedNode<BaseDataVariableState>(BoilerStatusId);
+        Variant before = variable.Value;
+        DateTimeUtc timestamp = variable.Timestamp;
+        NodeStateChangeMasks observed = NodeStateChangeMasks.None;
+        var previousHandler = variable.OnStateChanged;
+        variable.OnStateChanged = (context, node, changes) =>
+        {
+            observed |= changes;
+            previousHandler?.Invoke(context, node, changes);
+        };
+        try
+        {
+            await TurnHeaterOffAsync().ConfigureAwait(false);
+
+            ReadStructure(before)["HeaterState"].GetInt32().Should().Be(1);
+            ReadStructure(variable.Value)["HeaterState"].GetInt32().Should().Be(0);
+            observed.Should().HaveFlag(NodeStateChangeMasks.Value);
+            variable.Timestamp.ToDateTime().Should().BeOnOrAfter(timestamp.ToDateTime());
+            (await GetBoilerModelAsync().ConfigureAwait(false))["HeaterState"].GetInt32().Should().Be(0);
+        }
+        finally
+        {
+            variable.OnStateChanged = previousHandler;
+        }
+    }
+
+    [Test]
+    public async Task HeaterMethod_WaitsForSimulationPublicationAsync()
+    {
+        var manager = PlcServer.CurrentInstance.NodeManager.AsyncNodeManagers.OfType<PlcNodeManager>().Single();
+        var variable = manager.FindPredefinedNode<BaseDataVariableState>(BoilerStatusId);
+        var plugin = PluginNodes.OfType<ComplexTypeBoilerPluginNode>().Single();
+        var method = manager.FindPredefinedNode<MethodState>(
+            NodeId.Create("HeaterOff", OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris));
+        using var release = new ManualResetEventSlim();
+        using var methodStarted = new ManualResetEventSlim();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var previousHandler = variable.OnStateChanged;
+        int notifications = 0;
+        variable.OnStateChanged = (context, node, changes) =>
+        {
+            if (Interlocked.Increment(ref notifications) == 1)
+            {
+                entered.TrySetResult();
+                release.Wait(TimeSpan.FromSeconds(10));
+            }
+            previousHandler?.Invoke(context, node, changes);
+        };
+        Task update = Task.Run(() => plugin.UpdateBoiler1(null, null));
+        Task command = null;
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            command = Task.Run(() =>
+            {
+                methodStarted.Set();
+                method.OnCallMethod(manager.SystemContext, method, [], new List<Variant>())
+                    .Should().Be(ServiceResult.Good);
+            });
+            methodStarted.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+            var completed = await Task.WhenAny(command, Task.Delay(TimeSpan.FromMilliseconds(100)))
+                .ConfigureAwait(false);
+            completed.Should().NotBe(command, "commands must wait for the simulation's compound update");
+        }
+        finally
+        {
+            release.Set();
+            try
+            {
+                await Task.WhenAll(update, command ?? Task.CompletedTask).WaitAsync(TimeSpan.FromSeconds(5))
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                variable.OnStateChanged = previousHandler;
+            }
+        }
+        ReadStructure(variable.Value)["HeaterState"].GetInt32().Should().Be(0);
+        notifications.Should().Be(2);
     }
 
     [OneTimeSetUp]

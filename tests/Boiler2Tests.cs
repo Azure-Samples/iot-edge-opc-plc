@@ -56,6 +56,45 @@ public class Boiler2Tests : SimulatorTestsBase
     }
 
     [Test]
+    public async Task StopSimulation_DrainsQueuedCallbacksBeforeRestartAsync()
+    {
+        var boiler = PluginNodes.OfType<Boiler2PluginNodes>().Single();
+        var callbackLock = (SemaphoreSlim)typeof(Boiler2PluginNodes)
+            .GetField("_lock", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(boiler);
+        var id = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature,
+            OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);
+        float before = await ReadValueAsync<float>(id).ConfigureAwait(false);
+        Task draining = null;
+        await callbackLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 3);
+            boiler.StopSimulation();
+            draining = boiler.DrainSimulationAsync().AsTask();
+            draining.IsCompleted.Should().BeFalse("queued callbacks must retire before restarting the plugin");
+            boiler.DrainSimulationAsync().AsTask().Should().BeSameAs(draining);
+            boiler.Invoking(node => node.StartSimulation()).Should().Throw<InvalidOperationException>();
+        }
+        finally
+        {
+            callbackLock.Release();
+            try
+            {
+                if (draining is not null)
+                {
+                    await draining.WaitAsync(FromSeconds(5)).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                boiler.StartSimulation();
+            }
+        }
+        (await ReadValueAsync<float>(id).ConfigureAwait(false)).Should().Be(before);
+        callbackLock.CurrentCount.Should().Be(1);
+    }
+
+    [Test]
     public async Task TemperatureRisesAndFallsHeaterToggles()
     {
         var currentTemperatureNodeId = NodeId.Create(BoilerModel2.Variables.Boilers_Boiler__2_ParameterSet_CurrentTemperature, OpcPlc.Namespaces.OpcPlcBoiler, Session.NamespaceUris);

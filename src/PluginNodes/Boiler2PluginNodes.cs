@@ -47,6 +47,9 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
     private bool _isOverheated;
     private volatile bool _stopped;
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly object _callbacksLock = new();
+    private int _activeCallbacks;
+    private TaskCompletionSource _callbacksDrained;
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -92,7 +95,15 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
     public void StartSimulation()
     {
-        _stopped = false;
+        lock (_callbacksLock)
+        {
+            if (_activeCallbacks != 0)
+            {
+                throw new InvalidOperationException("Previous Boiler2 callbacks have not drained.");
+            }
+            _callbacksDrained = null;
+            _stopped = false;
+        }
         _nodeGenerator = _timeService.NewTimer(UpdateBoiler2, intervalInMilliseconds: 1000);
         StartTimers();
     }
@@ -114,6 +125,19 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
         if (_overheatGenerator is not null)
         {
             _overheatGenerator.Enabled = false;
+        }
+    }
+
+    public ValueTask DrainSimulationAsync()
+    {
+        lock (_callbacksLock)
+        {
+            if (_activeCallbacks == 0)
+            {
+                return ValueTask.CompletedTask;
+            }
+            _callbacksDrained ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            return new ValueTask(_callbacksDrained.Task);
         }
     }
 
@@ -380,6 +404,14 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
     /// </summary>
     private async Task ExecuteTimerCallbackAsync(string callbackName, Action callback)
     {
+        lock (_callbacksLock)
+        {
+            if (_stopped)
+            {
+                return;
+            }
+            _activeCallbacks++;
+        }
         await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -397,6 +429,14 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
         finally
         {
             _lock.Release();
+            lock (_callbacksLock)
+            {
+                _activeCallbacks--;
+                if (_activeCallbacks == 0)
+                {
+                    _callbacksDrained?.TrySetResult();
+                }
+            }
         }
     }
 

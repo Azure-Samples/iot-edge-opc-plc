@@ -7,6 +7,7 @@ namespace OpcPlc.Tests;
 
 using global::AlarmCondition;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NUnit.Framework;
@@ -28,10 +29,135 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 
 [TestFixture]
 public class PlcNodeManagerTests
 {
+    [TestCase(ValueRanks.Scalar)]
+    [TestCase(ValueRanks.Any)]
+    [TestCase(ValueRanks.ScalarOrOneDimension)]
+    public async Task UserDefinedValues_RegisterWithConfiguredTypesAsync(int rank)
+    {
+        string path = Path.GetTempFileName();
+        try
+        {
+            string arrayNode = rank == ValueRanks.Scalar ? string.Empty :
+                $$""",{"NodeId":"array","DataType":"UInt32","ValueRank":{{rank}},"Value":[1,2]}""";
+            await File.WriteAllTextAsync(path, $$"""
+                {"Folder":"Custom","NodeList":[
+                    {"NodeId":"integer","DataType":"UInt64","ValueRank":{{rank}},"Value":18446744073709551615.0},
+                    {"NodeId":"date","DataType":"DateTime","ValueRank":{{rank}},"Value":"2026-10-07T12:34:56Z"}
+                    {{arrayNode}}
+                ]}
+                """).ConfigureAwait(false);
+            var plugin = new UserDefinedPluginNodes(new TimeService(), NullLogger.Instance);
+            var options = new Mono.Options.OptionSet();
+            plugin.AddOptions(options);
+            options.Parse([$"--nodesfile={path}"]);
+            using var fixture = new ManagerFixture([plugin]);
+            await fixture.Manager.CreateAddressSpaceAsync(fixture.ExternalReferences).ConfigureAwait(false);
+            ushort ns = fixture.Manager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+            var integer = fixture.Manager.FindPredefinedNode<BaseDataVariableState>(new NodeId("integer", ns));
+            integer.DataType.Should().Be(Opc.Ua.DataTypeIds.UInt64);
+            integer.Value.TypeInfo.BuiltInType.Should().Be(BuiltInType.UInt64);
+            integer.Value.GetUInt64().Should().Be(ulong.MaxValue);
+            integer.ValueRank.Should().Be(rank);
+            var date = fixture.Manager.FindPredefinedNode<BaseDataVariableState>(new NodeId("date", ns));
+            date.Value.TypeInfo.BuiltInType.Should().Be(BuiltInType.DateTime);
+            date.ValueRank.Should().Be(rank);
+            if (rank != ValueRanks.Scalar)
+            {
+                var array = fixture.Manager.FindPredefinedNode<BaseDataVariableState>(new NodeId("array", ns));
+                array.Value.TypeInfo.Should().Be(TypeInfo.Construct(typeof(uint[])));
+                array.Value.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().BeEquivalentTo(new uint[] { 1, 2 });
+                array.ValueRank.Should().Be(rank);
+            }
+            plugin.Nodes.Should().HaveCount(rank == ValueRanks.Scalar ? 2 : 3);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestCase("Float", "1e40")]
+    [TestCase("Double", "1e400")]
+    [TestCase("Int64", "9007199254740993.00000001")]
+    public async Task UserDefinedValues_LogRejectedNumbersWithoutRegisteringThemAsync(string dataType, string value)
+    {
+        string path = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(path, $$"""
+                {"Folder":"Custom","NodeList":[{"NodeId":"invalid","DataType":"{{dataType}}","Value":{{value}}}]}
+                """).ConfigureAwait(false);
+            var logger = new Mock<ILogger>();
+            logger.Setup(instance => instance.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+            var plugin = new UserDefinedPluginNodes(new TimeService(), logger.Object);
+            var options = new Mono.Options.OptionSet();
+            plugin.AddOptions(options);
+            options.Parse([$"--nodesfile={path}"]);
+            using var fixture = new ManagerFixture([plugin]);
+            await fixture.Manager.CreateAddressSpaceAsync(fixture.ExternalReferences).ConfigureAwait(false);
+            ushort ns = fixture.Manager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+            fixture.Manager.FindPredefinedNode<BaseDataVariableState>(new NodeId("invalid", ns)).Should().BeNull();
+            plugin.Nodes.Should().BeEmpty();
+            logger.Verify(instance => instance.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(),
+                It.Is<Exception>(exception => exception is OverflowException),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once());
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Test]
+    public async Task FastByteString_PublishesImmutableSnapshotsAndNotifiesDefaultFilterAsync()
+    {
+        ElapsedEventHandler tick = null;
+        var time = new Mock<TimeService>();
+        time.Setup(service => service.NewTimer(It.IsAny<ElapsedEventHandler>(), It.IsAny<uint>()))
+            .Returns((ElapsedEventHandler callback, uint _) =>
+            {
+                tick = callback;
+                return Mock.Of<OpcPlc.ITimer>();
+            });
+        var plugin = new VeryFastByteStringPluginNodes(time.Object, NullLogger.Instance);
+        var options = new Mono.Options.OptionSet();
+        plugin.AddOptions(options);
+        options.Parse(["--vfbs=2", "--vfbss=4"]);
+        using var fixture = new ManagerFixture([plugin]);
+        await fixture.Manager.CreateAddressSpaceAsync(fixture.ExternalReferences).ConfigureAwait(false);
+        ushort ns = fixture.Manager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
+        var first = fixture.Manager.FindPredefinedNode<BaseDataVariableState>(new NodeId("VeryFastByteString1", ns));
+        var second = fixture.Manager.FindPredefinedNode<BaseDataVariableState>(new NodeId("VeryFastByteString2", ns));
+        var previous = new DataValue(first.Value.Copy());
+        byte initial = previous.WrappedValue.GetByteString().ToArray()[0];
+        plugin.StartSimulation();
+        try
+        {
+            tick(null, null);
+            var current = new DataValue(first.Value);
+            previous.WrappedValue.GetByteString().ToArray()[0].Should().Be(initial);
+            current.WrappedValue.GetByteString().ToArray()[0].Should().Be(unchecked((byte)(initial + 1)));
+            current.WrappedValue.GetByteString().Length.Should().Be(4);
+            second.Value.Should().Be(first.Value);
+            MonitoredItem.ValueChanged(current, null, previous, null, null, 0).Should().BeTrue();
+            for (int i = 1; i < 256; i++)
+            {
+                tick(null, null);
+            }
+            first.Value.GetByteString().ToArray()[0].Should().Be(initial, "the counter wraps after 256 ticks");
+            current.WrappedValue.GetByteString().ToArray()[0].Should().Be(unchecked((byte)(initial + 1)));
+        }
+        finally
+        {
+            plugin.StopSimulation();
+        }
+    }
+
     [Test]
     public async Task AddressSpace_AwaitsPluginsInRegistrationOrderAsync()
     {

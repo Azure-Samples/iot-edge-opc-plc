@@ -25,6 +25,33 @@ head. Review fixes described below are local follow-up changes, not covered by t
 
 ## Build and test
 
+### Value and simulation lifecycle corrections
+
+- User-defined numeric scalar values are converted to the configured UA DataType, rather than
+  publishing JSON's `Int64` or `Double` representation under a different declared type. Out-of-range,
+  fractional integer and malformed numeric values are rejected and reported by the nodes-file loader.
+  Decimal/exponent JSON tokens are parsed directly into the target numeric type without a `Double`
+  intermediate. Floating-point overflow and non-finite values are rejected. Scalar conversion also
+  applies to scalar values with rank `Any` or `ScalarOrOneDimension`; arrays retain their array shape.
+  Node identifier parsing is unchanged.
+  Existing clients must expect `UInt32` and `Int32` for the corresponding sample nodes, not `Int64`.
+- Publisher identifiers are derived from the created variable's NodeId. Numeric, string and GUID
+  identifiers retain the application namespace in generated `pn.json`.
+- Fast ByteString simulation publishes a fresh immutable payload each tick. Earlier sampled or queued
+  values must not change retrospectively, and default `StatusValue` subscriptions detect the update.
+- Boiler heater methods and simulation ticks serialize compound updates using a plugin-owned lock,
+  not a lock on SDK node state. Heater commands publish a replacement structure, timestamp and change
+  notification without waiting for the next simulation tick.
+- `TimeService` owns timers it creates. Server shutdown disables simulation, drains active callbacks,
+  and disposes these timers before disposing the host. New timers cannot be created during teardown;
+  queued asynchronous Boiler2 callbacks are also drained before restart. Restart explicitly opens
+  a new timer generation after the old one has drained. Subclasses that
+  override timer creation remain responsible for their own timer ownership and callback draining.
+  Disposing or closing an owned timer retires its registration once disposal and in-flight callbacks
+  have completed, so repeated timer reconfiguration does not retain retired timers until shutdown.
+  Callback senders are the same owned `ITimer` handles returned by the factory; closing or disposing
+  the sender follows the same ownership and draining rules.
+
 ### Preview release lane
 
 The migration targets `preview`, initially branched from the existing migration baseline

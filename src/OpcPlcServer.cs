@@ -385,6 +385,7 @@ public partial class OpcPlcServer
     private async Task StartPlcServerAndSimulationAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        TimeService.StartTimers();
         LogStartingServerOnEndpoint($"opc.tcp://{Config.OpcUa.Hostname}:{Config.OpcUa.ServerPort}{Config.OpcUa.ServerPath}");
         LogSimulationSettings();
         LogSimulationCycleCount(PlcSimulationInstance.SimulationCycleCount);
@@ -424,6 +425,7 @@ public partial class OpcPlcServer
     private async Task StopPlcServerAndSimulationAsync()
     {
         PlcServerHost host = _plcHost;
+        bool simulationStarted = _simulationStarted;
         _plcHost = null;
         try
         {
@@ -435,9 +437,20 @@ public partial class OpcPlcServer
         }
         finally
         {
-            if (host is not null)
+            try
             {
-                await host.DisposeAsync().ConfigureAwait(false);
+                await TimeService.StopTimersAsync().ConfigureAwait(false);
+                if (simulationStarted)
+                {
+                    await PlcSimulationInstance.DrainAsync().ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                if (host is not null)
+                {
+                    await host.DisposeAsync().ConfigureAwait(false);
+                }
             }
         }
     }

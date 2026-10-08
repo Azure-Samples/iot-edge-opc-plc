@@ -31,6 +31,7 @@ public abstract class SimulatorTestsBase
     private readonly PlcSimulatorFixture _simulator;
 
     protected IReadOnlyCollection<IPluginNodes> PluginNodes => _simulator.PluginNodes;
+    protected PlcServer PlcServer => _simulator.Server;
 
     protected TimeSpan MinimumSubscriptionLifetime => TimeSpan.FromMilliseconds(
         _simulator.ClientConfiguration.ClientConfiguration.MinSubscriptionLifetime);

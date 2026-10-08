@@ -4,6 +4,7 @@ using Opc.Ua;
 using OpcPlc.PluginNodes.Models;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Timers;
 
 public class PlcSimulation
@@ -78,6 +79,14 @@ public class PlcSimulation
         foreach (var plugin in _pluginNodes)
         {
             plugin.StopSimulation();
+        }
+    }
+
+    public async Task DrainAsync()
+    {
+        foreach (var plugin in _pluginNodes)
+        {
+            await plugin.DrainSimulationAsync().ConfigureAwait(false);
         }
     }
 

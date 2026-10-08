@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -127,7 +128,8 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
                     ? $"g={node.NodeId.ToString()}"
                     : $"s={node.NodeId.ToString()}";
 
-            if (node.ValueRank == 1 && node.Value is JsonElement { ValueKind: JsonValueKind.Array } arrayValue)
+            if (node.ValueRank is ValueRanks.OneDimension or ValueRanks.Any or ValueRanks.ScalarOrOneDimension
+                && node.Value is JsonElement { ValueKind: JsonValueKind.Array } arrayValue)
             {
                 node.Value = UpdateArrayValue(node, arrayValue);
             }
@@ -144,13 +146,8 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
 
             LogCreateNode(typedNodeId, node.Name, (string)node.NodeId.GetType().Name, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]);
 
-            CreateBaseVariable(userNodesFolder, node);
-
-            var nodeId = isString
-                ? new NodeId(node.NodeId, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications])
-                : (NodeId)node.NodeId;
-
-            yield return PluginNodesHelper.GetNodeWithIntervals(nodeId, _plcNodeManager);
+            BaseDataVariableState variable = CreateBaseVariable(userNodesFolder, node);
+            yield return PluginNodesHelper.GetNodeWithIntervals(variable.NodeId, _plcNodeManager);
         }
 
         foreach (var childNode in AddFolders(userNodesFolder, cfgFolder, cancellationToken))
@@ -180,12 +177,13 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
     /// <summary>
     /// Creates a new variable.
     /// </summary>
-    public void CreateBaseVariable(NodeState parent, ConfigNode node)
+    public BaseDataVariableState CreateBaseVariable(NodeState parent, ConfigNode node)
     {
         if (!Enum.TryParse(node.DataType, out BuiltInType nodeDataType))
         {
             LogCannotParseDataType(node.DataType, node.NodeId.ToString());
             node.DataType = "Int32";
+            nodeDataType = BuiltInType.Int32;
         }
 
         // We have to hard code the conversion here, because AccessLevel is defined as byte in OPC UA lib.
@@ -201,14 +199,55 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
             accessLevel = AccessLevels.CurrentReadOrWrite;
         }
 
-        _plcNodeManager.CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications, GetScalarValue(node));
+        return _plcNodeManager.CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications, GetScalarValue(node));
     }
 
     internal static object GetScalarValue(ConfigNode node)
     {
-        return node.DataType == "DateTime" && node.Value is string text
-            ? DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
-            : node.Value;
+        if (node.Value is null or Array or JsonElement { ValueKind: JsonValueKind.Array }
+            || node.ValueRank is not (ValueRanks.Scalar or ValueRanks.Any or ValueRanks.ScalarOrOneDimension))
+        {
+            return node.Value;
+        }
+
+        if (node.DataType is "SByte" or "Byte" or "Int16" or "UInt16" or "Int32" or "UInt32" or "Int64" or "UInt64"
+            && node.Value is double number && (!double.IsFinite(number) || number != Math.Truncate(number)))
+        {
+            throw new FormatException($"Value for {node.DataType} must be an integer.");
+        }
+
+        return node.DataType switch
+        {
+            "Boolean" => Convert.ToBoolean(GetUntypedValue(node.Value), CultureInfo.InvariantCulture),
+            "SByte" => ConvertNumber<sbyte>(node.Value),
+            "Byte" => ConvertNumber<byte>(node.Value),
+            "Int16" => ConvertNumber<short>(node.Value),
+            "UInt16" => ConvertNumber<ushort>(node.Value),
+            "Int32" => ConvertNumber<int>(node.Value),
+            "UInt32" => ConvertNumber<uint>(node.Value),
+            "Int64" => ConvertNumber<long>(node.Value),
+            "UInt64" => ConvertNumber<ulong>(node.Value),
+            "Float" => ConvertNumber<float>(node.Value),
+            "Double" => ConvertNumber<double>(node.Value),
+            "DateTime" when node.Value is string text =>
+                DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            _ => GetUntypedValue(node.Value),
+        };
+    }
+
+    private static object GetUntypedValue(object value) =>
+        value is JsonElement { ValueKind: JsonValueKind.Number } number ? (object)number.GetDouble() : value;
+
+    private static T ConvertNumber<T>(object value) where T : INumberBase<T>
+    {
+        T number = value is JsonElement { ValueKind: JsonValueKind.Number } json
+            ? T.Parse(json.GetRawText(), NumberStyles.Float, CultureInfo.InvariantCulture)
+            : (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
+        if (!T.IsFinite(number))
+        {
+            throw new OverflowException($"Value for {typeof(T).Name} must be finite.");
+        }
+        return number;
     }
 
     internal static object UpdateArrayValue(ConfigNode node, JsonElement arrayValue)

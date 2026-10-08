@@ -41,11 +41,25 @@ public class ConfigNode
 
     public string Description { get; set; }
 
-    [JsonConverter(typeof(ConfigValueConverter))]
+    [JsonConverter(typeof(ConfigNodeValueConverter))]
     public object Value { get; set; }
 }
 
-internal sealed class ConfigValueConverter : JsonConverter<object>
+internal sealed class ConfigNodeValueConverter : ConfigValueConverter
+{
+    public override object Read(ref Utf8JsonReader reader, System.Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Number && !reader.TryGetInt64(out _) && !reader.TryGetUInt64(out _))
+        {
+            // Preserve decimal/exponent tokens until the configured target type is known.
+            using var document = JsonDocument.ParseValue(ref reader);
+            return document.RootElement.Clone();
+        }
+        return base.Read(ref reader, typeToConvert, options);
+    }
+}
+
+internal class ConfigValueConverter : JsonConverter<object>
 {
     public override object Read(ref Utf8JsonReader reader, System.Type typeToConvert, JsonSerializerOptions options)
     {
@@ -56,7 +70,11 @@ internal sealed class ConfigValueConverter : JsonConverter<object>
             case JsonTokenType.False:
                 return false;
             case JsonTokenType.Number:
-                return reader.TryGetInt64(out long value) ? (object)value : reader.GetDouble();
+                if (reader.TryGetInt64(out long value))
+                {
+                    return value;
+                }
+                return reader.TryGetUInt64(out ulong unsignedValue) ? (object)unsignedValue : reader.GetDouble();
             case JsonTokenType.String:
                 return reader.GetString();
             default:

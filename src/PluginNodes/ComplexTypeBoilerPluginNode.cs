@@ -19,6 +19,7 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState _boilerStatus;
     private OpcPlc.ITimer _nodeGenerator;
+    private readonly object _valueLock = new();
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -109,6 +110,14 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
 
     public void UpdateBoiler1(object state, ElapsedEventArgs elapsedEventArgs)
     {
+        lock (_valueLock)
+        {
+            UpdateBoiler();
+        }
+    }
+
+    private void UpdateBoiler()
+    {
         IStructure currentValue = ReadStructure(_boilerStatus.Value);
         IStructure newValue = CreateStructure(RuntimeModelIds.Boiler1.DataTypeIds.BoilerDataType);
         newValue["HeaterState"] = currentValue["HeaterState"];
@@ -136,8 +145,7 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
         newValue["Pressure"] = 100_000 + bottom;
 
         // Change complex value in one atomic step.
-        _boilerStatus.Value = new Variant(new ExtensionObject((IEncodeable)newValue));
-        _boilerStatus.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: true);
+        PublishValue(newValue);
     }
 
     private void AddMethods(NodeState methodsFolder)
@@ -178,7 +186,7 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
     private ServiceResult OnHeaterOnCall(ISystemContext context, MethodState method,
         ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
-        ReadStructure(_boilerStatus.Value)["HeaterState"] = VariantHelper.CastFrom(HeaterState.On);
+        SetHeaterState(HeaterState.On);
         LogOnHeaterOnCallMethodCalled();
         return ServiceResult.Good;
     }
@@ -189,9 +197,26 @@ public partial class ComplexTypeBoilerPluginNode(TimeService timeService, ILogge
     private ServiceResult OnHeaterOffCall(ISystemContext context, MethodState method,
         ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
     {
-        ReadStructure(_boilerStatus.Value)["HeaterState"] = VariantHelper.CastFrom(HeaterState.Off);
+        SetHeaterState(HeaterState.Off);
         LogOnHeaterOffCallMethodCalled();
         return ServiceResult.Good;
+    }
+
+    private void SetHeaterState(HeaterState state)
+    {
+        lock (_valueLock)
+        {
+            IStructure value = ReadStructure(_boilerStatus.Value.Copy());
+            value["HeaterState"] = VariantHelper.CastFrom(state);
+            PublishValue(value);
+        }
+    }
+
+    private void PublishValue(IStructure value)
+    {
+        _boilerStatus.Value = new Variant(new ExtensionObject((IEncodeable)value));
+        _boilerStatus.Timestamp = _timeService.UtcNow();
+        _boilerStatus.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: true);
     }
     private IStructure CreateStructure(ExpandedNodeId typeId)
     {
