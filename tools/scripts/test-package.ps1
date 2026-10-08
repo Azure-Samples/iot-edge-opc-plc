@@ -26,7 +26,16 @@ foreach ($file in @('OpcUaUnitTests.csproj', 'OpcUaUnitTests.cs', 'OpcPlcBase.cs
     Copy-Item -LiteralPath (Join-Path $samples $file) -Destination $consumer
 }
 $project = Join-Path $consumer 'OpcUaUnitTests.csproj'
-& dotnet restore $project --source $feed --source $Source --packages $cache `
+$configPath = Join-Path $consumer 'NuGet.Config'
+[xml] $config = '<configuration><packageSources><clear /></packageSources></configuration>'
+foreach ($item in @(@{ Key = 'validated-package'; Value = $feed }, @{ Key = 'aio-brokers'; Value = $Source })) {
+    $entry = $config.CreateElement('add')
+    $entry.SetAttribute('key', $item.Key)
+    $entry.SetAttribute('value', $item.Value)
+    [void] $config.configuration.packageSources.AppendChild($entry)
+}
+$config.Save($configPath)
+& dotnet restore $project --configfile $configPath --packages $cache `
     "-p:OpcPlcPackageVersion=$($package.Version)" -p:NuGetAudit=true -p:NuGetAuditMode=all
 if ($LASTEXITCODE -ne 0) {
     throw "Packaged consumer restore failed with exit code $LASTEXITCODE."
