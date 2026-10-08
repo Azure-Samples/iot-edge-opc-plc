@@ -17,7 +17,8 @@ COPY README.md .
 RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
     && dotnet restore src/opc-plc.csproj -a "$ARCH" \
     -p:Configuration=Release -p:SelfContained=true -p:TargetLatestRuntimePatch=true \
-    -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false
+    -p:UseLocalOpcUaStack=false -p:GeneratePackageOnBuild=false \
+    -p:NuGetAudit=true -p:NuGetAuditMode=all
 
 # Copy source code
 COPY src/ src/

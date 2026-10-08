@@ -38,35 +38,41 @@ Nerdbank.GitVersioning generates `2.16.0-preview.<height>` on `preview`. Other b
 also include a commit identifier and are not eligible for preview publication. Preview package
 publication is to the externally configured Azure Artifacts feed only, not nuget.org.
 
-To publish, queue the Azure DevOps pipeline manually on the **preview branch** with
-**publishPreview** enabled. The default is false. Build/test and non-publishing Release/Debug image
-validation must succeed first. The standalone sample is restored in an isolated package cache using
+Preview builds run the normal build/test and image stages, like main. After build/test succeeds,
+Release and Debug images are built and published automatically. PRs and other development branches
+validate images without publishing.
+
+To publish the NuGet package, queue the Azure DevOps pipeline manually on the **preview branch** with
+**publishPreview** enabled. The default is false. Build/test and image publication must succeed first.
+The standalone sample is restored in an isolated package cache using
 the exact local Release package and public nuget.org dependencies, without access to the publishing
 feed. That package is retained as the `opcplc-release` artifact.
-An independent reviewer must then approve the ManualValidation task before versioned preview images
-and the package are published. No package is rebuilt in the publishing job.
+The optional package-publishing stage has no separate approval gate or duplicate image build.
+No package is rebuilt in the publishing job.
 
 Configure this variable in the Azure DevOps pipeline's **Variables** settings:
 
 | Variable | Purpose | Required |
 | --- | --- | --- |
 | `PreviewNuGetPublishFeed` | PLC preview publication destination | Requested preview publication only |
+| `BUILD_REGISTRY` | ACR resource name, shared with main's image configuration | Optional; existing registry defaults apply |
 
-Do not enable queue-time overrides for this variable. Keep organization, project and feed
+Do not enable queue-time overrides for the publication destination. Keep organization, project and feed
 identifiers out of the public YAML and Dockerfiles, and do not put credentials in the URLs.
 Use an approved Azure Artifacts publication destination. Dependency restoration uses the public
 SDK package IDs in both configurations and does not depend on this setting.
-Missing or invalid publication configuration fails during build preparation, before approval or
-image publication; ordinary validation does not require a publication destination.
+Missing or invalid publication configuration fails during build preparation, before image
+publication; builds without package publication do not require a publication destination.
 Only publication requires `NuGetAuthenticate@1` and the build identity.
 The pipeline build identity needs **Feed Publisher (Contributor)** access to the publication feed;
-configure this permission outside the repository. Restrict queue/approval permissions to release
-maintainers. Manual validation is a workflow gate, not a replacement for branch protection or ADO
-resource-level approvals. Configure PR validation and branch protection for `preview` in GitHub/ADO.
+configure this permission outside the repository. Restrict queue permissions to release maintainers
+and protect registry/feed resources using ADO permissions. Configure PR validation and branch
+protection for `preview` in GitHub/ADO.
 PR validation and branch-trigger settings may be managed by the existing ADO pipeline definition.
 The existing stable triggers and publishing behavior are not changed by these templates.
 
-Preview images use the `preview/` repository namespace in the existing `industrialiot` registry and
+Preview images use the `preview/` repository namespace in the registry selected by `BUILD_REGISTRY`
+(an ACR resource name, not a login-server URL), defaulting to the existing `industrialiot` registry, and
 full `2.16.0-preview.<height>` tags (with `-debug` for Debug images). They do not write stable
 repositories or aliases. NuGet versions are immutable: rerunning publication of an already
 published version fails explicitly; do not silently skip conflicts. Different commits receive
@@ -83,8 +89,10 @@ Use the .NET 10 SDK and run commands from the repository root. Nerdbank.GitVersi
 history. [Directory.Packages.props](../Directory.Packages.props) pins all seven direct OPC runtime
 and analyzer packages; the validated dependency graphs contain only preview-6 OPC packages.
 
-The ordinary Release packages are public on nuget.org and need no GitHub Packages token. This
-Release workflow selects the official feed without changing persistent NuGet settings:
+The ordinary Release packages are public on nuget.org and need no GitHub Packages token.
+Both Release and Debug container restores enable `NuGetAudit=true` and `NuGetAuditMode=all`
+to audit direct and transitive dependencies.
+This Release workflow selects the official feed without changing persistent NuGet settings:
 
 ```powershell
 dotnet restore opcplc.sln --source https://api.nuget.org/v3/index.json `

@@ -1,26 +1,6 @@
 jobs:
-- job: approve
-  displayName: Approve Preview Publication
-  pool: server
-  timeoutInMinutes: 1440
-  steps:
-  - task: ManualValidation@1
-    timeoutInMinutes: 120
-    inputs:
-      notifyUsers: ''
-      allowApproversToApproveTheirOwnRuns: false
-      instructions: 'Approve publication of this validated 2.16.0 preview package to the configured feed and versioned preview images. Stable publication remains unchanged.'
-      onTimeout: reject
-
-- template: acrbuild.yml
-  parameters:
-    previewApproved: true
-
 - job: publish
   displayName: Publish Validated Preview
-  dependsOn:
-  - approve
-  - imagesall
   pool:
     vmImage: ubuntu-latest
   steps:
