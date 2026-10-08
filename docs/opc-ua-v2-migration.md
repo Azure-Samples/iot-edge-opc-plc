@@ -96,10 +96,12 @@ protection for `preview` in GitHub/ADO.
 PR validation and branch-trigger settings may be managed by the existing ADO pipeline definition.
 The existing stable triggers and publishing behavior are not changed by these templates.
 
-Preview images use the `preview/` repository namespace in the registry selected by `BUILD_REGISTRY`
-(an ACR resource name, not a login-server URL), defaulting to the existing `industrialiot` registry, and
-full `2.16.0-preview.<number>` tags (with `-debug` for Debug images). They do not write stable
-repositories or aliases. Before releasing a new preview, manually change
+Preview images use the same public repository routing as stable images. The default `industrialiot`
+registry publishes them to the MCR-onboarded `public/iotedge/opc-plc` repository; a non-production
+registry selected by `BUILD_REGISTRY` (an ACR resource name, not a login-server URL) uses
+`iotedge/opc-plc` at the registry root. Preview images use full `2.16.0-preview.<number>` tags (with
+`-debug` for Debug images) and do not update stable aliases such as `latest`. Before releasing a
+new preview, manually change
 `version.json` to the next number (for example,
 `2.16.0-preview.2`) and commit that change. Automatic image publication can overwrite the
 current version's image tags until the version is bumped; a fixed tag does not identify an
@@ -111,6 +113,37 @@ release ref specifications in `version.json`, and revalidate. Never publish
 a preview artifact under a rewritten stable version. Any NuGet publication must be performed
 outside this checked-in pipeline, using an approved destination and externally configured credentials.
 If a package is published separately, its version is immutable and must be bumped for the next release.
+
+#### Manual NuGet publication
+
+Use [publish-package.ps1](../tools/scripts/publish-package.ps1) for an explicitly approved publication
+outside the pipeline. Prefer the exact validated build artifact. If rebuilding locally, check out the
+intended build commit with a clean working tree and run `dotnet build src\opc-plc.csproj -c Release`.
+Do not pull or rebuild implicitly during publication: a fixed preview version can identify different
+commits, and an older package with the same filename may still be present.
+
+From the repository root, validate the package without uploading:
+
+```powershell
+$publication = @{
+  PackagePath = '.\src\bin\Release\Microsoft.IoTEdge.OpcPlc.2.16.0-preview.1.nupkg'
+  ExpectedVersion = '2.16.0-preview.1'
+  ExpectedCommit = '74adb57fc825b27e6a3bbedc0732b239bef82436' # Replace with the intended build commit.
+}
+.\tools\scripts\publish-package.ps1 @publication
+```
+
+Review the package path, nuspec version, repository commit, SHA256 and destination. The default feed is
+`https://pkgs.dev.azure.com/msazure/One/_packaging/aio-brokers/nuget/v3/index.json`.
+After approval, pass the reviewed hash as `-ExpectedSha256` and add `-Push`; the script also prompts
+for confirmation. `-Push -WhatIf` previews publication without running NuGet.
+
+No persistent `NuGet.Config` changes or stored credentials are needed by this script. Azure Artifacts
+authentication must already be configured, or available through the
+[Azure Artifacts Credential Provider](https://learn.microsoft.com/azure/devops/artifacts/nuget/dotnet-exe).
+The `--interactive` push option permits sign-in; `--api-key az` is only a required placeholder, not a
+credential. The account must have permission to publish to the feed. Only the `.nupkg` is uploaded;
+symbol packages are excluded, and duplicate-version or authentication failures are reported as errors.
 
 Use the .NET 10 SDK and run commands from the repository root. Nerdbank.GitVersioning needs full Git
 history. [Directory.Packages.props](../Directory.Packages.props) pins all seven direct OPC runtime
@@ -500,7 +533,8 @@ not qualification of the current public-package Debug build.
 
 The [image pipeline](../tools/templates/acrbuild.yml) builds PR and non-release images without
 publishing and checks for UID 1654. Non-PR `main`, `preview` and `release/*` branches enter the ACR
-publishing path. Preview uses its separate repository namespace; registry authentication is unchanged.
+publishing path. Preview uses the public repository with a preview version tag; registry authentication
+is unchanged.
 
 ## Package consumer
 

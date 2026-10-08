@@ -74,9 +74,9 @@ $namespace = $branchName
 if ($namespace.StartsWith("feature/")) {
     $namespace = $namespace.Replace("feature/", "")
 }
-elseif ($namespace.StartsWith("release/") -or ($namespace -eq "main")) {
+elseif ($namespace.StartsWith("release/") -or ($namespace -eq "main") -or $previewBuild) {
     $namespace = "public"
-    $releaseBuild = $true
+    $releaseBuild = !$previewBuild
 }
 # Docker repository names must be lowercase and only contain [a-z0-9] separated by '.', '_', '-' or '/'
 $namespace = $namespace.ToLowerInvariant().Replace("_", "/")
@@ -85,8 +85,8 @@ $namespace = $namespace.Substring(0, [Math]::Min($namespace.Length, 24)).Trim(".
 $namespace = "$($namespace)/"
 
 if (![string]::IsNullOrEmpty($Registry) -and ($Registry -ne "industrialiot")) {
-    # if we build from release or from main and registry is provided we leave namespace empty
-    if ($releaseBuild) {
+    # Public builds use the registry root when a non-production registry is provided.
+    if ($releaseBuild -or $previewBuild) {
         $namespace = ""
     }
 }
