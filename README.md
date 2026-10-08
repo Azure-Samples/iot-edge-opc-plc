@@ -304,6 +304,33 @@ Notes:
 - Because the client fetches the server certificate and then closes the channel, the first session can take up to one `--rci` interval to be established.
 - The regular server endpoint stays available, so clients can still connect to the server in the usual way.
 
+## Historical Access
+
+Enable one Int32 historian variable with `--historian` (alias `--hn`). It is disabled by default.
+
+```bash
+dotnet opcplc.dll --pn=50000 --autoaccept --historian
+```
+
+The variable is under `OpcPlc/Telemetry/Historian`, in namespace `http://microsoft.com/Opc/OpcPlc/`:
+
+| NodeId identifier | Data type | Sample values |
+| --- | --- | --- |
+| `s=HistorianInt32` | Int32 | 0, 1, 2, ... |
+
+The implementation adapts the OPC Foundation TestData sample's seeded archive and session-owned history-reader pattern.
+The node starts with 1,001 samples spaced ten seconds apart, ending at startup time. Simulation adds a sample every ten
+seconds, updates the current value, and retains the newest 2,000 samples in memory. Restarting the server resets history.
+The node exposes `Historizing`, history-read access, and historical configuration with sampling interval and archive start.
+
+Use `HistoryRead` with `ReadRawModifiedDetails` and explicitly set `IsReadModified=false` (the SDK defaults it to true).
+Raw reads support forward/reverse ranges, optional bounds, timestamp selection, and continuation points. Without bounds,
+the ending timestamp is excluded, except when start and end are equal. Empty ranges return `Good_NoData`.
+Responses contain at most 100 values per node, or the smaller requested `NumValuesPerNode`. Continue with the returned
+token and unchanged request parameters in the same session; release unused tokens with `releaseContinuationPoints=true`.
+
+History is read-only. Modified, processed/aggregate, at-time and event history, and `HistoryUpdate`, are not implemented.
+
 ## Other features
 - Node with special characters in name and NodeId
 - Node with long ID (3950 bytes)
@@ -803,6 +830,8 @@ Options:
       --gn, --guidnodes=VALUE
                              number of nodes with deterministic GUID IDs.
                                Default: 1
+      --hn, --historian     enable one historical-access node (Int32).
+                               Default: disabled
       --nd, --nodips         do not generate dip data.
                                Default: False
       --fn, --fastnodes=VALUE
