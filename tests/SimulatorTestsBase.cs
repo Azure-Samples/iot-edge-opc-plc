@@ -43,6 +43,9 @@ public abstract class SimulatorTestsBase
     /// <summary>The current OPC-UA Session.</summary>
     protected ISession Session { get; private set; }
 
+    protected Task<ISession> CreateSessionAsync(string sessionName, CancellationToken cancellationToken = default)
+        => _simulator.CreateSessionAsync(sessionName, cancellationToken: cancellationToken);
+
     /// <summary>Starts the simulator and creates a new OPC-UA session, shared by all test methods in a class.</summary>
     [OneTimeSetUp]
     public async Task Setup()

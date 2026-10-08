@@ -28,7 +28,8 @@ head. Review fixes described below are local follow-up changes, not covered by t
 ### Preview release lane
 
 The migration targets `preview`, initially branched from the existing migration baseline
-`840e1b6`, rather than introducing the newer historian feature from main into this PR.
+`840e1b6`. After the initial migration merged, main's historian feature was ported deliberately
+to the native 2.0 APIs described below.
 Stable development and manual stable package publication continue on `main` independently.
 Port stable fixes and features to preview deliberately; merge the qualified migration back into
 main before publishing a stable `2.16.0`.
@@ -112,6 +113,45 @@ the environment's configured sources. Multiple inherited sources without source 
 not warning suppression. An Azure Artifacts feed or package proxy must expose the entire pinned SDK
 set; successful nuget.org restore does not establish availability through another feed or satisfy
 the hosted supply-chain policy. Do not disable that policy to make restore pass.
+
+### Historian integration from main
+
+Main commit `5674286` (historian feature #552) is integrated without reverting the 2.0 migration:
+
+- Keep the opt-in `--historian` / `--hn` interface, existing NodeIds, seeded Int32 archive,
+  ten-second updates, 2,000-sample retention, raw range/bounds semantics and 100-value page limit.
+- Replace synchronous plugin registration and node-manager history hooks with cancellation-aware
+  native async APIs. Use the generated historical configuration factory and optional-child helpers
+  instead of legacy construction that leaves mandatory children uninitialized.
+- Preserve the custom history route through `HasHistorianProvider`, so startup reconciliation
+  retains history advertisement only for the nodes backed by this archive.
+- Use immutable `DataValue`, `Variant`, `DateTimeUtc`, `ArrayOf` and `ByteString` APIs.
+  Timestamp filtering returns copies; an absent sample uses `DataValue.IsNull`, while a missing
+  bound is an explicit null-valued sample with `BadBoundNotFound`.
+- Store disposable typed cursors in the session's native continuation-point store. Keep session
+  ownership, release semantics and request matching, including timestamp selection.
+- Retain `2.16.0-preview.<height>` and preview-only public release refs; do not import main's
+  stable `2.15.10` version or its version-height offset.
+
+For raw history reads, use `Source`, `Server` or `Both` timestamps. The pinned SDK rejects
+`Neither` with `BadTimestampsToReturnInvalid`; this is tested rather than bypassed.
+The existing 28 historian tests are retained and nine migration regression cases cover cancellation,
+timestamp/archive immutability, missing bounds and continuation timestamp mismatches.
+
+Local merge qualification against the pinned public packages passed:
+
+| Command | Result |
+| --- | --- |
+| `dotnet restore opcplc.sln --source https://packagefeedproxy.microsoft.io/nuget/v3/index.json -p:Configuration=Release -p:NuGetAudit=true -p:NuGetAuditMode=all` | Passed |
+| `dotnet build opcplc.sln -c Release --no-restore -v minimal` | Passed; 0 warnings/errors |
+| `dotnet test tests/opc-plc-tests.csproj -c Release --no-build --no-restore --filter "FullyQualifiedName~OpcPlc.Tests.Historian"` | 37 passed; 0 failed/skipped |
+| `dotnet test tests/opc-plc-tests.csproj -c Release --no-build --no-restore` | 989 passed; 0 failed/skipped |
+| `dotnet restore opcplc.sln --source https://packagefeedproxy.microsoft.io/nuget/v3/index.json -p:Configuration=Debug -p:NuGetAudit=true -p:NuGetAuditMode=all` | Passed |
+| `dotnet build opcplc.sln -c Debug --no-restore -v minimal` | Passed; 0 warnings/errors |
+| `dotnet test tests/opc-plc-tests.csproj -c Debug --no-build --no-restore --filter "FullyQualifiedName~OpcPlc.Tests.Historian"` | 37 passed; 0 failed/skipped |
+
+Run the integration suites serially: their server fixtures share TCP port 50001.
+No full Debug suite, hosted pipeline or container qualification was run for this merge.
 
 ### Local SDK debugging
 
