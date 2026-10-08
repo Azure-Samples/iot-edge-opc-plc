@@ -30,60 +30,54 @@ head. Review fixes described below are local follow-up changes, not covered by t
 The migration targets `preview`, initially branched from the existing migration baseline
 `840e1b6`. After the initial migration merged, main's historian feature was ported deliberately
 to the native 2.0 APIs described below.
-Stable development and manual stable package publication continue on `main` independently.
+Stable development continues on `main` independently.
 Port stable fixes and features to preview deliberately; merge the qualified migration back into
 main before publishing a stable `2.16.0`.
 
-Nerdbank.GitVersioning generates `2.16.0-preview.<height>` on `preview`. Other branches and PR builds
-also include a commit identifier and are not eligible for preview publication. Preview package
-publication is to the externally configured Azure Artifacts feed only, not nuget.org.
+The preview release version is fixed in `version.json`, initially `2.16.0-preview.1`, and is
+incremented manually before each new preview release, like the stable version on main.
+Ordinary commits do not increment the package version or image tag. Other branches and PR builds
+also include a commit identifier and are not eligible for preview image publication.
 
 Preview builds run the normal build/test and image stages, like main. After build/test succeeds,
 Release and Debug images are built and published automatically. PRs and other development branches
 validate images without publishing.
 
-To publish the NuGet package, queue the Azure DevOps pipeline manually on the **preview branch** with
-**publishPreview** enabled. The default is false. Build/test and image publication must succeed first.
-The standalone sample is restored in an isolated package cache using
-the exact local Release package and public nuget.org dependencies, without access to the publishing
-feed. That package is retained as the `opcplc-release` artifact.
-The optional package-publishing stage has no separate approval gate or duplicate image build.
-No package is rebuilt in the publishing job.
+Like main, the checked-in preview pipeline builds NuGet packages but does not push them to a feed.
+There is no package-publishing stage, queue-time publication parameter, feed authentication or
+publication artifact. The standalone sample still validates the exact locally built Release package
+in an isolated package cache with public nuget.org dependencies; this is a migration check, not publication.
 
-Configure this variable in the Azure DevOps pipeline's **Variables** settings:
+Configure this variable in the Azure DevOps pipeline's **Variables** settings if needed:
 
 | Variable | Purpose | Required |
 | --- | --- | --- |
-| `PreviewNuGetPublishFeed` | PLC preview publication destination | Requested preview publication only |
 | `BUILD_REGISTRY` | ACR resource name, shared with main's image configuration | Optional; existing registry defaults apply |
 
-Do not enable queue-time overrides for the publication destination. Keep organization, project and feed
-identifiers out of the public YAML and Dockerfiles, and do not put credentials in the URLs.
-Use an approved Azure Artifacts publication destination. Dependency restoration uses the public
-SDK package IDs in both configurations and does not depend on this setting.
-Missing or invalid publication configuration fails during build preparation, before image
-publication; builds without package publication do not require a publication destination.
-Only publication requires `NuGetAuthenticate@1` and the build identity.
-The pipeline build identity needs **Feed Publisher (Contributor)** access to the publication feed;
-configure this permission outside the repository. Restrict queue permissions to release maintainers
-and protect registry/feed resources using ADO permissions. Configure PR validation and branch
+Dependency restoration uses public SDK package IDs in both configurations.
+The former `PreviewNuGetPublishFeed` pipeline variable and any feed-publishing permissions are
+no longer required by these templates; remove unused external configuration separately.
+Restrict queue permissions to release maintainers
+and protect registry resources using ADO permissions. Configure PR validation and branch
 protection for `preview` in GitHub/ADO.
 PR validation and branch-trigger settings may be managed by the existing ADO pipeline definition.
 The existing stable triggers and publishing behavior are not changed by these templates.
 
 Preview images use the `preview/` repository namespace in the registry selected by `BUILD_REGISTRY`
 (an ACR resource name, not a login-server URL), defaulting to the existing `industrialiot` registry, and
-full `2.16.0-preview.<height>` tags (with `-debug` for Debug images). They do not write stable
-repositories or aliases. NuGet versions are immutable: rerunning publication of an already
-published version fails explicitly; do not silently skip conflicts. Different commits receive
-increasing version heights on the protected preview branch; do not reset its history. Use the package version printed in the build when overriding
+full `2.16.0-preview.<number>` tags (with `-debug` for Debug images). They do not write stable
+repositories or aliases. Before releasing a new preview, manually change
+`version.json` to the next number (for example,
+`2.16.0-preview.2`) and commit that change. Automatic image publication can overwrite the
+current version's image tags until the version is bumped; a fixed tag does not identify an
+immutable commit. Use the package version printed in the build when overriding
 `OpcPlcPackageVersion` for a standalone consumer.
 
 For stable promotion, merge preview into main, set a stable version, restore the main/release public
 release ref specifications in `version.json`, and revalidate. Never publish
-a preview artifact under a rewritten stable version. Until then, keep stable publication manual:
-build the stable branch in Release and push its exact package to the approved feed using externally
-configured credentials.
+a preview artifact under a rewritten stable version. Any NuGet publication must be performed
+outside this checked-in pipeline, using an approved destination and externally configured credentials.
+If a package is published separately, its version is immutable and must be bumped for the next release.
 
 Use the .NET 10 SDK and run commands from the repository root. Nerdbank.GitVersioning needs full Git
 history. [Directory.Packages.props](../Directory.Packages.props) pins all seven direct OPC runtime
@@ -138,8 +132,8 @@ Main commit `5674286` (historian feature #552) is integrated without reverting t
   bound is an explicit null-valued sample with `BadBoundNotFound`.
 - Store disposable typed cursors in the session's native continuation-point store. Keep session
   ownership, release semantics and request matching, including timestamp selection.
-- Retain `2.16.0-preview.<height>` and preview-only public release refs; do not import main's
-  stable `2.15.10` version or its version-height offset.
+- Retain the preview channel and preview-only public release refs; do not import main's
+  stable `2.15.10` version. Preview release numbers are now fixed and manually incremented.
 
 For raw history reads, use `Source`, `Server` or `Both` timestamps. The pinned SDK rejects
 `Neither` with `BadTimestampsToReturnInvalid`; this is tested rather than bypassed.
@@ -452,8 +446,8 @@ Git history rather than serving as current setup instructions.
 [CI](../tools/templates/ci.yml) uses normal build/test commands with implicit restore, explicitly
 enables auditing of all dependencies, and retains warnings as errors and build-time package generation.
 Full-history checkouts support versioning. Debug and Release use the same public SDK packages.
-Dependency restore requires no Debug-specific feed, token, or authentication task. Only the optional
-preview publication job authenticates to its externally configured destination.
+Dependency restore requires no Debug-specific feed, token, or authentication task.
+Neither main nor preview has a NuGet publication stage in the checked-in pipeline.
 No permissions were changed. Production CI must still pass its supply-chain checks.
 
 The [Release Dockerfile](../Dockerfile.release) and [Debug Dockerfile](../Dockerfile.debug) restore
@@ -472,9 +466,8 @@ Historical Debug-package and authenticated-image results describe the earlier co
 not qualification of the current public-package Debug build.
 
 The [image pipeline](../tools/templates/acrbuild.yml) builds PR and non-release images without
-publishing and checks for UID 1654. Only non-PR `main` and `release/*` branches enter the existing ACR
-publishing path. Whether development branches should publish is a separate policy decision; this
-migration's CI simplification did not expand publishing or change registry authentication.
+publishing and checks for UID 1654. Non-PR `main`, `preview` and `release/*` branches enter the ACR
+publishing path. Preview uses its separate repository namespace; registry authentication is unchanged.
 
 ## Package consumer
 

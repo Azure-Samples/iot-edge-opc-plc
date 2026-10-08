@@ -1,6 +1,6 @@
 <#
  .SYNOPSIS
-    Runs the standalone consumer against the exact Release package before publication.
+    Runs the standalone consumer against the exact locally built Release package.
 #>
 param(
     [Parameter(Mandatory)]

@@ -4,8 +4,7 @@
 #>
 param(
     [Parameter(Mandatory)]
-    [string] $PackageDirectory,
-    [switch] $RequirePreview
+    [string] $PackageDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,14 +30,6 @@ try {
         throw 'Unexpected package identity.'
     }
     $version = [string] $nuspec.package.metadata.version
-    if ($RequirePreview -and $version -notmatch '^2\.16\.0-preview\.\d+$') {
-        throw "Preview publication requires 2.16.0-preview.<number>; found $version."
-    }
-    $debugDependencies = @($nuspec.SelectNodes("//*[local-name()='dependency']") |
-        Where-Object { $_.id -like 'OPCFoundation.*.Debug' })
-    if ($RequirePreview -and $debugDependencies.Count -gt 0) {
-        throw 'Preview publication requires the Release package, not Debug SDK dependencies.'
-    }
     return [pscustomobject]@{ Path = $packages[0].FullName; Version = $version }
 }
 finally {

@@ -12,24 +12,6 @@ jobs:
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   steps:
   - task: PowerShell@2
-    displayName: Validate Package Feed Configuration
-    inputs:
-      targetType: inline
-      pwsh: true
-      script: |
-        if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/preview' -and
-            $env:BUILD_REASON -eq 'Manual' -and $env:PUBLISH_PREVIEW -eq 'true') {
-            $feed = $null
-            if (![Uri]::TryCreate($env:PREVIEW_NUGET_PUBLISH_FEED, [UriKind]::Absolute, [ref] $feed) -or
-                $feed.Scheme -ne 'https' -or ![string]::IsNullOrEmpty($feed.UserInfo)) {
-                throw 'Configure PreviewNuGetPublishFeed as an HTTPS package source in the pipeline settings, without embedded credentials.'
-            }
-        }
-    env:
-      PREVIEW_NUGET_PUBLISH_FEED: $(PreviewNuGetPublishFeed)
-      PUBLISH_PREVIEW: $(PublishPreview)
-
-  - task: PowerShell@2
     name: buildmatrix
     displayName: Prepare Solutions
     inputs:
@@ -144,9 +126,3 @@ jobs:
       filePath: ./tools/scripts/test-package.ps1
       arguments: '-PackageDirectory "$(Build.SourcesDirectory)/src/bin/Release" -WorkingDirectory "$(Agent.TempDirectory)/opcplc-consumer" -Source "https://api.nuget.org/v3/index.json"'
       pwsh: true
-
-  - task: PublishPipelineArtifact@1
-    displayName: Preserve Validated Release Package
-    inputs:
-      targetPath: '$(Build.SourcesDirectory)/src/bin/Release'
-      artifact: opcplc-release
