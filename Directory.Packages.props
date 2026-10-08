@@ -35,7 +35,7 @@
     <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" Version="1.5.378.176" />
     <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes.Debug" Version="1.5.378.176" />
     <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common" Version="1.5.378.176" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common.Debug" Version="1.5.378.176" />
+    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common.Debug" Version="1.5.378.182" />
   </ItemGroup>
   <!-- Test dependencies -->
   <ItemGroup>
