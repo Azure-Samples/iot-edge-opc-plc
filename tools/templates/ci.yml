@@ -17,20 +17,15 @@ jobs:
       targetType: inline
       pwsh: true
       script: |
-        $sources = @{ OpcUaDebugNuGetFeed = $env:OPCUA_DEBUG_NUGET_FEED }
         if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/preview' -and
             $env:BUILD_REASON -eq 'Manual' -and $env:PUBLISH_PREVIEW -eq 'true') {
-            $sources.PreviewNuGetPublishFeed = $env:PREVIEW_NUGET_PUBLISH_FEED
-        }
-        foreach ($source in $sources.GetEnumerator()) {
             $feed = $null
-            if (![Uri]::TryCreate($source.Value, [UriKind]::Absolute, [ref] $feed) -or
+            if (![Uri]::TryCreate($env:PREVIEW_NUGET_PUBLISH_FEED, [UriKind]::Absolute, [ref] $feed) -or
                 $feed.Scheme -ne 'https' -or ![string]::IsNullOrEmpty($feed.UserInfo)) {
-                throw "Configure $($source.Key) as an HTTPS package source in the pipeline settings, without embedded credentials."
+                throw 'Configure PreviewNuGetPublishFeed as an HTTPS package source in the pipeline settings, without embedded credentials.'
             }
         }
     env:
-      OPCUA_DEBUG_NUGET_FEED: $(OpcUaDebugNuGetFeed)
       PREVIEW_NUGET_PUBLISH_FEED: $(PreviewNuGetPublishFeed)
       PUBLISH_PREVIEW: $(PublishPreview)
 
@@ -76,15 +71,12 @@ jobs:
       projects: '$(file)'
       arguments: '--configuration Release -p:NuGetAudit=true -p:NuGetAuditMode=all'
 
-  - task: NuGetAuthenticate@1
-    displayName: Authenticate Debug Package Feed
-
   - task: DotNetCoreCLI@2
     displayName: Debug Build
     inputs:
       command: build
       projects: '$(file)'
-      arguments: '--configuration Debug -p:RestoreSources=$(OpcUaDebugNuGetFeed) -p:NuGetAudit=true -p:NuGetAuditMode=all'
+      arguments: '--configuration Debug -p:NuGetAudit=true -p:NuGetAuditMode=all'
 
 - job: testprep
   displayName: Prepare Test Jobs

@@ -1,8 +1,6 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <OpcUaPackageSuffix />
-    <OpcUaPackageSuffix Condition="'$(Configuration)' == '' Or '$(Configuration)' == 'Debug'">.Debug</OpcUaPackageSuffix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,13 +34,6 @@
     <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client" Version="[2.0.0-preview.6]" />
     <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client" Version="[2.0.0-preview.6]" />
     <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Types.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Client.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Debug" Version="[2.0.0-preview.6]" />
-    <PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.SourceGeneration.Debug" Version="[2.0.0-preview.6]" />
   </ItemGroup>
 
   <!-- Test dependencies -->

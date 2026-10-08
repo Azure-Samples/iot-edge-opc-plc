@@ -6,10 +6,9 @@ The test fixture runs an instance of the OPC PLC Server per test class, as a bac
 The Server is instrumented with mocks for time-related objects and methods (DateTime.Now, Timers) so
 that time can be controlled programmatically.
 
-Package mode is the default for OPC UA 2.0. Debug automatically uses matching `.Debug` SDK packages,
-including the model generator; Release uses the ordinary IDs. Debug packages require authenticated
-GitHub Packages access or an approved mirror; CI uses an externally configured Azure Artifacts mirror with
-its build identity. Restore again when switching build configurations.
+Package mode is the default for OPC UA 2.0. Debug and Release use the same public SDK packages,
+including the model generator. Debug builds retain debug settings for the PLC and tests, but use
+Release-built SDK binaries. No authenticated Debug package feed is required.
 To use a repaired sibling `UA-.NETStandard` checkout explicitly, pass `-p:UseLocalOpcUaStack=true`. See the
 [OPC UA 2.0 migration notes](../docs/opc-ua-v2-migration.md) for package-feed and local-source setup.
 

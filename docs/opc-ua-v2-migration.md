@@ -1,10 +1,12 @@
 # OPC UA 2.0 migration
 
-Status as of **2026-10-07**: OPC PLC **2.16.0** uses exact **2.0.0-preview.6** SDK packages.
-Debug builds automatically select the SDK's **`.Debug` packages**, including the model generator;
-Release keeps the ordinary package IDs. Test clients now use native runtime type loading and managed
-sessions instead of the Reflection.Emit package and raw sessions. Published head `f8e90ec` includes
-these changes, Boiler1 project removal, and main integration. Recorded main-integration Release and
+Status as of **2026-10-08**: OPC PLC **2.16.0** uses exact **2.0.0-preview.6** SDK packages.
+Debug and Release builds use the same public SDK packages, including the model generator.
+The PLC's Debug configuration and debugger image remain available, but SDK binaries are Release-built.
+Test clients now use native runtime type loading and managed
+sessions instead of the Reflection.Emit package and raw sessions. Historical head `f8e90ec` includes
+client modernization, Boiler1 project removal, and main integration, but predates the public-package
+Debug configuration described here. Recorded main-integration Release and
 Debug suites each passed **908 tests, 0 failed, 0 skipped**; the earlier 903-test results predate main
 integration. A hosted run passed Linux build/tests and image validation for the published
 head. Review fixes described below are local follow-up changes, not covered by that hosted run.
@@ -43,26 +45,20 @@ feed. That package is retained as the `opcplc-release` artifact.
 An independent reviewer must then approve the ManualValidation task before versioned preview images
 and the package are published. No package is rebuilt in the publishing job.
 
-Configure these independent variables in the Azure DevOps pipeline's **Variables** settings:
+Configure this variable in the Azure DevOps pipeline's **Variables** settings:
 
 | Variable | Purpose | Required |
 | --- | --- | --- |
-| `OpcUaDebugNuGetFeed` | SDK `.Debug` packages and dependencies | Build and image validation |
 | `PreviewNuGetPublishFeed` | PLC preview publication destination | Requested preview publication only |
 
-Do not enable queue-time overrides for either variable. Keep organization, project and feed
+Do not enable queue-time overrides for this variable. Keep organization, project and feed
 identifiers out of the public YAML and Dockerfiles, and do not put credentials in the URLs.
-Use an approved dependency mirror and an approved Azure Artifacts publication destination.
-The values may point to the same approved feed, but neither setting controls the other.
+Use an approved Azure Artifacts publication destination. Dependency restoration uses the public
+SDK package IDs in both configurations and does not depend on this setting.
 Missing or invalid publication configuration fails during build preparation, before approval or
 image publication; ordinary validation does not require a publication destination.
-Authentication to the dependency mirror remains through `NuGetAuthenticate@1` and the build identity,
-with the job token mounted as a BuildKit secret for Debug images. Direct GitHub Packages access
-requires separate GitHub authentication and a general dependency source; changing only the URL
-does not make the Azure DevOps job token valid for GitHub.
-
-The pipeline build identity needs read access to the dependency mirror and
-**Feed Publisher (Contributor)** access to the publication feed;
+Only publication requires `NuGetAuthenticate@1` and the build identity.
+The pipeline build identity needs **Feed Publisher (Contributor)** access to the publication feed;
 configure this permission outside the repository. Restrict queue/approval permissions to release
 maintainers. Manual validation is a workflow gate, not a replacement for branch protection or ADO
 resource-level approvals. Configure PR validation and branch protection for `preview` in GitHub/ADO.
@@ -96,22 +92,19 @@ dotnet build opcplc.sln -c Release --no-restore
 dotnet test tests/opc-plc-tests.csproj -c Release --no-build --no-restore
 ```
 
-The matching preview-6 `.Debug` packages are published upstream to
-`https://nuget.pkg.github.com/OPCFoundation/index.json`, not nuget.org. The complete set is also mirrored
-unchanged to the externally configured Azure Artifacts feed used by CI.
-Configure authenticated access outside the repository, or use an approved mirror containing the complete set.
-When using GitHub alongside a general feed, map `OPCFoundation.NetStandard.Opc.Ua.*` to GitHub and
-`*` to the general feed. Supply credentials securely through the environment or a credential provider;
-never commit them. With those sources configured:
+Debug uses those same public package IDs and versions, not the SDK's `.Debug` packages.
+This preserves Debug compilation of the PLC and tests without requiring authenticated dependency feeds.
+For stepping into Debug-built SDK code, use the explicit local-source mode described below.
 
 ```powershell
-dotnet restore opcplc.sln -p:Configuration=Debug -p:NuGetAudit=true -p:NuGetAuditMode=all
+dotnet restore opcplc.sln --source https://api.nuget.org/v3/index.json `
+  -p:Configuration=Debug -p:NuGetAudit=true -p:NuGetAuditMode=all
 dotnet build opcplc.sln -c Debug --no-restore
 dotnet test tests/opc-plc-tests.csproj -c Debug --no-build --no-restore
 ```
 
-Restore again whenever switching Debug/Release: their package IDs differ, and the projects share
-restore assets. Do not use `--no-restore` with assets restored for the other configuration.
+Restore again whenever switching build configuration or package/local-source mode so the shared
+restore assets match the intended build.
 
 There is no root NuGet configuration. Ordinary build/test commands perform an implicit restore using
 the environment's configured sources. Multiple inherited sources without source mapping can cause
@@ -410,33 +403,25 @@ Git history rather than serving as current setup instructions.
 
 [CI](../tools/templates/ci.yml) uses normal build/test commands with implicit restore, explicitly
 enables auditing of all dependencies, and retains warnings as errors and build-time package generation.
-Full-history checkouts support versioning. The migration-only cold-restore wrapper and GitHub package
-secret plumbing remain removed. Debug builds use the non-secret `OpcUaDebugNuGetFeed` pipeline variable
-to select the externally configured feed and `NuGetAuthenticate@1` for the existing build identity.
-Release build/test sources are unchanged. Feed access is managed outside the repository;
-no permissions were changed. Production CI must still pass its supply-chain checks.
+Full-history checkouts support versioning. Debug and Release use the same public SDK packages.
+Dependency restore requires no Debug-specific feed, token, or authentication task. Only the optional
+preview publication job authenticates to its externally configured destination.
+No permissions were changed. Production CI must still pass its supply-chain checks.
 
 The [Release Dockerfile](../Dockerfile.release) and [Debug Dockerfile](../Dockerfile.debug) restore
 with matching architecture, configuration, self-contained, and runtime-patch settings before publishing
-with `--no-restore`. They do not copy the test-only models. Release uses the ordinary public SDK
-packages. Debug selects the approved mirror and requires the `opcua_nuget_token` BuildKit secret for
-restore. Image jobs map their short-lived `System.AccessToken` to `OPCUA_NUGET_TOKEN`; only the Debug
-restore mounts it. The multiarchitecture publishing script uses the same secret and fails before registry
-operations if the token or feed URL is missing. No token is written to NuGet configuration or image layers.
-Do not pass credentials through Docker build arguments; `OPCUA_DEBUG_NUGET_FEED` is a URL setting only,
-with no default embedded in the Dockerfile.
+with `--no-restore`. They do not copy the test-only models. Both restore the ordinary public SDK
+packages without package-source credentials or BuildKit secrets. The Debug image still compiles the
+PLC in Debug and installs the debugger; it does not supply Debug-built SDK binaries.
 [.dockerignore](../.dockerignore) excludes host build outputs, test artifacts, and PKI.
 
 ```powershell
 docker build -f Dockerfile.release -t opcplc-local:release .
-docker build -f Dockerfile.debug -t opcplc-local:debug `
-  --build-arg "OPCUA_DEBUG_NUGET_FEED=$env:OPCUA_DEBUG_NUGET_FEED" `
-  --secret id=opcua_nuget_token,env=OPCUA_NUGET_TOKEN .
+docker build -f Dockerfile.debug -t opcplc-local:debug .
 ```
 
-For the local Debug command, set `OPCUA_DEBUG_NUGET_FEED` to an approved source and supply a feed-read
-token securely through `OPCUA_NUGET_TOKEN` first. There is no default feed; setting the URL does not
-grant access to it.
+Historical Debug-package and authenticated-image results describe the earlier configuration,
+not qualification of the current public-package Debug build.
 
 The [image pipeline](../tools/templates/acrbuild.yml) builds PR and non-release images without
 publishing and checks for UID 1654. Only non-PR `main` and `release/*` branches enter the existing ACR

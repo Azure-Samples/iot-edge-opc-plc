@@ -53,10 +53,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration$(OpcUaPackageSuffix)" NoWarn="NU5104" />
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server$(OpcUaPackageSuffix)" NoWarn="NU5104" />
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core$(OpcUaPackageSuffix)" NoWarn="NU5104" />
-    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types$(OpcUaPackageSuffix)" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Types" NoWarn="NU5104" />
   </ItemGroup>
 
   <ItemGroup>
