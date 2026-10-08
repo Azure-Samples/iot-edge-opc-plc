@@ -9,7 +9,7 @@ jobs:
     inputs:
       notifyUsers: ''
       allowApproversToApproveTheirOwnRuns: false
-      instructions: 'Approve publication of this validated 2.16.0 preview package to aio-brokers and versioned preview images. Stable publication remains unchanged.'
+      instructions: 'Approve publication of this validated 2.16.0 preview package to the configured feed and versioned preview images. Stable publication remains unchanged.'
       onTimeout: reject
 
 - template: acrbuild.yml
@@ -47,7 +47,9 @@ jobs:
             throw 'Preview publication is permitted only for manually queued preview branch builds.'
         }
         $package = & ./tools/scripts/get-package.ps1 -PackageDirectory "$(Pipeline.Workspace)/opcplc-release" -RequirePreview
-        dotnet nuget push $package.Path --source "$(OpcUaDebugNuGetFeed)" --api-key az
+        dotnet nuget push $package.Path --source $env:PREVIEW_NUGET_PUBLISH_FEED --api-key az
         if ($LASTEXITCODE -ne 0) {
             throw "Preview package publication failed with exit code $LASTEXITCODE."
         }
+    env:
+      PREVIEW_NUGET_PUBLISH_FEED: $(PreviewNuGetPublishFeed)

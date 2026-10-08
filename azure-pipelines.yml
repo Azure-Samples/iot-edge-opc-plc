@@ -1,11 +1,10 @@
 parameters:
 - name: publishPreview
-  displayName: Publish validated preview to aio-brokers
+  displayName: Publish validated preview to the configured feed
   type: boolean
   default: false
 
 variables:
-  OpcUaDebugNuGetFeed: 'https://pkgs.dev.azure.com/msazure/One/_packaging/aio-brokers/nuget/v3/index.json'
   PublishPreview: ${{ parameters.publishPreview }}
 
 stages:

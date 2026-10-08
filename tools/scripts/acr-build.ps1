@@ -34,6 +34,9 @@ if ([string]::IsNullOrEmpty($Path)) {
 if ($Debug.IsPresent -and [string]::IsNullOrWhiteSpace($env:OPCUA_NUGET_TOKEN)) {
     throw "Set OPCUA_NUGET_TOKEN to a feed-read token before building Debug images."
 }
+if ($Debug.IsPresent -and [string]::IsNullOrWhiteSpace($env:OPCUA_DEBUG_NUGET_FEED)) {
+    throw "Set OPCUA_DEBUG_NUGET_FEED to a Debug package source before building Debug images."
+}
 $getroot = (Join-Path $PSScriptRoot "get-root.ps1")
 if (!(Test-Path -Path $Path -PathType Container)) {
     $Path = Join-Path (& $getroot -fileName $Path) $Path
@@ -255,9 +258,7 @@ $argumentList = @("buildx", "build",
 )
 if ($Debug.IsPresent) {
     $argumentList += @("--secret", "id=opcua_nuget_token,env=OPCUA_NUGET_TOKEN")
-    if (![string]::IsNullOrWhiteSpace($env:OPCUA_DEBUG_NUGET_FEED)) {
-        $argumentList += @("--build-arg", "OPCUA_DEBUG_NUGET_FEED=$($env:OPCUA_DEBUG_NUGET_FEED)")
-    }
+    $argumentList += @("--build-arg", "OPCUA_DEBUG_NUGET_FEED=$($env:OPCUA_DEBUG_NUGET_FEED)")
 }
 $argumentList += $buildRoot
 

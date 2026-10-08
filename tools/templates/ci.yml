@@ -12,6 +12,29 @@ jobs:
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   steps:
   - task: PowerShell@2
+    displayName: Validate Package Feed Configuration
+    inputs:
+      targetType: inline
+      pwsh: true
+      script: |
+        $sources = @{ OpcUaDebugNuGetFeed = $env:OPCUA_DEBUG_NUGET_FEED }
+        if ($env:BUILD_SOURCEBRANCH -eq 'refs/heads/preview' -and
+            $env:BUILD_REASON -eq 'Manual' -and $env:PUBLISH_PREVIEW -eq 'true') {
+            $sources.PreviewNuGetPublishFeed = $env:PREVIEW_NUGET_PUBLISH_FEED
+        }
+        foreach ($source in $sources.GetEnumerator()) {
+            $feed = $null
+            if (![Uri]::TryCreate($source.Value, [UriKind]::Absolute, [ref] $feed) -or
+                $feed.Scheme -ne 'https' -or ![string]::IsNullOrEmpty($feed.UserInfo)) {
+                throw "Configure $($source.Key) as an HTTPS package source in the pipeline settings, without embedded credentials."
+            }
+        }
+    env:
+      OPCUA_DEBUG_NUGET_FEED: $(OpcUaDebugNuGetFeed)
+      PREVIEW_NUGET_PUBLISH_FEED: $(PreviewNuGetPublishFeed)
+      PUBLISH_PREVIEW: $(PublishPreview)
+
+  - task: PowerShell@2
     name: buildmatrix
     displayName: Prepare Solutions
     inputs:
@@ -122,15 +145,12 @@ jobs:
       projects: '**/tests/*.csproj'
       arguments: '--configuration Release -p:NuGetAudit=true -p:NuGetAuditMode=all'
 
-  - task: NuGetAuthenticate@1
-    displayName: Authenticate Packaged Consumer Feed
-
   - task: PowerShell@2
     displayName: Validate Release Package Consumer
     inputs:
       targetType: filePath
       filePath: ./tools/scripts/test-package.ps1
-      arguments: '-PackageDirectory "$(Build.SourcesDirectory)/src/bin/Release" -WorkingDirectory "$(Agent.TempDirectory)/opcplc-consumer" -Source "$(OpcUaDebugNuGetFeed)"'
+      arguments: '-PackageDirectory "$(Build.SourcesDirectory)/src/bin/Release" -WorkingDirectory "$(Agent.TempDirectory)/opcplc-consumer" -Source "https://api.nuget.org/v3/index.json"'
       pwsh: true
 
   - task: PublishPipelineArtifact@1

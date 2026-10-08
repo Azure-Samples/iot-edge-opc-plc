@@ -6,7 +6,7 @@ Release keeps the ordinary package IDs. Test clients now use native runtime type
 sessions instead of the Reflection.Emit package and raw sessions. Published head `f8e90ec` includes
 these changes, Boiler1 project removal, and main integration. Recorded main-integration Release and
 Debug suites each passed **908 tests, 0 failed, 0 skipped**; the earlier 903-test results predate main
-integration. Hosted build `184540190` passed Linux build/tests and image validation for the published
+integration. A hosted run passed Linux build/tests and image validation for the published
 head. Review fixes described below are local follow-up changes, not covered by that hosted run.
 
 ## Constraints
@@ -33,16 +33,36 @@ main before publishing a stable `2.16.0`.
 
 Nerdbank.GitVersioning generates `2.16.0-preview.<height>` on `preview`. Other branches and PR builds
 also include a commit identifier and are not eligible for preview publication. Preview package
-publication is to the existing `aio-brokers` Azure Artifacts feed only, not nuget.org.
+publication is to the externally configured Azure Artifacts feed only, not nuget.org.
 
 To publish, queue the Azure DevOps pipeline manually on the **preview branch** with
 **publishPreview** enabled. The default is false. Build/test and non-publishing Release/Debug image
-validation must succeed first. The standalone sample is restored in an isolated package cache and
-tested against the exact Release package. That package is retained as the `opcplc-release` artifact.
+validation must succeed first. The standalone sample is restored in an isolated package cache using
+the exact local Release package and public nuget.org dependencies, without access to the publishing
+feed. That package is retained as the `opcplc-release` artifact.
 An independent reviewer must then approve the ManualValidation task before versioned preview images
 and the package are published. No package is rebuilt in the publishing job.
 
-The pipeline build identity needs **Feed Publisher (Contributor)** access to `aio-brokers`;
+Configure these independent variables in the Azure DevOps pipeline's **Variables** settings:
+
+| Variable | Purpose | Required |
+| --- | --- | --- |
+| `OpcUaDebugNuGetFeed` | SDK `.Debug` packages and dependencies | Build and image validation |
+| `PreviewNuGetPublishFeed` | PLC preview publication destination | Requested preview publication only |
+
+Do not enable queue-time overrides for either variable. Keep organization, project and feed
+identifiers out of the public YAML and Dockerfiles, and do not put credentials in the URLs.
+Use an approved dependency mirror and an approved Azure Artifacts publication destination.
+The values may point to the same approved feed, but neither setting controls the other.
+Missing or invalid publication configuration fails during build preparation, before approval or
+image publication; ordinary validation does not require a publication destination.
+Authentication to the dependency mirror remains through `NuGetAuthenticate@1` and the build identity,
+with the job token mounted as a BuildKit secret for Debug images. Direct GitHub Packages access
+requires separate GitHub authentication and a general dependency source; changing only the URL
+does not make the Azure DevOps job token valid for GitHub.
+
+The pipeline build identity needs read access to the dependency mirror and
+**Feed Publisher (Contributor)** access to the publication feed;
 configure this permission outside the repository. Restrict queue/approval permissions to release
 maintainers. Manual validation is a workflow gate, not a replacement for branch protection or ADO
 resource-level approvals. Configure PR validation and branch protection for `preview` in GitHub/ADO.
@@ -59,7 +79,7 @@ increasing version heights on the protected preview branch; do not reset its his
 For stable promotion, merge preview into main, set a stable version, restore the main/release public
 release ref specifications in `version.json`, and revalidate. Never publish
 a preview artifact under a rewritten stable version. Until then, keep stable publication manual:
-build the stable branch in Release and push its exact package to `aio-brokers` using externally
+build the stable branch in Release and push its exact package to the approved feed using externally
 configured credentials.
 
 Use the .NET 10 SDK and run commands from the repository root. Nerdbank.GitVersioning needs full Git
@@ -78,8 +98,7 @@ dotnet test tests/opc-plc-tests.csproj -c Release --no-build --no-restore
 
 The matching preview-6 `.Debug` packages are published upstream to
 `https://nuget.pkg.github.com/OPCFoundation/index.json`, not nuget.org. The complete set is also mirrored
-unchanged to the approved `aio-brokers` Azure Artifacts feed used by CI:
-`https://pkgs.dev.azure.com/msazure/One/_packaging/aio-brokers/nuget/v3/index.json`.
+unchanged to the externally configured Azure Artifacts feed used by CI.
 Configure authenticated access outside the repository, or use an approved mirror containing the complete set.
 When using GitHub alongside a general feed, map `OPCFoundation.NetStandard.Opc.Ua.*` to GitHub and
 `*` to the general feed. Supply credentials securely through the environment or a credential provider;
@@ -300,7 +319,7 @@ The following are local results for preview 6, not hosted pipeline results:
 | Release NuGet consumer at the `8daebfd` working-tree checkpoint | External standalone sample, audited isolated restore, build and publish; 3 tests pass from build output and 3 from published output, exit codes 0; not rerun for review fixes |
 | Package asset propagation | Automatic package-target import and SHA-256 equality for all 10 runtime assets in both build and publish output; no source-project references |
 | Approved Debug mirror | 11 upstream Debug packages mirrored unchanged; SHA-512 equality verified after downloading from Azure Artifacts |
-| Cold restore from Azure Artifacts before Boiler1 project removal | Audited empty-cache Debug restore of all three projects passed using only `aio-brokers`, followed by a successful Debug build |
+| Cold restore from Azure Artifacts before Boiler1 project removal | Audited empty-cache Debug restore of all three projects passed using only the approved mirror, followed by a successful Debug build |
 | Debug Linux/amd64 image with mirrored feed | Build and publish passed with a BuildKit token secret; runs as UID 1654; no token in final image metadata; image not pushed |
 
 Recorded main-integration restores kept auditing enabled and builds treated warnings as errors. Those runs
@@ -321,10 +340,9 @@ no timing thresholds, notification assertions or tests were weakened or skipped.
 
 ### Published-head hosted evidence
 
-[Azure Pipelines build 184540190](https://msazure.visualstudio.com/b32aa71e-8ed2-41b2-9d77-5bc261222004/_build/results?buildId=184540190)
-passed Linux build/tests and Release/Debug image validation without publishing for `f8e90ec`.
-CodeQL and CLA checks also passed. This supersedes the earlier Debug restore failure in build
-`183536411`; mirrored-feed CI wiring is already committed and published. Image build/UID validation
+A recorded Azure Pipelines run passed Linux build/tests and Release/Debug image validation without
+publishing for `f8e90ec`. CodeQL and CLA checks also passed. This supersedes the earlier Debug restore
+failure; mirrored-feed CI wiring is already committed and published. Image build/UID validation
 does not establish runtime health, interoperability, ARM64 support, or qualification of the local
 review fixes.
 
@@ -372,7 +390,7 @@ Local evidence is under the ignored `tests/TestResults/stack-v2-migration/` dire
 - `20260930-package-consumer-publish.trx` and `.log`
 - `20260930-optional-cleanup-release-full.trx` and `.log`
 - `20260930-optional-cleanup-debug-full.trx` and `.log`
-- `20260930-aio-debug-image.log`
+- Debug image validation log (retained externally)
 - `20261001-runtime-boiler-model-equivalence.trx` and `.log`
 - `20261001-symbolic-enum-default-limitation.trx`
 - `20261001-no-boiler-project-release-full.trx` and `.log`
@@ -394,8 +412,8 @@ Git history rather than serving as current setup instructions.
 enables auditing of all dependencies, and retains warnings as errors and build-time package generation.
 Full-history checkouts support versioning. The migration-only cold-restore wrapper and GitHub package
 secret plumbing remain removed. Debug builds use the non-secret `OpcUaDebugNuGetFeed` pipeline variable
-to select `aio-brokers` and `NuGetAuthenticate@1` for the existing build identity. Release build/test
-sources are unchanged. Both One and Project Collection build-service identities already have feed access;
+to select the externally configured feed and `NuGetAuthenticate@1` for the existing build identity.
+Release build/test sources are unchanged. Feed access is managed outside the repository;
 no permissions were changed. Production CI must still pass its supply-chain checks.
 
 The [Release Dockerfile](../Dockerfile.release) and [Debug Dockerfile](../Dockerfile.debug) restore
@@ -404,18 +422,21 @@ with `--no-restore`. They do not copy the test-only models. Release uses the ord
 packages. Debug selects the approved mirror and requires the `opcua_nuget_token` BuildKit secret for
 restore. Image jobs map their short-lived `System.AccessToken` to `OPCUA_NUGET_TOKEN`; only the Debug
 restore mounts it. The multiarchitecture publishing script uses the same secret and fails before registry
-operations if it is missing. No token is written to NuGet configuration or image layers. Do not pass
-credentials through Docker build arguments; `OPCUA_DEBUG_NUGET_FEED` is a non-secret URL override only.
+operations if the token or feed URL is missing. No token is written to NuGet configuration or image layers.
+Do not pass credentials through Docker build arguments; `OPCUA_DEBUG_NUGET_FEED` is a URL setting only,
+with no default embedded in the Dockerfile.
 [.dockerignore](../.dockerignore) excludes host build outputs, test artifacts, and PKI.
 
 ```powershell
 docker build -f Dockerfile.release -t opcplc-local:release .
 docker build -f Dockerfile.debug -t opcplc-local:debug `
+  --build-arg "OPCUA_DEBUG_NUGET_FEED=$env:OPCUA_DEBUG_NUGET_FEED" `
   --secret id=opcua_nuget_token,env=OPCUA_NUGET_TOKEN .
 ```
 
-For the local Debug command, supply a feed-read token securely through `OPCUA_NUGET_TOKEN` first.
-The default feed is `aio-brokers`; changing the URL does not grant access to another feed.
+For the local Debug command, set `OPCUA_DEBUG_NUGET_FEED` to an approved source and supply a feed-read
+token securely through `OPCUA_NUGET_TOKEN` first. There is no default feed; setting the URL does not
+grant access to it.
 
 The [image pipeline](../tools/templates/acrbuild.yml) builds PR and non-release images without
 publishing and checks for UID 1654. Only non-PR `main` and `release/*` branches enter the existing ACR
@@ -453,8 +474,9 @@ Push-Location "$consumer/publish"
 try { dotnet vstest OpcUaUnitTests.dll } finally { Pop-Location }
 ```
 
-Check each command succeeds before continuing. The sample owns a dynamic TCP port, temporary client/server
-certificate stores, and asynchronous shutdown. It accepts otherwise-untrusted certificates only for its
+Check each command succeeds before continuing. The sample defaults to TCP port 51234; passing 0 explicitly
+selects an available port. Both modes have package-consumer coverage. The sample owns temporary client/server
+certificate stores and asynchronous shutdown. It accepts otherwise-untrusted certificates only for its
 isolated test connection; this is not production PKI qualification. The tests verify SignAndEncrypt,
 method calls, write/read-back, discovered runtime structures, restart and all ten packaged asset paths.
 
@@ -469,8 +491,8 @@ outputs passed 3 tests with no failures/skips; all ten asset hashes matched the 
 
 ## Remaining qualification
 
-- [x] Publish mirrored-feed CI changes and rerun hosted validation: build `184540190` passed for
-  `f8e90ec`, superseding the earlier Debug restore failure in build `183536411`.
+- [x] Publish mirrored-feed CI changes and rerun hosted validation: a hosted run passed for
+  `f8e90ec`, superseding the earlier Debug restore failure.
 - [ ] Commit/push the local review fixes when authorized, then rerun hosted checks, Debug validation,
   and clean package-consumer qualification against those fixes.
 - [ ] Exercise current Release/Debug Linux images, including ARM64. The Debug Linux/amd64 build and

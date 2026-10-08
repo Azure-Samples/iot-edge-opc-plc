@@ -28,7 +28,7 @@ foreach ($file in @('OpcUaUnitTests.csproj', 'OpcUaUnitTests.cs', 'OpcPlcBase.cs
 $project = Join-Path $consumer 'OpcUaUnitTests.csproj'
 $configPath = Join-Path $consumer 'NuGet.Config'
 [xml] $config = '<configuration><packageSources><clear /></packageSources></configuration>'
-foreach ($item in @(@{ Key = 'validated-package'; Value = $feed }, @{ Key = 'aio-brokers'; Value = $Source })) {
+foreach ($item in @(@{ Key = 'validated-package'; Value = $feed }, @{ Key = 'dependencies'; Value = $Source })) {
     $entry = $config.CreateElement('add')
     $entry.SetAttribute('key', $item.Key)
     $entry.SetAttribute('value', $item.Value)

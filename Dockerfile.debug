@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0 AS build
 ARG TARGETARCH
-ARG OPCUA_DEBUG_NUGET_FEED=https://pkgs.dev.azure.com/msazure/One/_packaging/aio-brokers/nuget/v3/index.json
+ARG OPCUA_DEBUG_NUGET_FEED
 WORKDIR /app
 
 # Copy configuration files
@@ -17,6 +17,7 @@ COPY README.md .
 # Restore dependencies
 RUN --mount=type=secret,id=opcua_nuget_token,required=true \
     if [ "$TARGETARCH" = "amd64" ]; then ARCH=x64; else ARCH="$TARGETARCH"; fi \
+    && : "${OPCUA_DEBUG_NUGET_FEED:?Set OPCUA_DEBUG_NUGET_FEED to an authenticated Debug package source}" \
     && dotnet nuget add source "$OPCUA_DEBUG_NUGET_FEED" --name opcua_debug \
     && NuGetPackageSourceCredentials_opcua_debug="Username=AzureDevOps;Password=$(cat /run/secrets/opcua_nuget_token);ValidAuthenticationTypes=Basic" \
     dotnet restore src/opc-plc.csproj -a "$ARCH" --source "$OPCUA_DEBUG_NUGET_FEED" \

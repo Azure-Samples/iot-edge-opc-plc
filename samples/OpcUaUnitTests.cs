@@ -13,8 +13,30 @@ using System.Threading.Tasks;
 [TestFixture]
 public class OpcUaUnitTests : OpcPlcBase
 {
+    private readonly int _port;
+
     public OpcUaUnitTests() : base(["--gn=2", "--fn=1", "--str=false"])
     {
+        _port = 51234;
+    }
+
+    public OpcUaUnitTests(int port) : base(["--gn=2", "--fn=1", "--str=false"], port)
+    {
+        _port = port;
+    }
+
+    [Test]
+    public void PackagedServer_UsesConfiguredPort()
+    {
+        int port = new Uri(OpcPlcEndpointUrl).Port;
+        if (_port == 0)
+        {
+            port.Should().BeInRange(1, ushort.MaxValue);
+        }
+        else
+        {
+            port.Should().Be(_port);
+        }
     }
 
     [Test]
@@ -75,5 +97,13 @@ public class OpcUaUnitTests : OpcPlcBase
         (await session.ReadValueAsync(fastNode, deadline.Token).ConfigureAwait(false)).StatusCode
             .Should().Be(StatusCodes.Good);
         await session.CloseAsync(deadline.Token).ConfigureAwait(false);
+    }
+}
+
+[TestFixture]
+public class OpcUaDynamicPortUnitTests : OpcUaUnitTests
+{
+    public OpcUaDynamicPortUnitTests() : base(0)
+    {
     }
 }

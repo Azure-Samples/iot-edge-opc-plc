@@ -34,6 +34,9 @@ public class OpcPlcBase
     /// Initializes a new instance of the <see cref="OpcPlcBase"/> class.
     /// Set the <paramref name="endpointUriOverride"/> to override spawning a server and use an existing one instead.
     /// </summary>
+    /// <param name="args">Server command-line arguments.</param>
+    /// <param name="port">Server port, defaulting to 51234. Pass 0 explicitly to select an available port.</param>
+    /// <param name="endpointUriOverride">Existing server endpoint, if no local server should be started.</param>
     public OpcPlcBase(string[] args, int port = 51234, string? endpointUriOverride = null)
     {
         _args = args;

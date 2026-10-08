@@ -8,7 +8,7 @@ that time can be controlled programmatically.
 
 Package mode is the default for OPC UA 2.0. Debug automatically uses matching `.Debug` SDK packages,
 including the model generator; Release uses the ordinary IDs. Debug packages require authenticated
-GitHub Packages access or an approved mirror; CI uses the `aio-brokers` Azure Artifacts mirror with
+GitHub Packages access or an approved mirror; CI uses an externally configured Azure Artifacts mirror with
 its build identity. Restore again when switching build configurations.
 To use a repaired sibling `UA-.NETStandard` checkout explicitly, pass `-p:UseLocalOpcUaStack=true`. See the
 [OPC UA 2.0 migration notes](../docs/opc-ua-v2-migration.md) for package-feed and local-source setup.
@@ -31,4 +31,3 @@ Shared monitoring and throughput helpers use the native V2 subscription manager 
 batches, wait for monitored-item creation, and dispose subscriptions asynchronously. They retain payloads
 only with notification pooling disabled. Generic reads and method calls use native `Variant` conversions
 and collections; dedicated classic-API tests and heterogeneous object-valued assertions remain supported.
-
