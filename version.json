@@ -5,12 +5,14 @@
     "semVer": 2.0
   },
   "publicReleaseRefSpec": [
-    "^refs/heads/preview$"
+    "^refs/heads/main$",
+    "^refs/heads/preview$",
+    "^refs/heads/release/\\d+\\.\\d+"
   ],
   "cloudBuild": {
     "setVersionVariables": true,
     "buildNumber": {
-      "enabled": true,
+      "enabled": false,
       "includeCommitId": {
         "when": "nonPublicReleaseOnly",
         "where": "buildMetadata"

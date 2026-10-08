@@ -66,6 +66,12 @@ incremented manually before each new preview release, like the stable version on
 Ordinary commits do not increment the package version or image tag. Other branches and PR builds
 also include a commit identifier and are not eligible for preview image publication.
 
+The pipeline build number uses the NuGet package version, so public preview builds display
+`2.16.0-preview.1`, not `2.16.0.<height>-preview.1`. Automatic NBGV build-number updates are disabled;
+`set-version.ps1` exports the version variables and explicitly sets the build number from the package
+version. Assembly file and informational versions still include Git version height for traceability.
+Do not use `versionHeightOffset` to remove the fourth component; it only shifts the height.
+
 Preview builds run the normal build/test and image stages, like main. After build/test succeeds,
 Release and Debug images are built and published automatically. PRs and other development branches
 validate images without publishing.
@@ -100,7 +106,7 @@ current version's image tags until the version is bumped; a fixed tag does not i
 immutable commit. Use the package version printed in the build when overriding
 `OpcPlcPackageVersion` for a standalone consumer.
 
-For stable promotion, merge preview into main, set a stable version, restore the main/release public
+For stable promotion, merge preview into main, set a stable version, verify the main/release public
 release ref specifications in `version.json`, and revalidate. Never publish
 a preview artifact under a rewritten stable version. Any NuGet publication must be performed
 outside this checked-in pipeline, using an approved destination and externally configured credentials.
