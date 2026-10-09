@@ -315,6 +315,39 @@ Its ancestry includes the fixes contributed during this migration:
 No SDK source was modified to accommodate preview 6. Package ancestry establishes inclusion of the
 merged fixes; the PLC regression suite supplies separate behavioral evidence.
 
+### Connector preview-1 regressions
+
+The PLC-side fixes below retain the exact `2.0.0-preview.6` SDK package pins:
+
+- Boiler #2's `Switch(On)` could return `BadTooManyArguments` because its imported argument property
+  was browsable but was not bound to `MethodState.InputArguments`. Explicit NodeSet parent/child
+  linking now binds the authored argument metadata and preserves reference types such as `Organizes`,
+  without changing the method signature or NodeIds.
+- `CreateSigningRequest(regeneratePrivateKey: true)` could return `BadNotSupported` with custom stores.
+  The SDK's default pending-key store supports only `Directory`. PLC now injects durable pending-key
+  storage for `FlatDirectory` and `KubernetesSecret`, isolated from active application certificates.
+  Matching reads do not consume keys; claims are serialized and rollback restoration does not replace
+  a newer pending key. Directory stores retain the SDK implementation.
+
+See the [GDS storage notes](../README.md) for pending-directory/secret naming and Kubernetes permissions.
+Pending-key tests cover persistence across store reopening, key matching, scope isolation, one-time
+consumption, conditional restoration, cancellation, and rejection of public-only certificates.
+Wire tests cover regenerated FlatDirectory CSRs, authorization, Boiler method calls, namespace
+indexes, type/discovery metadata, write paths, and unknown-path translation.
+
+**This is not a complete GDS certificate-delivery fix.** The pinned SDK still has custom-store access
+gaps in `UpdateCertificate` and its certificate persistence paths. Those require an upstream SDK
+repair and a package update before custom-store certificate delivery and rotation can be qualified.
+SDK-dependent certificate-update/restart regressions belong with that dependency update, not with
+this independent PLC fix. The connector's nine failing GDS scenarios and its SubPath/discovery/status
+observations still require pipeline validation; local method/path tests do not replace that rerun.
+
+Focused package-mode validation:
+
+```powershell
+dotnet test tests\opc-plc-tests.csproj -c Release -p:UseLocalOpcUaStack=false --filter "FullyQualifiedName~PreviewCompatibilityTests|FullyQualifiedName~Boiler2Tests|FullyQualifiedName~Boiler2DeviceHealthEventsTests|FullyQualifiedName~PlcPendingCertificateKeyStoreTests|FullyQualifiedName~ServerPushClient_CreateSigningRequest|FullyQualifiedName~GdsPushConfigurationTests"
+```
+
 ### Main integration (2026-10-05)
 
 Merged `main` through `776a6c7122983056596d793900555a7c0f4d4e4d` (2.15.9), retaining this branch's

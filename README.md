@@ -424,7 +424,17 @@ GDS push service support:
 
 * OPC PLC exposes the standard OPC UA Server Configuration methods used by GDS push (for example `CreateSigningRequest`, `GetRejectedList`, `UpdateCertificate`, and `ApplyChanges`).
 * Access to these methods follows OPC UA security requirements: use a secure endpoint (`Sign & Encrypt`) and administrator credentials. There are no built-in credentials: an admin account only exists when you supply one with `--au` / `--ac`.
-* GDS push works with `Directory`, `FlatDirectory`, and `KubernetesSecret` certificate store modes.
+* GDS push supports `Directory`, `FlatDirectory`, and `KubernetesSecret` certificate store modes.
+  The pinned SDK `2.0.0-preview.6` still requires the custom-store certificate-update repair described
+  in the [migration notes](docs/opc-ua-v2-migration.md#connector-preview-1-regressions).
+* Regenerating a CSR key requires a nonce of at least 32 bytes. Pending keys are durable and isolated
+  from active application certificates: `Directory` uses the SDK's `pending` subdirectory,
+  `FlatDirectory` uses a sibling directory named `<own-path>.pending-<scope-hash>`, and
+  `KubernetesSecret` uses a separate secret named
+  `<own-secret-prefix>-pending-<own-name-hash>-<scope-hash>` in the same namespace.
+  The hashes are 16 lowercase hex characters; the own-secret prefix is limited to 200 characters.
+  Preserve this storage across restarts and allow the PLC to read/create/update the pending secret.
+  Pending keys are consumed when the signed certificate is applied, not when its CSR is returned.
 
 Short example (C# with OPC Foundation GDS client), assuming the server was started with
 `--au myadmin --ac <your-password>`:

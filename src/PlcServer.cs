@@ -4,6 +4,7 @@ using global::AlarmCondition;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
+using OpcPlc.Certs;
 using OpcPlc.CompanionSpecs.DI;
 using OpcPlc.CompanionSpecs.IA;
 using OpcPlc.CompanionSpecs.Pumps;
@@ -47,6 +48,7 @@ public partial class PlcServer : ReverseConnectServer
     private readonly Timer _periodicLoggingTimer;
     private CancellationTokenSource _chaosCts;
     private Task _chaosMode;
+    private PlcPendingCertificateKeyStore _pendingCertificateKeys;
 
     private bool _autoDisablePublishMetrics;
     private uint _countCreateSession;
@@ -124,6 +126,10 @@ public partial class PlcServer : ReverseConnectServer
             _periodicLoggingTimer.Dispose();
         }
         base.Dispose(disposing);
+        if (disposing)
+        {
+            _pendingCertificateKeys?.Dispose();
+        }
     }
 
     /// <summary>
@@ -542,6 +548,22 @@ public partial class PlcServer : ReverseConnectServer
             LogError(nameof(Write), ex);
             throw;
         }
+    }
+
+    protected override IMainNodeManagerFactory CreateMainNodeManagerFactory(
+        IServerInternal server, ApplicationConfiguration configuration)
+    {
+        string storeType = configuration.SecurityConfiguration.ApplicationCertificates[0].StoreType;
+        if (storeType is not (FlatDirectoryCertificateStore.StoreTypeName or
+            KubernetesSecretCertificateStore.StoreTypeName))
+        {
+            return base.CreateMainNodeManagerFactory(server, configuration);
+        }
+
+        _pendingCertificateKeys = new PlcPendingCertificateKeyStore(
+            (ICertificateStoreResolver)configuration.CertificateManager);
+        return new MainNodeManagerFactory(configuration, server, coordinator: null,
+            pendingKeyStore: _pendingCertificateKeys);
     }
 
     /// <summary>

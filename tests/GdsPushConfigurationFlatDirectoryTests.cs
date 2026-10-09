@@ -6,6 +6,7 @@ using Opc.Ua;
 using Opc.Ua.Gds.Client;
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -63,8 +64,9 @@ public class GdsPushConfigurationFlatDirectoryTests
         }
     }
 
-    [Test]
-    public async Task ServerPushClient_CreateSigningRequest_SucceedsWithFlatDirectoryStore()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ServerPushClient_CreateSigningRequest_SucceedsWithFlatDirectoryStore(bool regeneratePrivateKey)
     {
         var client = new ServerPushConfigurationClient(_simulator.ClientConfiguration)
         {
@@ -77,8 +79,8 @@ public class GdsPushConfigurationFlatDirectoryTests
             client.DefaultApplicationGroup,
             client.ApplicationCertificateType,
             subjectName: null,
-            regeneratePrivateKey: false,
-            nonce: [21, 22, 23, 24]).ConfigureAwait(false);
+            regeneratePrivateKey: regeneratePrivateKey,
+            nonce: ByteString.From(RandomNumberGenerator.GetBytes(32))).ConfigureAwait(false);
 
         certificateRequest.ToArray().Should().NotBeNullOrEmpty();
         certificateRequest[0].Should().Be(0x30, "DER encoded CSR starts with ASN.1 SEQUENCE");
