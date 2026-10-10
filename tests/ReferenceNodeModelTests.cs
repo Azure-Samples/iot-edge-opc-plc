@@ -1307,6 +1307,10 @@ public class ReferenceNodeModelTests
             var namespaces = new NamespaceTable();
             namespaces.GetIndexOrAppend("urn:opcplc:test:application");
             namespaces.GetIndexOrAppend("urn:opcplc:test:reference");
+            var typeTable = new TypeTable(namespaces);
+            typeTable.AddSubtype(DataTypeIds.BaseDataType, NodeId.Null);
+            typeTable.AddSubtype(DataTypeIds.Structure, DataTypeIds.BaseDataType);
+            typeTable.AddSubtype(DataTypeIds.Range, DataTypeIds.Structure);
             var nodeIdFactory = new Mock<INodeIdFactory>();
             nodeIdFactory.Setup(factory => factory.New(It.IsAny<ISystemContext>(), It.IsAny<NodeState>()))
                 .Returns((ISystemContext _, NodeState node) =>
@@ -1316,8 +1320,9 @@ public class ReferenceNodeModelTests
                         : node.NodeId);
             Context = new SystemContext(null)
             {
+                EncodeableFactory = EncodeableFactory.Create(),
                 NamespaceUris = namespaces,
-                TypeTable = new TypeTable(namespaces),
+                TypeTable = typeTable,
                 NodeIdFactory = nodeIdFactory.Object
             };
         }

@@ -223,21 +223,21 @@ public class StacklightTests : SimulatorTestsBase
     }
 
     [Test]
-    public async Task Stacklight_InvalidMode_AllLampsOff()
+    public async Task Stacklight_OtherMode_AllLampsOff()
     {
         var stacklightModeNodeId = GetOpcPlcNodeId("Stacklight_StacklightMode");
 
-        // Set an invalid mode (99) and fire timer.
-        await WriteValueAsync(stacklightModeNodeId, 99).ConfigureAwait(false);
+        // Set the defined "Other" mode and fire timer.
+        await WriteValueAsync(stacklightModeNodeId, 3).ConfigureAwait(false);
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         var redSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Red_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
         var yellowSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Yellow_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
         var greenSignalOn = (bool)(await ReadDataValueAsync(GetOpcPlcNodeId("Stacklight_Lamp_Green_SignalOn")).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
 
-        redSignalOn.Should().BeFalse("All lamps should be off for invalid mode");
-        yellowSignalOn.Should().BeFalse("All lamps should be off for invalid mode");
-        greenSignalOn.Should().BeFalse("All lamps should be off for invalid mode");
+        redSignalOn.Should().BeFalse("All lamps should be off for the Other mode");
+        yellowSignalOn.Should().BeFalse("All lamps should be off for the Other mode");
+        greenSignalOn.Should().BeFalse("All lamps should be off for the Other mode");
 
         // Restore to 0 (Red).
         await WriteValueAsync(stacklightModeNodeId, 0).ConfigureAwait(false);

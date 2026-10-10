@@ -1,6 +1,6 @@
 # OPC UA 2.0 migration
 
-Status as of **2026-10-08**: OPC PLC **2.16.0** uses exact **2.0.0-preview.6** SDK packages.
+Status as of **2026-10-10**: OPC PLC **2.16.0-preview.3** uses exact **2.0.0** SDK packages.
 Debug and Release builds use the same public SDK packages, including the model generator.
 The PLC's Debug configuration and debugger image remain available, but SDK binaries are Release-built.
 Test clients now use native runtime type loading and managed
@@ -10,6 +10,23 @@ Debug configuration described here. Recorded main-integration Release and
 Debug suites each passed **908 tests, 0 failed, 0 skipped**; the earlier 903-test results predate main
 integration. A hosted run passed Linux build/tests and image validation for the published
 head. Review fixes described below are local follow-up changes, not covered by that hosted run.
+
+### Official SDK 2.0.0 adoption
+
+- All seven central SDK package pins and the standalone sample client use stable `2.0.0`.
+- Indexed analog writes validate the slice without replacing it with a merged value; the SDK now
+  performs the cache merge. Direct model tests register the Range type hierarchy for write validation.
+- The SDK rejects undefined enumeration values before invoking write handlers. The stacklight
+  all-lamps-off test uses the defined IA `Other` value (`3`) instead of undefined value `99`.
+- Release builds of the solution and standalone sample passed with zero warnings and errors.
+  The full working-tree suite passed 1,081 of 1,086 tests. The five certificate-update failures also
+  reproduce with preview-6; the uncommitted certificate regression tests are excluded from this release.
+- Kubernetes Secret certificate storage remains required. GDS updates with custom stores have a known
+  SDK limitation: upstream PR [#4726](https://github.com/OPCFoundation/UA-.NETStandard/pull/4726)
+  repairs scoped store resolution but is not included in `2.0.0`. Keep the regression coverage and
+  requalify an official SDK package containing that fix; do not bypass certificate validation.
+- Local solution validation used `-p:NoWarn=NU1507` solely for this machine's multiple configured feeds;
+  no repository warning policy was changed.
 
 ## Constraints
 

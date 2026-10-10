@@ -375,21 +375,18 @@ public static class ReferenceDataItemFactory
                 {
                     return result;
                 }
-                value = target;
             }
+            return ServiceResult.Good;
         }
-        else
+        if (!indexRange.IsNull)
         {
-            if (!indexRange.IsNull)
-            {
-                return StatusCodes.BadIndexRangeInvalid;
-            }
-            double number = value.ConvertToDouble().GetDouble();
-            if (variable.InstrumentRange != null &&
-                (number < variable.InstrumentRange.Value.Low || number > variable.InstrumentRange.Value.High))
-            {
-                return StatusCodes.BadOutOfRange;
-            }
+            return StatusCodes.BadIndexRangeInvalid;
+        }
+        double number = value.ConvertToDouble().GetDouble();
+        if (variable.InstrumentRange != null &&
+            (number < variable.InstrumentRange.Value.Low || number > variable.InstrumentRange.Value.High))
+        {
+            return StatusCodes.BadOutOfRange;
         }
         return ServiceResult.Good;
     }
