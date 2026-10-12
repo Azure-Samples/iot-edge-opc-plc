@@ -4,10 +4,14 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Gds.Client;
+using Opc.Ua.Security.Certificates;
+using Opc.Ua.Server;
 using System;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 [TestFixture]
@@ -97,6 +101,68 @@ public class GdsPushConfigurationFlatDirectoryTests
         Directory.Exists(_appStorePath).Should().BeTrue();
         Directory.EnumerateFiles(_appStorePath).Should().NotBeEmpty("flat directory store should contain certificates directly in the root folder");
         Directory.EnumerateDirectories(_appStorePath).Should().BeEmpty("flat directory store should not create cert/private/crl subfolders");
+    }
+
+    [Test]
+    public async Task ServerPushClient_UpdateCertificate_PersistsPemKeyAndSurvivesRestart()
+    {
+        ApplicationConfiguration configuration = _simulator.Server.Config.OpcUa.ApplicationConfiguration;
+        using CertificateEntry original = configuration.CertificateManager.AcquireApplicationCertificateByType(
+            ObjectTypeIds.RsaSha256ApplicationCertificateType);
+        using Certificate replacement = DefaultCertificateFactory.Instance.CreateApplicationCertificate(
+            configuration.ApplicationUri, configuration.ApplicationName, original.Certificate.Subject,
+            X509Utils.GetDomainsFromCertificate(original.Certificate).ToArray()).CreateForRSA();
+        using RSA key = replacement.GetRSAPrivateKey();
+        var client = new ServerPushConfigurationClient(_simulator.ClientConfiguration)
+        {
+            AdminCredentials = new UserIdentity("sysadmin", Encoding.UTF8.GetBytes("demo"))
+        };
+        await client.ConnectAsync(_simulator.EndpointUrl).ConfigureAwait(false);
+        try
+        {
+            bool applyRequired = await client.UpdateCertificateAsync(client.DefaultApplicationGroup,
+                client.ApplicationCertificateType, ByteString.From(replacement.RawData), "PEM",
+                ByteString.From(Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem())), [])
+                .ConfigureAwait(false);
+            applyRequired.Should().BeTrue();
+            await client.ApplyChangesAsync().ConfigureAwait(false);
+            var manager = (ConfigurationNodeManager)_simulator.Server.CurrentInstance.ConfigurationNodeManager;
+            await manager.DrainPendingApplyChangesAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        finally
+        {
+            await client.DisconnectAsync().ConfigureAwait(false);
+        }
+
+        await AssertEndpointCertificateAsync(replacement.Thumbprint).ConfigureAwait(false);
+        await _simulator.RestartAsync().ConfigureAwait(false);
+        await AssertEndpointCertificateAsync(replacement.Thumbprint).ConfigureAwait(false);
+    }
+
+    private async Task AssertEndpointCertificateAsync(string thumbprint)
+    {
+        var endpoints = await _simulator.GetEndpointsAsync(CancellationToken.None).ConfigureAwait(false);
+        foreach (EndpointDescription endpoint in endpoints)
+        {
+            if (endpoint.SecurityMode == MessageSecurityMode.None)
+            {
+                continue;
+            }
+            using var certificate = Certificate.FromRawData(endpoint.ServerCertificate);
+            certificate.Thumbprint.Should().Be(thumbprint);
+        }
+        var client = new ServerPushConfigurationClient(_simulator.ClientConfiguration);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await client.ConnectAsync(_simulator.EndpointUrl, timeout.Token).ConfigureAwait(false);
+        try
+        {
+            using var presented = Certificate.FromRawData(client.Session.ConfiguredEndpoint.Description.ServerCertificate);
+            presented.Thumbprint.Should().Be(thumbprint);
+        }
+        finally
+        {
+            await client.DisconnectAsync().ConfigureAwait(false);
+        }
     }
 
     [Test]

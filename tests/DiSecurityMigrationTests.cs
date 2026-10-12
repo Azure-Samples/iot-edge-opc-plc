@@ -30,7 +30,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 [TestFixture]
-public class DiSecurityMigrationTests
+public partial class DiSecurityMigrationTests
 {
     private const string ApplicationName = "OpcPlc";
     private const string ApplicationUri = "urn:localhost:OpcPlcDiSecurityProbe";
