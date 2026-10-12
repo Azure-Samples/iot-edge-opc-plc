@@ -1,6 +1,6 @@
 # OPC UA 2.0 migration
 
-Status as of **2026-10-10**: OPC PLC **2.16.0-preview.3** uses exact **2.0.0** SDK packages.
+Status as of **2026-10-12**: OPC PLC **2.16.0-preview.4** uses exact **2.0.1** SDK packages.
 Debug and Release builds use the same public SDK packages, including the model generator.
 The PLC's Debug configuration and debugger image remain available, but SDK binaries are Release-built.
 Test clients now use native runtime type loading and managed
@@ -10,6 +10,18 @@ Debug configuration described here. Recorded main-integration Release and
 Debug suites each passed **908 tests, 0 failed, 0 skipped**; the earlier 903-test results predate main
 integration. A hosted run passed Linux build/tests and image validation for the published
 head. Review fixes described below are local follow-up changes, not covered by that hosted run.
+
+### Official SDK 2.0.1 adoption
+
+All seven central SDK pins and the standalone sample client use stable `2.0.1`.
+The official release includes
+[OPCFoundation/UA-.NETStandard#4726](https://github.com/OPCFoundation/UA-.NETStandard/pull/4726),
+and the `2.0.1` tag contains its scoped certificate-store resolution repair.
+Focused Release qualification passed all 29 GDS, pending-key, and preview-compatibility regressions
+against the official packages, including certificate rotation and restart persistence with Kubernetes
+Secret storage. The five certificate-update failures recorded for `2.0.0` no longer reproduce.
+The complete Release suite passed all 1,086 tests with zero failures and zero skips.
+OPC PLC is bumped to `2.16.0-preview.4` to preserve the published `preview.3` package identity.
 
 ### Official SDK 2.0.0 adoption
 
