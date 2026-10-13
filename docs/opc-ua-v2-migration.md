@@ -1,6 +1,6 @@
 # OPC UA 2.0 migration
 
-Status as of **2026-10-12**: OPC PLC **2.16.0-preview.4** uses exact **2.0.1** SDK packages.
+Status as of **2026-10-13**: OPC PLC **2.16.0-preview.5** uses exact **2.0.1** SDK packages.
 Debug and Release builds use the same public SDK packages, including the model generator.
 The PLC's Debug configuration and debugger image remain available, but SDK binaries are Release-built.
 Test clients now use native runtime type loading and managed
