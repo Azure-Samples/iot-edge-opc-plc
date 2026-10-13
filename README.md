@@ -425,16 +425,25 @@ GDS push service support:
 * OPC PLC exposes the standard OPC UA Server Configuration methods used by GDS push (for example `CreateSigningRequest`, `GetRejectedList`, `UpdateCertificate`, and `ApplyChanges`).
 * Access to these methods follows OPC UA security requirements: use a secure endpoint (`Sign & Encrypt`) and administrator credentials. There are no built-in credentials: an admin account only exists when you supply one with `--au` / `--ac`.
 * GDS push supports `Directory`, `FlatDirectory`, and `KubernetesSecret` certificate store modes.
-  The pinned SDK `2.0.0-preview.6` still requires the custom-store certificate-update repair described
-  in the [migration notes](docs/opc-ua-v2-migration.md#connector-preview-1-regressions).
-* Regenerating a CSR key requires a nonce of at least 32 bytes. Pending keys are durable and isolated
-  from active application certificates: `Directory` uses the SDK's `pending` subdirectory,
+  SDK 2.0.1 supports custom-store certificate update and rotation as described in the
+  [migration notes](docs/opc-ua-v2-migration.md#connector-preview-1-regressions).
+* Regenerating a CSR key requires a nonce of at least 32 bytes. PLC supplies durable pending-key
+  storage for all three store modes, isolated from active application certificates.
+  `Directory` retains the SDK-compatible `pending/<scope-hash>` subdirectory,
   `FlatDirectory` uses a sibling directory named `<own-path>.pending-<scope-hash>`, and
-  `KubernetesSecret` uses a separate secret named
-  `<own-secret-prefix>-pending-<own-name-hash>-<scope-hash>` in the same namespace.
-  The hashes are 16 lowercase hex characters; the own-secret prefix is limited to 200 characters.
-  Preserve this storage across restarts and allow the PLC to read/create/update the pending secret.
-  Pending keys are consumed when the signed certificate is applied, not when its CSR is returned.
+  `KubernetesSecret` stores the pending key and its creation time as separate, scoped data entries
+  in the existing own-certificate Secret. The pending entries are not exposed as application
+  certificates. Preserve this storage across restarts and allow the PLC to list and update the
+  existing Secret; no additional Secret `create` permission is needed. A denied Secret read or write is
+  logged and reported to the OPC UA client as `BadUserAccessDenied`.
+  `UpdateCertificate` stages the signed certificate without consuming the key; successful activation
+  through `ApplyChanges` consumes it. Unused regenerated keys expire after 24 hours and are deleted
+  on the next pending-key access. Reopening the store, saving the same pending key again, or restoring
+  a claimed key after a failed activation does not extend its original lifetime. A new key replaces
+  the previous pending key for the same certificate group and type and starts a new lifetime.
+  Older Directory/FlatDirectory pending entries without creation metadata begin their 24-hour
+  lifetime on first access. Outstanding CSRs from previews that used a separate Kubernetes pending
+  Secret must be regenerated after upgrading; those legacy Secrets are not migrated or deleted.
 
 Short example (C# with OPC Foundation GDS client), assuming the server was started with
 `--au myadmin --ac <your-password>`:

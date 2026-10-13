@@ -4,8 +4,12 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Security.Certificates;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Net;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -17,12 +21,15 @@ using System.Threading.Tasks;
 /// </summary>
 public sealed class KubernetesSecretCertificateStore : ICertificateStore
 {
+    private const string PendingKeyEntryPrefix = "opcplc-pending-";
     private const string CrtExtension = ".crt";
     private const string DerExtension = ".der";
     private const string PemExtension = ".pem";
     private const string KeyExtension = ".key";
     private const string PfxExtension = ".pfx";
     private const string CrlExtension = ".crl";
+    private static readonly ConditionalWeakTable<IKubernetesSecretStoreClient,
+        ConcurrentDictionary<(string Namespace, string Secret), SemaphoreSlim>> MutationGates = new();
 
     private readonly IKubernetesSecretStoreClient _client;
     private readonly string _defaultNamespace;
@@ -97,62 +104,56 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     {
         ArgumentNullException.ThrowIfNull(certificate);
 
-        var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
-        secretData[GetCertificateEntryKey(certificate.Thumbprint)] = certificate.Export(X509ContentType.Cert);
-
-        if (!_noPrivateKeys && certificate.HasPrivateKey)
+        await UpdateSecretDataAsync(secretData =>
         {
-            secretData[GetPrivateKeyEntryKey(certificate.Thumbprint)] = certificate.Export(
-                X509ContentType.Pkcs12,
-                password is null ? string.Empty : new string(password));
-        }
-
-        await SaveSecretDataAsync(secretData, ct).ConfigureAwait(false);
+            secretData[GetCertificateEntryKey(certificate.Thumbprint)] = certificate.Export(X509ContentType.Cert);
+            if (!_noPrivateKeys && certificate.HasPrivateKey)
+            {
+                secretData[GetPrivateKeyEntryKey(certificate.Thumbprint)] = certificate.Export(
+                    X509ContentType.Pkcs12,
+                    password is null ? string.Empty : new string(password));
+            }
+            return true;
+        }, ct).ConfigureAwait(false);
     }
 
     public async Task AddRejectedAsync(CertificateCollection certificates, int maxCertificates, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(certificates);
 
-        var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
-
-        foreach (var certificate in certificates)
+        await UpdateSecretDataAsync(secretData =>
         {
-            secretData[GetCertificateEntryKey(certificate.Thumbprint)] = certificate.Export(X509ContentType.Cert);
-        }
-
-        if (maxCertificates > 0)
-        {
-            var certificateKeys = secretData.Keys
-                .Where(IsCertificateEntryKey)
-                .OrderBy(key => key, StringComparer.Ordinal)
-                .ToList();
-
-            var overflow = certificateKeys.Count - maxCertificates;
-            foreach (var certificateKey in certificateKeys.Take(Math.Max(overflow, 0)))
+            foreach (var certificate in certificates)
             {
-                secretData.Remove(certificateKey);
-                secretData.Remove(GetPrivateKeyEntryKey(GetThumbprintFromEntryKey(certificateKey)));
+                secretData[GetCertificateEntryKey(certificate.Thumbprint)] = certificate.Export(X509ContentType.Cert);
             }
-        }
-
-        await SaveSecretDataAsync(secretData, ct).ConfigureAwait(false);
+            if (maxCertificates > 0)
+            {
+                var certificateKeys = secretData.Keys
+                    .Where(IsCertificateEntryKey)
+                    .OrderBy(key => key, StringComparer.Ordinal)
+                    .ToList();
+                int overflow = certificateKeys.Count - maxCertificates;
+                foreach (var certificateKey in certificateKeys.Take(Math.Max(overflow, 0)))
+                {
+                    secretData.Remove(certificateKey);
+                    secretData.Remove(GetPrivateKeyEntryKey(GetThumbprintFromEntryKey(certificateKey)));
+                }
+            }
+            return true;
+        }, ct).ConfigureAwait(false);
     }
 
     public async Task<bool> DeleteAsync(string thumbprint, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(thumbprint);
 
-        var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
-        var removedCertificate = secretData.Remove(GetCertificateEntryKey(thumbprint));
-        var removedPrivateKey = secretData.Remove(GetPrivateKeyEntryKey(thumbprint));
-
-        if (removedCertificate || removedPrivateKey)
+        return await UpdateSecretDataAsync(secretData =>
         {
-            await SaveSecretDataAsync(secretData, ct).ConfigureAwait(false);
-        }
-
-        return removedCertificate || removedPrivateKey;
+            bool removedCertificate = secretData.Remove(GetCertificateEntryKey(thumbprint));
+            bool removedPrivateKey = secretData.Remove(GetPrivateKeyEntryKey(thumbprint));
+            return removedCertificate || removedPrivateKey;
+        }, ct).ConfigureAwait(false);
     }
 
     public async Task<CertificateCollection> EnumerateAsync(CancellationToken ct = default)
@@ -183,23 +184,65 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     {
         ArgumentNullException.ThrowIfNull(crl);
 
-        var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
-        secretData[GetCrlEntryKey(crl)] = crl.RawData;
-        await SaveSecretDataAsync(secretData, ct).ConfigureAwait(false);
+        await UpdateSecretDataAsync(secretData =>
+        {
+            secretData[GetCrlEntryKey(crl)] = crl.RawData;
+            return true;
+        }, ct).ConfigureAwait(false);
     }
 
     public async Task<bool> DeleteCRLAsync(X509CRL crl, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(crl);
 
-        var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
-        var removed = secretData.Remove(GetCrlEntryKey(crl));
-        if (removed)
-        {
-            await SaveSecretDataAsync(secretData, ct).ConfigureAwait(false);
-        }
+        return await UpdateSecretDataAsync(secretData => secretData.Remove(GetCrlEntryKey(crl)), ct)
+            .ConfigureAwait(false);
+    }
 
-        return removed;
+    internal async ValueTask<(Certificate Certificate, DateTimeOffset? CreatedAt)> LoadPendingKeyAsync(
+        string scope, char[] password, CancellationToken ct)
+    {
+        var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
+        string keyEntry = GetPendingKeyEntry(scope);
+        if (!secretData.TryGetValue(keyEntry, out byte[] keyData))
+        {
+            return (null, null);
+        }
+        if (!secretData.TryGetValue(keyEntry + ".created", out byte[] createdAtData) ||
+            !DateTimeOffset.TryParse(Encoding.UTF8.GetString(createdAtData), CultureInfo.InvariantCulture,
+            DateTimeStyles.RoundtripKind, out DateTimeOffset createdAt))
+        {
+            throw new ServiceResultException(StatusCodes.BadInvalidState,
+                "The pending signing-key creation time in Kubernetes Secret is invalid.");
+        }
+        Certificate certificate = new(keyData, password is null ? string.Empty : new string(password),
+            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+        return (certificate, createdAt);
+    }
+
+    internal async ValueTask SavePendingKeyAsync(
+        string scope, Certificate certificate, char[] password, DateTimeOffset createdAt, CancellationToken ct)
+    {
+        await UpdateSecretDataAsync(secretData =>
+        {
+            string keyEntry = GetPendingKeyEntry(scope);
+            secretData[keyEntry] = certificate.Export(X509ContentType.Pkcs12,
+                password is null ? string.Empty : new string(password));
+            secretData[keyEntry + ".created"] =
+                Encoding.UTF8.GetBytes(createdAt.ToString("O", CultureInfo.InvariantCulture));
+            return true;
+        }, ct).ConfigureAwait(false);
+    }
+
+    internal async ValueTask DeletePendingKeyAsync(string scope, CancellationToken ct)
+    {
+        await UpdateSecretDataAsync(secretData =>
+        {
+            string keyEntry = GetPendingKeyEntry(scope);
+            bool removedKey = secretData.Remove(keyEntry);
+            bool removedCreationTime = secretData.Remove(keyEntry + ".created");
+            return removedKey || removedCreationTime;
+        }, ct).ConfigureAwait(false);
     }
 
     public async Task<X509CRLCollection> EnumerateCRLsAsync(CancellationToken ct = default)
@@ -382,14 +425,66 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     private async Task<Dictionary<string, byte[]>> LoadSecretDataAsync(CancellationToken ct)
     {
         EnsureOpen();
-        var data = await _client.ReadAsync(_defaultNamespace, _secretName, ct).ConfigureAwait(false);
-        return data.ToDictionary(pair => pair.Key, pair => pair.Value.ToArray(), StringComparer.Ordinal);
+        try
+        {
+            var data = await _client.ReadAsync(_defaultNamespace, _secretName, ct).ConfigureAwait(false);
+            return data.ToDictionary(pair => pair.Key, pair => pair.Value.ToArray(), StringComparer.Ordinal);
+        }
+        catch (k8s.Autorest.HttpOperationException exception)
+            when (exception.Response?.StatusCode == HttpStatusCode.Forbidden)
+        {
+            throw CreateAccessDeniedException(exception, "read");
+        }
+    }
+
+    private static string GetPendingKeyEntry(string scope) => PendingKeyEntryPrefix + scope;
+
+    private async Task<bool> UpdateSecretDataAsync(
+        Func<Dictionary<string, byte[]>, bool> update, CancellationToken ct)
+    {
+        EnsureOpen();
+        // Stores opened for the same Secret share a client and must not overwrite each other's mutations.
+        SemaphoreSlim gate = MutationGates.GetOrCreateValue(_client)
+            .GetOrAdd((_defaultNamespace, _secretName), _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
+            bool changed = update(secretData);
+            if (changed)
+            {
+                await SaveSecretDataAsync(secretData, ct).ConfigureAwait(false);
+            }
+            return changed;
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     private async Task SaveSecretDataAsync(Dictionary<string, byte[]> secretData, CancellationToken ct)
     {
         EnsureOpen();
-        await _client.WriteAsync(_defaultNamespace, _secretName, secretData, ct).ConfigureAwait(false);
+        try
+        {
+            await _client.WriteAsync(_defaultNamespace, _secretName, secretData, ct).ConfigureAwait(false);
+        }
+        catch (k8s.Autorest.HttpOperationException exception)
+            when (exception.Response?.StatusCode == HttpStatusCode.Forbidden)
+        {
+            throw CreateAccessDeniedException(exception, "write");
+        }
+    }
+
+    private ServiceResultException CreateAccessDeniedException(Exception exception, string operation)
+    {
+        _logger.LogError(exception,
+            "Kubernetes denied {Operation} access to certificate secret {Namespace}/{SecretName}; check service account RBAC",
+            operation, _defaultNamespace, _secretName);
+        return new ServiceResultException(StatusCodes.BadUserAccessDenied,
+            $"Kubernetes denied {operation} access to certificate secret '{_secretName}' in namespace '{_defaultNamespace}'.",
+            exception);
     }
 
     private void EnsureOpen()

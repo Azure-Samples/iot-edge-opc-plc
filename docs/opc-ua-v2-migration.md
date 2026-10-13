@@ -346,7 +346,8 @@ merged fixes; the PLC regression suite supplies separate behavioral evidence.
 
 ### Connector preview-1 regressions
 
-The PLC-side fixes below retain the exact `2.0.0-preview.6` SDK package pins:
+The PLC-side fixes below were introduced during the 2.0 migration and are covered by the current
+OPC UA SDK 2.0.1 package qualification:
 
 - Boiler #2's `Switch(On)` could return `BadTooManyArguments` because its imported argument property
   was browsable but was not bound to `MethodState.InputArguments`. Explicit NodeSet parent/child
@@ -354,22 +355,30 @@ The PLC-side fixes below retain the exact `2.0.0-preview.6` SDK package pins:
   without changing the method signature or NodeIds.
 - `CreateSigningRequest(regeneratePrivateKey: true)` could return `BadNotSupported` with custom stores.
   The SDK's default pending-key store supports only `Directory`. PLC now injects durable pending-key
-  storage for `FlatDirectory` and `KubernetesSecret`, isolated from active application certificates.
+  storage for `Directory`, `FlatDirectory`, and `KubernetesSecret`, isolated from active certificates.
   Matching reads do not consume keys; claims are serialized and rollback restoration does not replace
-  a newer pending key. Directory stores retain the SDK implementation.
+  a newer pending key. Directory stores retain the SDK-compatible directory layout, allowing existing
+  SDK-persisted pending keys to be read. All three modes enforce a 24-hour lifetime using persisted
+  creation metadata, without extending it on repeat saves or rollback restoration.
+  The older 1.5 SDK retained regenerated keys only in process memory; the durable implementation
+  preserves them across a restart between CSR creation and certificate delivery.
 
 See the [GDS storage notes](../README.md) for pending-directory/secret naming and Kubernetes permissions.
 Pending-key tests cover persistence across store reopening, key matching, scope isolation, one-time
-consumption, conditional restoration, cancellation, and rejection of public-only certificates.
+consumption, conditional restoration, expiry boundaries and restart age preservation, active-key
+preservation, explicit Kubernetes RBAC errors, cancellation, and rejection of public-only certificates.
 Wire tests cover regenerated FlatDirectory CSRs, authorization, Boiler method calls, namespace
 indexes, type/discovery metadata, write paths, and unknown-path translation.
 
-**This is not a complete GDS certificate-delivery fix.** The pinned SDK still has custom-store access
-gaps in `UpdateCertificate` and its certificate persistence paths. Those require an upstream SDK
-repair and a package update before custom-store certificate delivery and rotation can be qualified.
-SDK-dependent certificate-update/restart regressions belong with that dependency update, not with
-this independent PLC fix. The connector's nine failing GDS scenarios and its SubPath/discovery/status
-observations still require pipeline validation; local method/path tests do not replace that rerun.
+Custom-store certificate delivery and rotation are covered by the SDK 2.0.1 regression tests, including
+certificate application and restart persistence for Directory, FlatDirectory, and Kubernetes Secret
+stores. Kubernetes pending CSR keys share reserved data entries in the existing own-certificate Secret,
+so they do not require a separately created Secret. Read-modify-write mutations are serialized across
+store instances sharing the same Kubernetes client and Secret, preserving both active and pending
+entries during concurrent in-process writes. This does not provide a distributed lock for multiple
+PLC processes sharing an identity. The connector's mixed-validity SubPath result still
+requires an AIO connector rerun with the original request payload; local method/path tests do not
+replace that validation.
 
 Focused package-mode validation:
 

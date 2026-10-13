@@ -554,7 +554,7 @@ public partial class PlcServer : ReverseConnectServer
         IServerInternal server, ApplicationConfiguration configuration)
     {
         string storeType = configuration.SecurityConfiguration.ApplicationCertificates[0].StoreType;
-        if (storeType is not (FlatDirectoryCertificateStore.StoreTypeName or
+        if (storeType is not (CertificateStoreType.Directory or FlatDirectoryCertificateStore.StoreTypeName or
             KubernetesSecretCertificateStore.StoreTypeName))
         {
             return base.CreateMainNodeManagerFactory(server, configuration);

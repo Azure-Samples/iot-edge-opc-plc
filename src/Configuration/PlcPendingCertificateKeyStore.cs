@@ -5,6 +5,9 @@ using Opc.Ua.Security.Certificates;
 using Opc.Ua.Server;
 using OpcPlc.Certs;
 using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,19 +15,31 @@ using System.Threading;
 using System.Threading.Tasks;
 
 /// <summary>
-/// Keeps regenerated signing keys separate from active certificates in the configured custom store.
+/// Keeps regenerated signing keys separate from active certificates in the configured store.
 /// </summary>
-public sealed class PlcPendingCertificateKeyStore(ICertificateStoreResolver resolver)
+public sealed class PlcPendingCertificateKeyStore(
+    ICertificateStoreResolver resolver,
+    TimeProvider timeProvider = null)
     : IPeekablePendingCertificateKeyStore, IDisposable
 {
+    private static readonly TimeSpan PendingKeyLifetime = TimeSpan.FromHours(24);
     private readonly ICertificateStoreResolver _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly Dictionary<(string StoreType, string Path, string Scope),
+        (string Thumbprint, DateTimeOffset CreatedAt)> _claimedKeys = [];
 
     public ValueTask<bool> SaveAsync(PendingCertificateKeyContext context, Certificate certificateWithPrivateKey,
         CancellationToken cancellationToken = default) =>
         ExecuteAsync(context, async (store, identifier, ct) =>
         {
-            await SaveCoreAsync(store, identifier, context, certificateWithPrivateKey, ct).ConfigureAwait(false);
+            ValidatePrivateKey(certificateWithPrivateKey);
+            (Certificate existing, DateTimeOffset? createdAt) = await
+                ReadPendingKeyAsync(store, identifier, context, ct).ConfigureAwait(false);
+            using Certificate existingLifetime = existing;
+            await SavePendingKeyAsync(store, identifier, context, certificateWithPrivateKey,
+                existing?.Thumbprint == certificateWithPrivateKey.Thumbprint
+                    ? createdAt.Value : _timeProvider.GetUtcNow(), ct).ConfigureAwait(false);
             return true;
         }, cancellationToken);
 
@@ -50,25 +65,32 @@ public sealed class PlcPendingCertificateKeyStore(ICertificateStoreResolver reso
         CancellationToken cancellationToken = default) =>
         ExecuteAsync(context, async (store, identifier, ct) =>
         {
-            using CertificateCollection entries = await store.EnumerateAsync(ct).ConfigureAwait(false);
-            if (entries.Count != 0)
+            ValidatePrivateKey(certificateWithPrivateKey);
+            (Certificate pending, _) = await ReadPendingKeyAsync(store, identifier, context, ct)
+                .ConfigureAwait(false);
+            using Certificate pendingLifetime = pending;
+            if (pending is not null)
             {
                 return false;
             }
-            await SaveCoreAsync(store, identifier, context, certificateWithPrivateKey, ct).ConfigureAwait(false);
+            if (!_claimedKeys.TryGetValue(GetClaimScope(context), out var claimed) ||
+                claimed.Thumbprint != certificateWithPrivateKey.Thumbprint ||
+                IsExpired(claimed.CreatedAt))
+            {
+                return false;
+            }
+            await SavePendingKeyAsync(store, identifier, context, certificateWithPrivateKey,
+                claimed.CreatedAt, ct).ConfigureAwait(false);
+            _claimedKeys.Remove(GetClaimScope(context));
             return true;
         }, cancellationToken);
 
     public async ValueTask RemoveAsync(PendingCertificateKeyContext context,
         CancellationToken cancellationToken = default)
     {
-        await ExecuteAsync(context, async (store, _, ct) =>
+        await ExecuteAsync(context, async (store, identifier, ct) =>
         {
-            using CertificateCollection entries = await store.EnumerateAsync(ct).ConfigureAwait(false);
-            foreach (Certificate entry in entries)
-            {
-                await DeleteAsync(store, entry.Thumbprint, ct).ConfigureAwait(false);
-            }
+            await RemovePendingKeyAsync(store, identifier, context, ct).ConfigureAwait(false);
             return true;
         }, cancellationToken).ConfigureAwait(false);
     }
@@ -79,27 +101,13 @@ public sealed class PlcPendingCertificateKeyStore(ICertificateStoreResolver reso
         bool consume, CancellationToken cancellationToken) =>
         ExecuteAsync(context, async (store, identifier, ct) =>
         {
-            using CertificateCollection entries = await store.EnumerateAsync(ct).ConfigureAwait(false);
-            if (entries.Count == 0)
-            {
-                return null;
-            }
-            if (entries.Count != 1)
-            {
-                throw new ServiceResultException(StatusCodes.BadInvalidState,
-                    "The pending signing-key scope contains multiple certificates.");
-            }
-
-            char[] password = context.PasswordProvider?.GetPassword(identifier);
-            Certificate key = null;
+            (Certificate key, DateTimeOffset? createdAt) = await
+                ReadPendingKeyAsync(store, identifier, context, ct).ConfigureAwait(false);
             try
             {
-                key = await store.LoadPrivateKeyAsync(entries[0].Thumbprint, entries[0].Subject, null,
-                    NodeId.Null, password, ct).ConfigureAwait(false);
-                if (key is null || !key.HasPrivateKey)
+                if (key is null)
                 {
-                    throw new ServiceResultException(StatusCodes.BadSecurityChecksFailed,
-                        "The persisted pending signing key could not be loaded.");
+                    return null;
                 }
                 if (matchingCertificate is not null && !X509Utils.VerifyKeyPair(matchingCertificate, key))
                 {
@@ -107,7 +115,9 @@ public sealed class PlcPendingCertificateKeyStore(ICertificateStoreResolver reso
                 }
                 if (consume)
                 {
-                    await DeleteAsync(store, key.Thumbprint, ct).ConfigureAwait(false);
+                    await RemovePendingKeyAsync(store, identifier, context, ct).ConfigureAwait(false);
+                    // Rollback must preserve the original expiry, not start a new lifetime.
+                    _claimedKeys[GetClaimScope(context)] = (key.Thumbprint, createdAt.Value);
                 }
                 Certificate result = key;
                 key = null;
@@ -116,22 +126,36 @@ public sealed class PlcPendingCertificateKeyStore(ICertificateStoreResolver reso
             finally
             {
                 key?.Dispose();
-                if (password is not null)
-                {
-                    Array.Clear(password);
-                }
             }
         }, cancellationToken);
+
+    private async ValueTask RemovePendingKeyAsync(ICertificateStore store, CertificateIdentifier identifier,
+        PendingCertificateKeyContext context, CancellationToken ct)
+    {
+        if (store is KubernetesSecretCertificateStore kubernetesStore)
+        {
+            await kubernetesStore.DeletePendingKeyAsync(GetScope(context), ct).ConfigureAwait(false);
+            return;
+        }
+        using CertificateCollection entries = await store.EnumerateAsync(ct).ConfigureAwait(false);
+        foreach (Certificate entry in entries)
+        {
+            await DeleteAsync(store, entry.Thumbprint, ct).ConfigureAwait(false);
+        }
+        await DeleteCreatedAtAsync(identifier).ConfigureAwait(false);
+    }
+
+    private bool IsExpired(DateTimeOffset createdAt) =>
+        _timeProvider.GetUtcNow() - createdAt >= PendingKeyLifetime;
+
+    private static (string StoreType, string Path, string Scope) GetClaimScope(
+        PendingCertificateKeyContext context) =>
+        (context.BaseStore.StoreType, context.BaseStore.StorePath, GetScope(context));
 
     private static async ValueTask SaveCoreAsync(ICertificateStore store, CertificateIdentifier identifier,
         PendingCertificateKeyContext context, Certificate certificate, CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(certificate);
-        if (!certificate.HasPrivateKey)
-        {
-            throw new ServiceResultException(StatusCodes.BadSecurityChecksFailed,
-                "A pending signing certificate must have a private key.");
-        }
+        ValidatePrivateKey(certificate);
         char[] password = context.PasswordProvider?.GetPassword(identifier);
         try
         {
@@ -164,6 +188,164 @@ public sealed class PlcPendingCertificateKeyStore(ICertificateStoreResolver reso
         }
     }
 
+    private async ValueTask<(Certificate Certificate, DateTimeOffset? CreatedAt)> ReadPendingKeyAsync(
+        ICertificateStore store, CertificateIdentifier identifier, PendingCertificateKeyContext context,
+        CancellationToken ct)
+    {
+        char[] password = context.PasswordProvider?.GetPassword(identifier);
+        Certificate certificate = null;
+        try
+        {
+            DateTimeOffset? createdAt;
+            if (store is KubernetesSecretCertificateStore kubernetesStore)
+            {
+                (certificate, createdAt) = await kubernetesStore
+                    .LoadPendingKeyAsync(GetScope(context), password, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                using CertificateCollection entries = await store.EnumerateAsync(ct).ConfigureAwait(false);
+                if (entries.Count == 0)
+                {
+                    await DeleteCreatedAtAsync(identifier).ConfigureAwait(false);
+                    return (null, null);
+                }
+                if (entries.Count != 1)
+                {
+                    throw new ServiceResultException(StatusCodes.BadInvalidState,
+                        "The pending signing-key scope contains multiple certificates.");
+                }
+                createdAt = await GetCreatedAtAsync(identifier, ct).ConfigureAwait(false);
+                if (createdAt is null)
+                {
+                    // Older persisted keys have no age metadata; begin their lifetime on first access.
+                    createdAt = _timeProvider.GetUtcNow();
+                    await SaveCreatedAtAsync(identifier, createdAt.Value, ct).ConfigureAwait(false);
+                }
+                certificate = await store.LoadPrivateKeyAsync(entries[0].Thumbprint, entries[0].Subject, null,
+                    NodeId.Null, password, ct).ConfigureAwait(false);
+                if (certificate is null)
+                {
+                    throw new ServiceResultException(StatusCodes.BadSecurityChecksFailed,
+                        "The persisted pending signing key could not be loaded.");
+                }
+            }
+            if (certificate is null)
+            {
+                return (null, null);
+            }
+            if (!certificate.HasPrivateKey)
+            {
+                throw new ServiceResultException(StatusCodes.BadSecurityChecksFailed,
+                    "The persisted pending signing key could not be loaded.");
+            }
+            if (IsExpired(createdAt.Value))
+            {
+                certificate.Dispose();
+                certificate = null;
+                await RemovePendingKeyAsync(store, identifier, context, ct).ConfigureAwait(false);
+                return (null, null);
+            }
+            Certificate result = certificate;
+            certificate = null;
+            return (result, createdAt);
+        }
+        finally
+        {
+            certificate?.Dispose();
+            if (password is not null)
+            {
+                Array.Clear(password);
+            }
+        }
+    }
+
+    private async ValueTask SavePendingKeyAsync(
+        ICertificateStore store, CertificateIdentifier identifier, PendingCertificateKeyContext context,
+        Certificate certificate, DateTimeOffset createdAt, CancellationToken ct)
+    {
+        ValidatePrivateKey(certificate);
+        if (store is KubernetesSecretCertificateStore kubernetesStore)
+        {
+            char[] password = context.PasswordProvider?.GetPassword(identifier);
+            try
+            {
+                await kubernetesStore.SavePendingKeyAsync(GetScope(context), certificate, password,
+                    createdAt, ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (password is not null)
+                {
+                    Array.Clear(password);
+                }
+            }
+            return;
+        }
+        await SaveCoreAsync(store, identifier, context, certificate, ct).ConfigureAwait(false);
+        await SaveCreatedAtAsync(identifier, createdAt, ct).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<DateTimeOffset?> GetCreatedAtAsync(
+        CertificateIdentifier identifier, CancellationToken ct)
+    {
+        string path = GetFileSystemPath(identifier.StorePath) + ".created";
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+        string value = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
+        if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind,
+            out DateTimeOffset createdAt))
+        {
+            throw new ServiceResultException(StatusCodes.BadInvalidState,
+                "The pending signing-key creation time is invalid.");
+        }
+        return createdAt;
+    }
+
+    private static async ValueTask SaveCreatedAtAsync(
+        CertificateIdentifier identifier, DateTimeOffset createdAt, CancellationToken ct)
+    {
+        await File.WriteAllTextAsync(GetFileSystemPath(identifier.StorePath) + ".created",
+            createdAt.ToString("O", CultureInfo.InvariantCulture), ct).ConfigureAwait(false);
+    }
+
+    private static ValueTask DeleteCreatedAtAsync(CertificateIdentifier identifier)
+    {
+        string path = GetFileSystemPath(identifier.StorePath) + ".created";
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+        return ValueTask.CompletedTask;
+    }
+
+    private static void ValidatePrivateKey(Certificate certificate)
+    {
+        ArgumentNullException.ThrowIfNull(certificate);
+        if (!certificate.HasPrivateKey)
+        {
+            throw new ServiceResultException(StatusCodes.BadSecurityChecksFailed,
+                "A pending signing certificate must have a private key.");
+        }
+    }
+
+    private static string GetScope(PendingCertificateKeyContext context)
+    {
+        string scope = Utils.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
+            context.CertificateGroupId + "|" + context.CertificateTypeId)))[..16];
+        return context.BaseStore.StoreType == CertificateStoreType.Directory ? scope : scope.ToLowerInvariant();
+    }
+
+    private static string GetFileSystemPath(string storePath)
+    {
+        string path = storePath.StartsWith(FlatDirectoryCertificateStore.StoreTypeName + ":", StringComparison.Ordinal)
+            ? storePath[(FlatDirectoryCertificateStore.StoreTypeName.Length + 1)..]
+            : storePath;
+        return Utils.ReplaceSpecialFolderNames(path);
+    }
+
     private static async ValueTask DeleteAsync(ICertificateStore store, string thumbprint, CancellationToken ct)
     {
         if (!await store.DeleteAsync(thumbprint, ct).ConfigureAwait(false))
@@ -177,14 +359,14 @@ public sealed class PlcPendingCertificateKeyStore(ICertificateStoreResolver reso
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(context);
-        string scope = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
-            context.CertificateGroupId + "|" + context.CertificateTypeId)))[..16].ToLowerInvariant();
+        string scope = GetScope(context);
         string path = context.BaseStore.StoreType switch
         {
+            CertificateStoreType.Directory => Path.Combine(context.BaseStore.StorePath, "pending", scope),
             FlatDirectoryCertificateStore.StoreTypeName => context.BaseStore.StorePath + ".pending-" + scope,
-            KubernetesSecretCertificateStore.StoreTypeName => GetSecretPath(context.BaseStore.StorePath, scope),
+            KubernetesSecretCertificateStore.StoreTypeName => context.BaseStore.StorePath,
             _ => throw new ServiceResultException(StatusCodes.BadNotSupported,
-                "This pending-key store requires a FlatDirectory or KubernetesSecret application store.")
+                "This pending-key store requires a Directory, FlatDirectory or KubernetesSecret application store.")
         };
         var identifier = new CertificateIdentifier
         {
@@ -205,13 +387,4 @@ public sealed class PlcPendingCertificateKeyStore(ICertificateStoreResolver reso
         }
     }
 
-    private static string GetSecretPath(string basePath, string scope)
-    {
-        string name = KubernetesSecretStorePath.NormalizeSecretName(
-            basePath[KubernetesSecretCertificateStore.StoreTypePrefix.Length..]);
-        // Hash the full name as well, so truncating a long Kubernetes name cannot merge scopes.
-        string hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(name)))[..16].ToLowerInvariant();
-        return KubernetesSecretCertificateStore.StoreTypePrefix +
-            name[..Math.Min(name.Length, 200)] + "-pending-" + hash + "-" + scope;
-    }
 }

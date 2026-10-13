@@ -19,6 +19,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -39,8 +40,22 @@ public partial class DiSecurityMigrationTests
         string root = Path.Combine(Path.GetTempPath(), "opcplc-push-" + Guid.NewGuid().ToString("N"));
         string clientRoot = root + "-client";
         var secretClient = new KubernetesSecretCertificateStoreTests.InMemoryKubernetesSecretStoreClient();
+        bool denySecretWrites = false;
+        using var forbiddenResponse = new HttpResponseMessage(HttpStatusCode.Forbidden);
+        var forbidden = new k8s.Autorest.HttpOperationException("Test RBAC denial")
+        {
+            Response = new k8s.Autorest.HttpResponseMessageWrapper(forbiddenResponse, "Test RBAC denial")
+        };
+        var guardedSecretClient = new Mock<IKubernetesSecretStoreClient>();
+        guardedSecretClient.Setup(client => client.ReadAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string ns, string name, CancellationToken ct) => secretClient.ReadAsync(ns, name, ct));
+        guardedSecretClient.Setup(client => client.WriteAsync(It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<IReadOnlyDictionary<string, byte[]>>(), It.IsAny<CancellationToken>()))
+            .Returns((string ns, string name, IReadOnlyDictionary<string, byte[]> data, CancellationToken ct) =>
+                denySecretWrites ? Task.FromException(forbidden) : secretClient.WriteAsync(ns, name, data, ct));
         var secrets = new Mock<IKubernetesSecretStoreClientFactory>();
-        secrets.Setup(factory => factory.Create()).Returns(secretClient);
+        secrets.Setup(factory => factory.Create()).Returns(guardedSecretClient.Object);
         int port;
         using (var reservation = new TcpListener(IPAddress.Loopback, 0))
         {
@@ -150,6 +165,25 @@ public partial class DiSecurityMigrationTests
                             {
                                 if (useCsr)
                                 {
+                                    if (storeType == KubernetesSecretCertificateStore.StoreTypeName)
+                                    {
+                                        denySecretWrites = true;
+                                        try
+                                        {
+                                            Func<Task> deniedRequest = async () =>
+                                                await client.CreateSigningRequestAsync(client.DefaultApplicationGroup,
+                                                    client.ApplicationCertificateType, "CN=OpcPlc", true,
+                                                    ByteString.From(RandomNumberGenerator.GetBytes(32)), timeout.Token)
+                                                    .ConfigureAwait(false);
+                                            await deniedRequest.Should().ThrowAsync<ServiceResultException>()
+                                                .Where(exception => exception.StatusCode == StatusCodes.BadUserAccessDenied)
+                                                .ConfigureAwait(false);
+                                        }
+                                        finally
+                                        {
+                                            denySecretWrites = false;
+                                        }
+                                    }
                                     ByteString csr = await client.CreateSigningRequestAsync(client.DefaultApplicationGroup,
                                         client.ApplicationCertificateType, "CN=OpcPlc", true,
                                         ByteString.From(RandomNumberGenerator.GetBytes(32)), timeout.Token)
@@ -195,9 +229,28 @@ public partial class DiSecurityMigrationTests
                                     useCsr ? string.Empty : "PEM", privateKey, [ByteString.From(issuer.RawData)],
                                     timeout.Token).ConfigureAwait(false);
                                 applyRequired.Should().BeTrue();
+                                var ownIdentifier = config.SecurityConfiguration.ApplicationCertificates[0];
+                                var pendingContext = new PendingCertificateKeyContext(
+                                    new CertificateStoreIdentifier(ownIdentifier.StorePath, storeType,
+                                        noPrivateKeys: false),
+                                    ObjectIds.ServerConfiguration_CertificateGroups_DefaultApplicationGroup,
+                                    ObjectTypeIds.RsaSha256ApplicationCertificateType, null,
+                                    host.Services.GetRequiredService<ITelemetryContext>());
+                                using var pendingStore = new PlcPendingCertificateKeyStore(
+                                    (ICertificateStoreResolver)config.CertificateManager);
+                                if (useCsr)
+                                {
+                                    using Certificate stagedKey = await pendingStore
+                                        .TryPeekMatchingAsync(pendingContext, issued, timeout.Token).ConfigureAwait(false);
+                                    stagedKey.Should().NotBeNull(
+                                        "UpdateCertificate stages the change without consuming its pending key");
+                                }
                                 await client.ApplyChangesAsync(timeout.Token).ConfigureAwait(false);
                                 await ((ConfigurationNodeManager)factory.Server.CurrentInstance.ConfigurationNodeManager)
                                     .DrainPendingApplyChangesAsync(timeout.Token).ConfigureAwait(false);
+                                using Certificate remainingKey = await pendingStore
+                                    .TryTakeAsync(pendingContext, timeout.Token).ConfigureAwait(false);
+                                remainingKey.Should().BeNull("successful activation consumes the pending key");
                             }
                         }
                         finally
