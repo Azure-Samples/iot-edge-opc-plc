@@ -112,7 +112,7 @@ stack-version regressions. Certificate validation remains enabled.
 Release publishes with an explicit runtime identifier use ReadyToRun to precompile the
 application and its dependencies, including the OPC UA stack. This reduces startup JIT
 work without postponing address-space creation or skipping certificate validation.
-Both the Release Dockerfile and SDK container publishing use this configuration.
+The Release Dockerfile and RID-specific SDK container publishes use this configuration.
 Debug builds and normal builds without a runtime identifier are unchanged.
 
 For a local Release deployment:
@@ -126,6 +126,11 @@ ReadyToRun increases publish time and artifact size in exchange for faster start
 Do not set `DOTNET_ReadyToRun=0` in the deployed environment: it disables native images,
 including those supplied by the runtime. To opt out at publish time, pass
 `-p:PublishReadyToRun=false`.
+
+For startup comparisons, measure process launch to `Server - Enter Running state.`,
+not port availability. Keep the runtime, architecture, CPU allocation, certificate
+store and node configuration identical, and alternate baseline and optimized runs.
+Measure fresh-certificate startup separately from restarts with existing certificates.
 
 ## User node configuration via JSON configuration file
 If the module (application) is started with the argument `--nodesfile` then the specified JSON configuration file is loaded.
