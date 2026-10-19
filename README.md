@@ -59,6 +59,54 @@ dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --sph --sn=5 --sr=10 --
 
 Note: Make sure that your OPC UA client uses security policy `Basic256Sha256` and message security mode `Sign & Encrypt` to connect.
 
+### Startup and readiness
+
+The HTTP server starts before OPC UA initialization on `--wp` / `--webport` (default `8080`),
+even without the stacklight or Publisher configuration options. Use `--wp=0` to disable HTTP.
+
+- `GET /ready` returns **503** while starting, restarting or stopping, and **200** only after
+  the OPC UA server and simulation have started.
+- `GET /healthz` returns **200** while the HTTP server is responding. This is a liveness
+  signal, not an OPC UA readiness check.
+
+Do not use process/container liveness or a TCP probe on port `50000` as readiness:
+the OPC UA SDK can open its listener before entering the Running state. Session requests
+during that interval may return `BadServerHalted`; clients should wait for `/ready` and
+retry transient connection failures. Scripts without HTTP access can wait for the
+`PLC simulation started` log line.
+
+Configure the following probes on the container in your Kubernetes Deployment or Helm
+chart (adjust the port if using `--wp`, and the startup budget for larger node sets):
+
+```yaml
+startupProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  periodSeconds: 2
+  failureThreshold: 150
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  periodSeconds: 2
+  failureThreshold: 1
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  periodSeconds: 10
+```
+
+The startup probe allows up to five minutes for initialization without restarting a
+healthy but slow-starting process. Only mark a container ready after `/ready` succeeds.
+For local checks, use `curl --fail http://localhost:8080/ready`.
+
+Startup logs report elapsed milliseconds for configuration/certificates, the OPC UA
+server/address space, simulation, and DI address-space creation (which precedes Fast
+node creation). Compare identical configurations on the same hardware when investigating
+stack-version regressions. Certificate validation remains enabled.
+
 ## User node configuration via JSON configuration file
 If the module (application) is started with the argument `--nodesfile` then the specified JSON configuration file is loaded.
 Nodes defined in the JSON file will be published by the server. This enables another OPC-UA client application to set the state/value of the node. Please note that nodes specified in the JSON file are NOT part of the simulation. They remain visible in an unchanged state until an OPC UA client changes their status.

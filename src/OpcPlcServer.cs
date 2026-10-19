@@ -1,6 +1,7 @@
 namespace OpcPlc;
 
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -8,11 +9,11 @@ using OpcPlc.Configuration;
 using OpcPlc.Extensions;
 using OpcPlc.Helpers;
 using OpcPlc.Logging;
-using OpcPlc.PluginNodes;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Immutable;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -30,6 +31,7 @@ public partial class OpcPlcServer
     private ImmutableList<IPluginNodes> _pluginNodes;
     private OpcTelemetryContext _telemetryContext;
     private IDisposable _otelProviders;
+    private volatile bool _ready;
 
     public OpcPlcConfiguration Config { get; set; }
 
@@ -73,13 +75,18 @@ public partial class OpcPlcServer
     /// <summary>
     /// A flag indicating when the server is up and ready to accept connections.
     /// </summary>
-    public bool Ready { get; set; }
+    public bool Ready
+    {
+        get => _ready;
+        set => _ready = value;
+    }
 
     /// <summary>
     /// Start the PLC server and simulation.
     /// </summary>
     public async Task StartAsync(string[] args, CancellationToken cancellationToken = default)
     {
+        Ready = false;
         try
         {
             // Initialize configuration.
@@ -142,9 +149,7 @@ public partial class OpcPlcServer
             }
 
             using var host = CreateHostBuilder(args);
-            var stacklightEnabled = _pluginNodes.OfType<StacklightPluginNodes>().FirstOrDefault()?.IsEnabled == true;
-            var publisherJsonEnabled = Config.ShowPublisherConfigJsonIp || Config.ShowPublisherConfigJsonPh;
-            if (Config.WebServerPort > 0 && (stacklightEnabled || publisherJsonEnabled))
+            if (Config.WebServerPort > 0)
             {
                 StartWebServer(host);
             }
@@ -164,6 +169,7 @@ public partial class OpcPlcServer
         }
         finally
         {
+            Ready = false;
             _otelProviders?.Dispose();
             _telemetryContext?.Dispose();
         }
@@ -176,6 +182,7 @@ public partial class OpcPlcServer
     /// </summary>
     public async Task RestartAsync()
     {
+        Ready = false;
         LogStoppingPlcServer();
         await PlcServer.StopAsync(CancellationToken.None).ConfigureAwait(false);
         PlcSimulationInstance.Stop();
@@ -184,6 +191,7 @@ public partial class OpcPlcServer
         LogLogo();
 
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
+        Ready = true;
     }
 
 
@@ -193,7 +201,8 @@ public partial class OpcPlcServer
     /// </summary>
     public void Stop()
     {
-        _cancellationTokenSource.Cancel();
+        Ready = false;
+        _cancellationTokenSource?.Cancel();
     }
 
     /// <summary>
@@ -213,7 +222,7 @@ public partial class OpcPlcServer
     }
 
     /// <summary>
-    /// Start web server to host pn.json.
+    /// Start web server to host health endpoints, pn.json and the stacklight UI.
     /// </summary>
     private void StartWebServer(IHost host)
     {
@@ -269,6 +278,7 @@ public partial class OpcPlcServer
     /// </summary>
     private async Task StartPlcServerAsync(CancellationToken cancellationToken)
     {
+        _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
 
         if (Config.ShowPublisherConfigJsonIp)
@@ -290,11 +300,10 @@ public partial class OpcPlcServer
                 Logger).ConfigureAwait(false);
         }
 
-        Ready = true;
+        Ready = !_cancellationTokenSource.IsCancellationRequested;
         LogPlcSimulationStarted();
 
         // Wait for cancellation.
-        _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         Console.CancelKeyPress += (_, eArgs) => {
             _cancellationTokenSource.Cancel();
             eArgs.Cancel = true;
@@ -302,6 +311,7 @@ public partial class OpcPlcServer
 
         await _cancellationTokenSource.Token.WhenCanceled().ConfigureAwait(false);
 
+        Ready = false;
         PlcSimulationInstance.Stop();
         await PlcServer.StopAsync(cancellationToken).ConfigureAwait(false);
         _cancellationTokenSource.Dispose();
@@ -309,9 +319,11 @@ public partial class OpcPlcServer
 
     private async Task StartPlcServerAndSimulationAsync()
     {
+        var stopwatch = Stopwatch.StartNew();
         // init OPC configuration and tracing
         var opcUaAppConfigFactory = new OpcUaAppConfigFactory(Config, Logger, LoggerFactory, _telemetryContext);
         ApplicationConfiguration plcApplicationConfiguration = await opcUaAppConfigFactory.ConfigureAsync().ConfigureAwait(false);
+        LogStartupPhaseCompleted("Configuration and certificates", stopwatch.ElapsedMilliseconds);
 
         // start the server.
         LogStartingServerOnEndpoint(plcApplicationConfiguration.ServerConfiguration.BaseAddresses[0]);
@@ -332,12 +344,16 @@ public partial class OpcPlcServer
         LogCertAuth(Config.DisableCertAuth ? "Disabled" : "Enabled");
 
         // Add simple events, alarms, reference test simulation and deterministic alarms.
+        stopwatch.Restart();
         PlcServer = new PlcServer(Config, PlcSimulationInstance, TimeService, _pluginNodes, Logger, _telemetryContext);
         await PlcServer.StartAsync(plcApplicationConfiguration).ConfigureAwait(false);
+        LogStartupPhaseCompleted("OPC UA server and address space", stopwatch.ElapsedMilliseconds);
         LogOpcUaServerStarted();
 
         // Add remaining base simulations.
+        stopwatch.Restart();
         PlcSimulationInstance.Start(PlcServer);
+        LogStartupPhaseCompleted("Simulation", stopwatch.ElapsedMilliseconds);
     }
 
     /// <summary>
@@ -409,6 +425,7 @@ public partial class OpcPlcServer
         }
 
         var host = Host.CreateDefaultBuilder(args)
+            .ConfigureServices(services => services.AddSingleton(this))
             .ConfigureWebHostDefaults(webBuilder => {
                 webBuilder.UseContentRoot(contentRoot); // Avoid System.InvalidOperationException.
                 webBuilder.UseUrls($"http://*:{Config.WebServerPort}");
@@ -546,6 +563,9 @@ public partial class OpcPlcServer
 
     [LoggerMessage(Level = LogLevel.Information, Message = "OPC UA Server started")]
     partial void LogOpcUaServerStarted();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Startup phase {Phase} completed in {ElapsedMilliseconds} ms")]
+    partial void LogStartupPhaseCompleted(string phase, long elapsedMilliseconds);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Logo}")]
     partial void LogOpcPlcLogo(string logo);

@@ -1,8 +1,11 @@
 namespace OpcPlc.CompanionSpecs.DI;
 
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 
@@ -12,6 +15,15 @@ using System.Reflection;
 /// </summary>
 public sealed class DiNodeManager : CustomNodeManager2
 {
+    public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+    {
+        var logger = Server.Telemetry.CreateLogger<DiNodeManager>();
+        var stopwatch = Stopwatch.StartNew();
+        logger.LogInformation("Creating DI address space");
+        base.CreateAddressSpace(externalReferences);
+        logger.LogInformation("DI address space created in {ElapsedMilliseconds} ms", stopwatch.ElapsedMilliseconds);
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DiNodeManager"/> class.
     /// </summary>

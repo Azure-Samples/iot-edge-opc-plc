@@ -26,12 +26,30 @@ public class Startup
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, OpcPlcServer server)
     {
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
         }
+
+        app.Use(async (context, next) => {
+            if (HttpMethods.IsGet(context.Request.Method) &&
+                (context.Request.Path == "/ready" || context.Request.Path == "/healthz"))
+            {
+                bool ready = context.Request.Path == "/healthz" || server.Ready;
+                context.Response.StatusCode = ready
+                    ? StatusCodes.Status200OK
+                    : StatusCodes.Status503ServiceUnavailable;
+                context.Response.ContentType = "text/plain";
+                context.Response.Headers.CacheControl = "no-store";
+                await context.Response.WriteAsync(ready ? "Healthy" : "Starting or stopping",
+                    context.RequestAborted).ConfigureAwait(false);
+                return;
+            }
+
+            await next(context).ConfigureAwait(false);
+        });
 
         // Serves stacklight.html from wwwroot (content type, 404 etc. handled automatically).
         app.UseStaticFiles();
@@ -41,11 +59,12 @@ public class Startup
 
         app.Run(async context => {
             if (context.Request.Method == "GET" &&
-                context.Request.Path == (Program.OpcPlcServer.Config.PnJson[0] != '/' ? "/" : string.Empty) + Program.OpcPlcServer.Config.PnJson &&
-                File.Exists(Program.OpcPlcServer.Config.PnJson))
+                (server.Config.ShowPublisherConfigJsonIp || server.Config.ShowPublisherConfigJsonPh) &&
+                context.Request.Path == (server.Config.PnJson[0] != '/' ? "/" : string.Empty) + server.Config.PnJson &&
+                File.Exists(server.Config.PnJson))
             {
                 context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync(await File.ReadAllTextAsync(Program.OpcPlcServer.Config.PnJson).ConfigureAwait(false)).ConfigureAwait(false);
+                await context.Response.WriteAsync(await File.ReadAllTextAsync(server.Config.PnJson).ConfigureAwait(false)).ConfigureAwait(false);
             }
             else
             {
