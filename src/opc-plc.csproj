@@ -23,6 +23,9 @@
     <TieredPGO>true</TieredPGO>
     <EnableSdkContainerSupport>true</EnableSdkContainerSupport>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' and '$(RuntimeIdentifier)' != ''">
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
   <PropertyGroup>
     <ContainerRepository>iotedge/opc-plc</ContainerRepository>
     <ContainerUser>root</ContainerUser>
@@ -30,7 +33,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ContainerEnvironmentVariable Include="APP_UID" Value="" />
-    <ContainerEnvironmentVariable Include="DOTNET_ReadyToRun" Value="0" />
     <ContainerEnvironmentVariable Include="DOTNET_TieredPGO" Value="1" />
     <ContainerEnvironmentVariable Include="DOTNET_TC_QuickJitForLoops" Value="1" />
   </ItemGroup>

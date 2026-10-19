@@ -107,6 +107,26 @@ server/address space, simulation, and DI address-space creation (which precedes 
 node creation). Compare identical configurations on the same hardware when investigating
 stack-version regressions. Certificate validation remains enabled.
 
+### Faster Release startup
+
+Release publishes with an explicit runtime identifier use ReadyToRun to precompile the
+application and its dependencies, including the OPC UA stack. This reduces startup JIT
+work without postponing address-space creation or skipping certificate validation.
+Both the Release Dockerfile and SDK container publishing use this configuration.
+Debug builds and normal builds without a runtime identifier are unchanged.
+
+For a local Release deployment:
+
+```console
+dotnet publish src/opc-plc.csproj -c Release -r linux-x64 --self-contained true -o publish
+```
+
+Use the runtime identifier for your deployment architecture (for example, `linux-arm64`).
+ReadyToRun increases publish time and artifact size in exchange for faster startup.
+Do not set `DOTNET_ReadyToRun=0` in the deployed environment: it disables native images,
+including those supplied by the runtime. To opt out at publish time, pass
+`-p:PublishReadyToRun=false`.
+
 ## User node configuration via JSON configuration file
 If the module (application) is started with the argument `--nodesfile` then the specified JSON configuration file is loaded.
 Nodes defined in the JSON file will be published by the server. This enables another OPC-UA client application to set the state/value of the node. Please note that nodes specified in the JSON file are NOT part of the simulation. They remain visible in an unchanged state until an OPC UA client changes their status.
