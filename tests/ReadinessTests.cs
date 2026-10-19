@@ -101,8 +101,9 @@ public class ReadinessTests
         }
     }
 
-    [Test]
-    public async Task Ready_IsResetDuringRestartAndShutdown()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Ready_IsResetDuringRestartAndShutdown(bool cancelExternally)
     {
         var server = new OpcPlcServer();
         var timeService = new Mock<TimeService> { CallBase = true };
@@ -139,8 +140,15 @@ public class ReadinessTests
             server.Ready.Should().BeTrue();
             timeService.Verify(t => t.NewTimer(It.IsAny<ElapsedEventHandler>(), It.IsAny<uint>()), Times.AtLeast(2));
 
-            server.Stop();
-            server.Ready.Should().BeFalse();
+            if (cancelExternally)
+            {
+                await cancellation.CancelAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                server.Stop();
+                server.Ready.Should().BeFalse();
+            }
             await serverTask.WaitAsync(timeout.Token).ConfigureAwait(false);
             server.Ready.Should().BeFalse();
         }

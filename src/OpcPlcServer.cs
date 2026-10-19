@@ -149,12 +149,23 @@ public partial class OpcPlcServer
             }
 
             using var host = CreateHostBuilder(args);
-            if (Config.WebServerPort > 0)
+            _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            using var stoppingRegistration = host.Services.GetRequiredService<IHostApplicationLifetime>()
+                .ApplicationStopping.Register(Stop);
+            try
             {
-                StartWebServer(host);
-            }
+                if (Config.WebServerPort > 0)
+                {
+                    StartWebServer(host);
+                }
 
-            await StartPlcServerAsync(cancellationToken).ConfigureAwait(false);
+                await StartPlcServerAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                Ready = false;
+                await host.StopAsync(CancellationToken.None).ConfigureAwait(false);
+            }
         }
         catch (Mono.Options.OptionException ex)
         {
@@ -170,6 +181,7 @@ public partial class OpcPlcServer
         finally
         {
             Ready = false;
+            _cancellationTokenSource?.Dispose();
             _otelProviders?.Dispose();
             _telemetryContext?.Dispose();
         }
@@ -276,9 +288,8 @@ public partial class OpcPlcServer
     /// <summary>
     /// Start the server.
     /// </summary>
-    private async Task StartPlcServerAsync(CancellationToken cancellationToken)
+    private async Task StartPlcServerAsync()
     {
-        _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         await StartPlcServerAndSimulationAsync().ConfigureAwait(false);
 
         if (Config.ShowPublisherConfigJsonIp)
@@ -313,8 +324,7 @@ public partial class OpcPlcServer
 
         Ready = false;
         PlcSimulationInstance.Stop();
-        await PlcServer.StopAsync(cancellationToken).ConfigureAwait(false);
-        _cancellationTokenSource.Dispose();
+        await PlcServer.StopAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     private async Task StartPlcServerAndSimulationAsync()

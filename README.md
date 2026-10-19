@@ -844,8 +844,9 @@ Options:
                              filename of the OPC Publisher configuration file
                                to write when using options sp/sph.
                                Default: pn.json
-      --wp, --webport=VALUE  web server port for hosting OPC Publisher
-                               configuration file.
+      --wp, --webport=VALUE  web server port for health endpoints, stacklight and
+                               OPC Publisher configuration file (0 disables
+                               HTTP).
                                Default: 8080
       --cdn, --certdnsnames=VALUE
                              add additional DNS names or IP addresses to this
