@@ -67,8 +67,11 @@ public partial class DiSecurityMigrationTests
 
                     (await provider.Application.CheckApplicationInstanceCertificatesAsync(silent: true)
                         .ConfigureAwait(false)).Should().BeTrue();
-                    await provider.CompleteCertificateConfigurationAsync().ConfigureAwait(false);
-                    await provider.CompleteCertificateConfigurationAsync().ConfigureAwait(false);
+                    Task firstCompletion = provider.CompleteCertificateConfigurationAsync();
+                    Task repeatedCompletion = provider.CompleteCertificateConfigurationAsync();
+                    repeatedCompletion.Should().BeSameAs(firstCompletion);
+                    await firstCompletion.ConfigureAwait(false);
+                    await repeatedCompletion.ConfigureAwait(false);
                     using CertificateEntry entry = configuration.CertificateManager.AcquireApplicationCertificateByType(
                         ObjectTypeIds.RsaSha256ApplicationCertificateType);
                     thumbprint ??= entry.Certificate.Thumbprint;
@@ -111,6 +114,10 @@ public partial class DiSecurityMigrationTests
         var provider = new PlcApplicationConfigurationProvider(factory, deferCertificateCompletion: true);
         await using (provider.ConfigureAwait(false))
         {
+            Func<Task> beforeGet = () => provider.CompleteCertificateConfigurationAsync();
+            await beforeGet.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Hosted configuration must be requested before completion.").ConfigureAwait(false);
+            Directory.Exists(root).Should().BeFalse();
             await provider.GetAsync().ConfigureAwait(false);
             (await provider.Application.CheckApplicationInstanceCertificatesAsync(silent: true).ConfigureAwait(false))
                 .Should().BeTrue();
@@ -183,6 +190,34 @@ public partial class DiSecurityMigrationTests
                 Directory.Delete(root, recursive: true);
             }
         }
+
+    }
+
+    [Test]
+    public async Task HostedCertificateCompletion_RejectsPublicOnlyIdentityWithoutRepeatingSdkValidationAsync()
+    {
+        using Certificate certificate = CreatePeerCertificate(expired: false);
+        using var chain = new CertificateCollection();
+        using var original = new CertificateEntry(
+            certificate, chain, ObjectTypeIds.RsaSha256ApplicationCertificateType);
+        var manager = new Mock<ICertificateManager>(MockBehavior.Strict);
+        manager.Setup(registry => registry.AcquireApplicationCertificateByType(
+            ObjectTypeIds.RsaSha256ApplicationCertificateType)).Returns(original.AddRef);
+        var application = new Mock<IApplicationInstance>(MockBehavior.Strict);
+        application.SetupGet(instance => instance.ApplicationConfiguration)
+            .Returns(new ApplicationConfiguration { CertificateManager = manager.Object });
+        var factory = new OpcUaAppConfigFactory(new OpcPlcConfiguration(), NullLogger.Instance,
+            NullLoggerFactory.Instance, DefaultTelemetry.Create(_ => { }));
+
+        Func<Task> complete = () => factory.CompleteCertificateConfigurationAsync(
+            application.Object, certificateAlreadyChecked: true);
+
+        await complete.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Application certificate has no private key.").ConfigureAwait(false);
+        application.Verify(instance => instance.CheckApplicationInstanceCertificatesAsync(
+            It.IsAny<bool>(), It.IsAny<ushort?>(), It.IsAny<CancellationToken>()), Times.Never);
+        using RSA publicKey = original.Certificate.GetRSAPublicKey();
+        publicKey.KeySize.Should().Be(2048);
     }
 
     [Test]
