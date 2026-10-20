@@ -106,6 +106,9 @@ Startup logs report elapsed milliseconds for OPC UA initialization
 (configuration, certificates and address space), simulation, and DI address-space creation (which precedes Fast
 node creation). Compare identical configurations on the same hardware when investigating
 stack-version regressions. Certificate validation remains enabled.
+In SDK-2 hosted startup, the SDK validates the application certificate once; PLC
+completes certificate reporting afterward. Standalone configuration still validates
+its certificate before returning.
 
 ### Faster Release startup
 
