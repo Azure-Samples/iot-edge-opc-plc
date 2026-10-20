@@ -136,19 +136,22 @@ store and node configuration identical, and alternate baseline and optimized run
 Measure fresh-certificate startup separately from restarts with existing certificates.
 
 An SDK-2 comparison on the same .NET 10 runtime, pinned to one CPU, produced the
-following medians (three alternating measured runs after one warm-up per build).
-All builds used framework-dependent `linux-x64` Release publishes, existing directory
-certificates, and identical Fast/Slow nodes, alarms, simple events, WoT and pumps options.
+following medians (five alternating measured runs after one warm-up per build).
+All builds used framework-dependent `linux-x64` Release publishes and the same existing
+directory certificate stores and sample nodes file. Node options were
+`--sn=25 --sr=10 --fn=100 --veryfastrate=1000 --gn=5 --ses --alm --wotcon --hb --pumps`.
 
 | Build | Process launch to Running | MasterNodeManager.Startup to Fast nodes |
 |---|---:|---:|
-| Unmodified `main` (`d8e1ea6`, SDK 1.5) | 2.928 s | 0.649 s |
-| Unmodified `preview` (`5794839`, SDK 2.0.1) | 4.643 s | 2.352 s |
-| SDK-2 preview with ReadyToRun | 2.368 s | 0.528 s |
+| Unmodified `main` (`d8e1ea6`, SDK 1.5) | 2.935 s | 0.670 s |
+| Unmodified `preview` (`5794839`, SDK 2.0.1) | 4.505 s | 2.296 s |
+| SDK-2 preview with ReadyToRun and one certificate check | 2.099 s | 0.534 s |
 
 These are local restart measurements, not Kubernetes or fresh-certificate guarantees.
 The SDK-2 preview measurement uses the same SDK version and address space as the
 unmodified preview; it does not disable certificate validation or defer node creation.
+Process launch to simulation startup was also lower: 2.133 s for optimized preview,
+versus 4.548 s for unmodified preview and 2.944 s for main.
 
 ## User node configuration via JSON configuration file
 If the module (application) is started with the argument `--nodesfile` then the specified JSON configuration file is loaded.
