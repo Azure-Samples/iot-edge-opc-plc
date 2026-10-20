@@ -26,6 +26,10 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release' and '$(RuntimeIdentifier)' != ''">
     <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' and '$(RuntimeIdentifier)' != '' and '$(SelfContained)' == 'true'">
+    <!-- Precompile the app together with the bundled runtime to minimize startup JIT time. -->
+    <PublishReadyToRunComposite>true</PublishReadyToRunComposite>
+  </PropertyGroup>
   <PropertyGroup>
     <ContainerRepository>iotedge/opc-plc</ContainerRepository>
     <ContainerUser>root</ContainerUser>
