@@ -107,7 +107,9 @@ Startup logs report elapsed milliseconds for OPC UA initialization
 node creation). Compare identical configurations on the same hardware when investigating
 stack-version regressions. Certificate validation remains enabled.
 In SDK-2 hosted startup, the SDK validates the application certificate once; PLC
-completes certificate reporting afterward. Standalone configuration still validates
+completes certificate reporting afterward. Certificate store contents are logged in the
+background after the server has started, so slow stores (for example Kubernetes secrets)
+do not delay readiness. Standalone configuration still validates
 its certificate before returning.
 
 ### Faster Release startup
@@ -116,6 +118,10 @@ Release publishes with an explicit runtime identifier use ReadyToRun to precompi
 application and its dependencies, including the OPC UA stack. This reduces startup JIT
 work without postponing address-space creation or skipping certificate validation.
 The Release Dockerfile and RID-specific SDK container publishes use this configuration.
+Self-contained Release publishes, including the Release Dockerfile, additionally use composite
+ReadyToRun, which precompiles the application together with the bundled .NET runtime. This
+removes most remaining startup JIT work (about 20% faster to Running on one CPU) at the cost
+of a larger image (about 60 MB). Opt out with `-p:PublishReadyToRunComposite=false`.
 Debug builds and normal builds without a runtime identifier are unchanged.
 
 For a local Release deployment:
