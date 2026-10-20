@@ -3,6 +3,7 @@ namespace OpcPlc.CompanionSpecs.IA;
 using Opc.Ua;
 using Opc.Ua.Export;
 using Opc.Ua.Server;
+using OpcPlc.Helpers;
 using System;
 using System.IO;
 using System.Threading;
@@ -14,6 +15,8 @@ using System.Threading.Tasks;
 /// </summary>
 public sealed class IaNodeManager : AsyncCustomNodeManager
 {
+    internal const string NodeSetXmlRelativePath = "CompanionSpecs/IA/Opc.Ua.IA.NodeSet2.xml";
+
     /// <summary>
     /// Initializes a new instance of the <see cref="IaNodeManager"/> class.
     /// </summary>
@@ -35,18 +38,8 @@ public sealed class IaNodeManager : AsyncCustomNodeManager
         ISystemContext context, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var xmlPath = "CompanionSpecs/IA/Opc.Ua.IA.NodeSet2.xml";
-        var snapLocation = Environment.GetEnvironmentVariable("SNAP");
-        if (!string.IsNullOrWhiteSpace(snapLocation))
-        {
-            // Application running as a snap.
-            xmlPath = Path.Join(snapLocation, xmlPath);
-        }
-
         var predefinedNodes = new NodeStateCollection();
-
-        using var stream = new FileStream(xmlPath, FileMode.Open, FileAccess.Read);
-        var nodeSet = UANodeSet.Read(stream);
+        var nodeSet = NodeSetXmlCache.Read(NodeSetXmlRelativePath);
         nodeSet.Import(context, predefinedNodes);
 
         cancellationToken.ThrowIfCancellationRequested();

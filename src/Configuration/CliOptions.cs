@@ -286,7 +286,7 @@ public static class CliOptions
             { "sp|showpnjson", $"show OPC Publisher configuration file using IP address as EndpointUrl.\nDefault: {config.ShowPublisherConfigJsonIp}", (s) => config.ShowPublisherConfigJsonIp = s != null },
             { "sph|showpnjsonph", $"show OPC Publisher configuration file using plchostname as EndpointUrl.\nDefault: {config.ShowPublisherConfigJsonPh}", (s) => config.ShowPublisherConfigJsonPh = s != null },
             { "spf|showpnfname=", $"filename of the OPC Publisher configuration file to write when using options sp/sph.\nDefault: {config.PnJson}", (s) => config.PnJson = s },
-            { "wp|webport=", $"web server port for hosting OPC Publisher configuration file.\nDefault: {config.WebServerPort}", (uint i) => config.WebServerPort = i },
+            { "wp|webport=", $"web server port for health endpoints, stacklight and OPC Publisher configuration file (0 disables HTTP).\nDefault: {config.WebServerPort}", (uint i) => config.WebServerPort = i },
             { "cdn|certdnsnames=", "add additional DNS names or IP addresses to this application's certificate (comma separated values; no spaces allowed).\nDefault: DNS hostname", (s) => config.OpcUa.DnsNames = ParseListOfStrings(s) },
 
             { "chaos", $"run the server in Chaos mode. Randomly injects errors, closes sessions and subscriptions etc.\nDefault: {config.RunInChaosMode}", (s) => config.RunInChaosMode = s != null },

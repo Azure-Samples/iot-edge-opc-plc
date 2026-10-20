@@ -52,7 +52,8 @@ internal sealed class PlcServerHost : IOpcUaServerFactory, IServerStartupTask, I
         builder.Services.AddSingleton(new OpcUaServerIdentityAuthenticatorRegistration(
             (_, _) => Server.CreateUserIdentityAuthenticators()));
         builder.Services.AddSingleton<IOpcUaApplicationConfigurationProvider>(_ =>
-            new PlcApplicationConfigurationProvider(new OpcUaAppConfigFactory(config, logger, loggerFactory, telemetry)));
+            new PlcApplicationConfigurationProvider(
+                new OpcUaAppConfigFactory(config, logger, loggerFactory, telemetry), deferCertificateCompletion: true));
         builder.Services.AddSingleton<IOpcUaServerFactory>(this);
         builder.Services.AddSingleton<IServerStartupTask>(this);
         _host = builder.Build();
@@ -82,11 +83,13 @@ internal sealed class PlcServerHost : IOpcUaServerFactory, IServerStartupTask, I
         return Server = new PlcServer(_config, _simulation, _timeService, _plugins, _logger, telemetry);
     }
 
-    public ValueTask OnServerStartedAsync(IServerContext server, CancellationToken cancellationToken = default)
+    public async ValueTask OnServerStartedAsync(IServerContext server, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var provider = (PlcApplicationConfigurationProvider)_host.Services
+            .GetRequiredService<IOpcUaApplicationConfigurationProvider>();
+        await provider.CompleteCertificateConfigurationAsync(cancellationToken).ConfigureAwait(false);
         _started.TrySetResult();
-        return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()

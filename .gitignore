@@ -18,6 +18,7 @@
 /**/launchsettings.json
 /.vscode/**
 /build/**
+/artifacts/**
 *.dll
 *.so
 *.pdb

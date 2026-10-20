@@ -59,6 +59,106 @@ dotnet opcplc.dll --pn=50000 --at X509Store --autoaccept --sph --sn=5 --sr=10 --
 
 Note: Make sure that your OPC UA client uses security policy `Basic256Sha256` and message security mode `Sign & Encrypt` to connect.
 
+### Startup and readiness
+
+The HTTP server starts before OPC UA initialization on `--wp` / `--webport` (default `8080`),
+even without the stacklight or Publisher configuration options. Use `--wp=0` to disable HTTP.
+
+- `GET /ready` returns **503** while starting, restarting or stopping, and **200** only after
+  the OPC UA server and simulation have started.
+- `GET /healthz` returns **200** while the HTTP server is responding. This is a liveness
+  signal, not an OPC UA readiness check.
+
+The OPC UA listener on `--pn` (default `50000`) is opened only after the address space has
+been built and the server has entered the Running state, so clients connecting earlier get a
+refused connection (and retry) instead of `BadServerHalted`. A TCP probe on that port therefore
+shows that OPC UA sessions are accepted, but not that the simulation has started; prefer `/ready`.
+Scripts without HTTP access can wait for the `PLC simulation started` log line.
+
+Configure the following probes on the container in your Kubernetes Deployment or Helm
+chart (adjust the port if using `--wp`, and the startup budget for larger node sets):
+
+```yaml
+startupProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  periodSeconds: 2
+  failureThreshold: 150
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  periodSeconds: 2
+  failureThreshold: 1
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  periodSeconds: 10
+```
+
+The startup probe allows up to five minutes for initialization without restarting a
+healthy but slow-starting process. Only mark a container ready after `/ready` succeeds.
+For local checks, use `curl --fail http://localhost:8080/ready`.
+
+Startup logs report elapsed milliseconds for OPC UA initialization
+(configuration, certificates and address space), simulation, and DI address-space creation (which precedes Fast
+node creation). Compare identical configurations on the same hardware when investigating
+stack-version regressions. Certificate validation remains enabled.
+In SDK-2 hosted startup, the SDK validates the application certificate once; PLC
+completes certificate reporting afterward. Certificate store contents are logged in the
+background after the server has started, so slow stores (for example Kubernetes secrets)
+do not delay readiness. Standalone configuration still validates
+its certificate before returning.
+
+### Faster Release startup
+
+Release publishes with an explicit runtime identifier use ReadyToRun to precompile the
+application and its dependencies, including the OPC UA stack. This reduces startup JIT
+work without postponing address-space creation or skipping certificate validation.
+The Release Dockerfile and RID-specific SDK container publishes use this configuration.
+Self-contained Release publishes, including the Release Dockerfile, additionally use composite
+ReadyToRun, which precompiles the application together with the bundled .NET runtime. This
+removes most remaining startup JIT work (about 20% faster to Running on one CPU) at the cost
+of a larger image (about 60 MB). Opt out with `-p:PublishReadyToRunComposite=false`.
+Debug builds and normal builds without a runtime identifier are unchanged.
+
+For a local Release deployment:
+
+```console
+dotnet publish src/opc-plc.csproj -c Release -r linux-x64 --self-contained true -o publish
+```
+
+Use the runtime identifier for your deployment architecture (for example, `linux-arm64`).
+ReadyToRun increases publish time and artifact size in exchange for faster startup.
+Do not set `DOTNET_ReadyToRun=0` in the deployed environment: it disables native images,
+including those supplied by the runtime. To opt out at publish time, pass
+`-p:PublishReadyToRun=false`.
+
+For startup comparisons, measure process launch to `Server - Enter Running state.`,
+not port availability. Keep the runtime, architecture, CPU allocation, certificate
+store and node configuration identical, and alternate baseline and optimized runs.
+Measure fresh-certificate startup separately from restarts with existing certificates.
+
+An SDK-2 comparison on the same .NET 10 runtime, pinned to one CPU, produced the
+following medians (five alternating measured runs after one warm-up per build).
+All builds used framework-dependent `linux-x64` Release publishes and the same existing
+directory certificate stores and sample nodes file. Node options were
+`--sn=25 --sr=10 --fn=100 --veryfastrate=1000 --gn=5 --ses --alm --wotcon --hb --pumps`.
+
+| Build | Process launch to Running | MasterNodeManager.Startup to Fast nodes |
+|---|---:|---:|
+| Unmodified `main` (`d8e1ea6`, SDK 1.5) | 2.935 s | 0.670 s |
+| Unmodified `preview` (`5794839`, SDK 2.0.1) | 4.505 s | 2.296 s |
+| SDK-2 preview with ReadyToRun and one certificate check | 2.099 s | 0.534 s |
+
+These are local restart measurements, not Kubernetes or fresh-certificate guarantees.
+The SDK-2 preview measurement uses the same SDK version and address space as the
+unmodified preview; it does not disable certificate validation or defer node creation.
+Process launch to simulation startup was also lower: 2.133 s for optimized preview,
+versus 4.548 s for unmodified preview and 2.944 s for main.
+
 ## User node configuration via JSON configuration file
 If the module (application) is started with the argument `--nodesfile` then the specified JSON configuration file is loaded.
 Configuration is read using .NET's built-in `System.Text.Json` serializer. Property names are case-insensitive;
@@ -833,8 +933,9 @@ Options:
                              filename of the OPC Publisher configuration file
                                to write when using options sp/sph.
                                Default: pn.json
-      --wp, --webport=VALUE  web server port for hosting OPC Publisher
-                               configuration file.
+      --wp, --webport=VALUE  web server port for health endpoints, stacklight and
+                               OPC Publisher configuration file (0 disables
+                               HTTP).
                                Default: 8080
       --cdn, --certdnsnames=VALUE
                              add additional DNS names or IP addresses to this

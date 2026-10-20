@@ -249,10 +249,19 @@ public partial class DiSecurityMigrationTests
         }
     }
 
-    [Test]
-    public async Task PlcProvider_HostUsesFactoryConfigurationAndReusesIdentityAsync()
+    [TestCase(CertificateStoreType.Directory)]
+    [TestCase(FlatDirectoryCertificateStore.StoreTypeName)]
+    [TestCase(KubernetesSecretCertificateStore.StoreTypeName)]
+    public async Task PlcProvider_HostUsesFactoryConfigurationAndReusesIdentityAsync(string storeType)
     {
         string root = Path.Combine(Path.GetTempPath(), "opcplc-provider-host-" + Guid.NewGuid().ToString("N"));
+        var clientFactory = new Mock<IKubernetesSecretStoreClientFactory>();
+        var secrets = new KubernetesSecretCertificateStoreTests.InMemoryKubernetesSecretStoreClient();
+        clientFactory.Setup(factory => factory.Create()).Returns(secrets);
+        string prefix = storeType == KubernetesSecretCertificateStore.StoreTypeName
+            ? KubernetesSecretCertificateStore.StoreTypePrefix
+            : storeType == FlatDirectoryCertificateStore.StoreTypeName
+                ? FlatDirectoryCertificateStore.StoreTypePrefix : string.Empty;
         try
         {
             int port;
@@ -269,12 +278,22 @@ public partial class DiSecurityMigrationTests
                 plc.OpcUa.ServerPort = (ushort)port;
                 plc.OpcUa.ServerPath = "/plc-provider";
                 plc.OpcUa.OpcTrustedCertStorePath = Path.Combine(root, "cli-selected-trust");
+                plc.OpcUa.OpcOwnCertStoreType = storeType;
+                if (storeType == KubernetesSecretCertificateStore.StoreTypeName)
+                {
+                    plc.OpcUa.OpcOwnCertStorePath = "host/own";
+                    plc.OpcUa.OpcKubernetesSecretNamespace = "host-tests";
+                }
                 plc.DisableCertAuth = true;
                 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
                 {
                     DisableDefaults = true
                 });
-                builder.Logging.AddConsole();
+                var sdkLogger = new Mock<ILogger>();
+                sdkLogger.Setup(logger => logger.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+                var loggerProvider = new Mock<ILoggerProvider>();
+                loggerProvider.Setup(provider => provider.CreateLogger(It.IsAny<string>())).Returns(sdkLogger.Object);
+                builder.Logging.AddProvider(loggerProvider.Object).SetMinimumLevel(LogLevel.Trace);
                 builder.Services.AddOpcUa().AddServer(options =>
                 {
                     options.EndpointUrls.Add("opc.tcp://localhost:1/unused-default");
@@ -289,7 +308,8 @@ public partial class DiSecurityMigrationTests
                     new PlcApplicationConfigurationProvider(new OpcUaAppConfigFactory(plc,
                         services.GetRequiredService<ILogger<OpcUaAppConfigFactory>>(),
                         services.GetRequiredService<ILoggerFactory>(),
-                        services.GetRequiredService<ITelemetryContext>())));
+                        services.GetRequiredService<ITelemetryContext>(), clientFactory.Object),
+                        deferCertificateCompletion: true));
                 var observer = new ServerStartedObserver();
                 builder.Services.AddSingleton<IServerStartupTask>(observer);
                 IHost host = builder.Build();
@@ -297,9 +317,25 @@ public partial class DiSecurityMigrationTests
                 {
                     try
                     {
+                        var hostedProvider = (PlcApplicationConfigurationProvider)host.Services
+                            .GetRequiredService<IOpcUaApplicationConfigurationProvider>();
+                        var initialConfiguration = await hostedProvider.GetAsync().ConfigureAwait(false);
+                        if (restart == 0)
+                        {
+                            using CertificateEntryCollection initialCertificates = initialConfiguration.CertificateManager
+                                .SnapshotApplicationCertificates();
+                            initialCertificates.Should().BeEmpty("the SDK hosted service owns certificate validation");
+                        }
+                        observer.CompleteConfiguration = hostedProvider.CompleteCertificateConfigurationAsync;
                         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
                         await host.StartAsync(deadline.Token).ConfigureAwait(false);
                         await observer.Started.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
+                        sdkLogger.Verify(logger => logger.Log(
+                            It.IsAny<LogLevel>(), It.IsAny<EventId>(),
+                            It.Is<It.IsAnyType>((state, _) => state.ToString()
+                                .Contains("Checking application instance certificate.", StringComparison.Ordinal)),
+                            It.IsAny<Exception>(),
+                            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
                         using var connection = new TcpClient();
                         await connection.ConnectAsync(IPAddress.Loopback, port, deadline.Token).ConfigureAwait(false);
                         connection.Connected.Should().BeTrue();
@@ -309,7 +345,7 @@ public partial class DiSecurityMigrationTests
                         config.Should().BeSameAs(plc.OpcUa.ApplicationConfiguration);
                         config.ApplicationUri.Should().Be("urn:OpcPlc:localhost:plc-provider");
                         config.SecurityConfiguration.TrustedPeerCertificates.StorePath.Should()
-                            .Be(plc.OpcUa.OpcTrustedCertStorePath);
+                            .Be(prefix + plc.OpcUa.OpcTrustedCertStorePath);
                         using CertificateEntry entry = config.CertificateManager.AcquireApplicationCertificateByType(
                             ObjectTypeIds.RsaSha256ApplicationCertificateType);
                         thumbprint ??= entry.Certificate.Thumbprint;
@@ -322,7 +358,8 @@ public partial class DiSecurityMigrationTests
                             .ConfigureAwait(false)).Should().BeTrue();
                         using ICertificateStore store = config.CertificateManager
                             .OpenTrustedStore(TrustListIdentifier.Peers);
-                        store.StorePath.Should().Be(plc.OpcUa.OpcTrustedCertStorePath);
+                        store.StorePath.Should().Be(storeType == FlatDirectoryCertificateStore.StoreTypeName
+                            ? plc.OpcUa.OpcTrustedCertStorePath : prefix + plc.OpcUa.OpcTrustedCertStorePath);
                         using CertificateCollection stored = await store.FindByThumbprintAsync(peer.Thumbprint)
                             .ConfigureAwait(false);
                         stored.Should().ContainSingle();
@@ -2023,12 +2060,16 @@ public partial class DiSecurityMigrationTests
     private sealed class ServerStartedObserver : IServerStartupTask
     {
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Func<CancellationToken, Task> CompleteConfiguration { get; set; }
 
-        public ValueTask OnServerStartedAsync(IServerContext server, CancellationToken cancellationToken = default)
+        public async ValueTask OnServerStartedAsync(IServerContext server, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (CompleteConfiguration is not null)
+            {
+                await CompleteConfiguration(cancellationToken).ConfigureAwait(false);
+            }
             Started.TrySetResult();
-            return ValueTask.CompletedTask;
         }
     }
 

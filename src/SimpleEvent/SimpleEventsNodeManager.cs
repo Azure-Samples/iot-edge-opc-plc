@@ -33,6 +33,7 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
 using OpcPlc;
+using OpcPlc.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -44,6 +45,8 @@ using System.Threading.Tasks;
 /// </summary>
 public sealed class SimpleEventsNodeManager : AsyncCustomNodeManager
 {
+    internal const string NodeSetXmlRelativePath = "SimpleEvent/SimpleEvents.NodeSet2.xml";
+
     #region Constructors
     /// <summary>
     /// Initializes the node manager.
@@ -93,17 +96,8 @@ public sealed class SimpleEventsNodeManager : AsyncCustomNodeManager
         ISystemContext context, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var xmlPath = "SimpleEvent/SimpleEvents.NodeSet2.xml";
-        var snapLocation = Environment.GetEnvironmentVariable("SNAP");
-        if (!string.IsNullOrWhiteSpace(snapLocation))
-        {
-            // Application running as a snap
-            xmlPath = Path.Join(snapLocation, xmlPath);
-        }
-
         var predefinedNodes = new NodeStateCollection();
-        using var stream = File.OpenRead(xmlPath);
-        var nodeSet = Opc.Ua.Export.UANodeSet.Read(stream);
+        var nodeSet = NodeSetXmlCache.Read(NodeSetXmlRelativePath);
         nodeSet.Import(context, predefinedNodes);
         cancellationToken.ThrowIfCancellationRequested();
         return ValueTask.FromResult(predefinedNodes);
