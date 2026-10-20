@@ -49,6 +49,9 @@ public partial class PlcServer : ReverseConnectServer
     private CancellationTokenSource _chaosCts;
     private Task _chaosMode;
     private PlcPendingCertificateKeyStore _pendingCertificateKeys;
+    private readonly Lock _deferredListenersLock = new();
+    private readonly List<DeferredListener> _deferredListeners = [];
+    private bool _openListenersImmediately;
 
     private bool _autoDisablePublishMetrics;
     private uint _countCreateSession;
@@ -119,11 +122,114 @@ public partial class PlcServer : ReverseConnectServer
         }
     }
 
+    /// <summary>
+    /// Queues the OPC UA transport listeners instead of opening them while the server initializes.
+    /// The SDK opens listeners before the address space exists, so early clients would otherwise be
+    /// rejected with BadServerHalted. The listeners are opened from <see cref="OnServerStartedAsync"/>.
+    /// </summary>
+    public override ValueTask CreateServiceHostEndpointAsync(
+        Uri endpointUri,
+        List<EndpointDescription> endpoints,
+        EndpointConfiguration endpointConfiguration,
+        ITransportListener listener,
+        ICertificateValidatorEx certificateValidator,
+        CancellationToken ct = default)
+    {
+        lock (_deferredListenersLock)
+        {
+            if (!_openListenersImmediately)
+            {
+                _deferredListeners.Add(new DeferredListener(
+                    endpointUri, endpoints, endpointConfiguration, listener, certificateValidator));
+                return ValueTask.CompletedTask;
+            }
+        }
+
+        return base.CreateServiceHostEndpointAsync(
+            endpointUri, endpoints, endpointConfiguration, listener, certificateValidator, ct);
+    }
+
+    protected override async ValueTask OnServerStartedAsync(CancellationToken cancellationToken = default)
+    {
+        await base.OnServerStartedAsync(cancellationToken).ConfigureAwait(false);
+        await OpenDeferredListenersAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask OpenDeferredListenersAsync(CancellationToken cancellationToken)
+    {
+        DeferredListener[] pending;
+        lock (_deferredListenersLock)
+        {
+            pending = [.. _deferredListeners];
+            _deferredListeners.Clear();
+            _openListenersImmediately = true;
+        }
+
+        for (int i = 0; i < pending.Length; i++)
+        {
+            DeferredListener deferred = pending[i];
+            try
+            {
+                await base.CreateServiceHostEndpointAsync(
+                    deferred.EndpointUri,
+                    deferred.Endpoints,
+                    deferred.EndpointConfiguration,
+                    deferred.Listener,
+                    deferred.CertificateValidator,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                // The failed listener was not registered with the server, so release it and the rest.
+                await DisposeListenersAsync(pending[i..]).ConfigureAwait(false);
+                throw;
+            }
+
+            LogOpcUaListenerOpened(deferred.EndpointUri);
+        }
+    }
+
+    private async ValueTask DisposeDeferredListenersAsync()
+    {
+        DeferredListener[] pending;
+        lock (_deferredListenersLock)
+        {
+            pending = [.. _deferredListeners];
+            _deferredListeners.Clear();
+            _openListenersImmediately = false;
+        }
+
+        await DisposeListenersAsync(pending).ConfigureAwait(false);
+    }
+
+    private static async ValueTask DisposeListenersAsync(IEnumerable<DeferredListener> listeners)
+    {
+        foreach (DeferredListener deferred in listeners)
+        {
+            try
+            {
+                await deferred.Listener.DisposeAsync().ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore errors while releasing listeners that were never opened.
+            }
+        }
+    }
+
+    private sealed record DeferredListener(
+        Uri EndpointUri,
+        List<EndpointDescription> Endpoints,
+        EndpointConfiguration EndpointConfiguration,
+        ITransportListener Listener,
+        ICertificateValidatorEx CertificateValidator);
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
             _periodicLoggingTimer.Dispose();
+            DisposeDeferredListenersAsync().AsTask().GetAwaiter().GetResult();
         }
         base.Dispose(disposing);
         if (disposing)
@@ -843,6 +949,7 @@ public partial class PlcServer : ReverseConnectServer
         }
 
         await base.OnServerStoppingAsync(cancellationToken).ConfigureAwait(false);
+        await DisposeDeferredListenersAsync().ConfigureAwait(false);
 
         if (Config.RunInChaosMode)
         {
@@ -1201,6 +1308,11 @@ public partial class PlcServer : ReverseConnectServer
         Level = LogLevel.Debug,
         Message = "Unknown notification type: {NotificationType}")]
     partial void LogUnknownNotification(string notificationType);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "OPC UA listener opened on {EndpointUri} after the server entered the Running state")]
+    partial void LogOpcUaListenerOpened(Uri endpointUri);
 
     [LoggerMessage(
         Level = LogLevel.Warning,

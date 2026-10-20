@@ -182,6 +182,18 @@
                                                 }
                                             ],
                                             "environmentVariables": [],
+                                            "readinessProbe": {
+                                                "httpGet": {
+                                                    "path": "/ready",
+                                                    "port": 80,
+                                                    "scheme": "http"
+                                                },
+                                                "initialDelaySeconds": 2,
+                                                "periodSeconds": 2,
+                                                "timeoutSeconds": 1,
+                                                "failureThreshold": 3,
+                                                "successThreshold": 1
+                                            },
                                             "resources": {
                                                 "requests": {
                                                     "memoryInGB": "[parameters('memoryInGb')]",

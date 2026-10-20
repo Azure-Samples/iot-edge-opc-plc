@@ -101,6 +101,79 @@ public class ReadinessTests
         }
     }
 
+    [Test]
+    public async Task OpcUaListener_RefusesConnectionsUntilAddressSpaceIsReady()
+    {
+        int port = GetFreeTcpPort();
+        bool? acceptedWhileBuildingAddressSpace = null;
+
+        var server = new OpcPlcServer();
+        var timeService = new Mock<TimeService> { CallBase = true };
+        timeService.Setup(t => t.UtcNow())
+            .Callback(() => acceptedWhileBuildingAddressSpace ??= CanConnect(port))
+            .CallBase();
+        server.TimeService = timeService.Object;
+
+        using var cancellation = new CancellationTokenSource();
+        var serverTask = Task.Run(() => server.StartAsync(
+            ["--autoaccept", $"--pn={port}", "--wp=0"], cancellation.Token));
+
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            await WaitUntilReadyAsync(server, serverTask, timeout.Token).ConfigureAwait(false);
+
+            acceptedWhileBuildingAddressSpace.Should().BeFalse(
+                "the OPC UA listener must not accept clients before the address space exists");
+            CanConnect(port).Should().BeTrue("the OPC UA listener must accept clients once the server is ready");
+
+            await server.RestartAsync().WaitAsync(timeout.Token).ConfigureAwait(false);
+            server.Ready.Should().BeTrue();
+            CanConnect(port).Should().BeTrue("the OPC UA listener must be reopened after a restart");
+        }
+        finally
+        {
+            await cancellation.CancelAsync().ConfigureAwait(false);
+            await serverTask.WaitAsync(TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+        }
+    }
+
+    private static int GetFreeTcpPort()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
+    }
+
+    private static bool CanConnect(int port)
+    {
+        using var client = new TcpClient();
+        try
+        {
+            return client.ConnectAsync(IPAddress.Loopback, port).Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (AggregateException ex) when (ex.InnerException is SocketException)
+        {
+            return false;
+        }
+    }
+
+    private static async Task WaitUntilReadyAsync(OpcPlcServer server, Task serverTask, CancellationToken cancellationToken)
+    {
+        while (!server.Ready)
+        {
+            if (serverTask.IsCompleted)
+            {
+                await serverTask.ConfigureAwait(false);
+                Assert.Fail("Server exited before becoming ready");
+            }
+
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public async Task Ready_IsResetDuringRestartAndShutdown(bool cancelExternally)

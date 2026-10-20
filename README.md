@@ -69,11 +69,11 @@ even without the stacklight or Publisher configuration options. Use `--wp=0` to 
 - `GET /healthz` returns **200** while the HTTP server is responding. This is a liveness
   signal, not an OPC UA readiness check.
 
-Do not use process/container liveness or a TCP probe on port `50000` as readiness:
-the OPC UA SDK can open its listener before entering the Running state. Session requests
-during that interval may return `BadServerHalted`; clients should wait for `/ready` and
-retry transient connection failures. Scripts without HTTP access can wait for the
-`PLC simulation started` log line.
+The OPC UA listener on `--pn` (default `50000`) is opened only after the address space has
+been built and the server has entered the Running state, so clients connecting earlier get a
+refused connection (and retry) instead of `BadServerHalted`. A TCP probe on that port therefore
+shows that OPC UA sessions are accepted, but not that the simulation has started; prefer `/ready`.
+Scripts without HTTP access can wait for the `PLC simulation started` log line.
 
 Configure the following probes on the container in your Kubernetes Deployment or Helm
 chart (adjust the port if using `--wp`, and the startup budget for larger node sets):

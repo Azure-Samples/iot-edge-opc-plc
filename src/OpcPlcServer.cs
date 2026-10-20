@@ -674,7 +674,9 @@ public partial class OpcPlcServer
     [LoggerMessage(Level = LogLevel.Information, Message = "Web server started on port {WebServerPort}")]
     partial void LogWebServerStartedPort(uint webServerPort);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Could not start web server on port {WebServerPort}: {Message}")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Could not start web server on port {WebServerPort}: {Message}. " +
+        "The OPC UA server keeps running, but /healthz, /ready, the publisher config and the stacklight UI are " +
+        "unavailable, so HTTP liveness and readiness probes against this port will fail")]
     partial void LogCouldNotStartWebServer(Exception exception, uint webServerPort, string message);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "PLC simulation started, press Ctrl+C to exit ...")]
