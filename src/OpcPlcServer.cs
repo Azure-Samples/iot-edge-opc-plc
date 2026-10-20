@@ -105,6 +105,7 @@ public partial class OpcPlcServer
 
             LoadPluginNodes();
             (PlcSimulationInstance, var extraArgs) = CliOptions.InitConfiguration(args, Config, _pluginNodes);
+            PrefetchNodeSets();
 
             // Show usage if requested
             if (Config.ShowHelp)
@@ -399,6 +400,39 @@ public partial class OpcPlcServer
         }
     }
 
+    /// <summary>
+    /// Parses the NodeSet XML files of the enabled node managers in the background, in the order the
+    /// node managers consume them, so the XML parsing overlaps with certificate and host initialization.
+    /// </summary>
+    private void PrefetchNodeSets()
+    {
+        bool pumpsEnabled = _pluginNodes.OfType<PluginNodes.PumpPluginNodes>().FirstOrDefault()?.IsEnabled == true;
+        bool stacklightEnabled = _pluginNodes.OfType<PluginNodes.StacklightPluginNodes>().FirstOrDefault()?.IsEnabled == true;
+        var nodeSets = new System.Collections.Generic.List<string> { CompanionSpecs.DI.DiNodeManager.NodeSetXmlRelativePath };
+        if (pumpsEnabled)
+        {
+            // The pump plugin reads the Pumps NodeSet while the PLC node manager builds its address space.
+            nodeSets.Add(CompanionSpecs.Pumps.PumpNodeManager.NodeSetXmlRelativePath);
+        }
+        if (PlcSimulationInstance.AddSimpleEventsSimulation)
+        {
+            nodeSets.Add(SimpleEvents.SimpleEventsNodeManager.NodeSetXmlRelativePath);
+        }
+        if (stacklightEnabled)
+        {
+            nodeSets.Add(CompanionSpecs.IA.IaNodeManager.NodeSetXmlRelativePath);
+        }
+        if (pumpsEnabled)
+        {
+            nodeSets.Add(CompanionSpecs.Machinery.MachineryNodeManager.NodeSetXmlRelativePath);
+        }
+        if (PlcSimulationInstance.AddWotConSimulation)
+        {
+            nodeSets.Add(CompanionSpecs.WotCon.WotConNodeManager.NodeSetXmlRelativePath);
+        }
+        NodeSetXmlCache.Prefetch([.. nodeSets]);
+    }
+
     private async Task StartPlcServerAndSimulationAsync(CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -427,6 +461,7 @@ public partial class OpcPlcServer
         try
         {
             await host.StartAsync(cancellationToken).ConfigureAwait(false);
+            NodeSetXmlCache.Clear();
             LogStartupPhaseCompleted("Configuration, certificates and OPC UA address space", stopwatch.ElapsedMilliseconds);
             PlcServer = host.Server;
             LogOpcUaServerStarted();

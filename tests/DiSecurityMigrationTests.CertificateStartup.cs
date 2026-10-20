@@ -135,12 +135,13 @@ public partial class DiSecurityMigrationTests
                 });
             clientFactory.Setup(client => client.Create()).Returns(stalledClient.Object);
 
-            Task completion = provider.CompleteCertificateConfigurationAsync();
+            // Store reporting is diagnostic only and runs after completion, so it must not block startup.
+            await provider.CompleteCertificateConfigurationAsync().WaitAsync(TimeSpan.FromSeconds(5))
+                .ConfigureAwait(false);
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
-            await provider.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
 
-            Func<Task> canceled = () => completion;
-            await canceled.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(false);
+            // Disposal must cancel the stalled background reporting instead of waiting for it.
+            await provider.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
             VerifyCertificateKey(retained.Certificate);
             Directory.Exists(root).Should().BeFalse();
         }

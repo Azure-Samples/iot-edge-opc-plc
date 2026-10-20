@@ -19,6 +19,7 @@ public sealed class PlcApplicationConfigurationProvider : IOpcUaApplicationConfi
     private readonly CancellationTokenSource _configurationCancellation = new();
     private Task<ApplicationConfiguration> _creation;
     private Task _completion;
+    private Task _storeInformation;
     private Task _disposal;
 
     public PlcApplicationConfigurationProvider(OpcUaAppConfigFactory factory)
@@ -69,7 +70,31 @@ public sealed class PlcApplicationConfigurationProvider : IOpcUaApplicationConfi
             cancellationToken, _configurationCancellation.Token);
         await _creation.WaitAsync(cancellation.Token).ConfigureAwait(false);
         await _factory.CompleteCertificateConfigurationAsync(
-            Application, certificateAlreadyChecked: true, cancellation.Token).ConfigureAwait(false);
+            Application, certificateAlreadyChecked: true, cancellation.Token,
+            showCertificateStoreInformation: false).ConfigureAwait(false);
+
+        // Store enumeration is diagnostic only and can be slow for remote stores, keep it off the startup path.
+        lock (_lock)
+        {
+            if (_disposal is null)
+            {
+                CancellationToken storeInformationToken = _configurationCancellation.Token;
+                _storeInformation = Task.Run(
+                    () => ShowCertificateStoreInformationAsync(storeInformationToken), CancellationToken.None);
+            }
+        }
+    }
+
+    private async Task ShowCertificateStoreInformationAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _factory.ShowCertificateStoreInformationAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Shutdown while enumerating diagnostic information.
+        }
     }
 
     public ValueTask DisposeAsync()
@@ -93,6 +118,15 @@ public sealed class PlcApplicationConfigurationProvider : IOpcUaApplicationConfi
             if (completion is not null)
             {
                 await Task.WhenAny(completion).ConfigureAwait(false);
+            }
+            Task storeInformation;
+            lock (_lock)
+            {
+                storeInformation = _storeInformation;
+            }
+            if (storeInformation is not null)
+            {
+                await Task.WhenAny(storeInformation).ConfigureAwait(false);
             }
         }
         finally

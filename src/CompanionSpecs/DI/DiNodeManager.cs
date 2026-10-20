@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Export;
 using Opc.Ua.Server;
+using OpcPlc.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,6 +18,8 @@ using System.Threading.Tasks;
 /// </summary>
 public sealed class DiNodeManager : AsyncCustomNodeManager
 {
+    internal const string NodeSetXmlRelativePath = "CompanionSpecs/DI/Opc.Ua.DI.NodeSet2.xml";
+
     public override async ValueTask CreateAddressSpaceAsync(
         IDictionary<NodeId, IList<IReference>> externalReferences, CancellationToken cancellationToken = default)
     {
@@ -48,17 +51,8 @@ public sealed class DiNodeManager : AsyncCustomNodeManager
         ISystemContext context, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var xmlPath = "CompanionSpecs/DI/Opc.Ua.DI.NodeSet2.xml";
-        var snapLocation = Environment.GetEnvironmentVariable("SNAP");
-        if (!string.IsNullOrWhiteSpace(snapLocation))
-        {
-            // Application running as a snap
-            xmlPath = Path.Join(snapLocation, xmlPath);
-        }
-
         var predefinedNodes = new NodeStateCollection();
-        using var stream = File.OpenRead(xmlPath);
-        var nodeSet = UANodeSet.Read(stream);
+        var nodeSet = NodeSetXmlCache.Read(NodeSetXmlRelativePath);
         nodeSet.Import(context, predefinedNodes);
 
         cancellationToken.ThrowIfCancellationRequested();

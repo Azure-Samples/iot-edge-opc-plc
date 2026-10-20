@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Export;
 using Opc.Ua.Server;
+using OpcPlc.Helpers;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -24,6 +25,8 @@ using LocalizedText = Opc.Ua.LocalizedText;
 /// </summary>
 public partial class WotConNodeManager : AsyncCustomNodeManager
 {
+    internal const string NodeSetXmlRelativePath = "CompanionSpecs/WotCon/Opc.Ua.WotCon.NodeSet2.xml";
+
     // Local aliases bound to the source-generated NodeIds in Opc.Ua.WotCon.Constants.cs
     // (produced by ModelCompiler from WotConnection.xml). They keep the readable, intent-
     // revealing names used throughout this file while ensuring a compile-time link to the
@@ -98,18 +101,10 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
     {
         try
         {
-            var xmlPath = "CompanionSpecs/WotCon/Opc.Ua.WotCon.NodeSet2.xml";
-            var snapLocation = Environment.GetEnvironmentVariable("SNAP");
-            if (!string.IsNullOrWhiteSpace(snapLocation))
-            {
-                // Application running as a snap.
-                xmlPath = Path.Join(snapLocation, xmlPath);
-            }
-
+            var xmlPath = NodeSetXmlCache.ResolvePath(NodeSetXmlRelativePath);
             if (File.Exists(xmlPath))
             {
-                using var stream = new FileStream(xmlPath, FileMode.Open, FileAccess.Read);
-                LoadNodeSetFromStream(context, stream, predefinedNodes);
+                ImportNodeSet(context, predefinedNodes);
             }
             else
             {
@@ -287,13 +282,13 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
     }
 
     /// <summary>
-    /// Loads NodeSet from a stream using the UA SDK NodeSet importer.
+    /// Imports the (possibly prefetched) NodeSet using the UA SDK NodeSet importer.
     /// </summary>
-    private void LoadNodeSetFromStream(ISystemContext context, Stream stream, NodeStateCollection predefinedNodes)
+    private void ImportNodeSet(ISystemContext context, NodeStateCollection predefinedNodes)
     {
         try
         {
-            var nodeSet = UANodeSet.Read(stream);
+            var nodeSet = NodeSetXmlCache.Read(NodeSetXmlRelativePath);
             nodeSet.Import(context, predefinedNodes);
         }
         catch (Exception ex)

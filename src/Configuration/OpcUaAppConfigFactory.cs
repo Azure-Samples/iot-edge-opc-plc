@@ -200,7 +200,8 @@ public partial class OpcUaAppConfigFactory(
     }
 
     internal async Task CompleteCertificateConfigurationAsync(
-        IApplicationInstance application, bool certificateAlreadyChecked, CancellationToken cancellationToken = default)
+        IApplicationInstance application, bool certificateAlreadyChecked, CancellationToken cancellationToken = default,
+        bool showCertificateStoreInformation = true)
     {
         cancellationToken.ThrowIfCancellationRequested();
         bool customCertificateProvided = !string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) ||
@@ -240,8 +241,10 @@ public partial class OpcUaAppConfigFactory(
             await ShowCreateSigningRequestInformationAsync(certificate, cancellationToken).ConfigureAwait(false);
         }
 
-        // show certificate store information
-        await ShowCertificateStoreInformationAsync(cancellationToken).ConfigureAwait(false);
+        if (showCertificateStoreInformation)
+        {
+            await ShowCertificateStoreInformationAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         LogApplicationConfigured(
             _config.OpcUa.ApplicationConfiguration.ServerConfiguration.MaxSessionCount,

@@ -3,6 +3,7 @@ namespace OpcPlc.CompanionSpecs.Pumps;
 using Opc.Ua;
 using Opc.Ua.Export;
 using Opc.Ua.Server;
+using OpcPlc.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -21,7 +22,7 @@ public sealed class PumpNodeManager : AsyncCustomNodeManager
     /// </summary>
     public const uint SystemRequirementsTypeId = 1022;
 
-    private const string NodeSetXmlRelativePath = "CompanionSpecs/Pumps/Opc.Ua.Pumps.NodeSet2.xml";
+    internal const string NodeSetXmlRelativePath = "CompanionSpecs/Pumps/Opc.Ua.Pumps.NodeSet2.xml";
 
     private static IReadOnlyList<PumpTypeMember> _systemRequirementsMembers;
 
@@ -65,16 +66,8 @@ public sealed class PumpNodeManager : AsyncCustomNodeManager
 
     private static UANodeSet ReadNodeSet()
     {
-        var xmlPath = NodeSetXmlRelativePath;
-        var snapLocation = Environment.GetEnvironmentVariable("SNAP");
-        if (!string.IsNullOrWhiteSpace(snapLocation))
-        {
-            // Application running as a snap.
-            xmlPath = Path.Join(snapLocation, xmlPath);
-        }
-
-        using var stream = new FileStream(xmlPath, FileMode.Open, FileAccess.Read);
-        return UANodeSet.Read(stream);
+        // Shared with the pump plugin, so the large NodeSet is parsed only once.
+        return NodeSetXmlCache.Read(NodeSetXmlRelativePath);
     }
 
     /// <summary>
