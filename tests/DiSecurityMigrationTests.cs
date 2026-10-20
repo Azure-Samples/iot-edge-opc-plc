@@ -289,7 +289,7 @@ public partial class DiSecurityMigrationTests
                     new PlcApplicationConfigurationProvider(new OpcUaAppConfigFactory(plc,
                         services.GetRequiredService<ILogger<OpcUaAppConfigFactory>>(),
                         services.GetRequiredService<ILoggerFactory>(),
-                        services.GetRequiredService<ITelemetryContext>())));
+                        services.GetRequiredService<ITelemetryContext>()), deferCertificateCompletion: true));
                 var observer = new ServerStartedObserver();
                 builder.Services.AddSingleton<IServerStartupTask>(observer);
                 IHost host = builder.Build();
@@ -297,6 +297,16 @@ public partial class DiSecurityMigrationTests
                 {
                     try
                     {
+                        var hostedProvider = (PlcApplicationConfigurationProvider)host.Services
+                            .GetRequiredService<IOpcUaApplicationConfigurationProvider>();
+                        var initialConfiguration = await hostedProvider.GetAsync().ConfigureAwait(false);
+                        if (restart == 0)
+                        {
+                            using CertificateEntryCollection initialCertificates = initialConfiguration.CertificateManager
+                                .SnapshotApplicationCertificates();
+                            initialCertificates.Should().BeEmpty("the SDK hosted service owns certificate validation");
+                        }
+                        observer.CompleteConfiguration = hostedProvider.CompleteCertificateConfigurationAsync;
                         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
                         await host.StartAsync(deadline.Token).ConfigureAwait(false);
                         await observer.Started.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
@@ -2023,12 +2033,16 @@ public partial class DiSecurityMigrationTests
     private sealed class ServerStartedObserver : IServerStartupTask
     {
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Func<CancellationToken, Task> CompleteConfiguration { get; set; }
 
-        public ValueTask OnServerStartedAsync(IServerContext server, CancellationToken cancellationToken = default)
+        public async ValueTask OnServerStartedAsync(IServerContext server, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (CompleteConfiguration is not null)
+            {
+                await CompleteConfiguration(cancellationToken).ConfigureAwait(false);
+            }
             Started.TrySetResult();
-            return ValueTask.CompletedTask;
         }
     }
 

@@ -28,6 +28,7 @@ public partial class OpcUaAppConfigFactory(
     private readonly ITelemetryContext _telemetryContext = telemetryContext ?? throw new ArgumentNullException(nameof(telemetryContext));
     private CertificateManagementService _certificateManagementService;
     private ICertificateStoreProvider[] _certificateStoreProviders;
+    private bool _applicationCertificateFound;
 
     /// OpcApplicationConfiguration
 
@@ -60,7 +61,8 @@ public partial class OpcUaAppConfigFactory(
     }
 
     internal async Task<ApplicationConfiguration> ConfigureAsync(
-        IApplicationInstance application, CancellationToken cancellationToken = default)
+        IApplicationInstance application, CancellationToken cancellationToken = default,
+        bool deferCertificateCompletion = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (_config.DisableAnonymousAuth && _config.DisableCertAuth && !_config.UsernamePasswordAuthEnabled)
@@ -176,12 +178,9 @@ public partial class OpcUaAppConfigFactory(
 
         ConfigureReverseConnect();
 
-        // Determine if custom certificate was provided via command line
-        bool customCertificateProvided = !string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) ||
-                                         !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName);
-
         using CertificateEntry existingCertificate = _config.OpcUa.ApplicationConfiguration.CertificateManager
             .AcquireApplicationCertificateByType(ObjectTypeIds.RsaSha256ApplicationCertificateType);
+        _applicationCertificateFound = existingCertificate is not null;
         if (existingCertificate is null)
         {
             LogNoExistingCertificateFound(CertificateFactory.DefaultLifeTime, CertificateFactory.DefaultKeySize, CertificateFactory.DefaultHashSize);
@@ -191,14 +190,41 @@ public partial class OpcUaAppConfigFactory(
             LogCertificateFound(existingCertificate.Certificate.Thumbprint);
         }
 
-        using CertificateEntry certificateEntry = await ApplicationCertificateLifecycle.EnsureAndAcquireAsync(
-            application, customCertificateProvided, cancellationToken).ConfigureAwait(false);
+        if (!deferCertificateCompletion)
+        {
+            await CompleteCertificateConfigurationAsync(application, certificateAlreadyChecked: false, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return _config.OpcUa.ApplicationConfiguration;
+    }
+
+    internal async Task CompleteCertificateConfigurationAsync(
+        IApplicationInstance application, bool certificateAlreadyChecked, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        bool customCertificateProvided = !string.IsNullOrEmpty(_config.OpcUa.NewCertificateBase64String) ||
+                                         !string.IsNullOrEmpty(_config.OpcUa.NewCertificateFileName);
+        // The SDK hosted service owns validation before invoking its server startup tasks.
+        using CertificateEntry certificateEntry = certificateAlreadyChecked
+            ? application.ApplicationConfiguration.CertificateManager
+                .AcquireApplicationCertificateByType(ObjectTypeIds.RsaSha256ApplicationCertificateType)
+            : await ApplicationCertificateLifecycle.EnsureAndAcquireAsync(
+                application, customCertificateProvided, cancellationToken).ConfigureAwait(false);
+        if (certificateEntry is null)
+        {
+            throw new InvalidOperationException("Application certificate could not be loaded.");
+        }
+        if (!certificateEntry.Certificate.HasPrivateKey)
+        {
+            throw new InvalidOperationException("Application certificate has no private key.");
+        }
         Certificate certificate = certificateEntry.Certificate;
         if (customCertificateProvided)
         {
             LogUsingCustomCertificate();
         }
-        else if (existingCertificate is null)
+        else if (!_applicationCertificateFound)
         {
             LogCertificateCreated(certificate.Thumbprint);
         }
@@ -220,8 +246,6 @@ public partial class OpcUaAppConfigFactory(
         LogApplicationConfigured(
             _config.OpcUa.ApplicationConfiguration.ServerConfiguration.MaxSessionCount,
             _config.OpcUa.ApplicationConfiguration.ServerConfiguration.MaxSubscriptionCount);
-
-        return _config.OpcUa.ApplicationConfiguration;
     }
 
     /// <summary>

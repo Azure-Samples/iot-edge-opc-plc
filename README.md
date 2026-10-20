@@ -102,8 +102,8 @@ The startup probe allows up to five minutes for initialization without restartin
 healthy but slow-starting process. Only mark a container ready after `/ready` succeeds.
 For local checks, use `curl --fail http://localhost:8080/ready`.
 
-Startup logs report elapsed milliseconds for configuration/certificates, the OPC UA
-server/address space, simulation, and DI address-space creation (which precedes Fast
+Startup logs report elapsed milliseconds for OPC UA initialization
+(configuration, certificates and address space), simulation, and DI address-space creation (which precedes Fast
 node creation). Compare identical configurations on the same hardware when investigating
 stack-version regressions. Certificate validation remains enabled.
 
@@ -131,6 +131,21 @@ For startup comparisons, measure process launch to `Server - Enter Running state
 not port availability. Keep the runtime, architecture, CPU allocation, certificate
 store and node configuration identical, and alternate baseline and optimized runs.
 Measure fresh-certificate startup separately from restarts with existing certificates.
+
+An SDK-2 comparison on the same .NET 10 runtime, pinned to one CPU, produced the
+following medians (three alternating measured runs after one warm-up per build).
+All builds used framework-dependent `linux-x64` Release publishes, existing directory
+certificates, and identical Fast/Slow nodes, alarms, simple events, WoT and pumps options.
+
+| Build | Process launch to Running | MasterNodeManager.Startup to Fast nodes |
+|---|---:|---:|
+| Unmodified `main` (`d8e1ea6`, SDK 1.5) | 2.928 s | 0.649 s |
+| Unmodified `preview` (`5794839`, SDK 2.0.1) | 4.643 s | 2.352 s |
+| SDK-2 preview with ReadyToRun | 2.368 s | 0.528 s |
+
+These are local restart measurements, not Kubernetes or fresh-certificate guarantees.
+The SDK-2 preview measurement uses the same SDK version and address space as the
+unmodified preview; it does not disable certificate validation or defer node creation.
 
 ## User node configuration via JSON configuration file
 If the module (application) is started with the argument `--nodesfile` then the specified JSON configuration file is loaded.
