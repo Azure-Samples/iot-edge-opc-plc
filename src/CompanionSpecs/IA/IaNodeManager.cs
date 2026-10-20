@@ -5,12 +5,14 @@ using Opc.Ua.Export;
 using Opc.Ua.Server;
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Node manager for the Industrial Automation (IA) companion spec (includes Stacklight types).
 /// https://reference.opcfoundation.org/IA/v101/docs/
 /// </summary>
-public sealed class IaNodeManager : CustomNodeManager2
+public sealed class IaNodeManager : AsyncCustomNodeManager
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="IaNodeManager"/> class.
@@ -29,8 +31,10 @@ public sealed class IaNodeManager : CustomNodeManager2
     /// <summary>
     /// Loads the IA node set from the NodeSet2 XML file and adds them to the set of predefined nodes.
     /// </summary>
-    protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
+    protected override ValueTask<NodeStateCollection> LoadPredefinedNodesAsync(
+        ISystemContext context, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var xmlPath = "CompanionSpecs/IA/Opc.Ua.IA.NodeSet2.xml";
         var snapLocation = Environment.GetEnvironmentVariable("SNAP");
         if (!string.IsNullOrWhiteSpace(snapLocation))
@@ -45,6 +49,7 @@ public sealed class IaNodeManager : CustomNodeManager2
         var nodeSet = UANodeSet.Read(stream);
         nodeSet.Import(context, predefinedNodes);
 
-        return predefinedNodes;
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(predefinedNodes);
     }
 }

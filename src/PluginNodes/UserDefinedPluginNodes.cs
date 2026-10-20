@@ -1,15 +1,19 @@
 namespace OpcPlc.PluginNodes;
 
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Numerics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Nodes that are configured via JSON file.
@@ -18,6 +22,13 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
 {
     private string _nodesFileName;
     private PlcNodeManager _plcNodeManager;
+    private static readonly JsonSerializerOptions ConfigurationJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
+    };
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -27,14 +38,18 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
             (string s) => _nodesFileName = s);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public async ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (!string.IsNullOrEmpty(_nodesFileName))
         {
-            AddNodes((FolderState)telemetryFolder.Parent); // Root.
+            await AddNodesAsync((FolderState)telemetryFolder.Parent, cancellationToken).ConfigureAwait(false); // Root.
         }
+
     }
 
     public void StartSimulation()
@@ -47,32 +62,41 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
         // No simulation.
     }
 
-    private void AddNodes(FolderState folder)
+    private async Task AddNodesAsync(FolderState folder, CancellationToken cancellationToken)
     {
         try
         {
-            string json = File.ReadAllText(_nodesFileName);
-
-            var cfgFolder = JsonConvert.DeserializeObject<ConfigFolder>(json, new JsonSerializerSettings {
-                TypeNameHandling = TypeNameHandling.None,
-            });
+            var stream = new FileStream(
+                _nodesFileName, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
+            await using var streamLifetime = stream.ConfigureAwait(false);
+            var cfgFolder = await JsonSerializer.DeserializeAsync<ConfigFolder>(
+                stream, ConfigurationJsonOptions, cancellationToken).ConfigureAwait(false)
+                ?? throw new JsonException("The nodes file must contain a configuration folder.");
 
             LogProcessingNodeInformation(_nodesFileName);
 
-            Nodes = AddNodes(folder, cfgFolder).ToList();
+            Nodes = AddNodes(folder, cfgFolder, cancellationToken).ToList();
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
             LogErrorLoadingUserDefinedNodeFile(e, _nodesFileName, e.Message);
         }
 
-
         LogCompletedProcessingUserDefinedNodeFile();
     }
 
-    private IEnumerable<NodeWithIntervals> AddNodes(FolderState folder, ConfigFolder cfgFolder)
+    internal static ConfigFolder DeserializeConfiguration(string json)
     {
+        return JsonSerializer.Deserialize<ConfigFolder>(json, ConfigurationJsonOptions)
+            ?? throw new JsonException("The nodes file must contain a configuration folder.");
+    }
+
+    private IEnumerable<NodeWithIntervals> AddNodes(
+        FolderState folder, ConfigFolder cfgFolder, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         LogCreateFolder(cfgFolder.Folder);
+        cancellationToken.ThrowIfCancellationRequested();
         FolderState userNodesFolder = _plcNodeManager.CreateFolder(
             folder,
             path: cfgFolder.Folder,
@@ -81,6 +105,7 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
 
         foreach (var node in cfgFolder.NodeList)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             bool isDecimal = node.NodeId is long;
             bool isString = node.NodeId is string;
 
@@ -103,9 +128,10 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
                     ? $"g={node.NodeId.ToString()}"
                     : $"s={node.NodeId.ToString()}";
 
-            if (node.ValueRank == 1 && node.Value is JArray jArrayValue)
+            if (node.ValueRank is ValueRanks.OneDimension or ValueRanks.Any or ValueRanks.ScalarOrOneDimension
+                && node.Value is JsonElement { ValueKind: JsonValueKind.Array } arrayValue)
             {
-                node.Value = UpdateArrayValue(node, jArrayValue);
+                node.Value = UpdateArrayValue(node, arrayValue);
             }
 
             if (string.IsNullOrEmpty(node.Name))
@@ -120,22 +146,18 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
 
             LogCreateNode(typedNodeId, node.Name, (string)node.NodeId.GetType().Name, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications]);
 
-            CreateBaseVariable(userNodesFolder, node);
-
-            var nodeId = isString
-                ? new NodeId(node.NodeId, _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications])
-                : (NodeId)node.NodeId;
-
-            yield return PluginNodesHelper.GetNodeWithIntervals(nodeId, _plcNodeManager);
+            BaseDataVariableState variable = CreateBaseVariable(userNodesFolder, node);
+            yield return PluginNodesHelper.GetNodeWithIntervals(variable.NodeId, _plcNodeManager);
         }
 
-        foreach (var childNode in AddFolders(userNodesFolder, cfgFolder))
+        foreach (var childNode in AddFolders(userNodesFolder, cfgFolder, cancellationToken))
         {
             yield return childNode;
         }
     }
 
-    private IEnumerable<NodeWithIntervals> AddFolders(FolderState folder, ConfigFolder cfgFolder)
+    private IEnumerable<NodeWithIntervals> AddFolders(
+        FolderState folder, ConfigFolder cfgFolder, CancellationToken cancellationToken)
     {
         if (cfgFolder.FolderList is null)
         {
@@ -144,7 +166,8 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
 
         foreach (var childFolder in cfgFolder.FolderList)
         {
-            foreach (var node in AddNodes(folder, childFolder))
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var node in AddNodes(folder, childFolder, cancellationToken))
             {
                 yield return node;
             }
@@ -154,12 +177,13 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
     /// <summary>
     /// Creates a new variable.
     /// </summary>
-    public void CreateBaseVariable(NodeState parent, ConfigNode node)
+    public BaseDataVariableState CreateBaseVariable(NodeState parent, ConfigNode node)
     {
         if (!Enum.TryParse(node.DataType, out BuiltInType nodeDataType))
         {
             LogCannotParseDataType(node.DataType, node.NodeId.ToString());
             node.DataType = "Int32";
+            nodeDataType = BuiltInType.Int32;
         }
 
         // We have to hard code the conversion here, because AccessLevel is defined as byte in OPC UA lib.
@@ -175,19 +199,84 @@ public partial class UserDefinedPluginNodes(TimeService timeService, ILogger log
             accessLevel = AccessLevels.CurrentReadOrWrite;
         }
 
-        _plcNodeManager.CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications, node?.Value);
+        return _plcNodeManager.CreateBaseVariable(parent, node.NodeId, node.Name, new NodeId((uint)nodeDataType), node.ValueRank, accessLevel, node.Description, NamespaceType.OpcPlcApplications, GetScalarValue(node));
     }
 
-    private static object UpdateArrayValue(ConfigNode node, JArray jArrayValue)
+    internal static object GetScalarValue(ConfigNode node)
+    {
+        if (node.Value is null or Array or JsonElement { ValueKind: JsonValueKind.Array }
+            || node.ValueRank is not (ValueRanks.Scalar or ValueRanks.Any or ValueRanks.ScalarOrOneDimension))
+        {
+            return node.Value;
+        }
+
+        if (node.DataType is "SByte" or "Byte" or "Int16" or "UInt16" or "Int32" or "UInt32" or "Int64" or "UInt64"
+            && node.Value is double number && (!double.IsFinite(number) || number != Math.Truncate(number)))
+        {
+            throw new FormatException($"Value for {node.DataType} must be an integer.");
+        }
+
+        return node.DataType switch
+        {
+            "Boolean" => Convert.ToBoolean(GetUntypedValue(node.Value), CultureInfo.InvariantCulture),
+            "SByte" => ConvertNumber<sbyte>(node.Value),
+            "Byte" => ConvertNumber<byte>(node.Value),
+            "Int16" => ConvertNumber<short>(node.Value),
+            "UInt16" => ConvertNumber<ushort>(node.Value),
+            "Int32" => ConvertNumber<int>(node.Value),
+            "UInt32" => ConvertNumber<uint>(node.Value),
+            "Int64" => ConvertNumber<long>(node.Value),
+            "UInt64" => ConvertNumber<ulong>(node.Value),
+            "Float" => ConvertNumber<float>(node.Value),
+            "Double" => ConvertNumber<double>(node.Value),
+            "DateTime" when node.Value is string text =>
+                DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            _ => GetUntypedValue(node.Value),
+        };
+    }
+
+    private static object GetUntypedValue(object value) =>
+        value is JsonElement { ValueKind: JsonValueKind.Number } number ? (object)number.GetDouble() : value;
+
+    private static T ConvertNumber<T>(object value) where T : INumberBase<T>
+    {
+        T number = value is JsonElement { ValueKind: JsonValueKind.Number } json
+            ? T.Parse(json.GetRawText(), NumberStyles.Float, CultureInfo.InvariantCulture)
+            : (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
+        if (!T.IsFinite(number))
+        {
+            throw new OverflowException($"Value for {typeof(T).Name} must be finite.");
+        }
+        return number;
+    }
+
+    internal static object UpdateArrayValue(ConfigNode node, JsonElement arrayValue)
     {
         return node.DataType switch {
-            "String" => jArrayValue.ToObject<string[]>(),
-            "Boolean" => jArrayValue.ToObject<bool[]>(),
-            "Float" => jArrayValue.ToObject<float[]>(),
-            "UInt32" => jArrayValue.ToObject<uint[]>(),
-            "Int32" => jArrayValue.ToObject<int[]>(),
+            "String" => ConvertArrayValue<string>(arrayValue),
+            "Boolean" => ConvertArrayValue<bool>(arrayValue),
+            "Float" => ConvertArrayValue<float>(arrayValue),
+            "UInt32" => ConvertArrayValue<uint>(arrayValue),
+            "Int32" => ConvertArrayValue<int>(arrayValue),
             _ => throw new NotImplementedException($"Node type not implemented: {node.DataType}."),
         };
+    }
+
+    private static T[] ConvertArrayValue<T>(JsonElement arrayValue)
+    {
+        return arrayValue.EnumerateArray().Select(element =>
+        {
+            object value = element.ValueKind switch
+            {
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Number => element.TryGetInt64(out long integer) ? (object)integer : element.GetDouble(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Null when !typeof(T).IsValueType => null,
+                _ => throw new JsonException($"Cannot convert {element.ValueKind} to {typeof(T).Name}."),
+            };
+            return (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
+        }).ToArray();
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Processing node information configured in {NodesFileName}")]

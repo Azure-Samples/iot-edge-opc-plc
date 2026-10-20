@@ -134,6 +134,16 @@ Measure fresh-certificate startup separately from restarts with existing certifi
 
 ## User node configuration via JSON configuration file
 If the module (application) is started with the argument `--nodesfile` then the specified JSON configuration file is loaded.
+Configuration is read using .NET's built-in `System.Text.Json` serializer. Property names are case-insensitive;
+comments and trailing commas are accepted. Each node requires a non-null `NodeId`. Omitted `DataType`,
+`ValueRank`, and `AccessLevel` default to `Int32`, `-1`, and `CurrentReadOrWrite`, respectively.
+String node identifiers are preserved verbatim, including date-like strings. Scalar date values are
+converted only for nodes with `DataType` set to `DateTime`. File parsing and recursive node registration
+observe startup cancellation.
+Numeric scalar values are converted to their configured DataType without rounding integer JSON tokens.
+Fractional integers, out-of-range values, and non-finite floating-point values are rejected and logged.
+Scalar conversion also applies to scalar values with `ValueRank` set to `Any` (`-2`) or
+`ScalarOrOneDimension` (`-3`); one-dimensional arrays at these ranks use the configured array type.
 Nodes defined in the JSON file will be published by the server. This enables another OPC-UA client application to set the state/value of the node. Please note that nodes specified in the JSON file are NOT part of the simulation. They remain visible in an unchanged state until an OPC UA client changes their status.
 
 The following command shows how to use a configuration file on Windows:
@@ -396,8 +406,9 @@ The node starts with 1,001 samples spaced ten seconds apart, ending at startup t
 seconds, updates the current value, and retains the newest 2,000 samples in memory. Restarting the server resets history.
 The node exposes `Historizing`, history-read access, and historical configuration with sampling interval and archive start.
 
-Use `HistoryRead` with `ReadRawModifiedDetails` and explicitly set `IsReadModified=false` (the SDK defaults it to true).
-Raw reads support forward/reverse ranges, optional bounds, timestamp selection, and continuation points. Without bounds,
+Use `HistoryRead` with `ReadRawModifiedDetails` and explicitly set `IsReadModified=false`.
+Raw reads support forward/reverse ranges, optional bounds, `Source` / `Server` / `Both` timestamps, and continuation points.
+The 2.0 SDK rejects `Neither` timestamps for raw history reads. Without bounds,
 the ending timestamp is excluded, except when start and end are equal. Empty ranges return `Good_NoData`.
 Responses contain at most 100 values per node, or the smaller requested `NumValuesPerNode`. Continue with the returned
 token and unchanged request parameters in the same session; release unused tokens with `releaseContinuationPoints=true`.
@@ -437,12 +448,19 @@ History is read-only. Modified, processed/aggregate, at-time and event history, 
 | StartUpdateFastNodes | Start the increase of value of fast nodes      | fast nodes activated                           |
 
 ## NuGet
-- The OPC PLC build generates a NuGet package that can be used to add the OPC PLC server to your own project, e.g. for unit tests
-- Sample base class for unit tests: `./samples/OpcPlcBase.cs`
-- Sample unit test file that uses the base class: `./samples/OpcUaUnitTests.cs`
-- Sample NuGet config to consume a local package (needs to be next to the solution file): `./samples/nuget.config`
-- Sample project file that shows how to import the local OPC PLC nuget package: `./samples/OpcUaUnitTests.prj`
-- Note: The NuGet package is not published to NuGet.org
+The build generates a `Microsoft.IoTEdge.OpcPlc` NuGet package for embedding the server, for example in
+integration tests. It is not published to nuget.org.
+
+The runnable .NET 10 NUnit sample is [samples/OpcUaUnitTests.csproj](samples/OpcUaUnitTests.csproj), using
+[samples/OpcPlcBase.cs](samples/OpcPlcBase.cs) and [samples/OpcUaUnitTests.cs](samples/OpcUaUnitTests.cs).
+It starts and stops its own server asynchronously, uses isolated temporary PKI, and tests secure reads,
+writes, runtime types, restart, and packaged assets. Set `OpcPlcPackageVersion` to the exact version
+produced by your build. [samples/nuget.config.sample](samples/nuget.config.sample) supplies a local
+`packages` source alongside nuget.org.
+
+See the [clean package-consumer workflow](docs/opc-ua-v2-migration.md#package-consumer) for running the
+sample outside the repository against the actual package and its published output. Certificate
+auto-acceptance in this isolated sample is for tests only, not production trust configuration.
 
 ## Build
 The build scripts are for Azure DevOps and the container build is done in ACR. To use your own ACR you need to:
@@ -479,7 +497,26 @@ GDS push service support:
 
 * OPC PLC exposes the standard OPC UA Server Configuration methods used by GDS push (for example `CreateSigningRequest`, `GetRejectedList`, `UpdateCertificate`, and `ApplyChanges`).
 * Access to these methods follows OPC UA security requirements: use a secure endpoint (`Sign & Encrypt`) and administrator credentials. There are no built-in credentials: an admin account only exists when you supply one with `--au` / `--ac`.
-* GDS push works with `Directory`, `FlatDirectory`, and `KubernetesSecret` certificate store modes.
+* GDS push supports `Directory`, `FlatDirectory`, and `KubernetesSecret` certificate store modes.
+  SDK 2.0.1 supports custom-store certificate update and rotation as described in the
+  [migration notes](docs/opc-ua-v2-migration.md#connector-preview-1-regressions).
+* Regenerating a CSR key requires a nonce of at least 32 bytes. PLC supplies durable pending-key
+  storage for all three store modes, isolated from active application certificates.
+  `Directory` retains the SDK-compatible `pending/<scope-hash>` subdirectory,
+  `FlatDirectory` uses a sibling directory named `<own-path>.pending-<scope-hash>`, and
+  `KubernetesSecret` stores the pending key and its creation time as separate, scoped data entries
+  in the existing own-certificate Secret. The pending entries are not exposed as application
+  certificates. Preserve this storage across restarts and allow the PLC to list and update the
+  existing Secret; no additional Secret `create` permission is needed. A denied Secret read or write is
+  logged and reported to the OPC UA client as `BadUserAccessDenied`.
+  `UpdateCertificate` stages the signed certificate without consuming the key; successful activation
+  through `ApplyChanges` consumes it. Unused regenerated keys expire after 24 hours and are deleted
+  on the next pending-key access. Reopening the store, saving the same pending key again, or restoring
+  a claimed key after a failed activation does not extend its original lifetime. A new key replaces
+  the previous pending key for the same certificate group and type and starts a new lifetime.
+  Older Directory/FlatDirectory pending entries without creation metadata begin their 24-hour
+  lifetime on first access. Outstanding CSRs from previews that used a separate Kubernetes pending
+  Secret must be regenerated after upgrading; those legacy Secrets are not migrated or deleted.
 
 Short example (C# with OPC Foundation GDS client), assuming the server was started with
 `--au myadmin --ac <your-password>`:

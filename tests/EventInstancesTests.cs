@@ -49,7 +49,7 @@ public class EventInstancesTests : SubscriptionTestsBase
         // Assert
         var events = ReceiveAtMostEvents(5);
         var values = events
-            .Select(a => (EventFieldList)a.NotificationValue)
+            .Cast<EventFieldList>()
             .Select(EventFieldListToDictionary);
         foreach (var value in values)
         {

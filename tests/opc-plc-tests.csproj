@@ -5,6 +5,7 @@
     <RootNamespace>OpcPlc.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
     <LangVersion>Preview</LangVersion>
+    <UseOpcUaModelSourceGenerator>true</UseOpcUaModelSourceGenerator>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,43 +17,12 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
 
-  <!-- When referencing a local build of the OPC UA stack for testing, define the constant UseLocalOpcUaSdk in the file Directory.Build.targets -->
-  <Choose>
-    <When Condition="'$(Configuration)'=='Debug'">
-      <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration.Debug" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server.Debug" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common.Debug" NoWarn="NU5104" />
-      </ItemGroup>
-      <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Security.Certificates\Opc.Ua.Security.Certificates.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Client\Opc.Ua.Client.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Client.ComplexTypes\Opc.Ua.Client.ComplexTypes.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Gds.Client.Common\Opc.Ua.Gds.Client.Common.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj" />
-      </ItemGroup>
-    </When>
-    <When Condition="'$(Configuration)'=='Release'">
-      <ItemGroup Condition="!$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client.ComplexTypes.Debug" NoWarn="NU5104" />
-        <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client.Common" NoWarn="NU5104" />
-      </ItemGroup>
-      <ItemGroup Condition="$(DefineConstants.Contains(UseLocalOpcUaSdk))">
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Configuration\Opc.Ua.Configuration.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Security.Certificates\Opc.Ua.Security.Certificates.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Server\Opc.Ua.Server.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Client\Opc.Ua.Client.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Client.ComplexTypes\Opc.Ua.Client.ComplexTypes.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Libraries\Opc.Ua.Gds.Client.Common\Opc.Ua.Gds.Client.Common.csproj" />
-        <ProjectReference Include="..\..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj" />
-      </ItemGroup>
-    </When>
-  </Choose>
+  <ItemGroup>
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Configuration" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Server" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client" NoWarn="NU5104" />
+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Gds.Client" NoWarn="NU5104" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Update="DeterministicAlarmsTests\dalm002.json">
@@ -68,9 +38,36 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\opc-plc.csproj" />
+    <AdditionalFiles Include="..\src\Boilers\Boiler2\BoilerModel2.NodeSet2.xml"
+                     ModelSourceGeneratorModelUri="http://microsoft.com/Opc/OpcPlc/Boiler"
+                     ModelSourceGeneratorName="BoilerModel2" ModelSourceGeneratorPrefix="BoilerModel2" />
+    <AdditionalFiles Include="..\src\CompanionSpecs\DI\Opc.Ua.DI.NodeSet2.xml"
+                     ModelSourceGeneratorModelUri="http://opcfoundation.org/UA/DI/"
+                     ModelSourceGeneratorName="DI" ModelSourceGeneratorPrefix="Opc.Ua.DI" />
+    <AdditionalFiles Include="..\src\CompanionSpecs\WotCon\Opc.Ua.WotCon.NodeSet2.xml"
+                     ModelSourceGeneratorModelUri="http://opcfoundation.org/UA/WoT-Con/"
+                     ModelSourceGeneratorName="WotCon" ModelSourceGeneratorPrefix="Opc.Ua.WotCon" />
+    <AdditionalFiles Include="..\src\SimpleEvent\SimpleEvents.NodeSet2.xml"
+                     ModelSourceGeneratorModelUri="http://microsoft.com/Opc/OpcPlc/SimpleEvents"
+                     ModelSourceGeneratorName="SimpleEvents" ModelSourceGeneratorPrefix="SimpleEvents" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="TestResults/**/*.cs" />
+    <EmbeddedResource Remove="TestResults/**/*" />
+    <None Remove="TestResults/**/*" />
+    <Using Include="System.Collections.Generic" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ModelBaselines\GeneratedApiDifferences.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\src\Boilers\**\*.Classes.cs;..\src\CompanionSpecs\DI\*.Classes.cs;..\src\CompanionSpecs\WotCon\*.Classes.cs;..\src\SimpleEvent\*.Classes.cs"
+          Link="ModelBaselines\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\src\Boilers\**\*.NodeIds.csv;..\src\Boilers\**\*.NodeSet2.xml;..\src\CompanionSpecs\DI\*.NodeIds.csv;..\src\CompanionSpecs\DI\*.NodeSet2.xml;..\src\CompanionSpecs\WotCon\*.NodeIds.csv;..\src\CompanionSpecs\WotCon\*.NodeSet2.xml;..\src\SimpleEvent\*.NodeIds.csv;..\src\SimpleEvent\*.NodeSet2.xml"
+          Link="ModelBaselines\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

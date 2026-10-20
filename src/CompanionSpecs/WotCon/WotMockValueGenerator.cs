@@ -59,14 +59,14 @@ internal static class WotMockValueGenerator
     /// Scalar ranks return a single typed value; <see cref="ValueRanks.OneDimension"/> returns
     /// a small typed array. Unknown types fall back to an empty string / empty <c>string[]</c>.
     /// </summary>
-    public static object Generate(NodeId dataTypeId, int valueRank)
+    public static Variant Generate(NodeId dataTypeId, int valueRank)
         => Advance(dataTypeId, valueRank, SeedTick, DateTime.UtcNow);
 
     /// <summary>
     /// Convenience overload kept for callers that don't track <see cref="ValueRanks"/>;
     /// always returns a scalar seed.
     /// </summary>
-    public static object Generate(NodeId dataTypeId)
+    public static Variant Generate(NodeId dataTypeId)
         => AdvanceScalar(dataTypeId, SeedTick, DateTime.UtcNow);
 
     /// <summary>
@@ -79,7 +79,7 @@ internal static class WotMockValueGenerator
     /// <param name="valueRank">The variable's value rank.</param>
     /// <param name="tick">Monotonic simulation tick; 0 reproduces the seed.</param>
     /// <param name="utcNow">Simulation clock reading used for DateTime properties.</param>
-    public static object Advance(NodeId dataTypeId, int valueRank, long tick, DateTime utcNow)
+    public static Variant Advance(NodeId dataTypeId, int valueRank, long tick, DateTime utcNow)
     {
         if (valueRank == ValueRanks.OneDimension)
         {
@@ -89,7 +89,7 @@ internal static class WotMockValueGenerator
         return AdvanceScalar(dataTypeId, tick, utcNow);
     }
 
-    private static object AdvanceScalar(NodeId dataTypeId, long tick, DateTime utcNow)
+    private static Variant AdvanceScalar(NodeId dataTypeId, long tick, DateTime utcNow)
     {
         if (dataTypeId == DataTypeIds.Double)
         {
@@ -108,7 +108,7 @@ internal static class WotMockValueGenerator
 
         if (dataTypeId == DataTypeIds.DateTime)
         {
-            return utcNow;
+            return (DateTimeUtc)utcNow;
         }
 
         if (dataTypeId == DataTypeIds.String)
@@ -119,34 +119,34 @@ internal static class WotMockValueGenerator
         return string.Empty;
     }
 
-    private static Array AdvanceArray(NodeId elementDataTypeId, long tick, DateTime utcNow)
+    private static Variant AdvanceArray(NodeId elementDataTypeId, long tick, DateTime utcNow)
     {
         if (elementDataTypeId == DataTypeIds.Double)
         {
-            return new[] { NextDouble(tick), NextDouble(tick + 1), NextDouble(tick + 2) };
+            return Variant.From(new[] { NextDouble(tick), NextDouble(tick + 1), NextDouble(tick + 2) }.ToArrayOf());
         }
 
         if (elementDataTypeId == DataTypeIds.Int32)
         {
-            return new[] { NextInt32(tick), NextInt32(tick + 1), NextInt32(tick + 2) };
+            return Variant.From(new[] { NextInt32(tick), NextInt32(tick + 1), NextInt32(tick + 2) }.ToArrayOf());
         }
 
         if (elementDataTypeId == DataTypeIds.Boolean)
         {
-            return new[] { NextBoolean(tick), NextBoolean(tick + 1) };
+            return Variant.From(new[] { NextBoolean(tick), NextBoolean(tick + 1) }.ToArrayOf());
         }
 
         if (elementDataTypeId == DataTypeIds.DateTime)
         {
-            return new[] { utcNow };
+            return Variant.From(new DateTimeUtc[] { (DateTimeUtc)utcNow }.ToArrayOf());
         }
 
         if (elementDataTypeId == DataTypeIds.String)
         {
-            return new[] { NextString(tick) };
+            return Variant.From(new[] { NextString(tick) }.ToArrayOf());
         }
 
-        return Array.Empty<string>();
+        return Variant.From(Array.Empty<string>().ToArrayOf());
     }
 
     // Rounded so the value is stable across the float formatting clients apply.

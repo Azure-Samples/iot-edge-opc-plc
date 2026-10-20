@@ -7,6 +7,8 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 
 /// <summary>
@@ -43,7 +45,7 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
     private readonly BaseDataVariableState[] _pressureNodes = new BaseDataVariableState[PumpCount];
     private readonly BaseDataVariableState[] _rotationalSpeedNodes = new BaseDataVariableState[PumpCount];
     private readonly BaseDataVariableState[] _motorTemperatureNodes = new BaseDataVariableState[PumpCount];
-    private readonly Opc.Ua.DI.DeviceHealthEnumeration[] _deviceHealthValues = new Opc.Ua.DI.DeviceHealthEnumeration[PumpCount];
+    private readonly RuntimeModelIds.Di.DeviceHealth[] _deviceHealthValues = new RuntimeModelIds.Di.DeviceHealth[PumpCount];
 
     // Type-conformant variables whose BrowseNames match real PumpType members (Pumps namespace).
     private readonly BaseDataVariableState[] _maximumOutletPressureNodes = new BaseDataVariableState[PumpCount];
@@ -67,14 +69,19 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
             (string s) => _isEnabled = s != null);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (_isEnabled)
         {
             AddNodes(telemetryFolder);
         }
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()
@@ -114,7 +121,7 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
                 BrowseName = new QualifiedName(pumpName, appNamespaceIndex),
                 DisplayName = new LocalizedText("en", pumpName),
                 Description = new LocalizedText("en", $"Pump #{i + 1}"),
-                ReferenceTypeId = ReferenceTypes.Organizes,
+                ReferenceTypeId = ReferenceTypeIds.Organizes,
                 TypeDefinitionId = new NodeId(PumpTypeId, _pumpsNamespaceIndex),
             };
 
@@ -146,15 +153,15 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
 
         var identification = new BaseObjectState(pumpObject) {
             NodeId = new NodeId($"{pumpName}_Identification", appNamespaceIndex),
-            BrowseName = new QualifiedName(Opc.Ua.DI.BrowseNames.Identification, _diNamespaceIndex),
-            DisplayName = new LocalizedText("en", Opc.Ua.DI.BrowseNames.Identification),
+            BrowseName = new QualifiedName(RuntimeModelIds.Di.BrowseNames.Identification, _diNamespaceIndex),
+            DisplayName = new LocalizedText("en", RuntimeModelIds.Di.BrowseNames.Identification),
             ReferenceTypeId = ReferenceTypeIds.HasComponent,
             TypeDefinitionId = new NodeId(PumpIdentificationTypeId, _pumpsNamespaceIndex),
         };
 
-        AddProperty(identification, $"{pumpName}_Manufacturer", Opc.Ua.DI.BrowseNames.Manufacturer, DataTypeIds.LocalizedText, new LocalizedText("en", "Contoso Pumps"));
-        AddProperty(identification, $"{pumpName}_Model", Opc.Ua.DI.BrowseNames.Model, DataTypeIds.LocalizedText, new LocalizedText("en", $"CP-{1000 + index}"));
-        AddProperty(identification, $"{pumpName}_SerialNumber", Opc.Ua.DI.BrowseNames.SerialNumber, DataTypeIds.String, $"SN-{index + 1:D6}");
+        AddProperty(identification, $"{pumpName}_Manufacturer", RuntimeModelIds.Di.BrowseNames.Manufacturer, DataTypeIds.LocalizedText, new LocalizedText("en", "Contoso Pumps"));
+        AddProperty(identification, $"{pumpName}_Model", RuntimeModelIds.Di.BrowseNames.Model, DataTypeIds.LocalizedText, new LocalizedText("en", $"CP-{1000 + index}"));
+        AddProperty(identification, $"{pumpName}_SerialNumber", RuntimeModelIds.Di.BrowseNames.SerialNumber, DataTypeIds.String, $"SN-{index + 1:D6}");
         AddProperty(identification, $"{pumpName}_ProductInstanceUri", "ProductInstanceUri", DataTypeIds.String, $"urn:contoso:pump:{index + 1:D6}");
 
         pumpObject.AddChild(identification);
@@ -249,7 +256,10 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
     private BaseDataVariableState AddSystemRequirement(BaseObjectState parent, string pumpName, string browseName, NodeId dataType, NodeId typeDefinition, int valueRank)
     {
         ushort appNamespaceIndex = _plcNodeManager.NamespaceIndexes[(int)NamespaceType.OpcPlcApplications];
-        typeDefinition ??= VariableTypeIds.BaseDataVariableType;
+        if (typeDefinition.IsNull)
+        {
+            typeDefinition = VariableTypeIds.BaseDataVariableType;
+        }
 
         BaseDataVariableState node;
         if (typeDefinition == VariableTypeIds.TwoStateDiscreteType)
@@ -274,7 +284,7 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
                 _plcNodeManager.SystemContext,
                 twoState.NodeId,
                 twoState.BrowseName,
-                null,
+                default,
                 true);
 
             twoState.FalseState.Value = new LocalizedText("en", "False");
@@ -299,7 +309,7 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
             ValueRank = valueRank,
             AccessLevel = AccessLevels.CurrentRead,
             UserAccessLevel = AccessLevels.CurrentRead,
-            Value = GetDefaultValue(dataType),
+            Value = VariantHelper.CastFrom(GetDefaultValue(dataType)),
             StatusCode = StatusCodes.Good,
             Timestamp = _timeService.UtcNow(),
             };
@@ -362,7 +372,7 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
             ValueRank = ValueRanks.Scalar,
             AccessLevel = AccessLevels.CurrentRead,
             UserAccessLevel = AccessLevels.CurrentRead,
-            Value = value,
+            Value = VariantHelper.CastFrom(value),
             StatusCode = StatusCodes.Good,
             Timestamp = _timeService.UtcNow(),
         };
@@ -376,10 +386,10 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
 
         var deviceHealthGroup = new BaseObjectState(pumpObject) {
             NodeId = new NodeId($"{pumpName}_DeviceHealth", appNamespaceIndex),
-            BrowseName = new QualifiedName(Opc.Ua.DI.BrowseNames.DeviceHealth, _diNamespaceIndex),
-            DisplayName = new LocalizedText("en", Opc.Ua.DI.BrowseNames.DeviceHealth),
+            BrowseName = new QualifiedName(RuntimeModelIds.Di.BrowseNames.DeviceHealth, _diNamespaceIndex),
+            DisplayName = new LocalizedText("en", RuntimeModelIds.Di.BrowseNames.DeviceHealth),
             ReferenceTypeId = ReferenceTypeIds.HasComponent,
-            TypeDefinitionId = new NodeId(Opc.Ua.DI.ObjectTypes.FunctionalGroupType, _diNamespaceIndex),
+            TypeDefinitionId = new NodeId(RuntimeModelIds.Di.ObjectTypes.FunctionalGroupType, _diNamespaceIndex),
         };
 
         pumpObject.AddChild(deviceHealthGroup);
@@ -448,11 +458,11 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
         const double targetTemperature = 48.0;
         const double overheatedTemperature = 52.0;
 
-        Opc.Ua.DI.DeviceHealthEnumeration deviceHealth = motorTemperature switch {
-            _ when motorTemperature >= baseTemperature && motorTemperature <= targetTemperature => Opc.Ua.DI.DeviceHealthEnumeration.NORMAL,
-            _ when motorTemperature > targetTemperature && motorTemperature < overheatedTemperature => Opc.Ua.DI.DeviceHealthEnumeration.CHECK_FUNCTION,
-            _ when motorTemperature >= overheatedTemperature => Opc.Ua.DI.DeviceHealthEnumeration.FAILURE,
-            _ => Opc.Ua.DI.DeviceHealthEnumeration.OFF_SPEC,
+        RuntimeModelIds.Di.DeviceHealth deviceHealth = motorTemperature switch {
+            _ when motorTemperature >= baseTemperature && motorTemperature <= targetTemperature => RuntimeModelIds.Di.DeviceHealth.NORMAL,
+            _ when motorTemperature > targetTemperature && motorTemperature < overheatedTemperature => RuntimeModelIds.Di.DeviceHealth.CHECK_FUNCTION,
+            _ when motorTemperature >= overheatedTemperature => RuntimeModelIds.Di.DeviceHealth.FAILURE,
+            _ => RuntimeModelIds.Di.DeviceHealth.OFF_SPEC,
         };
 
         _deviceHealthValues[index] = deviceHealth;
@@ -514,7 +524,7 @@ public partial class PumpPluginNodes(TimeService timeService, ILogger logger) : 
             TypeDefinitionId = VariableTypeIds.PropertyType,
             DataType = dataType,
             ValueRank = ValueRanks.Scalar,
-            Value = value,
+            Value = VariantHelper.CastFrom(value),
         };
 
         pumpEvent.AddChild(field);

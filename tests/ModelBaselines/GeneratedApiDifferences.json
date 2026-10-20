@@ -1,0 +1,51 @@
+{
+  "BoilerModel2": {
+    "Boilers_Boiler__2": null,
+    "http___microsoft_com_Opc_OpcPlc_boiler_DefaultRolePermissions": null
+  },
+  "Opc.Ua.DI": {
+    "TopologyElementType_ParameterSet_ParameterIdentifier": "TopologyElementType_ParameterSet_ParameterIdentifier_Placeholder",
+    "ConfigurableObjectType_ObjectIdentifier": "ConfigurableObjectType_ObjectIdentifier_Placeholder",
+    "FunctionalGroupType_GroupIdentifier": "FunctionalGroupType_GroupIdentifier_Placeholder",
+    "DeviceTopology_OnlineAccess": null,
+    "DeviceType_DeviceTypeImage_ImageIdentifier": "DeviceType_DeviceTypeImage_ImageIdentifier_Placeholder",
+    "DeviceType_Documentation_DocumentIdentifier": "DeviceType_Documentation_DocumentIdentifier_Placeholder",
+    "DeviceType_ProtocolSupport_ProtocolSupportIdentifier": "DeviceType_ProtocolSupport_ProtocolSupportIdentifier_Placeholder",
+    "DeviceType_ImageSet_ImageIdentifier": "DeviceType_ImageSet_ImageIdentifier_Placeholder",
+    "FunctionalGroupType_GroupIdentifier_UIElement": "FunctionalGroupType_GroupIdentifier_Placeholder_UIElement",
+    "NetworkType_CPIdentifier": "NetworkType_CPIdentifier_Placeholder",
+    "NetworkType_CPIdentifier_NetworkAddress": "NetworkType_CPIdentifier_Placeholder_NetworkAddress",
+    "OpcUaDi_XmlSchema_NamespaceUri": null,
+    "OpcUaDi_BinarySchema_NamespaceUri": null,
+    "ConnectionPointType_ProfileIdentifier": "ConnectionPointType_ProfileIdentifier_Placeholder",
+    "OpcUaDi_XmlSchema_FetchResultDataType": null,
+    "OpcUaDi_XmlSchema_ParameterResultDataType": null,
+    "OpcUaDi_BinarySchema_FetchResultDataType": null,
+    "OpcUaDi_BinarySchema_ParameterResultDataType": null,
+    "TopologyElementType_GroupIdentifier": "TopologyElementType_GroupIdentifier_Placeholder",
+    "DeviceType_CPIdentifier": "DeviceType_CPIdentifier_Placeholder",
+    "DeviceType_CPIdentifier_NetworkAddress": "DeviceType_CPIdentifier_Placeholder_NetworkAddress",
+    "NetworkType_ProfileIdentifier": "NetworkType_ProfileIdentifier_Placeholder",
+    "ConnectionPointType_NetworkIdentifier": "ConnectionPointType_NetworkIdentifier_Placeholder",
+    "OPCUADINamespaceMetadata_DefaultRolePermissions": null,
+    "OPCUADINamespaceMetadata_DefaultUserRolePermissions": null,
+    "OPCUADINamespaceMetadata_DefaultAccessRestrictions": null,
+    "ISupportInfoType_DeviceTypeImage_ImageIdentifier": "ISupportInfoType_DeviceTypeImage_ImageIdentifier_Placeholder",
+    "ISupportInfoType_Documentation_DocumentIdentifier": "ISupportInfoType_Documentation_DocumentIdentifier_Placeholder",
+    "ISupportInfoType_ProtocolSupport_ProtocolSupportIdentifier": "ISupportInfoType_ProtocolSupport_ProtocolSupportIdentifier_Placeholder",
+    "ISupportInfoType_ImageSet_ImageIdentifier": "ISupportInfoType_ImageSet_ImageIdentifier_Placeholder",
+    "OpcUaDi_BinarySchema_Deprecated": null,
+    "OpcUaDi_BinarySchema_TransferResultErrorDataType": null,
+    "OpcUaDi_BinarySchema_TransferResultDataDataType": null,
+    "OpcUaDi_XmlSchema_Deprecated": null,
+    "OpcUaDi_XmlSchema_TransferResultErrorDataType": null,
+    "OpcUaDi_XmlSchema_TransferResultDataDataType": null
+  },
+  "Opc.Ua.WotCon": {
+    "WotConNamespaceMetadata_ModelVersion": null,
+    "WotConNamespaceMetadata_DefaultRolePermissions": null,
+    "WotConNamespaceMetadata_DefaultUserRolePermissions": null,
+    "WotConNamespaceMetadata_DefaultAccessRestrictions": null
+  },
+  "SimpleEvents": {}
+}

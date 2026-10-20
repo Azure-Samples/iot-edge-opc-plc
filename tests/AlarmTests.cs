@@ -30,16 +30,16 @@ public class AlarmTests : SubscriptionTestsBase
         var whereClause = filter.WhereClause;
         var element1 = whereClause.Push(FilterOperator.OfType, _eventType);
         var element2 = whereClause.Push(FilterOperator.InList,
-            new SimpleAttributeOperand {
+            Variant.FromStructure(new SimpleAttributeOperand {
                 AttributeId = Attributes.Value,
                 TypeDefinitionId = ObjectTypeIds.BaseEventType,
-                BrowsePath = new QualifiedName[] { BrowseNames.SourceNode },
-            },
-            new LiteralOperand {
+                BrowsePath = [new QualifiedName(BrowseNames.SourceNode)],
+            }),
+            Variant.FromStructure(new LiteralOperand {
                 Value = new Variant(southMotor)
-            });
+            }));
 
-        whereClause.Push(FilterOperator.And, element1, element2);
+        whereClause.Push(FilterOperator.And, Variant.FromStructure(element1), Variant.FromStructure(element2));
 
         await AddMonitoredItemAsync().ConfigureAwait(false);
     }

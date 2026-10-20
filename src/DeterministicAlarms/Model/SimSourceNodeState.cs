@@ -5,7 +5,6 @@ using OpcPlc.DeterministicAlarms.Configuration;
 using OpcPlc.DeterministicAlarms.SimBackend;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 public class SimSourceNodeState : BaseObjectState
 {
@@ -13,6 +12,7 @@ public class SimSourceNodeState : BaseObjectState
     private readonly SimSourceNodeBackend _simSourceNodeBackend;
     private readonly Dictionary<string, ConditionState> _alarmNodes = new();
     private readonly Dictionary<string, ConditionState> _events = new();
+    private bool _deleted;
 
     public SimSourceNodeState(DeterministicAlarmsNodeManager nodeManager, NodeId nodeId, string name, List<Alarm> alarms) : base(null)
     {
@@ -28,9 +28,9 @@ public class SimSourceNodeState : BaseObjectState
         SymbolicName = name;
         NodeId = nodeId;
         BrowseName = new QualifiedName(name, nodeId.NamespaceIndex);
-        DisplayName = BrowseName.Name;
-        Description = null;
-        ReferenceTypeId = null;
+        DisplayName = new LocalizedText(BrowseName.Name);
+        Description = default;
+        ReferenceTypeId = NodeId.Null;
         TypeDefinitionId = ObjectTypeIds.BaseObjectType;
         EventNotifier = EventNotifiers.SubscribeToEvents;
 
@@ -40,26 +40,44 @@ public class SimSourceNodeState : BaseObjectState
 
     public override void ConditionRefresh(ISystemContext context, List<IFilterTarget> events, bool includeChildren)
     {
-        foreach (var @event in events)
+        lock (_nodeManager.SyncRoot)
         {
-            if (@event is InstanceStateSnapshot instanceSnapShotForExistingEvent &&
-                Object.ReferenceEquals(instanceSnapShotForExistingEvent.Handle, this))
+            if (_deleted)
             {
                 return;
             }
-        }
-
-        foreach (var alarm in _alarmNodes.Values)
-        {
-            if (!alarm.Retain.Value)
+            foreach (var @event in events)
             {
-                continue;
+                if (@event is InstanceStateSnapshot instanceSnapShotForExistingEvent &&
+                    Object.ReferenceEquals(instanceSnapShotForExistingEvent.Handle, this))
+                {
+                    return;
+                }
             }
 
-            var instanceStateSnapshotNewAlarm = new InstanceStateSnapshot();
-            instanceStateSnapshotNewAlarm.Initialize(context, alarm);
-            instanceStateSnapshotNewAlarm.Handle = this;
-            events.Add(instanceStateSnapshotNewAlarm);
+            foreach (var alarm in _alarmNodes.Values)
+            {
+                if (!alarm.Retain.Value)
+                {
+                    continue;
+                }
+
+                var instanceStateSnapshotNewAlarm = new InstanceStateSnapshot();
+                instanceStateSnapshotNewAlarm.Initialize(context, alarm);
+                instanceStateSnapshotNewAlarm.Handle = this;
+                events.Add(instanceStateSnapshotNewAlarm);
+            }
+        }
+    }
+
+    protected override void OnAfterDelete(ISystemContext context)
+    {
+        lock (_nodeManager.SyncRoot)
+        {
+            _deleted = true;
+            _simSourceNodeBackend.OnAlarmChanged = null;
+            _events.Clear();
+            base.OnAfterDelete(context);
         }
     }
 
@@ -70,11 +88,15 @@ public class SimSourceNodeState : BaseObjectState
 
     public void UpdateAlarmInSource(SimAlarmStateBackend alarm, string eventId = null)
     {
-        lock (_nodeManager.Lock)
+        lock (_nodeManager.SyncRoot)
         {
+            if (_deleted)
+            {
+                return;
+            }
             if (!_alarmNodes.TryGetValue(alarm.Name, out ConditionState node))
             {
-                _alarmNodes[alarm.Name] = node = CreateAlarmOrCondition(alarm, null);
+                _alarmNodes[alarm.Name] = node = CreateAlarmOrCondition(alarm, NodeId.Null);
             }
 
             UpdateAlarm(node, alarm, eventId);
@@ -84,64 +106,10 @@ public class SimSourceNodeState : BaseObjectState
 
     private ConditionState CreateAlarmOrCondition(SimAlarmStateBackend alarm, NodeId branchId)
     {
-        ISystemContext context = _nodeManager.SystemContext;
-
-        ConditionState node;
-
-        // Condition
-        if (alarm.AlarmType == AlarmObjectStates.ConditionType)
-        {
-            node = new ConditionState(this);
-        }
-        // All alarms inherent from AlarmConditionState
-        else
-        {
-            node = alarm.AlarmType switch {
-                AlarmObjectStates.TripAlarmType => new TripAlarmState(this),
-                AlarmObjectStates.LimitAlarmType => new LimitAlarmState(this),
-                AlarmObjectStates.OffNormalAlarmType => new OffNormalAlarmState(this),
-                _ => new AlarmConditionState(this),
-            };
-
-            // create elements that conditiontype doesn't have
-            CreateAlarmSpecificElements(context, (AlarmConditionState)node, branchId);
-        }
-
-        CreateCommonFieldsForAlarmAndCondition(context, node, alarm);
-
-        // This call initializes the condition from the type model (i.e. creates all of the objects
-        // and variables required to store its state). The information about the type model was
-        // incorporated into the class when the class was created.
-        //
-        // This method also assigns new NodeIds to all of the components by calling the INodeIdFactory.New
-        // method on the INodeIdFactory object which is part of the system context. The NodeManager provides
-        // the INodeIdFactory implementation used here.
-        node.Create(
-            context,
-            null,
-            new QualifiedName(alarm.Name, BrowseName.NamespaceIndex),
-            null,
-            true);
-
-        if (node.BranchId is null)
-        {
-            node.BranchId = new PropertyState<NodeId>(node)
-            {
-                Value = NodeId.Null
-            };
-        }
-
-        // initialize event information.node
-        node.EventType.Value = node.TypeDefinitionId;
-        node.SourceNode.Value = NodeId;
-        node.SourceName.Value = SymbolicName;
-        node.ConditionName.Value = node.SymbolicName;
-        node.Time.Value = DateTime.UtcNow;
-        node.ReceiveTime.Value = node.Time.Value;
-        node.BranchId.Value = branchId ?? NodeId.Null;
+        ConditionState node = SimAlarmNodeModel.Create(_nodeManager.SystemContext, this, alarm, branchId);
 
         // don't add branches to the address space.
-        if (NodeId.IsNull(branchId))
+        if (branchId.IsNull)
         {
             AddChild(node);
         }
@@ -149,104 +117,19 @@ public class SimSourceNodeState : BaseObjectState
         return node;
     }
 
-    private static void CreateAlarmSpecificElements(ISystemContext context, AlarmConditionState node, NodeId branchId)
-    {
-        node.ConfirmedState = new TwoStateVariableState(node);
-        node.Confirm = new AddCommentMethodState(node);
-
-        if (NodeId.IsNull(branchId))
-        {
-            node.SuppressedState = new TwoStateVariableState(node);
-            node.ShelvingState = new ShelvedStateMachineState(node);
-        }
-
-        node.ActiveState = new TwoStateVariableState(node);
-        node.ActiveState.TransitionTime = new PropertyState<DateTime>(node.ActiveState);
-        node.ActiveState.EffectiveDisplayName = new PropertyState<LocalizedText>(node.ActiveState);
-        node.ActiveState.Create(context, null, BrowseNames.ActiveState, null, false);
-    }
-
-    private static void CreateCommonFieldsForAlarmAndCondition(ISystemContext context, ConditionState node, SimAlarmStateBackend alarm)
-    {
-        node.SymbolicName = alarm.Name;
-
-        // add optional components.
-        node.Comment = new ConditionVariableState<LocalizedText>(node);
-        node.ClientUserId = new PropertyState<string>(node);
-        node.AddComment = new AddCommentMethodState(node);
-
-        // adding optional components to children is a little more complicated since the
-        // necessary initialization strings defined by the class that represents the child.
-        // in this case we pre-create the child, add the optional components
-        // and call create without assigning NodeIds. The NodeIds will be assigned when the
-        // parent object is created.
-        node.EnabledState = new TwoStateVariableState(node);
-        node.EnabledState.TransitionTime = new PropertyState<DateTime>(node.EnabledState);
-        node.EnabledState.EffectiveDisplayName = new PropertyState<LocalizedText>(node.EnabledState);
-        node.EnabledState.Create(context, null, BrowseNames.EnabledState, null, false);
-
-        node.BranchId = new PropertyState<NodeId>(node);
-        node.BranchId.Create(context, null, BrowseNames.BranchId, null, false);
-
-        // specify reference type between the source and the alarm.
-        node.ReferenceTypeId = ReferenceTypeIds.HasComponent;
-    }
-
     private void UpdateAlarm(ConditionState node, SimAlarmStateBackend alarm, string eventId = null)
     {
-        ISystemContext context = _nodeManager.SystemContext;
-
         // remove old event.
-        if (node.EventId.Value != null)
+        if (!node.EventId.Value.IsNull)
         {
-            _events.Remove(Utils.ToHexString(node.EventId.Value));
+            _events.Remove(node.EventId.Value.ToHexString());
         }
 
-        node.EventId.Value = eventId != null ? Encoding.UTF8.GetBytes(eventId) : Guid.NewGuid().ToByteArray();
-        node.Time.Value = DateTime.UtcNow;
-        node.ReceiveTime.Value = node.Time.Value;
+        SimAlarmNodeModel.Update(_nodeManager.SystemContext, node, alarm, eventId);
 
         // save the event for later lookup.
-        _events[Utils.ToHexString(node.EventId.Value)] = node;
+        _events[node.EventId.Value.ToHexString()] = node;
 
-        // determine the retain state.
-        node.Retain.Value = true;
-
-        if (alarm != null)
-        {
-            node.Time.Value = alarm.Time;
-            node.Message.Value = new LocalizedText(alarm.Reason);
-            node.SetComment(context, alarm.Comment, alarm.UserName);
-            node.SetSeverity(context, alarm.Severity);
-            node.EnabledState.TransitionTime.Value = alarm.EnableTime;
-            node.SetEnableState(context, (alarm.State & SimConditionStatesEnum.Enabled) != 0);
-
-            if (node is AlarmConditionState nodeAlarm)
-            {
-                nodeAlarm.SetAcknowledgedState(context, (alarm.State & SimConditionStatesEnum.Acknowledged) != 0);
-                nodeAlarm.SetConfirmedState(context, (alarm.State & SimConditionStatesEnum.Confirmed) != 0);
-                nodeAlarm.SetActiveState(context, (alarm.State & SimConditionStatesEnum.Active) != 0);
-                nodeAlarm.SetSuppressedState(context, (alarm.State & SimConditionStatesEnum.Suppressed) != 0);
-                nodeAlarm.ActiveState.TransitionTime.Value = alarm.ActiveTime;
-                // not interested in inactive alarms
-                if (!nodeAlarm.ActiveState.Id.Value)
-                {
-                    nodeAlarm.Retain.Value = false;
-                }
-            }
-        }
-
-        // check for deleted items.
-        if ((alarm.State & SimConditionStatesEnum.Deleted) != 0)
-        {
-            node.Retain.Value = false;
-        }
-
-        // not interested in disabled alarms.
-        if (!node.EnabledState.Id.Value)
-        {
-            node.Retain.Value = false;
-        }
     }
 
     private void ReportChanges(ConditionState alarm)

@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -74,7 +75,7 @@ public partial class WotConTests
     /// (<c>IncludeSubtypes=false</c>) so the assertion fails if the wiring degrades
     /// back to plain <c>HasComponent</c>.
     /// </summary>
-    private async Task<ReferenceDescriptionCollection> BrowseStrictHasWoTComponentChildrenAsync(NodeId assetId)
+    private async Task<List<ReferenceDescription>> BrowseStrictHasWoTComponentChildrenAsync(NodeId assetId)
     {
         var bd = new BrowseDescription
         {
@@ -88,9 +89,9 @@ public partial class WotConTests
 
         var resp = await Session.BrowseAsync(
             null, null, 0,
-            new BrowseDescriptionCollection { bd },
+            new List<BrowseDescription> { bd },
             CancellationToken.None).ConfigureAwait(false);
-        resp.Results.Should().ContainSingle();
-        return resp.Results[0].References;
+        resp.Results.ToArray().Should().ContainSingle();
+        return resp.Results[0].References.ToArray().ToList();
     }
 }

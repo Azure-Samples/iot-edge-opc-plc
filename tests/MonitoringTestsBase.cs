@@ -3,8 +3,8 @@ namespace OpcPlc.Tests;
 using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
-using Opc.Ua.Client;
-using OpcPlc.Logging;
+using Opc.Ua.Client.Subscriptions;
+using Opc.Ua.Client.Subscriptions.MonitoredItems;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,16 +18,16 @@ using System.Threading.Tasks;
 /// Abstract base class for tests using OPC-UA Subscriptions.
 /// </summary>
 [TestFixture]
-public abstract class SubscriptionTestsBase : SimulatorTestsBase
+public abstract class SubscriptionTestsBase : SimulatorTestsBase, ISubscriptionNotificationHandler
 {
     /// <summary>
     /// The monitored item.
     /// </summary>
-    protected MonitoredItem MonitoredItem;
+    protected MonitoredItemOptions MonitoredItem;
 
-    private Subscription _subscription;
+    private ISubscription _subscription;
 
-    private readonly ConcurrentQueue<MonitoredItemNotificationEventArgs> _receivedEvents = new();
+    private readonly ConcurrentQueue<IEncodeable> _receivedEvents = new();
 
     protected SubscriptionTestsBase(string[] args = default) : base(args)
     {
@@ -37,29 +37,37 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     /// Creates the subscription.
     /// </summary>
     [SetUp]
-    public async Task CreateSubscription()
+    public void CreateSubscription()
     {
-        _subscription = Session.DefaultSubscription;
-        Session.AddSubscription(_subscription);
-        await _subscription.CreateAsync().ConfigureAwait(false);
+        Session.TryGetSubscriptionManager(out var manager).Should().BeTrue("managed sessions use the V2 engine");
+        manager.PoolNotifications.Should().BeFalse("these tests retain notification payloads after callbacks return");
+        _receivedEvents.Clear();
+        _subscription = manager.Add(this, new OptionsMonitor<SubscriptionOptions>(new()
+        {
+            PublishingEnabled = true,
+            PublishingInterval = TimeSpan.FromSeconds(1),
+            KeepAliveCount = 10,
+            LifetimeCount = 1000,
+            Priority = 255,
+            MinLifetimeInterval = MinimumSubscriptionLifetime
+        }));
     }
 
     /// <summary>
     /// Deletes the subscription.
     /// </summary>
     [TearDown]
-    public async Task DeleteSubscription()
+    public async Task DeleteSubscriptionAsync()
     {
-        if (_subscription != null)
+        if (_subscription is not null)
         {
-            await _subscription.DeleteAsync(true).ConfigureAwait(false);
-            await Session.RemoveSubscriptionAsync(_subscription).ConfigureAwait(false);
+            await _subscription.DisposeAsync().ConfigureAwait(false);
             _subscription = null;
         }
     }
 
     /// <summary>
-    /// Create a <see cref="MonitoredItem"/> object configured to receive
+    /// Create <see cref="MonitoredItemOptions"/> configured to receive
     /// events that can be retrieved by the test class using <see cref="ReceiveEvents"/>.
     /// The object is not sent to the server at this point.
     /// Call <see cref="AddMonitoredItemAsync"/> to add the object to the subscription.
@@ -69,28 +77,44 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     /// <param name="attributeId">The attribute to monitor.</param>
     protected void SetUpMonitoredItem(NodeId startNodeId, NodeClass nodeClass, uint attributeId)
     {
-        MonitoredItem = new MonitoredItem(_subscription.DefaultItem)
+        MonitoredItem = new MonitoredItemOptions
         {
-            DisplayName = startNodeId.Identifier.ToString(),
             StartNodeId = startNodeId,
-            NodeClass = nodeClass,
-            SamplingInterval = 0,
+            SamplingInterval = TimeSpan.Zero,
             AttributeId = attributeId,
             QueueSize = 1000,
+            Filter = nodeClass == NodeClass.Object ? new EventFilter
+            {
+                SelectClauses = new[]
+                {
+                    BrowseNames.EventId, BrowseNames.EventType, BrowseNames.SourceNode, BrowseNames.SourceName,
+                    BrowseNames.Time, BrowseNames.ReceiveTime, BrowseNames.LocalTime, BrowseNames.Message, BrowseNames.Severity
+                }.Select(name => new SimpleAttributeOperand
+                {
+                    TypeDefinitionId = ObjectTypeIds.BaseEventType,
+                    BrowsePath = [new QualifiedName(name)],
+                    AttributeId = Attributes.Value
+                }).ToArrayOf()
+            } : null
         };
-
-        MonitoredItem.Notification += MonitoredItem_Notification;
     }
 
     /// <summary>
-    /// Add the <see cref="MonitoredItem"/> to the subscription.
+    /// Add the configured monitored item to the subscription.
     /// Derived tests should call this method after having configured the
     /// <see cref="MonitoredItem"/> definition, e.g. with filters.
     /// </summary>
     protected async Task AddMonitoredItemAsync()
     {
-        _subscription.AddItem(MonitoredItem);
-        await _subscription.ApplyChangesAsync().ConfigureAwait(false);
+        _subscription.MonitoredItems.TryAdd("TestItem",
+            new OptionsMonitor<MonitoredItemOptions>(MonitoredItem),
+            out var item).Should().BeTrue();
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (!item.Created)
+        {
+            ServiceResult.IsBad(item.Error).Should().BeFalse($"monitored item creation failed: {item.Error}");
+            await Task.Delay(25, deadline.Token).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -105,9 +129,9 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     /// Wait until a given number of events have been received, and return them.
     /// </summary>
     /// <param name="expectedCount">Number of events to receive.</param>
-    protected IEnumerable<MonitoredItemNotificationEventArgs> ReceiveEvents(int expectedCount)
+    protected IEnumerable<IEncodeable> ReceiveEvents(int expectedCount)
     {
-        var events = new List<MonitoredItemNotificationEventArgs>();
+        var events = new List<IEncodeable>();
 
         var sw = Stopwatch.StartNew();
         do
@@ -128,7 +152,7 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     {
         var events = ReceiveEvents(expectedCount);
         var values = events
-            .Select(a => (EventFieldList)a.NotificationValue)
+            .Cast<EventFieldList>()
             .Select(EventFieldListToDictionary);
 
         return values;
@@ -144,7 +168,7 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     /// Wait until a given number of events have been received, and return them.
     /// </summary>
     /// <param name="expectedCount">Number of events to at most receive.</param>
-    protected List<MonitoredItemNotificationEventArgs> ReceiveAtMostEvents(int expectedCount)
+    protected List<IEncodeable> ReceiveAtMostEvents(int expectedCount)
     {
         var sw = Stopwatch.StartNew();
         do
@@ -167,25 +191,54 @@ public abstract class SubscriptionTestsBase : SimulatorTestsBase
     protected Dictionary<string, object> EventFieldListToDictionary(EventFieldList arg)
     {
         return
-            ((EventFilter)MonitoredItem.Filter).SelectClauses // all retrieved fields for event
-            .Zip(arg.EventFields) // values of retrieved fields
+            ((EventFilter)MonitoredItem.Filter).SelectClauses.ToArray() // all retrieved fields for event
+            .Zip(arg.EventFields.ToArray()) // values of retrieved fields
             .ToDictionary(
                 p => SimpleAttributeOperand.Format(p.First.BrowsePath), // e.g. "/EventId"
-                p => ConvertValue(SimpleAttributeOperand.Format(p.First.BrowsePath), p.Second.Value));
+                p => ConvertValue(SimpleAttributeOperand.Format(p.First.BrowsePath), p.Second));
     }
 
-    private static object ConvertValue(string browsePath, object value)
+    private static object ConvertValue(string browsePath, Variant value)
     {
-        return value switch
+        if (value.IsNull)
         {
-            byte[] byteArray => Encoding.UTF8.GetString(byteArray),
-            ushort severity when browsePath == "/Severity" => Enum.Parse(typeof(EventSeverity), severity.ToString()),
-            _ => value
+            return null;
+        }
+        return (value.TypeInfo.BuiltInType, value.TypeInfo.IsScalar) switch
+        {
+            (BuiltInType.ByteString, true) => Encoding.UTF8.GetString(value.GetByteString().Span),
+            (BuiltInType.DateTime, true) => value.CastTo<DateTime>(),
+            (BuiltInType.UInt16, true) when browsePath == "/Severity" => (EventSeverity)value.GetUInt16(),
+            _ => value.AsBoxedObject()
         };
     }
 
-    private void MonitoredItem_Notification(MonitoredItem monitoredItem, MonitoredItemNotificationEventArgs e)
+    ValueTask ISubscriptionNotificationHandler.OnDataChangeNotificationAsync(ISubscription subscription,
+        uint sequenceNumber, DateTime publishTime, ReadOnlyMemory<DataValueChange> notification,
+        PublishState publishStateMask, IReadOnlyList<string> stringTable)
     {
-        _receivedEvents.Enqueue(e);
+        foreach (var change in notification.Span)
+        {
+            _receivedEvents.Enqueue(new MonitoredItemNotification { Value = change.Value });
+        }
+        return ValueTask.CompletedTask;
     }
+
+    ValueTask ISubscriptionNotificationHandler.OnEventDataNotificationAsync(ISubscription subscription,
+        uint sequenceNumber, DateTime publishTime, ReadOnlyMemory<EventNotification> notification,
+        PublishState publishStateMask, IReadOnlyList<string> stringTable)
+    {
+        foreach (var change in notification.Span)
+        {
+            _receivedEvents.Enqueue(new EventFieldList { EventFields = change.Fields });
+        }
+        return ValueTask.CompletedTask;
+    }
+
+    ValueTask ISubscriptionNotificationHandler.OnKeepAliveNotificationAsync(ISubscription subscription,
+        uint sequenceNumber, DateTime publishTime, PublishState publishStateMask) => ValueTask.CompletedTask;
+
+    ValueTask ISubscriptionNotificationHandler.OnSubscriptionStateChangedAsync(ISubscription subscription,
+        SubscriptionState state, PublishState publishStateMask,
+        CancellationToken ct) => ValueTask.CompletedTask;
 }

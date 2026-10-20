@@ -37,20 +37,14 @@ public class WotConModelChangeEventTests : SubscriptionTestsBase
 
         var filter = (EventFilter)MonitoredItem.Filter;
         filter.WhereClause.Push(FilterOperator.OfType, _eventType);
-        filter.SelectClauses.Add(new SimpleAttributeOperand
+        filter.SelectClauses += new SimpleAttributeOperand
         {
             TypeDefinitionId = _eventType,
             BrowsePath = [new QualifiedName(BrowseNames.Changes)],
             AttributeId = Attributes.Value,
-        });
+        };
 
         await AddMonitoredItemAsync().ConfigureAwait(false);
-    }
-
-    [TearDown]
-    public void RemoveMonitoredItem()
-    {
-        Session.DefaultSubscription.RemoveItem(MonitoredItem);
     }
 
     [Test]
@@ -79,8 +73,8 @@ public class WotConModelChangeEventTests : SubscriptionTestsBase
             ]).ConfigureAwait(false);
 
         StatusCode.IsGood(status).Should().BeTrue("CreateAssetForEndpoint should succeed, got {0}", status);
-        var assetId = outputs.Should().ContainSingle().Subject.Value as NodeId;
-        NodeId.IsNull(assetId).Should().BeFalse();
+        var assetId = outputs.Should().ContainSingle().Subject.GetNodeId();
+        assetId.IsNull.Should().BeFalse();
 
         AssertModelChange(assetId, ModelChangeStructureVerbMask.NodeAdded);
     }
@@ -109,7 +103,7 @@ public class WotConModelChangeEventTests : SubscriptionTestsBase
         int expectedEventCount = 1)
     {
         var receivedEvents = ReceiveAtMostEvents(expectedEventCount)
-            .Select(value => (EventFieldList)value.NotificationValue)
+            .Cast<EventFieldList>()
             .Select(EventFieldListToDictionary)
             .ToList();
         var eventFields = receivedEvents.Should().ContainSingle(
@@ -133,8 +127,8 @@ public class WotConModelChangeEventTests : SubscriptionTestsBase
     {
         return eventFields["/Changes"] switch
         {
-            ModelChangeStructureDataType[] values => values,
-            ExtensionObject[] values => values.Select(value => value.Body)
+            ArrayOf<ModelChangeStructureDataType> values => values.ToArray(),
+            ArrayOf<ExtensionObject> values => values.ToArray().Select(ExtensionObject.ToEncodeable)
                 .OfType<ModelChangeStructureDataType>()
                 .ToArray(),
             object value => throw new AssertionException(
@@ -150,19 +144,19 @@ public class WotConModelChangeEventTests : SubscriptionTestsBase
             [new Variant(assetName)]).ConfigureAwait(false);
 
         StatusCode.IsGood(status).Should().BeTrue("CreateAsset should succeed, got {0}", status);
-        var assetId = outputs.Should().ContainSingle().Subject.Value as NodeId;
-        NodeId.IsNull(assetId).Should().BeFalse();
+        var assetId = outputs.Should().ContainSingle().Subject.GetNodeId();
+        assetId.IsNull.Should().BeFalse();
         return assetId;
     }
 
-    private async Task<(StatusCode Status, VariantCollection Outputs)> CallAsync(
+    private async Task<(StatusCode Status, List<Variant> Outputs)> CallAsync(
         NodeId objectId,
         NodeId methodId,
-        VariantCollection arguments)
+        List<Variant> arguments)
     {
         var response = await Session.CallAsync(
             null,
-            new CallMethodRequestCollection
+            new List<CallMethodRequest>
             {
                 new CallMethodRequest
                 {
@@ -173,8 +167,8 @@ public class WotConModelChangeEventTests : SubscriptionTestsBase
             },
             CancellationToken.None).ConfigureAwait(false);
 
-        var result = response.Results.Should().ContainSingle().Subject;
-        return (result.StatusCode, result.OutputArguments ?? []);
+        var result = response.Results.ToArray().Should().ContainSingle().Subject;
+        return (result.StatusCode, result.OutputArguments.ToArray().ToList());
     }
 
     private NodeId WotConNodeId(uint identifier) => new(identifier, WotConNamespaceIndex);

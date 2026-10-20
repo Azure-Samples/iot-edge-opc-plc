@@ -5,6 +5,7 @@ using System;
 
 public class SimulatedVariableNode<T> : IDisposable
 {
+    private static readonly TypeInfo ValueType = TypeInfo.Construct(typeof(T));
     private readonly ISystemContext _context;
     private readonly BaseDataVariableState _variable;
     private ITimer _timer;
@@ -12,7 +13,21 @@ public class SimulatedVariableNode<T> : IDisposable
 
     public T Value
     {
-        get => (T)_variable.Value;
+        get
+        {
+            Variant value = _variable.Value;
+            if (value.IsNull && default(T) is null)
+            {
+                return default;
+            }
+
+            if (value.TypeInfo != ValueType)
+            {
+                throw new ServiceResultException(StatusCodes.BadTypeMismatch);
+            }
+
+            return VariantHelper.CastTo<T>(value);
+        }
         set => SetValue(_variable, value);
     }
 
@@ -53,7 +68,7 @@ public class SimulatedVariableNode<T> : IDisposable
 
     private void SetValue(BaseDataVariableState variable, T value)
     {
-        variable.Value = value;
+        variable.Value = VariantHelper.CastFrom(value);
         variable.Timestamp = _timeService.Now();
         variable.ClearChangeMasks(_context, false);
     }

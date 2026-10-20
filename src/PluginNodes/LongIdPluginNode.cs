@@ -6,6 +6,8 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Node with ID of 3950 chars.
@@ -22,8 +24,11 @@ public class LongIdPluginNode(TimeService timeService, ILogger logger) : PluginN
         // Enabled by default.
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         FolderState folder = _plcNodeManager.CreateFolder(
@@ -33,6 +38,8 @@ public class LongIdPluginNode(TimeService timeService, ILogger logger) : PluginN
             NamespaceType.OpcPlcApplications);
 
         AddNodes(folder);
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()

@@ -36,11 +36,11 @@ public partial class WotConTests
             null,
             null,
             0,
-            new BrowseDescriptionCollection { browseDescription },
+            new List<BrowseDescription> { browseDescription },
             CancellationToken.None).ConfigureAwait(false);
 
-        results.Results.Should().ContainSingle();
-        var references = results.Results[0].References;
+        results.Results.ToArray().Should().ContainSingle();
+        var references = results.Results[0].References.ToArray();
         references.Should().Contain(
             r => r.BrowseName.Name == "CreateAsset",
             "CreateAsset method must be a child of WoTAssetConnectionManagement");

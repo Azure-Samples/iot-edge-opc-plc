@@ -7,8 +7,10 @@ using System;
 /// <summary>
 /// Defines type for <see cref="FlatDirectoryCertificateStore"/>.
 /// </summary>
-public sealed class FlatDirectoryCertificateStoreType : ICertificateStoreType
+public sealed class FlatDirectoryCertificateStoreType : ICertificateStoreProvider
 {
+    public string StoreTypeName => FlatDirectoryCertificateStore.StoreTypeName;
+
     private readonly ILoggerFactory _loggerFactory;
 
     public FlatDirectoryCertificateStoreType(ILoggerFactory loggerFactory)
@@ -26,6 +28,7 @@ public sealed class FlatDirectoryCertificateStoreType : ICertificateStoreType
     /// <inheritdoc/>
     public bool SupportsStorePath(string storePath)
     {
-        return !string.IsNullOrEmpty(storePath) && storePath.StartsWith(FlatDirectoryCertificateStore.StoreTypePrefix);
+        return !string.IsNullOrEmpty(storePath) &&
+            storePath.StartsWith(FlatDirectoryCertificateStore.StoreTypePrefix, StringComparison.Ordinal);
     }
 }

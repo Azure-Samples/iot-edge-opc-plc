@@ -92,7 +92,7 @@ namespace AlarmCondition
         {
             if (component == null)
             {
-                return null;
+                return NodeId.Null;
             }
 
             // components must be instances with a parent.
@@ -104,11 +104,9 @@ namespace AlarmCondition
             }
 
             // parent must have a string identifier.
-            string parentId = instance.Parent.NodeId.Identifier as string;
-
-            if (parentId == null)
+            if (!instance.Parent.NodeId.TryGetValue(out string parentId))
             {
-                return null;
+                return NodeId.Null;
             }
 
             StringBuilder buffer = new StringBuilder();

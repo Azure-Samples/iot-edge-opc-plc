@@ -7,6 +7,8 @@ using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Nodes with configurable kB (ByteString) values.
@@ -23,7 +25,8 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
     private PlcNodeManager _plcNodeManager;
     private BaseDataVariableState[] _veryFastByteStringNodes;
     private byte[] _byteString;
-    private ITimer _nodeGenerator;
+    private OpcPlc.ITimer _nodeGenerator;
+    private readonly object _valueLock = new();
 
     public void AddOptions(Mono.Options.OptionSet optionSet)
     {
@@ -43,13 +46,16 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
             (uint i) => NodeRate = i);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         if (NodeCount == 0)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
 
         FolderState folder = _plcNodeManager.CreateFolder(
@@ -59,6 +65,8 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
             NamespaceType.OpcPlcApplications);
 
         AddNodes(folder);
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()
@@ -119,13 +127,24 @@ public class VeryFastByteStringPluginNodes(TimeService timeService, ILogger logg
 
     private void UpdateNodes()
     {
+        lock (_valueLock)
+        {
+            PublishNodes();
+        }
+    }
+
+    private void PublishNodes()
+    {
+        var payload = (byte[])_byteString.Clone();
         // Update first byte in the range 0 to 255.
-        _byteString[0] = _byteString[0] == 255
+        payload[0] = payload[0] == 255
             ? (byte)0
-            : (byte)(_byteString[0] + 1);
+            : (byte)(payload[0] + 1);
+        _byteString = payload;
 
         for (int i = 0; i < _veryFastByteStringNodes.Length; i++)
         {
+            _veryFastByteStringNodes[i].Value = Variant.From((ByteString)payload);
             UpdateValue(_veryFastByteStringNodes[i]);
         }
     }

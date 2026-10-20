@@ -8,8 +8,10 @@ using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Threading;
+using System.Threading.Tasks;
 
-public partial class PlcNodeManager : CustomNodeManager2
+public partial class PlcNodeManager : AsyncCustomNodeManager
 {
     private readonly OpcPlcConfiguration _config;
     private readonly ImmutableList<IPluginNodes> _pluginNodes;
@@ -36,7 +38,7 @@ public partial class PlcNodeManager : CustomNodeManager2
     {
         return node is BaseInstanceState instance &&
                instance.Parent != null &&
-               instance.Parent.NodeId.Identifier is string id
+               instance.Parent.NodeId.TryGetValue(out string id)
                   ? new NodeId(id + "_" + instance.SymbolicName, instance.Parent.NodeId.NamespaceIndex)
                   : node.NodeId;
     }
@@ -49,41 +51,43 @@ public partial class PlcNodeManager : CustomNodeManager2
     /// in other node managers. For example, the 'Objects' node is managed by the CoreNodeManager and
     /// should have a reference to the root folder node(s) exposed by this node manager.
     /// </remarks>
-    public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+    public override async ValueTask CreateAddressSpaceAsync(
+        IDictionary<NodeId, IList<IReference>> externalReferences,
+        CancellationToken cancellationToken = default)
     {
-        lock (Lock)
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
         {
-            if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out IList<IReference> references))
-            {
-                externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
-            }
-
-            _externalReferences = externalReferences;
-
-            FolderState root = CreateFolder(parent: null, _config.ProgramName, _config.ProgramName, NamespaceType.OpcPlcApplications);
-            root.AddReference(ReferenceTypes.Organizes, isInverse: true, ObjectIds.ObjectsFolder);
-            references.Add(new NodeStateReference(ReferenceTypes.Organizes, isInverse: false, root.NodeId));
-            root.EventNotifier = EventNotifiers.SubscribeToEvents;
-            AddRootNotifier(root);
-
-            try
-            {
-                FolderState telemetryFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
-                FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
-
-                // Add nodes to address space from plugin nodes list.
-                foreach (var plugin in _pluginNodes)
-                {
-                    plugin.AddToAddressSpace(telemetryFolder, methodsFolder, plcNodeManager: this);
-                }
-            }
-            catch (Exception e)
-            {
-                LogErrorCreatingAddressSpace(e);
-            }
-
-            AddPredefinedNode(SystemContext, root);
+            externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
         }
+
+        _externalReferences = externalReferences;
+
+        FolderState root = CreateFolder(parent: null, _config.ProgramName, _config.ProgramName, NamespaceType.OpcPlcApplications);
+        root.AddReference(ReferenceTypeIds.Organizes, isInverse: true, ObjectIds.ObjectsFolder);
+        references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, isInverse: false, root.NodeId));
+        root.EventNotifier = EventNotifiers.SubscribeToEvents;
+        await AddRootNotifierAsync(root, cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            FolderState telemetryFolder = CreateFolder(root, "Telemetry", "Telemetry", NamespaceType.OpcPlcApplications);
+            FolderState methodsFolder = CreateFolder(root, "Methods", "Methods", NamespaceType.OpcPlcApplications);
+
+            foreach (var plugin in _pluginNodes)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await plugin.AddToAddressSpaceAsync(telemetryFolder, methodsFolder, this, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            LogErrorCreatingAddressSpace(e);
+            throw;
+        }
+
+        await AddPredefinedNodeAsync(SystemContext, root, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -92,12 +96,12 @@ public partial class PlcNodeManager : CustomNodeManager2
     /// topology instead of the application's Telemetry folder. The DeviceSet node is owned by the
     /// DI node manager, therefore the forward (DeviceSet -> node) reference is supplied via
     /// externalReferences, which the MasterNodeManager applies to the DI node manager.
-    /// Must be called during <see cref="CreateAddressSpace"/> while externalReferences is available.
+    /// Must be called during <see cref="CreateAddressSpaceAsync"/> while externalReferences is available.
     /// </summary>
     public void AddNodeToDeviceSet(NodeState node)
     {
         ushort diNamespaceIndex = (ushort)Server.NamespaceUris.GetIndex(Namespaces.DI);
-        var deviceSetNodeId = new NodeId(Opc.Ua.DI.Objects.DeviceSet, diNamespaceIndex);
+        var deviceSetNodeId = new NodeId(RuntimeModelIds.Di.Objects.DeviceSet, diNamespaceIndex);
 
         if (!_externalReferences.TryGetValue(deviceSetNodeId, out IList<IReference> references))
         {
@@ -105,17 +109,17 @@ public partial class PlcNodeManager : CustomNodeManager2
         }
 
         // Forward reference: DeviceSet -> node.
-        references.Add(new NodeStateReference(ReferenceTypes.Organizes, isInverse: false, node.NodeId));
+        references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, isInverse: false, node.NodeId));
 
         // Inverse reference: node -> DeviceSet.
-        node.AddReference(ReferenceTypes.Organizes, isInverse: true, deviceSetNodeId);
+        node.AddReference(ReferenceTypeIds.Organizes, isInverse: true, deviceSetNodeId);
 
-        AddPredefinedNode(SystemContext, node);
+        AddPredefinedNodeSynchronously(node);
     }
 
     /// <summary>
     /// Registers a top-level node and links it directly under the standard Objects folder using an
-    /// Organizes reference. Must be called during <see cref="CreateAddressSpace"/> while external
+    /// Organizes reference. Must be called during <see cref="CreateAddressSpaceAsync"/> while external
     /// references are available.
     /// </summary>
     public void AddNodeToObjects(NodeState node)
@@ -125,10 +129,10 @@ public partial class PlcNodeManager : CustomNodeManager2
             _externalReferences[ObjectIds.ObjectsFolder] = references = new List<IReference>();
         }
 
-        references.Add(new NodeStateReference(ReferenceTypes.Organizes, isInverse: false, node.NodeId));
-        node.AddReference(ReferenceTypes.Organizes, isInverse: true, ObjectIds.ObjectsFolder);
+        references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, isInverse: false, node.NodeId));
+        node.AddReference(ReferenceTypeIds.Organizes, isInverse: true, ObjectIds.ObjectsFolder);
 
-        AddPredefinedNode(SystemContext, node);
+        AddPredefinedNodeSynchronously(node);
     }
 
     /// <summary>
@@ -138,12 +142,12 @@ public partial class PlcNodeManager : CustomNodeManager2
     /// AddPredefinedNode, so the node keeps its original location (e.g. the Boilers folder) and
     /// simply becomes additionally reachable via the standard DI device topology.
     /// The node's NodeId, namespace and BrowseName are unchanged.
-    /// Must be called during <see cref="CreateAddressSpace"/> while externalReferences is available.
+    /// Must be called during <see cref="CreateAddressSpaceAsync"/> while externalReferences is available.
     /// </summary>
     public void LinkNodeToDeviceSet(NodeState node)
     {
         ushort diNamespaceIndex = (ushort)Server.NamespaceUris.GetIndex(Namespaces.DI);
-        var deviceSetNodeId = new NodeId(Opc.Ua.DI.Objects.DeviceSet, diNamespaceIndex);
+        var deviceSetNodeId = new NodeId(RuntimeModelIds.Di.Objects.DeviceSet, diNamespaceIndex);
 
         if (!_externalReferences.TryGetValue(deviceSetNodeId, out IList<IReference> references))
         {
@@ -153,7 +157,7 @@ public partial class PlcNodeManager : CustomNodeManager2
         // Forward reference: DeviceSet -> node. The inverse (node -> DeviceSet) is intentionally
         // omitted to avoid a second hierarchical parent path; the node remains primarily owned by
         // its existing parent folder.
-        references.Add(new NodeStateReference(ReferenceTypes.Organizes, isInverse: false, node.NodeId));
+        references.Add(new NodeStateReference(ReferenceTypeIds.Organizes, isInverse: false, node.NodeId));
     }
 
     public SimulatedVariableNode<T> CreateVariableNode<T>(BaseDataVariableState variable)
@@ -176,7 +180,7 @@ public partial class PlcNodeManager : CustomNodeManager2
 
         var folder = new FolderState(parent) {
             SymbolicName = name,
-            ReferenceTypeId = ReferenceTypes.Organizes,
+            ReferenceTypeId = ReferenceTypeIds.Organizes,
             TypeDefinitionId = ObjectTypeIds.FolderType,
             NodeId = new NodeId(path, namespaceIndex),
             BrowseName = new QualifiedName(path, namespaceIndex),
@@ -198,7 +202,7 @@ public partial class PlcNodeManager : CustomNodeManager2
     {
         var baseDataVariableState = new BaseDataVariableStateExtended(parent, randomize, stepSizeValue, minTypeValue, maxTypeValue) {
             SymbolicName = name,
-            ReferenceTypeId = ReferenceTypes.Organizes,
+            ReferenceTypeId = ReferenceTypeIds.Organizes,
             TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
         };
 
@@ -212,7 +216,7 @@ public partial class PlcNodeManager : CustomNodeManager2
     {
         var baseDataVariableState = new BaseDataVariableState(parent) {
             SymbolicName = name,
-            ReferenceTypeId = ReferenceTypes.Organizes,
+            ReferenceTypeId = ReferenceTypeIds.Organizes,
             TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
         };
 
@@ -249,7 +253,7 @@ public partial class PlcNodeManager : CustomNodeManager2
     /// </summary>
     public void RegisterRootNotifier(NodeState notifier)
     {
-        AddRootNotifier(notifier);
+        AddRootNotifierSynchronously(notifier);
     }
 
     private BaseDataVariableState CreateBaseVariable(BaseDataVariableState baseDataVariableState, NodeState parent, dynamic path, string name, NodeId dataType, int valueRank, byte accessLevel, string description, NamespaceType namespaceType, object defaultValue = null)
@@ -263,13 +267,19 @@ public partial class PlcNodeManager : CustomNodeManager2
         }
         else if (path is string)
         {
-            baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
-            baseDataVariableState.BrowseName = new QualifiedName(path, namespaceIndex);
+            baseDataVariableState.NodeId = new NodeId((string)path, namespaceIndex);
+            baseDataVariableState.BrowseName = new QualifiedName((string)path, namespaceIndex);
         }
         else
         {
             LogNodeIdType(path.GetType().ToString());
-            baseDataVariableState.NodeId = new NodeId(path, namespaceIndex);
+            baseDataVariableState.NodeId = (object)path switch
+            {
+                Guid guid => new NodeId(guid, namespaceIndex),
+                byte[] identifier => new NodeId((ByteString)identifier, namespaceIndex),
+                ByteString identifier => new NodeId(identifier, namespaceIndex),
+                _ => throw new ArgumentException("Unsupported node identifier type.", nameof(path))
+            };
             baseDataVariableState.BrowseName = new QualifiedName(name, namespaceIndex);
         }
 
@@ -281,18 +291,22 @@ public partial class PlcNodeManager : CustomNodeManager2
         baseDataVariableState.AccessLevel = accessLevel;
         baseDataVariableState.UserAccessLevel = accessLevel;
         baseDataVariableState.Historizing = false;
-        baseDataVariableState.Value = defaultValue ?? TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
+        object initialValue = defaultValue ?? TypeInfo.GetDefaultValue(dataType, valueRank, Server.TypeTree);
+        baseDataVariableState.Value = initialValue is byte[] bytes &&
+            dataType == DataTypeIds.ByteString && valueRank == ValueRanks.Scalar
+                ? Variant.From((ByteString)bytes)
+                : VariantHelper.CastFrom(initialValue);
         baseDataVariableState.StatusCode = StatusCodes.Good;
         baseDataVariableState.Timestamp = _timeService.UtcNow();
         baseDataVariableState.Description = new LocalizedText(description);
 
         if (valueRank == ValueRanks.OneDimension)
         {
-            baseDataVariableState.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0 });
+            baseDataVariableState.ArrayDimensions = [0];
         }
         else if (valueRank == ValueRanks.TwoDimensions)
         {
-            baseDataVariableState.ArrayDimensions = new ReadOnlyList<uint>(new List<uint> { 0, 0 });
+            baseDataVariableState.ArrayDimensions = [0, 0];
         }
 
         parent?.AddChild(baseDataVariableState);
@@ -303,29 +317,23 @@ public partial class PlcNodeManager : CustomNodeManager2
     /// <summary>
     /// Loads a predefined node set by using the specified handler.
     /// </summary>
-    public void LoadPredefinedNodes(Func<ISystemContext, NodeStateCollection> loadPredefinedNodesHandler)
+    public async ValueTask LoadPredefinedNodesAsync(
+        Func<ISystemContext, NodeStateCollection> loadPredefinedNodesHandler,
+        CancellationToken cancellationToken = default)
     {
-        _loadPredefinedNodesHandler = loadPredefinedNodesHandler;
+        cancellationToken.ThrowIfCancellationRequested();
+        NodeStateCollection nodes = loadPredefinedNodesHandler(SystemContext);
+        foreach (NodeState node in nodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await AddPredefinedNodeAsync(SystemContext, node, cancellationToken).ConfigureAwait(false);
+        }
 
-        base.LoadPredefinedNodes(SystemContext, _externalReferences);
-    }
-
-    /// <summary>
-    /// Adds a predefined node set.
-    /// </summary>
-    public void AddPredefinedNode(NodeState node)
-    {
-        base.AddPredefinedNode(SystemContext, node);
-    }
-
-    protected override NodeStateCollection LoadPredefinedNodes(ISystemContext context)
-    {
-        return _loadPredefinedNodesHandler?.Invoke(context);
+        await AddReverseReferencesAsync(_externalReferences, cancellationToken).ConfigureAwait(false);
     }
 
     private readonly TimeService _timeService;
     private IDictionary<NodeId, IList<IReference>> _externalReferences;
-    private Func<ISystemContext, NodeStateCollection> _loadPredefinedNodesHandler;
 
     [LoggerMessage(
         Level = LogLevel.Error,

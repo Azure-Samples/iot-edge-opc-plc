@@ -6,6 +6,8 @@ using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Node with an opaque identifier (free-format byte string that might or might not be human interpretable).
@@ -23,8 +25,11 @@ public class OpaqueAndNodeIdPluginNode(TimeService timeService, ILogger logger) 
         // Enabled by default.
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         _plcNodeManager = plcNodeManager;
 
         FolderState folder = _plcNodeManager.CreateFolder(
@@ -34,6 +39,8 @@ public class OpaqueAndNodeIdPluginNode(TimeService timeService, ILogger logger) 
             NamespaceType.OpcPlcApplications);
 
         AddNodes(folder);
+
+        return ValueTask.CompletedTask;
     }
 
     public void StartSimulation()
@@ -94,7 +101,7 @@ public class OpaqueAndNodeIdPluginNode(TimeService timeService, ILogger logger) 
             AccessLevels.CurrentReadOrWrite,
             "Opaque representation of the NodeId",
             NamespaceType.OpcPlcApplications,
-            defaultValue: new NodeId(new byte[] { 0x01, 0x02, 0x03, 0x04 }, 3)
+            defaultValue: new NodeId((ByteString)new byte[] { 0x01, 0x02, 0x03, 0x04 }, 3)
         );
 
         BaseDataVariableState guidNodeIdVariable = _plcNodeManager.CreateBaseVariable(
@@ -154,7 +161,8 @@ public class OpaqueAndNodeIdPluginNode(TimeService timeService, ILogger logger) 
             AccessLevels.CurrentReadOrWrite,
             "Opaque representation of the ExpandedNodeId",
             NamespaceType.OpcPlcApplications,
-            defaultValue: new ExpandedNodeId(new byte[] { 0xCA, 0xFE}, 3, OpcPlc.Namespaces.OpcPlcApplications, 0)
+            defaultValue: new ExpandedNodeId((ByteString)new byte[] { 0xCA, 0xFE}, 3,
+                OpcPlc.Namespaces.OpcPlcApplications, 0)
         );
 
         // Add to node list for creation of pn.json.

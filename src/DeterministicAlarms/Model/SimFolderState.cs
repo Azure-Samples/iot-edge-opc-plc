@@ -12,8 +12,8 @@ public class SimFolderState : FolderState
         SymbolicName = name;
         NodeId = nodeId;
         BrowseName = new QualifiedName(name, nodeId.NamespaceIndex);
-        DisplayName = BrowseName.Name;
-        Description = null;
+        DisplayName = new LocalizedText(BrowseName.Name);
+        Description = default;
         ReferenceTypeId = ReferenceTypeIds.HasNotifier;
         TypeDefinitionId = ObjectTypeIds.FolderType;
         EventNotifier = EventNotifiers.SubscribeToEvents;

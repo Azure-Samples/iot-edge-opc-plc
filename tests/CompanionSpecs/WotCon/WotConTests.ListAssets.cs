@@ -79,7 +79,7 @@ public partial class WotConTests
         var (deleteStatus, _) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(DeleteAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(doomedId) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(doomedId) }).ConfigureAwait(false);
         _ = StatusCode.IsGood(deleteStatus).Should().BeTrue("DeleteAsset should succeed, got {0}", deleteStatus);
 
         var (after, _) = await BrowseManagedAssetsAsync().ConfigureAwait(false);
@@ -142,14 +142,14 @@ public partial class WotConTests
         var (status, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetForEndpointTypeMethodId),
-            arguments: new VariantCollection
+            arguments: new List<Variant>
             {
                 new Variant(assetName),
                 new Variant($"opc.tcp://list-afe-{suffix}.invalid:4840"),
             }).ConfigureAwait(false);
         _ = StatusCode.IsGood(status).Should().BeTrue("CreateAssetForEndpoint should succeed, got {0}", status);
-        var assetId = outputs[0].Value as NodeId;
-        _ = NodeId.IsNull(assetId).Should().BeFalse();
+        var assetId = outputs[0].GetNodeId();
+        _ = assetId.IsNull.Should().BeFalse();
 
         var (references, _) = await BrowseManagedAssetsAsync().ConfigureAwait(false);
 
@@ -197,12 +197,12 @@ public partial class WotConTests
         var (status, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(assetName) }).ConfigureAwait(false);
 
         _ = StatusCode.IsGood(status).Should().BeTrue(
             "CreateAsset('{0}') should succeed, got {1}", assetName, status);
-        var assetId = outputs[0].Value as NodeId;
-        _ = NodeId.IsNull(assetId).Should().BeFalse("AssetId must be a real, non-null NodeId");
+        var assetId = outputs[0].GetNodeId();
+        _ = assetId.IsNull.Should().BeFalse("AssetId must be a real, non-null NodeId");
         return assetId;
     }
 
@@ -213,7 +213,7 @@ public partial class WotConTests
     /// References plus the number of Browse / BrowseNext service calls it took, so paging
     /// behaviour can be asserted.
     /// </summary>
-    private async Task<(ReferenceDescriptionCollection References, int ServiceCalls)> BrowseManagedAssetsAsync(
+    private async Task<(List<ReferenceDescription> References, int ServiceCalls)> BrowseManagedAssetsAsync(
         uint requestedMaxReferencesPerNode = 0)
     {
         var browseDescription = new BrowseDescription
@@ -230,19 +230,19 @@ public partial class WotConTests
             null,
             null,
             requestedMaxReferencesPerNode,
-            new BrowseDescriptionCollection { browseDescription },
+            new List<BrowseDescription> { browseDescription },
             CancellationToken.None).ConfigureAwait(false);
 
-        response.Results.Should().ContainSingle();
+        response.Results.ToList().Should().ContainSingle();
         StatusCode.IsGood(response.Results[0].StatusCode).Should().BeTrue(
             "Browse(WoTAssetConnectionManagement / Organizes) should succeed, got {0}",
             response.Results[0].StatusCode);
 
-        var all = new ReferenceDescriptionCollection(response.Results[0].References);
+        var all = response.Results[0].References.ToList();
         var continuationPoint = response.Results[0].ContinuationPoint;
         int serviceCalls = 1;
 
-        while (continuationPoint != null && continuationPoint.Length > 0)
+        while (!continuationPoint.IsNull && continuationPoint.Length > 0)
         {
             serviceCalls.Should().BeLessThan(
                 MaxBrowseNextIterations,
@@ -251,15 +251,15 @@ public partial class WotConTests
             var next = await Session.BrowseNextAsync(
                 null,
                 false,
-                new ByteStringCollection { continuationPoint },
+                new List<ByteString> { continuationPoint },
                 CancellationToken.None).ConfigureAwait(false);
             serviceCalls++;
 
-            next.Results.Should().ContainSingle();
+            next.Results.ToList().Should().ContainSingle();
             StatusCode.IsGood(next.Results[0].StatusCode).Should().BeTrue(
                 "BrowseNext should succeed, got {0}", next.Results[0].StatusCode);
 
-            all.AddRange(next.Results[0].References);
+            all.AddRange(next.Results[0].References.ToList());
             continuationPoint = next.Results[0].ContinuationPoint;
         }
 
@@ -271,13 +271,13 @@ public partial class WotConTests
     /// type or NodeClass — used to prove that the plumbing children the listing filter
     /// excludes do actually exist.
     /// </summary>
-    private async Task<ReferenceDescriptionCollection> BrowseAllChildrenOfManagementObjectAsync()
+    private async Task<List<ReferenceDescription>> BrowseAllChildrenOfManagementObjectAsync()
     {
         var browseDescription = new BrowseDescription
         {
             NodeId = WotConNodeId(WotAssetConnectionManagementObjectId),
             BrowseDirection = BrowseDirection.Forward,
-            ReferenceTypeId = null,
+            ReferenceTypeId = NodeId.Null,
             IncludeSubtypes = true,
             NodeClassMask = 0,
             ResultMask = (uint)BrowseResultMask.All,
@@ -287,11 +287,11 @@ public partial class WotConTests
             null,
             null,
             0,
-            new BrowseDescriptionCollection { browseDescription },
+            new List<BrowseDescription> { browseDescription },
             CancellationToken.None).ConfigureAwait(false);
 
-        response.Results.Should().ContainSingle();
+        response.Results.ToList().Should().ContainSingle();
         StatusCode.IsGood(response.Results[0].StatusCode).Should().BeTrue();
-        return response.Results[0].References;
+        return response.Results[0].References.ToList();
     }
 }

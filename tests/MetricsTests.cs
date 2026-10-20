@@ -1,7 +1,10 @@
 namespace OpcPlc.Tests;
 
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
+using Opc.Ua;
+using OpcPlc.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
@@ -89,5 +92,24 @@ internal class MetricsTests : SimulatorTestsBase
         MetricsHelper.RecordTotalErrors("operation");
         _metrics.TryGetValue("opc_plc_total_errors", out var counter).Should().BeTrue();
         counter.Should().Be(1);
+    }
+
+    [Test]
+    public void Telemetry_AssemblyOverloadsPreserveConfiguredIdentity()
+    {
+        using var context = new OpcTelemetryContext(NullLoggerFactory.Instance, "Opc.Ua", "1.2.3");
+        using Meter defaultMeter = context.CreateMeter();
+
+        foreach (var assembly in new[] { typeof(MetricsTests).Assembly, typeof(ITelemetryContext).Assembly })
+        {
+            using Meter meter = context.CreateMeter(assembly);
+            meter.Should().NotBeSameAs(defaultMeter);
+            meter.Name.Should().Be("Opc.Ua");
+            meter.Version.Should().Be("1.2.3");
+            var activitySource = context.GetActivitySource(assembly);
+            activitySource.Should().BeSameAs(context.ActivitySource);
+            activitySource.Name.Should().Be("Opc.Ua");
+            activitySource.Version.Should().Be("1.2.3");
+        }
     }
 }

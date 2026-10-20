@@ -114,7 +114,7 @@ public partial class WotConTests
             nodeIds.Should().ContainKey(name);
             var dataValue = await ReadDataValueAsync(nodeIds[name]).ConfigureAwait(false);
             StatusCode.IsGood(dataValue.StatusCode).Should().BeTrue("reading '{0}' should succeed", name);
-            values[name] = dataValue.Value;
+            values[name] = dataValue.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
         }
 
         return values;

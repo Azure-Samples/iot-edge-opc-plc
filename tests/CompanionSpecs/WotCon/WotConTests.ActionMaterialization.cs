@@ -99,12 +99,12 @@ public partial class WotConTests
         var (status, outputs) = await CallAsync(
             objectId: assetId,
             methodId: fadeMethodId,
-            arguments: new VariantCollection { new Variant(75) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(75) }).ConfigureAwait(false);
 
         StatusCode.IsGood(status).Should().BeTrue("invocation should succeed, got {0}", status);
         outputs.Should().HaveCount(2, "two output arguments declared in the TD");
-        outputs[0].Value.Should().BeOfType<bool>();
-        outputs[1].Value.Should().BeOfType<int>();
+        outputs[0].AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().BeOfType<bool>();
+        outputs[1].AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().BeOfType<int>();
     }
 
     [Test]
@@ -139,7 +139,7 @@ public partial class WotConTests
             "re-upload must drop methods from the previous TD generation");
     }
 
-    private async Task<ReferenceDescriptionCollection> BrowseAssetMethodChildrenAsync(NodeId assetId)
+    private async Task<List<ReferenceDescription>> BrowseAssetMethodChildrenAsync(NodeId assetId)
     {
         var bd = new BrowseDescription
         {
@@ -152,10 +152,10 @@ public partial class WotConTests
         };
         var resp = await Session.BrowseAsync(
             null, null, 0,
-            new BrowseDescriptionCollection { bd },
+            new List<BrowseDescription> { bd },
             CancellationToken.None).ConfigureAwait(false);
-        resp.Results.Should().ContainSingle();
-        return resp.Results[0].References;
+        resp.Results.ToArray().Should().ContainSingle();
+        return resp.Results[0].References.ToArray().ToList();
     }
 
     private async Task<Argument[]> ReadArgumentArrayAsync(NodeId methodId, string argumentsBrowseName)
@@ -166,7 +166,7 @@ public partial class WotConTests
             RelativePath = new RelativePath
             {
                 Elements =
-                {
+                [
                     new RelativePathElement
                     {
                         ReferenceTypeId = ReferenceTypeIds.HasProperty,
@@ -174,24 +174,24 @@ public partial class WotConTests
                         IncludeSubtypes = true,
                         TargetName = new QualifiedName(argumentsBrowseName, 0),
                     },
-                },
+                ],
             },
         };
 
         var resp = await Session.TranslateBrowsePathsToNodeIdsAsync(
             null,
-            new BrowsePathCollection { browsePath },
+            new List<BrowsePath> { browsePath },
             CancellationToken.None).ConfigureAwait(false);
-        resp.Results.Should().ContainSingle();
+        resp.Results.ToArray().Should().ContainSingle();
         var bp = resp.Results[0];
         StatusCode.IsGood(bp.StatusCode).Should().BeTrue("{0} property must resolve, got {1}", argumentsBrowseName, bp.StatusCode);
-        bp.Targets.Should().ContainSingle();
+        bp.Targets.ToArray().Should().ContainSingle();
         var argsNodeId = ToNodeId(bp.Targets[0].TargetId);
 
         var dv = await ReadDataValueAsync(argsNodeId).ConfigureAwait(false);
         StatusCode.IsGood(dv.StatusCode).Should().BeTrue();
-        var extObjects = dv.Value as ExtensionObject[];
+        var extObjects = dv.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy) as ExtensionObject[];
         extObjects.Should().NotBeNull("{0} should decode as ExtensionObject[]", argumentsBrowseName);
-        return extObjects.Select(e => (Argument)e.Body).ToArray();
+        return extObjects.Select(value => (Argument)ExtensionObject.ToEncodeable(value)).ToArray();
     }
 }

@@ -10,9 +10,8 @@ public partial class SlowFastCommon
     protected readonly TimeService _timeService;
     protected readonly ILogger _logger;
 
-    private readonly Random _random = new();
+    private readonly SlowFastNodeSimulation _simulation;
     private BaseDataVariableState _numberOfUpdates;
-    private uint _badNodesCycle;
     private const string NumberOfUpdates = "NumberOfUpdates";
 
     public SlowFastCommon(PlcNodeManager plcNodeManager, TimeService timeService, ILogger logger)
@@ -20,6 +19,7 @@ public partial class SlowFastCommon
         _plcNodeManager = plcNodeManager ?? throw new ArgumentNullException(nameof(plcNodeManager));
         _timeService = timeService;
         _logger = logger;
+        _simulation = new SlowFastNodeSimulation(plcNodeManager.SystemContext, timeService, logger);
     }
 
     public (BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes) CreateNodes(NodeType nodeType, string name, uint count, FolderState folder, FolderState simulatorFolder, bool nodeRandomization, string nodeStepSize, string nodeMinValue, string nodeMaxValue, uint nodeRate)
@@ -82,8 +82,8 @@ public partial class SlowFastCommon
         variable.ValueRank = ValueRanks.Scalar;
         variable.AccessLevel = AccessLevels.CurrentReadOrWrite;
         variable.UserAccessLevel = AccessLevels.CurrentReadOrWrite;
-        variable.BrowseName = name;
-        variable.DisplayName = name;
+        variable.BrowseName = new QualifiedName(name);
+        variable.DisplayName = new LocalizedText(name);
         variable.Description = new LocalizedText("The number of times to update the {name} nodes. Set to -1 to update indefinitely.");
         variable.TypeDefinitionId = VariableTypeIds.BaseDataVariableType;
         simulatorFolder.AddChild(variable);
@@ -118,195 +118,7 @@ public partial class SlowFastCommon
 
     public void UpdateNodes(BaseDataVariableState[] nodes, BaseDataVariableState[] badNodes, NodeType nodeType, bool updateNodes)
     {
-        if (!ShouldUpdateNodes(_numberOfUpdates) || !updateNodes)
-        {
-            return;
-        }
-
-        if (nodes != null)
-        {
-            UpdateNodes(nodes, nodeType, StatusCodes.Good, addBadValue: false);
-        }
-
-        if (badNodes != null)
-        {
-            (StatusCode status, bool addBadValue) = BadStatusSequence[_badNodesCycle++ % BadStatusSequence.Length];
-            UpdateNodes(badNodes, nodeType, status, addBadValue);
-        }
-    }
-
-    private void UpdateNodes(BaseDataVariableState[] nodes, NodeType type, StatusCode status, bool addBadValue)
-    {
-        if (nodes == null || nodes.Length == 0)
-        {
-            LogInvalidArgument(nodes);
-            return;
-        }
-
-        for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
-        {
-            var extendedNode = (BaseDataVariableStateExtended)nodes[nodeIndex];
-
-            object value = null;
-            if (StatusCode.IsNotBad(status) || addBadValue)
-            {
-                switch (type)
-                {
-                    case NodeType.Double:
-                        var minDoubleValue = (double)extendedNode.MinValue;
-                        var maxDoubleValue = (double)extendedNode.MaxValue;
-                        var extendedDoubleNodeValue = (double)(extendedNode.Value ?? minDoubleValue);
-
-                        if (extendedNode.Randomize)
-                        {
-                            if (minDoubleValue != maxDoubleValue)
-                            {
-                                // Hybrid range case (e.g. -5.0 to 5.0).
-                                if (minDoubleValue < 0 && maxDoubleValue > 0)
-                                {
-                                    // If new random value is same as previous one, generate a new one until it is not.
-                                    while (value == null || extendedDoubleNodeValue == (double)value)
-                                    {
-                                        // Split the range from 0 on both sides.
-                                        var value1 = _random.NextDouble() * maxDoubleValue;
-                                        var value2 = _random.NextDouble() * minDoubleValue;
-
-                                        // Return random value from positive or negative range, randomly.
-                                        value = _random.Next(10) % 2 == 0 ? value1 : value2;
-                                    }
-                                }
-                                else // Negative and positive only range cases (e.g. -5.0 to -8.0 or 0 to 9.5).
-                                {
-                                    // If new random value is same as previous one, generate a new one until it is not.
-                                    while (value == null || extendedDoubleNodeValue == (double)value)
-                                    {
-                                        value = minDoubleValue + (_random.NextDouble() * (maxDoubleValue - minDoubleValue));
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                throw new ArgumentException($"Range {minDoubleValue} to {maxDoubleValue}does not have provision for randomness.");
-                            }
-                        }
-                        else
-                        {
-                            // Positive only range cases (e.g. 0 to 9.5).
-                            if (minDoubleValue >= 0 && maxDoubleValue > 0)
-                            {
-                                value = (extendedDoubleNodeValue % maxDoubleValue) < minDoubleValue
-                                    ? minDoubleValue
-                                    : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize) > maxDoubleValue
-                                        ? minDoubleValue
-                                        : ((extendedDoubleNodeValue % maxDoubleValue) + (double)extendedNode.StepSize);
-                            }
-                            else if (maxDoubleValue <= 0 && minDoubleValue < 0) // Negative-only range cases (e.g. 0 to -9.5).
-                            {
-                                value = (extendedDoubleNodeValue % minDoubleValue) > maxDoubleValue
-                                    ? maxDoubleValue
-                                    : ((extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize) < minDoubleValue
-                                        ? maxDoubleValue
-                                        : (extendedDoubleNodeValue % minDoubleValue) - (double)extendedNode.StepSize;
-                            }
-                            else
-                            {
-                                // This is to prevent infinite loop while attempting to create a different random number than previous one if no range is provided.
-                                throw new ArgumentException($"Negative to positive range {minDoubleValue} to {maxDoubleValue} for sequential node values is not supported currently.");
-                            }
-                        }
-                        break;
-
-                    case NodeType.Bool:
-                        value = extendedNode.Value == null || !(bool)extendedNode.Value;
-                        break;
-
-                    case NodeType.UIntArray:
-                        uint[] arrayValue = (uint[])extendedNode.Value;
-                        if (arrayValue != null)
-                        {
-                            for (int arrayIndex = 0; arrayIndex < arrayValue?.Length; arrayIndex++)
-                            {
-                                arrayValue[arrayIndex]++;
-                            }
-                        }
-                        else
-                        {
-                            arrayValue = new uint[32];
-                        }
-                        value = arrayValue;
-                        break;
-
-                    case NodeType.UInt:
-                    default:
-                        var minUIntValue = (uint)extendedNode.MinValue;
-                        var maxUIntValue = (uint)extendedNode.MaxValue;
-                        var extendedUIntNodeValue = (uint)(extendedNode.Value ?? minUIntValue);
-
-                        if (extendedNode.Randomize)
-                        {
-                            if (minUIntValue != maxUIntValue)
-                            {
-                                // If new random value is same as previous one, generate a new one until it is not.
-                                while (value == null || extendedUIntNodeValue == (uint)value)
-                                {
-                                    // uint.MaxValue + 1 cycles back to 0 which causes infinite loop here hence a check maxUIntValue == uint.MaxValue to prevent it.
-                                    value = (uint)(minUIntValue + (_random.NextDouble() * ((maxUIntValue == uint.MaxValue ? maxUIntValue : maxUIntValue + 1) - minUIntValue)));
-                                }
-                            }
-                            else
-                            {
-                                // This is to prevent infinite loop while attempting to create a different random number than previous one if no range is provided.
-                                throw new ArgumentException($"Range {minUIntValue} to {maxUIntValue} does not have provision for randomness.");
-                            }
-                        }
-                        else
-                        {
-                            value = (extendedUIntNodeValue % maxUIntValue) < minUIntValue
-                                ? minUIntValue
-                                : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize) > maxUIntValue
-                                    ? minUIntValue
-                                    : ((extendedUIntNodeValue % maxUIntValue) + (uint)extendedNode.StepSize);
-                        }
-
-                        break;
-                }
-            }
-
-            extendedNode.StatusCode = status;
-            SetValue(extendedNode, value);
-        }
-    }
-
-    private void SetValue<T>(BaseVariableState variable, T value)
-    {
-        variable.Value = value;
-        variable.Timestamp = _timeService.Now();
-        variable.ClearChangeMasks(_plcNodeManager.SystemContext, includeChildren: false);
-    }
-
-    /// <summary>
-    /// Determines whether the values of simulated nodes should be updated, based
-    /// on the value of the corresponding <see cref="NumberOfUpdates"/> variable.
-    /// Decrements the NumberOfUpdates variable value and returns true if the NumberOfUpdates variable value if greater than zero,
-    /// returns false if the NumberOfUpdates variable value is zero,
-    /// returns true if the NumberOfUpdates variable value is less than zero.
-    /// </summary>
-    /// <param name="numberOfUpdatesVariable">Node that contains the setting of the number of updates to apply.</param>
-    /// <returns>True if the value of the node should be updated by the simulator, false otherwise.</returns>
-    private bool ShouldUpdateNodes(BaseDataVariableState numberOfUpdatesVariable)
-    {
-        var value = (int)numberOfUpdatesVariable.Value;
-        if (value == 0)
-        {
-            return false;
-        }
-
-        if (value > 0)
-        {
-            SetValue(numberOfUpdatesVariable, value - 1);
-        }
-
-        return true;
+        _simulation.UpdateNodes(nodes, badNodes, nodeType, _numberOfUpdates, updateNodes);
     }
 
 
@@ -340,20 +152,6 @@ public partial class SlowFastCommon
         return stepSize;
     }
 
-    private readonly (StatusCode, bool)[] BadStatusSequence =
-    [
-        ( StatusCodes.Good, true ),
-        ( StatusCodes.Good, true ),
-        ( StatusCodes.Good, true ),
-        ( StatusCodes.UncertainLastUsableValue, true),
-        ( StatusCodes.Good, true ),
-        ( StatusCodes.Good, true ),
-        ( StatusCodes.Good, true ),
-        ( StatusCodes.UncertainLastUsableValue, true),
-        ( StatusCodes.BadDataLost, true),
-        ( StatusCodes.BadNoCommunication, false)
-    ];
-
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "Creating {Count} {Name} nodes of type: {Type}")]
@@ -364,8 +162,4 @@ public partial class SlowFastCommon
         Message = "Node values will change every {NodeRate:N0} ms")]
     partial void LogNodeValuesChangeRate(uint nodeRate);
 
-    [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = "Invalid argument {Argument} provided")]
-    partial void LogInvalidArgument(object argument);
 }

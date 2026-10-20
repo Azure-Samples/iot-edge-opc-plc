@@ -49,13 +49,13 @@ public partial class WotConTests
         var temperatureId = ToNodeId(refs.Single(r => r.BrowseName.Name == "temperature").NodeId);
         var temperatureValue = await ReadDataValueAsync(temperatureId).ConfigureAwait(false);
         StatusCode.IsGood(temperatureValue.StatusCode).Should().BeTrue();
-        temperatureValue.Value.Should().BeOfType<double>();
+        temperatureValue.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().BeOfType<double>();
 
         // Array of integer → Int32 with ValueRank.OneDimension; seed yields int[].
         var samplesId = ToNodeId(refs.Single(r => r.BrowseName.Name == "samples").NodeId);
         var samplesValue = await ReadDataValueAsync(samplesId).ConfigureAwait(false);
         StatusCode.IsGood(samplesValue.StatusCode).Should().BeTrue();
-        samplesValue.Value.Should().BeOfType<int[]>();
+        samplesValue.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().BeOfType<int[]>();
     }
 
     [Test]
@@ -121,15 +121,15 @@ public partial class WotConTests
         };
         var browseResp = await Session.BrowseAsync(
             null, null, 0,
-            new BrowseDescriptionCollection { propertyBrowse },
+            new List<BrowseDescription> { propertyBrowse },
             CancellationToken.None).ConfigureAwait(false);
-        var euRef = browseResp.Results[0].References
+        var euRef = browseResp.Results[0].References.ToArray()
             .SingleOrDefault(r => r.BrowseName.Name == BrowseNames.EngineeringUnits);
         euRef.Should().NotBeNull("temperature must expose an EngineeringUnits property");
 
         var euValue = await ReadDataValueAsync(ToNodeId(euRef.NodeId)).ConfigureAwait(false);
         StatusCode.IsGood(euValue.StatusCode).Should().BeTrue();
-        var eu = ExtensionObject.ToEncodeable(euValue.Value as ExtensionObject) as EUInformation;
+        var eu = ExtensionObject.ToEncodeable((ExtensionObject)euValue.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy)) as EUInformation;
         eu.Should().NotBeNull();
         eu.DisplayName.Text.Should().Be("Cel");
     }

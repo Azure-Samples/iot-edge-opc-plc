@@ -29,9 +29,9 @@ public partial class WotConTests
         var (closeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(handle) }).ConfigureAwait(false);
 
-        closeStatus.Code.Should().Be(StatusCodes.BadDecodingError,
+        closeStatus.Should().Be(StatusCodes.BadDecodingError,
             "malformed JSON must be rejected with Bad_DecodingError");
     }
 
@@ -49,9 +49,9 @@ public partial class WotConTests
         var (closeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(handle) }).ConfigureAwait(false);
 
-        closeStatus.Code.Should().Be(StatusCodes.BadDecodingError,
+        closeStatus.Should().Be(StatusCodes.BadDecodingError,
             "a TD without a non-empty 'title' must be rejected with Bad_DecodingError");
     }
 
@@ -65,9 +65,9 @@ public partial class WotConTests
         var (closeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            arguments: new VariantCollection { new Variant((uint)9999) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant((uint)9999) }).ConfigureAwait(false);
 
-        closeStatus.Code.Should().Be(StatusCodes.BadInvalidState,
+        closeStatus.Should().Be(StatusCodes.BadInvalidState,
             "CloseAndUpdate against an unknown FileHandle must be rejected with Bad_InvalidState");
     }
 
@@ -83,7 +83,7 @@ public partial class WotConTests
         var (firstStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            arguments: new VariantCollection { new Variant(firstHandle) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(firstHandle) }).ConfigureAwait(false);
         StatusCode.IsGood(firstStatus).Should().BeTrue("first CloseAndUpdate must succeed, got {0}", firstStatus);
 
         byte[] secondPayload = Encoding.UTF8.GetBytes(@"{""@context"":""https://www.w3.org/2022/wot/td/v1.1"",""title"":""SecondUpload""}");
@@ -91,7 +91,7 @@ public partial class WotConTests
         var (secondStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            arguments: new VariantCollection { new Variant(secondHandle) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(secondHandle) }).ConfigureAwait(false);
         StatusCode.IsGood(secondStatus).Should().BeTrue("re-upload CloseAndUpdate must succeed, got {0}", secondStatus);
     }
 
@@ -112,9 +112,9 @@ public partial class WotConTests
         var (closeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(handle) }).ConfigureAwait(false);
 
-        closeStatus.Code.Should().Be(StatusCodes.BadNotSupported,
+        closeStatus.Should().Be(StatusCodes.BadNotSupported,
             "TDs that declare a binding outside SupportedWoTBindings must be rejected with Bad_NotSupported");
     }
 
@@ -133,7 +133,7 @@ public partial class WotConTests
         var (closeStatus, _) = await CallAsync(
             objectId: fileId,
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(handle) }).ConfigureAwait(false);
 
         StatusCode.IsGood(closeStatus).Should().BeTrue(
             "TDs that opt into the simulator binding must round-trip CloseAndUpdate, got {0}", closeStatus);

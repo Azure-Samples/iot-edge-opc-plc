@@ -1,8 +1,10 @@
 ﻿<Project>
   <ItemGroup>
-    <Files Include="$(MSBuildThisFileDirectory)/../contentFiles/**/*.*" />
+    <None Include="$(MSBuildThisFileDirectory)/../contentFiles/**/*.*"
+          Link="%(RecursiveDir)%(Filename)%(Extension)"
+          TargetPath="%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          Pack="false" />
   </ItemGroup>
-  <Target Name="CopyFiles" AfterTargets="Build">
-    <Copy SourceFiles="@(Files)" DestinationFolder="$(TargetDir)/%(RecursiveDir)" />
-  </Target>
 </Project>

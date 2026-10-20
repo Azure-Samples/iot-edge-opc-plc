@@ -23,13 +23,13 @@ public partial class WotConTests
         var (status, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(assetName) }).ConfigureAwait(false);
 
         StatusCode.IsGood(status).Should().BeTrue("CreateAsset should succeed, got status {0}", status);
         outputs.Should().HaveCountGreaterThanOrEqualTo(1);
-        var assetId = outputs[0].Value as NodeId;
+        var assetId = outputs[0].GetNodeId();
         assetId.Should().NotBeNull();
-        NodeId.IsNull(assetId).Should().BeFalse("AssetId must be a real, non-null NodeId");
+        assetId.IsNull.Should().BeFalse("AssetId must be a real, non-null NodeId");
     }
 
     [Test]
@@ -42,17 +42,17 @@ public partial class WotConTests
         var (status1, outputs1) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(assetName) }).ConfigureAwait(false);
         StatusCode.IsGood(status1).Should().BeTrue();
-        var firstId = outputs1[0].Value as NodeId;
+        var firstId = outputs1[0].GetNodeId();
         firstId.Should().NotBeNull();
 
         var (status2, _) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(assetName) }).ConfigureAwait(false);
 
-        status2.Code.Should().Be(StatusCodes.BadBrowseNameDuplicated,
+        status2.Should().Be(StatusCodes.BadBrowseNameDuplicated,
             "a second CreateAsset with the same AssetName must be rejected per §6.3.2, got {0}", status2);
     }
 
@@ -67,9 +67,9 @@ public partial class WotConTests
         var (createStatus, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(assetName) }).ConfigureAwait(false);
         StatusCode.IsGood(createStatus).Should().BeTrue("CreateAsset should succeed, got status {0}", createStatus);
-        var assetId = outputs[0].Value as NodeId;
+        var assetId = outputs[0].GetNodeId();
         assetId.Should().NotBeNull();
 
         var browseDescription = new BrowseDescription
@@ -86,11 +86,11 @@ public partial class WotConTests
             null,
             null,
             0,
-            new BrowseDescriptionCollection { browseDescription },
+            new List<BrowseDescription> { browseDescription },
             CancellationToken.None).ConfigureAwait(false);
 
-        results.Results.Should().ContainSingle();
-        var references = results.Results[0].References;
+        results.Results.ToArray().Should().ContainSingle();
+        var references = results.Results[0].References.ToArray();
         references.Should().Contain(
             r => r.BrowseName.Name == assetName,
             "the new asset must be reachable via Organizes from WoTAssetConnectionManagement");
@@ -111,9 +111,9 @@ public partial class WotConTests
         var (createStatus, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(CreateAssetMethodInstanceId),
-            arguments: new VariantCollection { new Variant(assetName) }).ConfigureAwait(false);
+            arguments: new List<Variant> { new Variant(assetName) }).ConfigureAwait(false);
         StatusCode.IsGood(createStatus).Should().BeTrue("CreateAsset should succeed, got status {0}", createStatus);
-        var assetId = outputs[0].Value as NodeId;
+        var assetId = outputs[0].GetNodeId();
         assetId.Should().NotBeNull();
 
         var browseDescription = new BrowseDescription
@@ -130,11 +130,11 @@ public partial class WotConTests
             null,
             null,
             0,
-            new BrowseDescriptionCollection { browseDescription },
+            new List<BrowseDescription> { browseDescription },
             CancellationToken.None).ConfigureAwait(false);
 
-        results.Results.Should().ContainSingle();
-        var references = results.Results[0].References;
+        results.Results.ToArray().Should().ContainSingle();
+        var references = results.Results[0].References.ToArray();
         references.Should().ContainSingle(
             r => ExpandedNodeId.ToNodeId(r.NodeId, Session.NamespaceUris) == WotConNodeId(IWoTAssetTypeId),
             "the new asset must have a HasInterface reference to IWoTAssetType per §6.3.8");

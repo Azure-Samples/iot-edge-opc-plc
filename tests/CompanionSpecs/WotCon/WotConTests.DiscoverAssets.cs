@@ -94,7 +94,7 @@ public partial class WotConTests
             childBrowseName: "AssetEndpoint",
             isProperty: true).ConfigureAwait(false);
 
-        var nodesToRead = new ReadValueIdCollection
+        var nodesToRead = new List<ReadValueId>
         {
             new ReadValueId { NodeId = endpointPropId, AttributeId = Attributes.Value },
         };
@@ -102,7 +102,7 @@ public partial class WotConTests
             null, 0, TimestampsToReturn.Neither, nodesToRead, CancellationToken.None).ConfigureAwait(false);
         StatusCode.IsGood(resp.Results[0].StatusCode).Should().BeTrue(
             "AssetEndpoint property must be readable, got {0}", resp.Results[0].StatusCode);
-        resp.Results[0].Value.Should().Be(endpoint,
+        resp.Results[0].WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().Be(endpoint,
             "AssetEndpoint must carry the TD 'base' verbatim");
     }
 
@@ -116,13 +116,13 @@ public partial class WotConTests
         var (status, outputs) = await CallAsync(
             objectId: WotConNodeId(WotAssetConnectionManagementObjectId),
             methodId: WotConNodeId(DiscoverAssetsTypeMethodId),
-            arguments: new VariantCollection()).ConfigureAwait(false);
+            arguments: new List<Variant>()).ConfigureAwait(false);
 
         StatusCode.IsGood(status).Should().BeTrue(
             "DiscoverAssets must succeed (OPC 10100-1 §6.3.4 defines no failure codes), got {0}", status);
         outputs.Should().ContainSingle("DiscoverAssets has exactly one output argument 'AssetEndpoints'");
-        outputs[0].Value.Should().BeAssignableTo<string[]>(
+        outputs[0].AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().BeAssignableTo<string[]>(
             "AssetEndpoints is declared as String[]");
-        return (string[])outputs[0].Value;
+        return (string[])outputs[0].AsBoxedObject(Variant.BoxingBehavior.Legacy);
     }
 }

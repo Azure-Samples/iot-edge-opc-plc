@@ -5,18 +5,32 @@ using Opc.Ua.Server;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 public partial class PlcNodeManager
 {
     private const int HistoryCapacity = 2000;
     private const uint HistoryPageSize = 100;
+    private readonly object _historyLock = new();
     private readonly Dictionary<NodeId,
         (BaseDataVariableState Variable, HistoricalDataConfigurationState Configuration, Queue<DataValue> Values)>
         _history = new();
 
-    internal void EnableHistory(BaseDataVariableState variable)
+    internal async ValueTask EnableHistoryAsync(
+        BaseDataVariableState variable, CancellationToken cancellationToken = default)
     {
-        lock (Lock)
+        cancellationToken.ThrowIfCancellationRequested();
+        HistoricalDataConfigurationState configuration = SystemContext.CreateInstanceOfHistoricalDataConfigurationType(
+            variable, QualifiedName.From(BrowseNames.HAConfiguration));
+        configuration.NodeId = new NodeId(
+            $"{variable.NodeId.IdentifierAsString}_HAConfiguration", variable.NodeId.NamespaceIndex);
+        configuration
+            .AddMinTimeInterval(SystemContext, true, property => property.Value = 10000)
+            .AddMaxTimeInterval(SystemContext, true, property => property.Value = 10000)
+            .AddStartOfArchive(SystemContext, default)
+            .AddStartOfOnlineArchive(SystemContext, default);
+        lock (_historyLock)
         {
             DateTime now = _timeService.UtcNow();
             var values = new Queue<DataValue>(HistoryCapacity);
@@ -27,35 +41,27 @@ public partial class PlcNodeManager
             }
 
             DataValue latest = values.Last();
-            variable.Value = latest.Value;
+            variable.Value = latest.WrappedValue;
             variable.Timestamp = latest.SourceTimestamp;
             variable.UserAccessLevel = variable.AccessLevel;
 
-            var configuration = new HistoricalDataConfigurationState(variable);
-            configuration.StartOfArchive = new PropertyState<DateTime>(configuration);
-            configuration.StartOfOnlineArchive = new PropertyState<DateTime>(configuration);
-            configuration.Create(SystemContext,
-                new NodeId($"{variable.NodeId.Identifier}_HAConfiguration", variable.NodeId.NamespaceIndex),
-                new QualifiedName(BrowseNames.HAConfiguration), null, true);
             configuration.ReferenceTypeId = ReferenceTypeIds.HasHistoricalConfiguration;
             configuration.Stepped.Value = true;
-            configuration.MinTimeInterval.Value = 10000;
-            configuration.MaxTimeInterval.Value = 10000;
             configuration.StartOfArchive.Value = values.Peek().SourceTimestamp;
             configuration.StartOfOnlineArchive.Value = values.Peek().SourceTimestamp;
             variable.AddChild(configuration);
             _history.Add(variable.NodeId, (variable, configuration, values));
-
-            HistoryServerCapabilitiesState capabilities = Server.DiagnosticsNodeManager.GetDefaultHistoryCapabilities();
-            capabilities.AccessHistoryDataCapability.Value = true;
-            capabilities.MaxReturnDataValues.Value = HistoryPageSize;
-            capabilities.ServerTimestampSupported.Value = true;
         }
+        HistoryServerCapabilitiesState capabilities = await Server.DiagnosticsNodeManager
+            .GetDefaultHistoryCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
+        capabilities.AccessHistoryDataCapability.Value = true;
+        capabilities.MaxReturnDataValues.Value = HistoryPageSize;
+        capabilities.ServerTimestampSupported.Value = true;
     }
 
     internal void UpdateHistory()
     {
-        lock (Lock)
+        lock (_historyLock)
         {
             DateTime now = _timeService.UtcNow();
             foreach (var entry in _history.Values)
@@ -65,7 +71,7 @@ public partial class PlcNodeManager
                     continue;
                 }
 
-                int value = (int)entry.Variable.Value + 1;
+                int value = entry.Variable.Value.CastTo<int>() + 1;
                 entry.Values.Enqueue(new DataValue(new Variant(value), StatusCodes.Good, now, now));
                 if (entry.Values.Count > HistoryCapacity)
                 {
@@ -75,49 +81,69 @@ public partial class PlcNodeManager
                     entry.Configuration.ClearChangeMasks(SystemContext, false);
                 }
 
-                entry.Variable.Value = value;
+                entry.Variable.Value = Variant.From(value);
                 entry.Variable.Timestamp = now;
                 entry.Variable.ClearChangeMasks(SystemContext, false);
             }
         }
     }
 
-    protected override void HistoryReadRawModified(
+    protected override bool HasHistorianProvider(NodeState node)
+    {
+        lock (_historyLock)
+        {
+            if (_history.ContainsKey(node.NodeId))
+            {
+                return true;
+            }
+        }
+        return base.HasHistorianProvider(node);
+    }
+
+    protected override ValueTask HistoryReadRawModifiedAsync(
         ServerSystemContext context,
         ReadRawModifiedDetails details,
         TimestampsToReturn timestampsToReturn,
-        IList<HistoryReadValueId> nodesToRead,
+        ArrayOf<HistoryReadValueId> nodesToRead,
         IList<HistoryReadResult> results,
         IList<ServiceResult> errors,
         List<NodeHandle> nodesToProcess,
-        IDictionary<NodeId, NodeState> cache)
+        IDictionary<NodeId, NodeState> cache,
+        CancellationToken cancellationToken = default)
     {
-        lock (Lock)
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_historyLock)
         {
             foreach (NodeHandle handle in nodesToProcess)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 errors[handle.Index] = ReadHistory(
                     context, details, timestampsToReturn, nodesToRead[handle.Index], results[handle.Index]);
             }
         }
+        return ValueTask.CompletedTask;
     }
 
-    protected override void HistoryReleaseContinuationPoints(
+    protected override ValueTask HistoryReleaseContinuationPointsAsync(
         ServerSystemContext context,
-        IList<HistoryReadValueId> nodesToRead,
+        ArrayOf<HistoryReadValueId> nodesToRead,
         IList<ServiceResult> errors,
         List<NodeHandle> nodesToProcess,
-        IDictionary<NodeId, NodeState> cache)
+        IDictionary<NodeId, NodeState> cache,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (NodeHandle handle in nodesToProcess)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             HistoryReadValueId request = nodesToRead[handle.Index];
-            using var cursor = context.OperationContext.Session
-                .RestoreHistoryContinuationPoint(request.ContinuationPoint) as HistoryCursor;
+            using var cursor = context.OperationContext.Session.ContinuationPoints
+                .RestoreHistory(request.ContinuationPoint) as HistoryCursor;
             errors[handle.Index] = cursor != null && cursor.NodeId == request.NodeId
                 ? ServiceResult.Good
                 : StatusCodes.BadContinuationPointInvalid;
         }
+        return ValueTask.CompletedTask;
     }
 
     private ServiceResult ReadHistory(
@@ -139,16 +165,16 @@ public partial class PlcNodeManager
             return StatusCodes.BadIndexRangeNoData;
         }
 
-        if (!QualifiedName.IsNull(request.DataEncoding))
+        if (!request.DataEncoding.IsNull)
         {
             return StatusCodes.BadDataEncodingUnsupported;
         }
 
         HistoryCursor cursor;
-        if (request.ContinuationPoint is { Length: > 0 })
+        if (!request.ContinuationPoint.IsEmpty)
         {
-            cursor = context.OperationContext.Session
-                .RestoreHistoryContinuationPoint(request.ContinuationPoint) as HistoryCursor;
+            cursor = context.OperationContext.Session.ContinuationPoints
+                .RestoreHistory(request.ContinuationPoint) as HistoryCursor;
             if (cursor == null)
             {
                 return StatusCodes.BadContinuationPointInvalid;
@@ -162,8 +188,8 @@ public partial class PlcNodeManager
         }
         else
         {
-            bool hasStart = details.StartTime != DateTime.MinValue;
-            bool hasEnd = details.EndTime != DateTime.MinValue;
+            bool hasStart = details.StartTime != DateTimeUtc.MinValue;
+            bool hasEnd = details.EndTime != DateTimeUtc.MinValue;
             if ((!hasStart && !hasEnd) || ((!hasStart || !hasEnd) && details.NumValuesPerNode == 0))
             {
                 return StatusCodes.BadInvalidArgument;
@@ -173,13 +199,13 @@ public partial class PlcNodeManager
                 SelectHistory(entry.Values, details));
         }
 
-        DataValueCollection values = cursor.ReadPage();
-        result.HistoryData = new ExtensionObject(new HistoryData { DataValues = values });
+        ArrayOf<DataValue> values = cursor.ReadPage();
+        result.HistoryData = new ExtensionObject((IEncodeable)new HistoryData { DataValues = values });
         result.StatusCode = values.Count == 0 ? StatusCodes.GoodNoData : StatusCodes.Good;
         if (cursor.HasMore)
         {
-            context.OperationContext.Session.SaveHistoryContinuationPoint(cursor.Id, cursor);
-            result.ContinuationPoint = cursor.Id.ToByteArray();
+            context.OperationContext.Session.ContinuationPoints.SaveHistory(cursor);
+            result.ContinuationPoint = ByteString.From(cursor.Id.ToByteArray());
         }
         else
         {
@@ -191,11 +217,12 @@ public partial class PlcNodeManager
 
     private static List<DataValue> SelectHistory(Queue<DataValue> archive, ReadRawModifiedDetails details)
     {
-        bool hasStart = details.StartTime != DateTime.MinValue;
-        bool hasEnd = details.EndTime != DateTime.MinValue;
+        bool hasStart = details.StartTime != DateTimeUtc.MinValue;
+        bool hasEnd = details.EndTime != DateTimeUtc.MinValue;
         bool reverse = !hasStart || (hasEnd && details.EndTime < details.StartTime);
-        DateTime first = hasStart ? details.StartTime : details.EndTime;
-        DateTime last = hasStart && hasEnd ? details.EndTime : (reverse ? DateTime.MinValue : DateTime.MaxValue);
+        DateTimeUtc first = hasStart ? details.StartTime : details.EndTime;
+        DateTimeUtc last = hasStart && hasEnd ? details.EndTime :
+            (reverse ? DateTimeUtc.MinValue : DateTimeUtc.MaxValue);
         var selected = archive.Where(value => first == last
             ? value.SourceTimestamp == first
             : reverse
@@ -214,7 +241,8 @@ public partial class PlcNodeManager
                 DataValue bound = reverse
                     ? archive.FirstOrDefault(value => value.SourceTimestamp >= first)
                     : archive.LastOrDefault(value => value.SourceTimestamp <= first);
-                selected.Insert(0, bound ?? new DataValue(Variant.Null, StatusCodes.BadBoundNotFound, first, first));
+                selected.Insert(0, bound.IsNull
+                    ? new DataValue(Variant.Null, StatusCodes.BadBoundNotFound, first, first) : bound);
             }
 
             if (hasStart && hasEnd)
@@ -223,11 +251,12 @@ public partial class PlcNodeManager
                     ? archive.LastOrDefault(value => value.SourceTimestamp <= last)
                     : archive.FirstOrDefault(value => first == last
                         ? value.SourceTimestamp > last : value.SourceTimestamp >= last);
-                selected.Add(bound ?? new DataValue(Variant.Null, StatusCodes.BadBoundNotFound, last, last));
+                selected.Add(bound.IsNull
+                    ? new DataValue(Variant.Null, StatusCodes.BadBoundNotFound, last, last) : bound);
             }
             else if (selected.Count < details.NumValuesPerNode)
             {
-                DateTime timestamp = selected[^1].SourceTimestamp;
+                DateTime timestamp = selected[^1].SourceTimestamp.ToDateTime();
                 long ticks = Math.Clamp(
                     timestamp.Ticks + (reverse ? -TimeSpan.TicksPerSecond : TimeSpan.TicksPerSecond),
                     DateTime.MinValue.Ticks, DateTime.MaxValue.Ticks);
@@ -246,7 +275,7 @@ public partial class PlcNodeManager
 
     private sealed class HistoryCursor(
         NodeId nodeId, ReadRawModifiedDetails details, TimestampsToReturn timestamps, List<DataValue> values)
-        : IDisposable
+        : IHistoryContinuationPoint
     {
         private readonly ReadRawModifiedDetails _details = (ReadRawModifiedDetails)details.Clone();
         private int _position;
@@ -265,28 +294,28 @@ public partial class PlcNodeManager
                 && timestamps == selection;
         }
 
-        public DataValueCollection ReadPage()
+        public ArrayOf<DataValue> ReadPage()
         {
             uint limit = _details.NumValuesPerNode == 0
                 ? HistoryPageSize : Math.Min(_details.NumValuesPerNode, HistoryPageSize);
-            var page = new DataValueCollection();
+            var page = new List<DataValue>();
             while (HasMore && page.Count < limit)
             {
-                var value = (DataValue)values[_position++].Clone();
+                DataValue value = values[_position++];
                 if (timestamps is TimestampsToReturn.Neither or TimestampsToReturn.Server)
                 {
-                    value.SourceTimestamp = DateTime.MinValue;
+                    value = value.WithSourceTimestamp(DateTimeUtc.MinValue);
                 }
 
                 if (timestamps is TimestampsToReturn.Neither or TimestampsToReturn.Source)
                 {
-                    value.ServerTimestamp = DateTime.MinValue;
+                    value = value.WithServerTimestamp(DateTimeUtc.MinValue);
                 }
 
                 page.Add(value);
             }
 
-            return page;
+            return page.ToArrayOf();
         }
 
         public void Dispose() => values.Clear();

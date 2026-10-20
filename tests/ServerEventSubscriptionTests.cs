@@ -34,7 +34,7 @@ public class ServerEventSubscriptionTests
 
     private readonly UserTokenType _userTokenType;
     private readonly PlcSimulatorFixture _simulator;
-    private Session _session;
+    private ISession _session;
 
     public ServerEventSubscriptionTests(UserTokenType userTokenType)
     {
@@ -86,12 +86,31 @@ public class ServerEventSubscriptionTests
     public async Task TearDown()
     {
         // Bounded, so a hung server fails the test instead of hanging the test run.
-        if (_session is not null)
+        try
         {
-            await WaitAsync(_session.CloseAsync(), ShutdownTimeout).ConfigureAwait(false);
+            if (_session is not null)
+            {
+                await _session.CloseAsync().WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+            }
         }
-
-        await WaitAsync(_simulator.StopAsync(), ShutdownTimeout).ConfigureAwait(false);
+        finally
+        {
+            try
+            {
+                if (_session is IAsyncDisposable asyncSession)
+                {
+                    await asyncSession.DisposeAsync().AsTask().WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+                }
+                else
+                {
+                    _session?.Dispose();
+                }
+            }
+            finally
+            {
+                await _simulator.StopAsync().WaitAsync(ShutdownTimeout).ConfigureAwait(false);
+            }
+        }
     }
 
     /// <summary>
@@ -108,10 +127,10 @@ public class ServerEventSubscriptionTests
         var counters = new NotificationCounters();
         Subscription subscription = await CreateEventSubscriptionAsync(counters).ConfigureAwait(false);
 
-        SemaphoreSlim serverSemaphore = GetStandardServerSemaphore(_simulator.PlcServer);
+        SemaphoreSlim serverSemaphore = GetStandardServerSemaphore(_simulator.Server);
         await serverSemaphore.WaitAsync().ConfigureAwait(false);
 
-        Task<EndpointDescriptionCollection> getEndpoints;
+        Task<ArrayOf<EndpointDescription>> getEndpoints;
         bool readsCompleted;
         int eventsWhileHeld;
         int dataChangesWhileHeld;
@@ -125,7 +144,8 @@ public class ServerEventSubscriptionTests
             int dataChangesBefore = Volatile.Read(ref counters.DataChanges);
 
             Task[] reads = Enumerable.Range(0, BlockedRequestCount)
-                .Select(_ => Task.Run(() => _session.ReadValueAsync(VariableIds.Server_ServerStatus_CurrentTime)))
+                .Select(_ => Task.Run(async () => await _session.ReadValueAsync(
+                    VariableIds.Server_ServerStatus_CurrentTime).ConfigureAwait(false)))
                 .ToArray();
             readsCompleted = await WaitAsync(Task.WhenAll(reads), BlockedProbeTimeout).ConfigureAwait(false);
 
@@ -157,9 +177,9 @@ public class ServerEventSubscriptionTests
 
         (await WaitAsync(getEndpoints, ProbeTimeout).ConfigureAwait(false)).Should().BeTrue(
             "GetEndpoints must complete once the semaphore is released");
-        (await getEndpoints.ConfigureAwait(false)).Should().NotBeEmpty();
+        (await getEndpoints.ConfigureAwait(false)).ToArray().Should().NotBeEmpty();
 
-        await WaitAsync(subscription.DeleteAsync(silent: true), ProbeTimeout).ConfigureAwait(false);
+        await subscription.DeleteAsync(silent: true).WaitAsync(ProbeTimeout).ConfigureAwait(false);
     }
 
     [Test]
@@ -192,7 +212,8 @@ public class ServerEventSubscriptionTests
 
         // A sessionless GetEndpoints and a Read on the session must both still be served.
         var getEndpoints = Task.Run(() => _simulator.GetEndpointsAsync(CancellationToken.None));
-        var read = Task.Run(() => _session.ReadValueAsync(VariableIds.Server_ServerStatus_CurrentTime));
+        var read = Task.Run(async () => await _session.ReadValueAsync(
+            VariableIds.Server_ServerStatus_CurrentTime).ConfigureAwait(false));
 
         bool getEndpointsCompleted = await WaitAsync(getEndpoints, ProbeTimeout).ConfigureAwait(false);
         bool readCompleted = await WaitAsync(read, ProbeTimeout).ConfigureAwait(false);
@@ -206,7 +227,7 @@ public class ServerEventSubscriptionTests
 
         getEndpointsCompleted.Should().BeTrue($"a sessionless GetEndpoints call must complete within {ProbeTimeout} ({diagnostics})");
         readCompleted.Should().BeTrue($"a Read on the session must complete within {ProbeTimeout} ({diagnostics})");
-        (await getEndpoints.ConfigureAwait(false)).Should().NotBeEmpty();
+        (await getEndpoints.ConfigureAwait(false)).ToArray().Should().NotBeEmpty();
         StatusCode.IsGood((await read.ConfigureAwait(false)).StatusCode).Should().BeTrue();
 
         // Every blocked timer tick parks one more thread-pool thread, so a hung server keeps adding threads.
@@ -217,7 +238,7 @@ public class ServerEventSubscriptionTests
         eventCount.Should().BePositive($"events must be delivered to the session ({diagnostics})");
         dataChangeCount.Should().BePositive($"data changes must be delivered to the session ({diagnostics})");
 
-        await WaitAsync(subscription.DeleteAsync(silent: true), ProbeTimeout).ConfigureAwait(false);
+        await subscription.DeleteAsync(silent: true).WaitAsync(ProbeTimeout).ConfigureAwait(false);
     }
 
     private async Task<Subscription> CreateEventSubscriptionAsync(NotificationCounters counters)
@@ -269,19 +290,25 @@ public class ServerEventSubscriptionTests
     private static EventFilter CreateEventFilter()
     {
         var filter = new EventFilter();
-        filter.AddSelectClause(ObjectTypeIds.BaseEventType, BrowseNames.EventId);
-        filter.AddSelectClause(ObjectTypeIds.BaseEventType, BrowseNames.EventType);
-        filter.AddSelectClause(ObjectTypeIds.BaseEventType, BrowseNames.SourceNode);
-        filter.AddSelectClause(ObjectTypeIds.BaseEventType, BrowseNames.Time);
-        filter.AddSelectClause(ObjectTypeIds.BaseEventType, BrowseNames.Message);
-        filter.AddSelectClause(ObjectTypeIds.BaseEventType, BrowseNames.Severity);
+        filter.AddSelectClause(ObjectTypeIds.BaseEventType, new QualifiedName(BrowseNames.EventId));
+        filter.AddSelectClause(ObjectTypeIds.BaseEventType, new QualifiedName(BrowseNames.EventType));
+        filter.AddSelectClause(ObjectTypeIds.BaseEventType, new QualifiedName(BrowseNames.SourceNode));
+        filter.AddSelectClause(ObjectTypeIds.BaseEventType, new QualifiedName(BrowseNames.Time));
+        filter.AddSelectClause(ObjectTypeIds.BaseEventType, new QualifiedName(BrowseNames.Message));
+        filter.AddSelectClause(ObjectTypeIds.BaseEventType, new QualifiedName(BrowseNames.Severity));
         return filter;
     }
 
     private static async Task<bool> WaitAsync(Task task, TimeSpan timeout)
     {
         Task completed = await Task.WhenAny(task, Task.Delay(timeout)).ConfigureAwait(false);
-        return completed == task;
+        if (completed != task)
+        {
+            return false;
+        }
+
+        await task.ConfigureAwait(false);
+        return true;
     }
 
     private sealed class NotificationCounters

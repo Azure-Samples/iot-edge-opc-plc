@@ -144,13 +144,17 @@ public class MyPluginNode(TimeService timeService, ILogger logger)
     : PluginNodeBase(timeService, logger), IPluginNodes
 {
     public void AddOptions(Mono.Options.OptionSet optionSet) { ... }
-    public void AddToAddressSpace(FolderState telemetry, FolderState methods, PlcNodeManager mgr) { ... }
+    public ValueTask AddToAddressSpaceAsync(FolderState telemetry, FolderState methods,
+      PlcNodeManager mgr, CancellationToken cancellationToken = default) { ... }
     public void StartSimulation() { ... }
     public void StopSimulation() { ... }
 }
 ```
 
 Plugins are discovered via **reflection** at runtime -- any non-abstract class implementing `IPluginNodes` is instantiated with `(TimeService, ILogger)` constructor arguments.
+
+Registration is awaited sequentially by the native async `PlcNodeManager`. Propagate cancellation;
+return `ValueTask.CompletedTask` for purely in-memory construction and await SDK model registration.
 
 ### Dependency Injection
 - **Manual constructor injection** (no DI container for core domain objects)

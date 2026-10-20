@@ -1,15 +1,18 @@
 {
   "$schema": "https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
-  "version": "2.15.11",
-  "versionHeightOffset": -1,
+  "version": "2.16.0-preview.5",
+  "nugetPackageVersion": {
+    "semVer": 2.0
+  },
   "publicReleaseRefSpec": [
     "^refs/heads/main$",
+    "^refs/heads/preview$",
     "^refs/heads/release/\\d+\\.\\d+"
   ],
   "cloudBuild": {
     "setVersionVariables": true,
     "buildNumber": {
-      "enabled": true,
+      "enabled": false,
       "includeCommitId": {
         "when": "nonPublicReleaseOnly",
         "where": "buildMetadata"

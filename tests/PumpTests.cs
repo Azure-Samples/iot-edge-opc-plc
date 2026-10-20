@@ -66,7 +66,7 @@ public class PumpTests : SimulatorTestsBase
 
         manufacturerNodeId.Should().NotBeNull("the Identification object should expose the DI Manufacturer property");
 
-        var manufacturer = (await ReadDataValueAsync(manufacturerNodeId).ConfigureAwait(false)).Value;
+        var manufacturer = (await ReadDataValueAsync(manufacturerNodeId).ConfigureAwait(false)).WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy);
         manufacturer.Should().BeOfType<LocalizedText>().Which.Text.Should().Be("Contoso Pumps");
     }
 
@@ -204,7 +204,7 @@ public class PumpTests : SimulatorTestsBase
             new QualifiedName(browseName, PumpsNamespaceIndex)).ConfigureAwait(false);
     }
 
-    private async Task<ReferenceDescriptionCollection> BrowseChildrenAsync(NodeId nodeId)
+    private async Task<List<ReferenceDescription>> BrowseChildrenAsync(NodeId nodeId)
     {
         var browseDescription = new BrowseDescription
         {
@@ -220,10 +220,10 @@ public class PumpTests : SimulatorTestsBase
             null,
             null,
             0,
-            new BrowseDescriptionCollection { browseDescription },
+            new List<BrowseDescription> { browseDescription },
             CancellationToken.None).ConfigureAwait(false);
 
-        return results.Results[0].References;
+        return results.Results[0].References.ToArray().ToList();
     }
 
     private async Task<NodeId> BrowseTypeDefinitionAsync(NodeId nodeId)
@@ -242,10 +242,10 @@ public class PumpTests : SimulatorTestsBase
             null,
             null,
             0,
-            new BrowseDescriptionCollection { browseDescription },
+            new List<BrowseDescription> { browseDescription },
             CancellationToken.None).ConfigureAwait(false);
 
-        var references = results.Results[0].References;
+        var references = results.Results[0].References.ToArray();
         references.Should().ContainSingle("node should have exactly one HasTypeDefinition reference");
 
         return ExpandedNodeId.ToNodeId(references[0].NodeId, Session.NamespaceUris);
@@ -267,13 +267,13 @@ public class PumpTests : SimulatorTestsBase
             null,
             null,
             0,
-            new BrowseDescriptionCollection { browseDescription },
+            new List<BrowseDescription> { browseDescription },
             CancellationToken.None).ConfigureAwait(false);
 
-        var reference = results.Results[0].References.FirstOrDefault(r => r.BrowseName == browseName);
+        var reference = results.Results[0].References.ToArray().FirstOrDefault(r => r.BrowseName == browseName);
 
         return reference is null
-            ? null
+            ? NodeId.Null
             : ExpandedNodeId.ToNodeId(reference.NodeId, Session.NamespaceUris);
     }
 }

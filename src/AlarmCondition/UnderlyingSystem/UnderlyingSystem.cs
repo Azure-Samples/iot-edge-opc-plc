@@ -33,6 +33,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 /// <summary>
 /// An object that provides access to the underlying system.
@@ -73,10 +74,9 @@ public class UnderlyingSystem : IDisposable
     /// </summary>
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing && m_simulationTimer != null)
+        if (disposing)
         {
-            m_simulationTimer.Dispose();
-            m_simulationTimer = null;
+            StopSimulation();
         }
     }
     #endregion
@@ -190,6 +190,22 @@ public class UnderlyingSystem : IDisposable
             }
         }
     }
+
+    public async ValueTask StopSimulationAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        Timer timer;
+        lock (m_lock)
+        {
+            timer = m_simulationTimer;
+            m_simulationTimer = null;
+        }
+
+        if (timer is not null)
+        {
+            await timer.DisposeAsync().ConfigureAwait(false);
+        }
+    }
     #endregion
 
     #region Private Methods
@@ -205,6 +221,10 @@ public class UnderlyingSystem : IDisposable
 
             lock (m_lock)
             {
+                if (m_simulationTimer is null)
+                {
+                    return;
+                }
                 m_simulationCounter++;
                 sources = new List<UnderlyingSystemSource>(m_sources.Values);
             }
@@ -212,6 +232,10 @@ public class UnderlyingSystem : IDisposable
             // run simulation for each source.
             for (int ii = 0; ii < sources.Count; ii++)
             {
+                if (Volatile.Read(ref m_simulationTimer) is null)
+                {
+                    return;
+                }
                 sources[ii].DoSimulation(m_simulationCounter, ii);
             }
         }

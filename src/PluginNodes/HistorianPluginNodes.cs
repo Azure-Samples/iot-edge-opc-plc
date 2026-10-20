@@ -5,12 +5,14 @@ using Opc.Ua;
 using OpcPlc.Helpers;
 using OpcPlc.PluginNodes.Models;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 public class HistorianPluginNodes(TimeService timeService, ILogger logger)
     : PluginNodeBase(timeService, logger), IPluginNodes
 {
     private PlcNodeManager _manager;
-    private ITimer _timer;
+    private OpcPlc.ITimer _timer;
 
     public bool Enabled { get; private set; }
 
@@ -22,8 +24,11 @@ public class HistorianPluginNodes(TimeService timeService, ILogger logger)
             value => Enabled = value != null);
     }
 
-    public void AddToAddressSpace(FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager)
+    public async ValueTask AddToAddressSpaceAsync(
+        FolderState telemetryFolder, FolderState methodsFolder, PlcNodeManager plcNodeManager,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!Enabled)
         {
             return;
@@ -32,9 +37,15 @@ public class HistorianPluginNodes(TimeService timeService, ILogger logger)
         _manager = plcNodeManager;
         FolderState folder = plcNodeManager.CreateFolder(
             telemetryFolder, "Historian", "Historian", NamespaceType.OpcPlcApplications);
+        BaseDataVariableState variable = plcNodeManager.CreateBaseVariable(
+            folder, "HistorianInt32", "HistorianInt32", DataTypeIds.Int32, ValueRanks.Scalar,
+            AccessLevels.CurrentRead | AccessLevels.HistoryRead,
+            "Historical samples", NamespaceType.OpcPlcApplications, 0);
+        variable.Historizing = true;
+        await plcNodeManager.EnableHistoryAsync(variable, cancellationToken).ConfigureAwait(false);
         Nodes = new List<NodeWithIntervals>
         {
-            AddVariable(plcNodeManager, folder, "HistorianInt32", DataTypeIds.Int32, 0)
+            PluginNodesHelper.GetNodeWithIntervals(variable.NodeId, plcNodeManager)
         };
     }
 
@@ -50,17 +61,5 @@ public class HistorianPluginNodes(TimeService timeService, ILogger logger)
     {
         _timer?.Dispose();
         _timer = null;
-    }
-
-    private static NodeWithIntervals AddVariable(
-        PlcNodeManager manager, FolderState folder, string name, NodeId dataType, object value)
-    {
-        BaseDataVariableState variable = manager.CreateBaseVariable(
-            folder, name, name, dataType, ValueRanks.Scalar,
-            AccessLevels.CurrentRead | AccessLevels.HistoryRead,
-            "Historical samples", NamespaceType.OpcPlcApplications, value);
-        variable.Historizing = true;
-        manager.EnableHistory(variable);
-        return PluginNodesHelper.GetNodeWithIntervals(variable.NodeId, manager);
     }
 }

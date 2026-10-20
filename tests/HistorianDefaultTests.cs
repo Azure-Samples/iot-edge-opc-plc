@@ -22,6 +22,6 @@ public class HistorianDefaultTests : SimulatorTestsBase
         DataValue result = await ReadDataValueAsync(GetOpcPlcNodeId("FastUInt1")).ConfigureAwait(false);
 
         StatusCode.IsGood(result.StatusCode).Should().BeTrue();
-        result.Value.Should().BeOfType<uint>();
+        result.WrappedValue.TryGetValue(out uint _).Should().BeTrue();
     }
 }
