@@ -372,14 +372,14 @@ public class AlarmConditionServerNodeManager : CustomNodeManager2
     /// </summary>
     protected override NodeHandle GetManagerHandle(ServerSystemContext context, NodeId nodeId, IDictionary<NodeId, NodeState> cache)
     {
+        // Check the namespace before the lock: foreign lookups arrive while other node manager locks are held.
+        if (!IsNodeIdInNamespace(nodeId))
+        {
+            return null;
+        }
+
         lock (Lock)
         {
-            // quickly exclude nodes that are not in the namespace.
-            if (!IsNodeIdInNamespace(nodeId))
-            {
-                return null;
-            }
-
             // check for check for nodes that are being currently monitored.
 
             if (MonitoredNodes.TryGetValue(nodeId, out var monitoredNode))
