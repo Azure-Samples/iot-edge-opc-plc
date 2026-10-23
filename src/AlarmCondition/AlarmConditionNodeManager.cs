@@ -430,14 +430,15 @@ public class AlarmConditionServerNodeManager : AsyncCustomNodeManager
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Check the namespace before the lock: foreign lookups arrive while other node manager locks are held.
+        if (!IsNodeIdInNamespace(nodeId))
+        {
+            return ValueTask.FromResult<NodeHandle>(null);
+        }
+
         lock (SyncRoot)
         {
-            // quickly exclude nodes that are not in the namespace.
-            if (!IsNodeIdInNamespace(nodeId))
-            {
-                return ValueTask.FromResult<NodeHandle>(null);
-            }
-
             // check for check for nodes that are being currently monitored.
 
             if (MonitoredNodes.TryGetValue(nodeId, out var monitoredNode))
