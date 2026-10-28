@@ -95,11 +95,12 @@ public partial class WotConTests
         StatusCode.IsGood(seed.StatusCode).Should().BeTrue();
         if (isArray)
         {
-            seed.Value.Should().BeOfType<long[]>().Which.Should().Equal(100L, 101L, 102L);
+            seed.Value.Should().BeOfType<long[]>().Which.Should().Equal(
+                10_000_000_000L, 10_000_000_001L, 10_000_000_002L);
         }
         else
         {
-            seed.Value.Should().BeOfType<long>().Which.Should().Be(100L);
+            seed.Value.Should().BeOfType<long>().Which.Should().Be(10_000_000_000L);
         }
 
         long[] values = [long.MinValue, (long)int.MinValue - 1, (long)int.MaxValue + 1, long.MaxValue];

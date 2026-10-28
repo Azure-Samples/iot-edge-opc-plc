@@ -57,6 +57,34 @@ public partial class WotConTests
     }
 
     [Test]
+    public async Task SimulationTick_Int64Ramp_WrapsAboveInt32Range()
+    {
+        const long rampStart = 10_000_000_000L;
+        const int rampPeriod = 101;
+        var (assetId, fileId) = await CreateAssetAndResolveFileAsync(
+            "Int64Ramp_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        await UploadAndFinalizeTdAsync(fileId, SimulationTd).ConfigureAwait(false);
+        var nodeIds = await ResolveMaterializedPropertiesAsync(assetId).ConfigureAwait(false);
+
+        // The fixture shares the simulation tick across tests, so start from an observed tick.
+        FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
+        long first = await ReadValueAsync<long>(nodeIds["counter"]).ConfigureAwait(false);
+        first.Should().BeInRange(rampStart, rampStart + rampPeriod - 1);
+
+        for (int tick = 1; tick <= rampPeriod; tick++)
+        {
+            FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
+            var values = await ReadPropertyValuesAsync(nodeIds, "counter", "samples").ConfigureAwait(false);
+            long offset = (first - rampStart + tick) % rampPeriod;
+            values["counter"].Should().BeOfType<long>().Which.Should().Be(rampStart + offset);
+            values["samples"].Should().BeOfType<long[]>().Which.Should().Equal(
+                rampStart + offset,
+                rampStart + ((offset + 1) % rampPeriod),
+                rampStart + ((offset + 2) % rampPeriod));
+        }
+    }
+
+    [Test]
     public async Task SimulationTick_LeavesNonObservablePropertyUnchanged()
     {
         // observable:false materializes MinimumSamplingInterval = -1 to tell clients sampling is

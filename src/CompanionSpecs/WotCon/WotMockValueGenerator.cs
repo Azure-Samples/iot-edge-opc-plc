@@ -50,6 +50,16 @@ internal static class WotMockValueGenerator
     private const int Int32RampPeriod = 100;
 
     /// <summary>
+    /// Ramp start for Int64 properties; deliberately above the Int32 range.
+    /// </summary>
+    private const long Int64Base = 10_000_000_000L;
+
+    /// <summary>
+    /// Number of ticks in the inclusive Int64 ramp from 10,000,000,000 to 10,000,000,100.
+    /// </summary>
+    private const int Int64RampPeriod = 101;
+
+    /// <summary>
     /// Values a String property rotates through, one per tick.
     /// </summary>
     private static readonly string[] StringRotation = ["idle", "running", "paused", "fault"];
@@ -103,7 +113,7 @@ internal static class WotMockValueGenerator
 
         if (dataTypeId == DataTypeIds.Int64)
         {
-            return (long)NextInt32(tick);
+            return NextInt64(tick);
         }
 
         if (dataTypeId == DataTypeIds.Boolean)
@@ -138,7 +148,7 @@ internal static class WotMockValueGenerator
 
         if (elementDataTypeId == DataTypeIds.Int64)
         {
-            return new long[] { NextInt32(tick), NextInt32(tick + 1), NextInt32(tick + 2) };
+            return new[] { NextInt64(tick), NextInt64(tick + 1), NextInt64(tick + 2) };
         }
 
         if (elementDataTypeId == DataTypeIds.Boolean)
@@ -164,6 +174,8 @@ internal static class WotMockValueGenerator
         => Math.Round(DoubleBase + (DoubleAmplitude * Math.Sin(tick * DoubleAngularStep)), 3);
 
     private static int NextInt32(long tick) => Int32Base + (int)Modulo(tick, Int32RampPeriod);
+
+    private static long NextInt64(long tick) => Int64Base + Modulo(tick, Int64RampPeriod);
 
     private static bool NextBoolean(long tick) => Modulo(tick, 2) == 0;
 

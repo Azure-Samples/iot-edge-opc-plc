@@ -142,11 +142,12 @@ public partial class WotConTests
         outputs.Should().ContainSingle();
         if (isArray)
         {
-            outputs[0].Value.Should().BeOfType<long[]>().Which.Should().Equal(100L, 101L, 102L);
+            outputs[0].Value.Should().BeOfType<long[]>().Which.Should().Equal(
+                10_000_000_000L, 10_000_000_001L, 10_000_000_002L);
         }
         else
         {
-            outputs[0].Value.Should().BeOfType<long>().Which.Should().Be(100L);
+            outputs[0].Value.Should().BeOfType<long>().Which.Should().Be(10_000_000_000L);
         }
     }
 

@@ -147,8 +147,10 @@ work.
 - **TD integers map to Int64.** Per [OPC 10100-1 v1.02 §6.3.8 Table 14](https://reference.opcfoundation.org/specs/OPC-10100-1/v1.02/6.3.8),
   `integer` properties and action arguments use OPC UA `Int64` (`i=8`), and arrays of
   `integer` use one-dimensional `Int64` arrays. Mock seeds, simulated updates and action
-  outputs use `long` / `long[]`; the small-value ramp is unchanged. This mapping does not
-  change unrelated OPC PLC `Int32` nodes.
+  outputs use `long` / `long[]`. The Int64 ramp runs from 10,000,000,000 through
+  10,000,000,100 inclusive, then wraps, keeping every generated integer above the Int32
+  range. Array elements use the same ramp with consecutive tick offsets. This mapping
+  does not change unrelated OPC PLC `Int32` nodes or the existing Int32 ramp.
 - **Materialized values drift on a 1 s tick.** A timer in
   [`WotConNodeManager.Simulation.cs`](./WotConNodeManager.Simulation.cs) advances every live
   asset's property Variables so OPC UA subscriptions observe data changes rather than a single
