@@ -51,11 +51,75 @@ public partial class WotConTests
         StatusCode.IsGood(temperatureValue.StatusCode).Should().BeTrue();
         temperatureValue.Value.Should().BeOfType<double>();
 
-        // Array of integer → Int32 with ValueRank.OneDimension; seed yields int[].
+        // Array of integer → Int64 with ValueRank.OneDimension; seed yields long[].
         var samplesId = ToNodeId(refs.Single(r => r.BrowseName.Name == "samples").NodeId);
         var samplesValue = await ReadDataValueAsync(samplesId).ConfigureAwait(false);
         StatusCode.IsGood(samplesValue.StatusCode).Should().BeTrue();
-        samplesValue.Value.Should().BeOfType<int[]>();
+        samplesValue.Value.Should().BeOfType<long[]>();
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task CloseAndUpdate_IntegerProperty_UsesInt64AndPreservesLargeWrittenValues(bool isArray)
+    {
+        var (assetId, fileId) = await CreateAssetAndResolveFileAsync(
+            "Int64Asset_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        string schema = isArray
+            ? """{ "type": "array", "items": { "type": "integer" }, "observable": false }"""
+            : """{ "type": "integer", "observable": false }""";
+        string td = $$"""
+            {
+              "@context": "https://www.w3.org/2022/wot/td/v1.1",
+              "title": "Int64Properties",
+              "properties": { "counter": {{schema}} }
+            }
+            """;
+        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
+
+        var refs = await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false);
+        var nodeId = ToNodeId(refs.Single(r => r.BrowseName.Name == "counter").NodeId);
+        var response = await Session.ReadAsync(
+            null, 0, TimestampsToReturn.Neither,
+            new ReadValueIdCollection
+            {
+                new ReadValueId { NodeId = nodeId, AttributeId = Attributes.DataType },
+                new ReadValueId { NodeId = nodeId, AttributeId = Attributes.ValueRank },
+            },
+            CancellationToken.None).ConfigureAwait(false);
+        response.Results.Should().HaveCount(2);
+        response.Results.Should().OnlyContain(value => StatusCode.IsGood(value.StatusCode));
+        response.Results[0].Value.Should().Be(DataTypeIds.Int64);
+        response.Results[1].Value.Should().Be(isArray ? ValueRanks.OneDimension : ValueRanks.Scalar);
+
+        var seed = await ReadDataValueAsync(nodeId).ConfigureAwait(false);
+        StatusCode.IsGood(seed.StatusCode).Should().BeTrue();
+        if (isArray)
+        {
+            seed.Value.Should().BeOfType<long[]>().Which.Should().Equal(
+                10_000_000_000L, 10_000_000_001L, 10_000_000_002L);
+        }
+        else
+        {
+            seed.Value.Should().BeOfType<long>().Which.Should().Be(10_000_000_000L);
+        }
+
+        long[] values = [long.MinValue, (long)int.MinValue - 1, (long)int.MaxValue + 1, long.MaxValue];
+        foreach (long value in values)
+        {
+            object writtenValue = isArray ? new long[] { value, 0L } : value;
+            var status = await WriteValueAsync(nodeId, writtenValue).ConfigureAwait(false);
+            StatusCode.IsGood(status).Should().BeTrue("writing Int64 value {0} should succeed", value);
+            var read = await ReadDataValueAsync(nodeId).ConfigureAwait(false);
+            StatusCode.IsGood(read.StatusCode).Should().BeTrue();
+            if (isArray)
+            {
+                read.Value.Should().BeOfType<long[]>().Which.Should().Equal(value, 0L);
+            }
+            else
+            {
+                read.Value.Should().BeOfType<long>().Which.Should().Be(value);
+            }
+        }
     }
 
     [Test]
