@@ -71,7 +71,7 @@ internal static class WotMockValueGenerator
 
     /// <summary>
     /// Returns the value a property of the given type holds at <paramref name="tick"/>:
-    /// Double follows a sine, Int32 a wrapping ramp, Boolean toggles, String rotates through a
+    /// Double follows a sine, Int32 and Int64 a wrapping ramp, Boolean toggles, String rotates through a
     /// fixed list, and DateTime tracks <paramref name="utcNow"/>. Array ranks apply the same
     /// progression per element, offset by the element index so neighbours differ.
     /// </summary>
@@ -99,6 +99,11 @@ internal static class WotMockValueGenerator
         if (dataTypeId == DataTypeIds.Int32)
         {
             return NextInt32(tick);
+        }
+
+        if (dataTypeId == DataTypeIds.Int64)
+        {
+            return (long)NextInt32(tick);
         }
 
         if (dataTypeId == DataTypeIds.Boolean)
@@ -129,6 +134,11 @@ internal static class WotMockValueGenerator
         if (elementDataTypeId == DataTypeIds.Int32)
         {
             return new[] { NextInt32(tick), NextInt32(tick + 1), NextInt32(tick + 2) };
+        }
+
+        if (elementDataTypeId == DataTypeIds.Int64)
+        {
+            return new long[] { NextInt32(tick), NextInt32(tick + 1), NextInt32(tick + 2) };
         }
 
         if (elementDataTypeId == DataTypeIds.Boolean)

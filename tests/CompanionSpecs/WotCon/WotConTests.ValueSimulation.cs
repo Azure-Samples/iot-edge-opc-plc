@@ -50,10 +50,10 @@ public partial class WotConTests
         var after = await ReadPropertyValuesAsync(nodeIds, "temperature", "counter", "running", "state", "samples").ConfigureAwait(false);
 
         after["temperature"].Should().BeOfType<double>().And.NotBe(before["temperature"]);
-        after["counter"].Should().BeOfType<int>().And.NotBe(before["counter"]);
+        after["counter"].Should().BeOfType<long>().And.NotBe(before["counter"]);
         after["running"].Should().BeOfType<bool>().And.NotBe(before["running"]);
         after["state"].Should().BeOfType<string>().And.NotBe(before["state"]);
-        after["samples"].Should().BeOfType<int[]>().And.NotBeEquivalentTo((int[])before["samples"]);
+        after["samples"].Should().BeOfType<long[]>().And.NotBeEquivalentTo((long[])before["samples"]);
     }
 
     [Test]

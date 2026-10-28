@@ -144,10 +144,15 @@ work.
 
 ## Design choices worth remembering
 
+- **TD integers map to Int64.** Per [OPC 10100-1 v1.02 §6.3.8 Table 14](https://reference.opcfoundation.org/specs/OPC-10100-1/v1.02/6.3.8),
+  `integer` properties and action arguments use OPC UA `Int64` (`i=8`), and arrays of
+  `integer` use one-dimensional `Int64` arrays. Mock seeds, simulated updates and action
+  outputs use `long` / `long[]`; the small-value ramp is unchanged. This mapping does not
+  change unrelated OPC PLC `Int32` nodes.
 - **Materialized values drift on a 1 s tick.** A timer in
   [`WotConNodeManager.Simulation.cs`](./WotConNodeManager.Simulation.cs) advances every live
   asset's property Variables so OPC UA subscriptions observe data changes rather than a single
-  seed. The waveform follows the OPC UA data type — Double sine, Int32 wrapping ramp, Boolean
+  seed. The waveform follows the OPC UA data type — Double sine, Int64 wrapping ramp, Boolean
   toggle, String rotation, DateTime tracking the simulation clock — and arrays apply the same
   progression per element. Values are a pure function of the type and the tick counter, so tick
   0 reproduces the materialization seed and a given tick always yields the same value.

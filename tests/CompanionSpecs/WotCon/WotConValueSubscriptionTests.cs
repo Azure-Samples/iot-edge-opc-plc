@@ -58,13 +58,13 @@ public class WotConValueSubscriptionTests : SubscriptionTestsBase
         var seedNotification = ReceiveEvents(1).ToList()[0].NotificationValue
             .Should().BeOfType<MonitoredItemNotification>().Subject;
         object seedValue = seedNotification.Value.Value;
-        seedValue.Should().BeOfType<int>();
+        seedValue.Should().BeOfType<long>();
 
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         var notifications = ReceiveEvents(1).ToList();
         var notification = notifications[0].NotificationValue.Should().BeOfType<MonitoredItemNotification>().Subject;
-        notification.Value.Value.Should().BeOfType<int>().And.NotBe(seedValue);
+        notification.Value.Value.Should().BeOfType<long>().And.NotBe(seedValue);
         StatusCode.IsGood(notification.Value.StatusCode).Should().BeTrue();
     }
 
