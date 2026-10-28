@@ -59,13 +59,13 @@ public class WotConValueSubscriptionTests : SubscriptionTestsBase
         // received can only come from a simulation tick.
         var seedNotification = ReceiveEvents(1).ToList()[0]
             .Should().BeOfType<MonitoredItemNotification>().Subject;
-        seedNotification.Value.WrappedValue.TryGetValue(out int seedValue).Should().BeTrue();
+        seedNotification.Value.WrappedValue.TryGetValue(out long seedValue).Should().BeTrue();
 
         FireTimersWithPeriod(FromSeconds(1), numberOfTimes: 1);
 
         var notifications = ReceiveEvents(1).ToList();
         var notification = notifications[0].Should().BeOfType<MonitoredItemNotification>().Subject;
-        notification.Value.WrappedValue.TryGetValue(out int currentValue).Should().BeTrue();
+        notification.Value.WrappedValue.TryGetValue(out long currentValue).Should().BeTrue();
         currentValue.Should().NotBe(seedValue);
         StatusCode.IsGood(notification.Value.StatusCode).Should().BeTrue();
     }
