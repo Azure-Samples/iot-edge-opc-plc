@@ -121,12 +121,14 @@ public class WotConMigrationTests
         temperature.AccessLevel.Should().Be(AccessLevels.CurrentRead);
         fixture.Child<PropertyState<EUInformation>>(temperature, BrowseNames.EngineeringUnits)
             .Value.DisplayName.Text.Should().Be("degC");
-        levels.Value.GetInt32Array().ToArray().Should().Equal(100, 101, 102);
+        levels.DataType.Should().Be(DataTypeIds.Int64);
+        levels.Value.GetInt64Array().ToArray().Should().Equal(10_000_000_000L, 10_000_000_001L, 10_000_000_002L);
         fixture.Tick();
         temperature.Value.GetDouble().Should().Be(42.998);
         temperature.Timestamp.Should().Be((DateTimeUtc)fixture.Now);
-        levels.Value.GetInt32Array().ToArray().Should().Equal(101, 102, 103);
-        quiet.Value.GetInt32().Should().Be(100);
+        levels.Value.GetInt64Array().ToArray().Should().Equal(10_000_000_001L, 10_000_000_002L, 10_000_000_003L);
+        quiet.DataType.Should().Be(DataTypeIds.Int64);
+        quiet.Value.GetInt64().Should().Be(10_000_000_000L);
         command.Value.GetString().Should().Be("idle");
         MethodState action = fixture.Child<MethodState>(asset, "reset");
         var actionResult = await fixture.CallAsync(asset, action, new Variant("reset")).ConfigureAwait(false);

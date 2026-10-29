@@ -50,6 +50,16 @@ internal static class WotMockValueGenerator
     private const int Int32RampPeriod = 100;
 
     /// <summary>
+    /// Ramp start for Int64 properties; deliberately above the Int32 range.
+    /// </summary>
+    private const long Int64Base = 10_000_000_000L;
+
+    /// <summary>
+    /// Number of ticks in the inclusive Int64 ramp from 10,000,000,000 to 10,000,000,100.
+    /// </summary>
+    private const int Int64RampPeriod = 101;
+
+    /// <summary>
     /// Values a String property rotates through, one per tick.
     /// </summary>
     private static readonly string[] StringRotation = ["idle", "running", "paused", "fault"];
@@ -71,7 +81,7 @@ internal static class WotMockValueGenerator
 
     /// <summary>
     /// Returns the value a property of the given type holds at <paramref name="tick"/>:
-    /// Double follows a sine, Int32 a wrapping ramp, Boolean toggles, String rotates through a
+    /// Double follows a sine, Int32 and Int64 a wrapping ramp, Boolean toggles, String rotates through a
     /// fixed list, and DateTime tracks <paramref name="utcNow"/>. Array ranks apply the same
     /// progression per element, offset by the element index so neighbours differ.
     /// </summary>
@@ -99,6 +109,11 @@ internal static class WotMockValueGenerator
         if (dataTypeId == DataTypeIds.Int32)
         {
             return NextInt32(tick);
+        }
+
+        if (dataTypeId == DataTypeIds.Int64)
+        {
+            return NextInt64(tick);
         }
 
         if (dataTypeId == DataTypeIds.Boolean)
@@ -131,6 +146,11 @@ internal static class WotMockValueGenerator
             return Variant.From(new[] { NextInt32(tick), NextInt32(tick + 1), NextInt32(tick + 2) }.ToArrayOf());
         }
 
+        if (elementDataTypeId == DataTypeIds.Int64)
+        {
+            return Variant.From(new[] { NextInt64(tick), NextInt64(tick + 1), NextInt64(tick + 2) }.ToArrayOf());
+        }
+
         if (elementDataTypeId == DataTypeIds.Boolean)
         {
             return Variant.From(new[] { NextBoolean(tick), NextBoolean(tick + 1) }.ToArrayOf());
@@ -154,6 +174,8 @@ internal static class WotMockValueGenerator
         => Math.Round(DoubleBase + (DoubleAmplitude * Math.Sin(tick * DoubleAngularStep)), 3);
 
     private static int NextInt32(long tick) => Int32Base + (int)Modulo(tick, Int32RampPeriod);
+
+    private static long NextInt64(long tick) => Int64Base + Modulo(tick, Int64RampPeriod);
 
     private static bool NextBoolean(long tick) => Modulo(tick, 2) == 0;
 
