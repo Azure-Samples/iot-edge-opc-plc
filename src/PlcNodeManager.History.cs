@@ -113,7 +113,7 @@ public partial class PlcNodeManager
         {
             HistoryReadValueId request = nodesToRead[handle.Index];
             using var cursor = context.OperationContext.Session
-                .RestoreHistoryContinuationPoint(request.ContinuationPoint) as HistoryCursor;
+                .RestoreHistoryContinuationPoint(request.ContinuationPoint) as IHistoryContinuation;
             errors[handle.Index] = cursor != null && cursor.NodeId == request.NodeId
                 ? ServiceResult.Good
                 : StatusCodes.BadContinuationPointInvalid;
@@ -244,9 +244,14 @@ public partial class PlcNodeManager
         return selected;
     }
 
+    private interface IHistoryContinuation : IDisposable
+    {
+        NodeId NodeId { get; }
+    }
+
     private sealed class HistoryCursor(
         NodeId nodeId, ReadRawModifiedDetails details, TimestampsToReturn timestamps, List<DataValue> values)
-        : IDisposable
+        : IHistoryContinuation
     {
         private readonly ReadRawModifiedDetails _details = (ReadRawModifiedDetails)details.Clone();
         private int _position;
