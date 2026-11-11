@@ -368,7 +368,7 @@ internal static class ThingDescriptionParser
         return jsonType?.ToLowerInvariant() switch
         {
             "number" => DataTypeIds.Double,
-            "integer" => DataTypeIds.Int32,
+            "integer" => DataTypeIds.Int64,
             "boolean" => DataTypeIds.Boolean,
             "string" => DataTypeIds.String,
             _ => DataTypeIds.String,
