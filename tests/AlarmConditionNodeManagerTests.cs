@@ -1,6 +1,7 @@
 namespace OpcPlc.Tests;
 
 using FluentAssertions;
+using global::AlarmCondition;
 using NUnit.Framework;
 using Opc.Ua;
 using System;
@@ -25,15 +26,20 @@ public class AlarmConditionNodeManagerTests
     [OneTimeTearDown]
     public Task TearDown() => _simulator.StopAsync();
 
-    [Test]
-    public async Task GetManagerHandle_NodeOfOtherNamespace_DoesNotWaitForAlarmLock()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task GetManagerHandle_DoesNotWaitForUnrelatedLock(bool lookupAlarmSource)
     {
         var alarmNodeManager = _simulator.Server.AlarmNodeManager;
+        object syncRoot = lookupAlarmSource ? alarmNodeManager.SourceStateSyncRoot : alarmNodeManager.SyncRoot;
+        NodeId nodeId = lookupAlarmSource
+            ? ModelUtils.ConstructIdForSource("Metals/SouthMotor", alarmNodeManager.NamespaceIndex)
+            : ObjectIds.Server;
         using var lockHeld = new ManualResetEventSlim();
         using var releaseLock = new ManualResetEventSlim();
         Task holder = Task.Run(() =>
         {
-            lock (alarmNodeManager.SyncRoot)
+            lock (syncRoot)
             {
                 lockHeld.Set();
                 releaseLock.Wait(TimeSpan.FromSeconds(30));
@@ -44,11 +50,19 @@ public class AlarmConditionNodeManagerTests
         {
             lockHeld.Wait(LookupTimeout).Should().BeTrue();
 
-            Task<object> lookup = Task.Run(() => alarmNodeManager.GetManagerHandleAsync(ObjectIds.Server).AsTask());
+            Task<object> lookup = Task.Run(() => alarmNodeManager.GetManagerHandleAsync(nodeId).AsTask());
             Task completed = await Task.WhenAny(lookup, Task.Delay(LookupTimeout)).ConfigureAwait(false);
 
-            completed.Should().BeSameAs(lookup, "a lookup of a foreign node must not wait for the alarm lock");
-            (await lookup.ConfigureAwait(false)).Should().BeNull();
+            completed.Should().BeSameAs(lookup, "permission lookups must not wait for an unrelated lock");
+            object handle = await lookup.ConfigureAwait(false);
+            if (lookupAlarmSource)
+            {
+                handle.Should().NotBeNull();
+            }
+            else
+            {
+                handle.Should().BeNull();
+            }
         }
         finally
         {

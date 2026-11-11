@@ -206,7 +206,11 @@ public class DeterministicAlarmsSubscriptionTests
                 alarm.NodeId, deadline.Token).ConfigureAwait(false);
             owner.nodeManager.Should().BeSameAs(manager);
 
-            using var subscription = new Subscription(session.DefaultSubscription) { PublishingInterval = 100 };
+            using var subscription = new Subscription(fixture.Server.CurrentInstance.Telemetry)
+            {
+                PublishingInterval = 100,
+                PublishingEnabled = true
+            };
             session.AddSubscription(subscription);
             bool created = false;
             try

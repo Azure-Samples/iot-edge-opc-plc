@@ -74,11 +74,6 @@ public partial class OpcApplicationConfiguration
     /// </summary>
     public int ReverseConnectRejectTimeout { get; set; } = ReverseConnectServer.DefaultReverseConnectRejectTimeout;
 
-    /// <summary>
-    /// Maximum number of concurrent reverse connect sessions per client. 0 means unlimited.
-    /// </summary>
-    public int ReverseConnectMaxSessionCount { get; set; }
-
     public ReverseConnectServerConfiguration CreateReverseConnectConfiguration()
     {
         if (ReverseConnectClientUrls is null || ReverseConnectClientUrls.Count == 0)
@@ -95,7 +90,6 @@ public partial class OpcApplicationConfiguration
             {
                 EndpointUrl = clientUrl,
                 Timeout = ReverseConnectTimeout,
-                MaxSessionCount = ReverseConnectMaxSessionCount,
                 Enabled = true
             })
         };

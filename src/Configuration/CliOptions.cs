@@ -127,18 +127,6 @@ public static class CliOptions
                     }
                 }
             },
-            { "rcms|reverseconnectmaxsessioncount=", $"the maximum number of concurrent reverse connect sessions per client. 0 means unlimited.\nDefault: {config.OpcUa.ReverseConnectMaxSessionCount}", (int i) => {
-                    if (i >= 0)
-                    {
-                        config.OpcUa.ReverseConnectMaxSessionCount = i;
-                    }
-                    else
-                    {
-                        throw new OptionException("The reverseconnectmaxsessioncount must be larger or equal 0.", "reverseconnectmaxsessioncount");
-                    }
-                }
-            },
-
             { "rsha1|rejectsha1", $"reject SHA1 signed certificates.\nDefault: {config.OpcUa.RejectSHA1SignedCertificates}", (s) => config.OpcUa.RejectSHA1SignedCertificates = s != null },
 
             { "mks|mincertkeysize=", $"the minimum certificate key size allowed.\nDefault: {config.OpcUa.MinimumCertificateKeySize}", (ushort i) => config.OpcUa.MinimumCertificateKeySize = i },

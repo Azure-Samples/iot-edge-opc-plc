@@ -406,7 +406,8 @@ Multiple clients are supported as a comma separated list:
 dotnet opcplc.dll --pn=50000 --autoaccept --rcc=opc.tcp://client1:65300,opc.tcp://client2:65300
 ```
 
-The timing can be tuned with `--rci` (interval between connection attempts), `--rctm` (timeout waiting for a response), `--rcrt` (delay before retrying after the client rejected the connection) and `--rcms` (maximum number of concurrent sessions per client).
+The timing can be tuned with `--rci` (interval between connection attempts), `--rctm` (timeout waiting for a response) and `--rcrt` (delay before retrying after the client rejected the connection).
+The `--rcms` / `--reverseconnectmaxsessioncount` option was removed because SDK 2.0.2 no longer supports per-client reverse-connect session limits. Use `--msec` / `--maxsessioncount` to limit total server sessions.
 
 Notes:
 - The client must be configured to accept reverse connections on the given endpoint URL and both applications must trust each other's certificate. Use `--autoaccept` and `--trustowncert` for testing.
@@ -748,10 +749,6 @@ Options:
                              the timeout in ms before retrying a reverse
                                connection that the client rejected.
                                Default: 60000
-      --rcms, --reverseconnectmaxsessioncount=VALUE
-                             the maximum number of concurrent reverse connect
-                               sessions per client. 0 means unlimited.
-                               Default: 0
       --rsha1, --rejectsha1  reject SHA1 signed certificates.
                                Default: False
       --mks, --mincertkeysize=VALUE

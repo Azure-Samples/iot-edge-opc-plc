@@ -53,6 +53,9 @@ public class AlarmConditionServerNodeManager : AsyncCustomNodeManager
 {
     internal object SyncRoot { get; } = new();
 
+    // Event delivery can resolve manager handles on another thread while a source update is in progress.
+    internal object SourceStateSyncRoot { get; } = new();
+
     #region Constructors
     /// <summary>
     /// Initializes the node manager.
@@ -403,22 +406,26 @@ public class AlarmConditionServerNodeManager : AsyncCustomNodeManager
         }
 
         await base.DeleteAddressSpaceAsync(cancellationToken).ConfigureAwait(false);
+        SourceState[] sources;
+        AreaState[] areas;
         lock (SyncRoot)
         {
-            foreach (SourceState source in m_sources.Values)
-            {
-                source.Delete(SystemContext);
-            }
-            foreach (AreaState area in m_areas.Values)
-            {
-                if (area.Parent is null)
-                {
-                    area.Delete(SystemContext);
-                }
-            }
+            sources = [.. m_sources.Values];
+            areas = [.. m_areas.Values];
             _deterministicEventSources = [];
             m_areas.Clear();
             m_sources.Clear();
+        }
+        foreach (SourceState source in sources)
+        {
+            source.Delete(SystemContext);
+        }
+        foreach (AreaState area in areas)
+        {
+            if (area.Parent is null)
+            {
+                area.Delete(SystemContext);
+            }
         }
     }
 

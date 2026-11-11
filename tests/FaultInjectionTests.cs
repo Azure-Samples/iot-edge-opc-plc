@@ -76,8 +76,10 @@ public class FaultInjectionTests
                 owner.nodeManager.Should().BeOfType(model.ManagerType);
             }
             var lifecycle = fixture.Server.NodeManagerLifecycle;
-            var registration = await lifecycle.AddAsync(new DrainTargetFactory(), null, deadline.Token)
+            var addition = await lifecycle.ApplyAsync([LifecycleChange.Add(new DrainTargetFactory())], deadline.Token)
                 .ConfigureAwait(false);
+            addition.CleanupFailure.Should().BeNull();
+            var registration = addition.Registrations.ToArray().Should().ContainSingle().Subject;
             var node = new NodeId("FastUInt1", session.NamespaceUris.GetIndexOrAppend(OpcPlc.Namespaces.OpcPlcApplications));
             StatusCode.IsGood((await session.ReadValueAsync(node, deadline.Token).ConfigureAwait(false)).StatusCode)
                 .Should().BeTrue();
@@ -87,7 +89,10 @@ public class FaultInjectionTests
                 Func<Task> read = async () => await session.ReadValueAsync(node, deadline.Token).ConfigureAwait(false);
                 var failure = await read.Should().ThrowAsync<ServiceResultException>().ConfigureAwait(false);
                 StatusCode.IsBad(failure.Which.StatusCode).Should().BeTrue();
-                await lifecycle.RemoveAsync(registration, null, deadline.Token).ConfigureAwait(false);
+                var removal = await lifecycle.ApplyAsync([LifecycleChange.Remove(registration.Slot)], deadline.Token)
+                    .ConfigureAwait(false);
+                removal.CleanupFailure.Should().BeNull();
+                await removal.Retired.WaitAsync(deadline.Token).ConfigureAwait(false);
             }
             finally
             {
