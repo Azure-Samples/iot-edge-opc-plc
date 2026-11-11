@@ -9,6 +9,7 @@ public class HistorianDefaultTests : SimulatorTestsBase
 {
     [TestCase("Historian")]
     [TestCase("HistorianInt32")]
+    [TestCase("HistorianEvents")]
     public async Task HistorianNodesAreAbsentWithoutFlag(string nodeName)
     {
         DataValue result = await ReadDataValueAsync(GetOpcPlcNodeId(nodeName)).ConfigureAwait(false);

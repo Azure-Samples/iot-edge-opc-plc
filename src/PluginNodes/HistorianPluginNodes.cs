@@ -18,7 +18,7 @@ public class HistorianPluginNodes(TimeService timeService, ILogger logger)
     {
         optionSet.Add(
             "hn|historian",
-            "enable one historical-access node (Int32). Default: disabled",
+            "enable one historical-access node (Int32) and one historical event notifier. Default: disabled",
             value => Enabled = value != null);
     }
 
@@ -36,13 +36,17 @@ public class HistorianPluginNodes(TimeService timeService, ILogger logger)
         {
             AddVariable(plcNodeManager, folder, "HistorianInt32", DataTypeIds.Int32, 0)
         };
+        plcNodeManager.EnableEventHistory(folder);
     }
 
     public void StartSimulation()
     {
         if (Enabled)
         {
-            _timer = _timeService.NewTimer((sender, args) => _manager.UpdateHistory(), 10000);
+            _timer = _timeService.NewTimer((sender, args) => {
+                _manager.UpdateHistory();
+                _manager.UpdateEventHistory();
+            }, 10000);
         }
     }
 
