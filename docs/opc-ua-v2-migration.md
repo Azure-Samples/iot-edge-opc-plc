@@ -37,6 +37,18 @@ All seven central SDK pins and the standalone sample client use stable `2.0.2`, 
   `OpcApplicationConfiguration.ReverseConnectMaxSessionCount` are removed. SDK 2.0.2 ignores its obsolete
   per-client limit. Reverse-connect URLs and timing options remain supported; `--msec` /
   `--maxsessioncount` continues to cap total server sessions.
+- NodeSet2 imports type their `NamespaceMetadataType` objects as `NamespaceMetadataState`, with each
+  property in its generated slot (`NamespaceMetadataImport`). The SDK's namespace metadata publisher
+  and registry only recognize typed metadata; a generic import made them add a second, empty object
+  under `Server/Namespaces` for DI, IA, Machinery, Pumps, WoT-Con and Boiler, so clients could read a
+  null `NamespaceVersion`. NodeIds and values are unchanged; this behavior already existed with 2.0.1.
+  Namespaces without a NodeSet metadata object (for example the PLC application namespace) still get
+  the SDK's empty metadata object. User-supplied `--nodeset` files keep the generic import.
+- The upstream migration analyzer (2.0.2, all 26 rules) reports no actionable findings for the
+  application, tests or standalone sample. Its single `UA0021` hit flags a property name whose type is
+  already the new `ICertificateValidatorEx`. The test project's informational `MODELGEN012` comes from
+  `Opc.Ua.Gds.dll` declaring the GDS model twice (once without a version, via its Onboarding model);
+  the generator keeps the versioned producer, so generated code is unaffected.
 
 Release and Debug solution builds pass with zero warnings and errors. Audited restores use this
 machine's configured NuGet proxy because direct `api.nuget.org` TLS negotiation fails; no persistent
@@ -54,8 +66,12 @@ dotnet build opcplc.sln -c Debug --no-restore
 Validation results:
 
 - `dotnet test tests\opc-plc-tests.csproj -c Release --no-build --no-restore --blame-hang-timeout 3m`:
-  **1,117 passed, 0 failed, 2 skipped**. The skips are the existing SDK Directory pending-key layout
+  **1,137 passed, 0 failed, 2 skipped** after merging `preview` and adding the namespace-metadata
+  fix (previously 1,117 before the merge). The skips are the existing SDK Directory pending-key layout
   check on FlatDirectory and KubernetesSecret stores, where that layout does not apply.
+- The seven `NamespaceMetadataTests` fail without the typed import (each NodeSet namespace has two
+  metadata objects) and pass with it. In Debug, those tests plus generated-model equivalence, Pumps,
+  WoT-Con, Boiler2 and stacklight coverage passed **359 of 359**.
 - Final follow-up changes to alarm teardown and the lock-isolation regression case were verified
   with **284 passed, 0 failed, 0 skipped** in each of Release and Debug, covering generated-model
   equivalence, classic subscriptions, alarm locking, fault injection, reverse-connect CLI and

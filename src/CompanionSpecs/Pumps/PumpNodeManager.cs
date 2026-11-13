@@ -58,7 +58,7 @@ public sealed class PumpNodeManager : AsyncCustomNodeManager
     {
         cancellationToken.ThrowIfCancellationRequested();
         var predefinedNodes = new NodeStateCollection();
-        ReadNodeSet().Import(context, predefinedNodes);
+        NamespaceMetadataImport.Import(ReadNodeSet(), context, predefinedNodes);
 
         cancellationToken.ThrowIfCancellationRequested();
         return ValueTask.FromResult(predefinedNodes);
