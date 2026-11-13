@@ -512,7 +512,6 @@ public class OpcUaAppConfigFactoryTests
             config.OpcUa.ReverseConnectInterval = 1000;
             config.OpcUa.ReverseConnectTimeout = 2000;
             config.OpcUa.ReverseConnectRejectTimeout = 3000;
-            config.OpcUa.ReverseConnectMaxSessionCount = 4;
 
             var loggerMock = new Mock<ILogger>();
             var loggerFactoryMock = new Mock<ILoggerFactory>();
@@ -537,7 +536,6 @@ public class OpcUaAppConfigFactoryTests
                 .Equal("opc.tcp://client1:65300", "opc.tcp://client2:65301");
             reverseConnect.Clients.ToArray().Should().OnlyContain(c => c.Enabled);
             reverseConnect.Clients.ToArray().Should().OnlyContain(c => c.Timeout == 2000);
-            reverseConnect.Clients.ToArray().Should().OnlyContain(c => c.MaxSessionCount == 4);
         }
         finally
         {

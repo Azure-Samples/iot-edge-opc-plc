@@ -331,9 +331,9 @@ public partial class DiSecurityMigrationTests
                         await host.StartAsync(deadline.Token).ConfigureAwait(false);
                         await observer.Started.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
                         sdkLogger.Verify(logger => logger.Log(
-                            It.IsAny<LogLevel>(), It.IsAny<EventId>(),
-                            It.Is<It.IsAnyType>((state, _) => state.ToString()
-                                .Contains("Checking application instance certificate.", StringComparison.Ordinal)),
+                            LogLevel.Information,
+                            It.Is<EventId>(id => id.Name == "CheckingApplicationInstanceCertificate"),
+                            It.IsAny<It.IsAnyType>(),
                             It.IsAny<Exception>(),
                             It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
                         using var connection = new TcpClient();
@@ -1302,17 +1302,15 @@ public partial class DiSecurityMigrationTests
         config.CreateReverseConnectConfiguration().Should().BeNull();
     }
 
-    [TestCase(0)]
-    [TestCase(7)]
-    public void ReverseConnectConfiguration_PreservesSettingsAndClientOrder(int maxSessions)
+    [Test]
+    public void ReverseConnectConfiguration_PreservesSettingsAndClientOrder()
     {
         var config = new OpcApplicationConfiguration
         {
             ReverseConnectClientUrls = ["opc.tcp://localhost:51001/a", "opc.tcp://localhost:51002/b"],
             ReverseConnectInterval = 1500,
             ReverseConnectTimeout = 2700,
-            ReverseConnectRejectTimeout = 3900,
-            ReverseConnectMaxSessionCount = maxSessions
+            ReverseConnectRejectTimeout = 3900
         };
 
         ReverseConnectServerConfiguration result = config.CreateReverseConnectConfiguration();
@@ -1323,8 +1321,7 @@ public partial class DiSecurityMigrationTests
         result.Clients.Count.Should().Be(2);
         result.Clients[0].EndpointUrl.Should().Be("opc.tcp://localhost:51001/a");
         result.Clients[1].EndpointUrl.Should().Be("opc.tcp://localhost:51002/b");
-        result.Clients.ToArray().Should().OnlyContain(client => client.Enabled &&
-            client.Timeout == 2700 && client.MaxSessionCount == maxSessions);
+        result.Clients.ToArray().Should().OnlyContain(client => client.Enabled && client.Timeout == 2700);
         config.ReverseConnectClientUrls.Clear();
         result.Clients.Count.Should().Be(2);
     }

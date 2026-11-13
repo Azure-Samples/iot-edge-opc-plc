@@ -45,20 +45,10 @@ public partial class OpcPlcServer
     /// </summary>
     public ILoggerFactory LoggerFactory { get; set; }
 
-    private ILogger _logger;
-
     /// <summary>
     /// Logging object.
     /// </summary>
-#pragma warning disable S2292 // Trivial properties should be auto-implemented
-    // Source generator is used to inject logging into this class,
-    // so we need a backing field.
-    public ILogger Logger
-#pragma warning restore S2292 // Trivial properties should be auto-implemented
-    {
-        get => _logger;
-        set => _logger = value;
-    }
+    public ILogger Logger { get; set; }
 
     /// <summary>
     /// OPC UA server object.

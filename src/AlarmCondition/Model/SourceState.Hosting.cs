@@ -41,7 +41,7 @@ public partial class SourceState
         DataGenerator generator)
         : this(
             nodeManager.SystemContext,
-            nodeManager.SyncRoot,
+            nodeManager.SourceStateSyncRoot,
             (context, value) => nodeManager.Server.ReportEvent(context, value),
             nodeManager.Server.TypeTree,
             nodeId,

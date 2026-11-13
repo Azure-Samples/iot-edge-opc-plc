@@ -247,8 +247,9 @@ public class ServerEventSubscriptionTests
         _session.Endpoint.SecurityMode.Should().Be(MessageSecurityMode.SignAndEncrypt);
 
         // Same subscription parameters as the E2E client.
-        var subscription = new Subscription(_session.DefaultSubscription) {
+        var subscription = new Subscription(_simulator.Server.CurrentInstance.Telemetry) {
             PublishingInterval = 1000,
+            PublishingEnabled = true,
             KeepAliveCount = 5,
             LifetimeCount = 120,
             Priority = 255,
