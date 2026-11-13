@@ -42,8 +42,11 @@ All seven central SDK pins and the standalone sample client use stable `2.0.2`, 
   and registry only recognize typed metadata; a generic import made them add a second, empty object
   under `Server/Namespaces` for DI, IA, Machinery, Pumps, WoT-Con and Boiler, so clients could read a
   null `NamespaceVersion`. NodeIds and values are unchanged; this behavior already existed with 2.0.1.
-  Namespaces without a NodeSet metadata object (for example the PLC application namespace) still get
-  the SDK's empty metadata object. User-supplied `--nodeset` files keep the generic import.
+  The PLC's own namespaces (the application namespace and every `http://microsoft.com/Opc/OpcPlc/` URI)
+  have no NodeSet metadata, so `PlcServer.PublishNamespaceMetadataAsync` fills their empty
+  `NamespaceVersion` and `NamespacePublicationDate` with the PLC version and commit date after the SDK
+  publishes them; NodeSet-provided values such as Boiler's `1.00` are kept. User-supplied `--nodeset`
+  files keep the generic import, and the SDK's own Diagnostics namespace keeps the SDK's values.
 - The upstream migration analyzer (2.0.2, all 26 rules) reports no actionable findings for the
   application, tests or standalone sample. Its single `UA0021` hit flags a property name whose type is
   already the new `ICertificateValidatorEx`. The test project's informational `MODELGEN012` comes from
@@ -66,12 +69,16 @@ dotnet build opcplc.sln -c Debug --no-restore
 Validation results:
 
 - `dotnet test tests\opc-plc-tests.csproj -c Release --no-build --no-restore --blame-hang-timeout 3m`:
-  **1,137 passed, 0 failed, 2 skipped** after merging `preview` and adding the namespace-metadata
-  fix (previously 1,117 before the merge). The skips are the existing SDK Directory pending-key layout
-  check on FlatDirectory and KubernetesSecret stores, where that layout does not apply.
-- The seven `NamespaceMetadataTests` fail without the typed import (each NodeSet namespace has two
-  metadata objects) and pass with it. In Debug, those tests plus generated-model equivalence, Pumps,
-  WoT-Con, Boiler2 and stacklight coverage passed **359 of 359**.
+  **1,143 passed, 0 failed, 2 skipped** after merging `preview` and adding the namespace-metadata
+  fixes (previously 1,117 before the merge). The skips are the existing SDK Directory pending-key layout
+  check on FlatDirectory and KubernetesSecret stores, where that layout does not apply. On a heavily
+  loaded machine use `--blame-hang-timeout 10m`: `BoilerTests` fires 1-second timers thousands of
+  times, and each tick of the working-set node queries process information, so a 3-minute
+  inactivity window can elapse without a real hang.
+- The `NamespaceMetadataTests` NodeSet cases fail without the typed import (each NodeSet namespace has two
+  metadata objects), and the PLC namespace cases fail without the version override (null version); all
+  pass with the fixes (13 cases, in both Release and Debug). In Debug, the NodeSet cases plus
+  generated-model equivalence, Pumps, WoT-Con, Boiler2 and stacklight coverage passed **359 of 359**.
 - Final follow-up changes to alarm teardown and the lock-isolation regression case were verified
   with **284 passed, 0 failed, 0 skipped** in each of Release and Debug, covering generated-model
   equivalence, classic subscriptions, alarm locking, fault injection, reverse-connect CLI and

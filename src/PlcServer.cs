@@ -155,6 +155,46 @@ public partial class PlcServer : ReverseConnectServer
         await OpenDeferredListenersAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Describes the PLC's own namespaces with the PLC version and commit date. They are built in code or from
+    /// NodeSets without metadata, so the SDK otherwise publishes them with an empty version.
+    /// </summary>
+    protected override async ValueTask PublishNamespaceMetadataAsync(
+        IServerInternal server, CancellationToken cancellationToken = default)
+    {
+        await base.PublishNamespaceMetadataAsync(server, cancellationToken).ConfigureAwait(false);
+
+        IConfigurationNodeManager configuration = server.ConfigurationNodeManager;
+        if (configuration is null)
+        {
+            return;
+        }
+
+        string version = ThisAssembly.AssemblyInformationalVersion.Split('+')[0];
+        var publicationDate = DateTimeUtc.From(ThisAssembly.GitCommitDate);
+        string[] namespaceUris = server.NamespaceUris.ToArray();
+        for (int ii = 1; ii < namespaceUris.Length; ii++)
+        {
+            // ns=1 is the server's application namespace; the others share the PLC namespace root.
+            if (ii != 1 && !namespaceUris[ii].StartsWith(Namespaces.OpcPlcApplications, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            NamespaceMetadataState metadata = await configuration
+                .GetNamespaceMetadataStateAsync(namespaceUris[ii], cancellationToken).ConfigureAwait(false);
+            if (metadata?.NamespaceVersion is not null && string.IsNullOrEmpty(metadata.NamespaceVersion.Value))
+            {
+                metadata.NamespaceVersion.Value = version;
+            }
+
+            if (metadata?.NamespacePublicationDate is not null && metadata.NamespacePublicationDate.Value.IsNull)
+            {
+                metadata.NamespacePublicationDate.Value = publicationDate;
+            }
+        }
+    }
+
     private async ValueTask OpenDeferredListenersAsync(CancellationToken cancellationToken)
     {
         DeferredListener[] pending;

@@ -6,13 +6,15 @@ using Opc.Ua;
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
 /// <summary>
-/// Verifies Server/Namespaces describes each namespace once, using the metadata of the imported NodeSets.
+/// Verifies Server/Namespaces describes each namespace once, using the metadata of the imported NodeSets,
+/// and describes the PLC's own namespaces with the PLC version.
 /// </summary>
-public class NamespaceMetadataTests() : SimulatorTestsBase(["--sl", "--pumps", "--wotcon"])
+public class NamespaceMetadataTests() : SimulatorTestsBase(["--sl", "--pumps", "--wotcon", "--ses", "--alm"])
 {
     [Test]
     public async Task ServerNamespaces_HasOneMetadataObjectPerNamespace()
@@ -45,6 +47,29 @@ public class NamespaceMetadataTests() : SimulatorTestsBase(["--sl", "--pumps", "
                 date, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal)));
         (await BrowseAsync(metadata, ReferenceTypeIds.HasProperty).ConfigureAwait(false))
             .Should().OnlyHaveUniqueItems();
+    }
+
+    [TestCase(OpcPlc.Namespaces.OpcPlcApplications)]
+    [TestCase(OpcPlc.Namespaces.OpcPlcBoilerInstance)]
+    [TestCase(OpcPlc.Namespaces.OpcPlcSimpleEvents)]
+    [TestCase(OpcPlc.Namespaces.OpcPlcAlarmsInstance)]
+    [TestCase(OpcPlc.Namespaces.OpcPlcReferenceTest)]
+    [TestCase(null)]
+    public async Task PlcNamespace_PublishesPlcVersion(string namespaceUri)
+    {
+        // A null URI selects the server's application namespace (ns=1).
+        namespaceUri ??= Session.NamespaceUris.GetString(1);
+        string plcVersion = typeof(OpcPlcServer).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion.Split('+')[0];
+
+        NodeId metadata = (await ReadMetadataObjectsAsync().ConfigureAwait(false))
+            .Where(m => m.Uri == namespaceUri)
+            .Should().ContainSingle().Subject.NodeId;
+
+        (await ReadPropertyAsync<string>(metadata, BrowseNames.NamespaceVersion).ConfigureAwait(false))
+            .Should().Be(plcVersion);
+        (await ReadPropertyAsync<DateTimeUtc>(metadata, BrowseNames.NamespacePublicationDate).ConfigureAwait(false))
+            .IsNull.Should().BeFalse();
     }
 
     private async Task<List<(NodeId NodeId, string Uri)>> ReadMetadataObjectsAsync()
