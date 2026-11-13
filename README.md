@@ -417,7 +417,7 @@ Notes:
 
 ## Historical Access
 
-Enable one Int32 historian variable with `--historian` (alias `--hn`). It is disabled by default.
+Enable one Int32 historian variable and one historical event notifier with `--historian` (alias `--hn`). It is disabled by default.
 
 ```bash
 dotnet opcplc.dll --pn=50000 --autoaccept --historian
@@ -441,7 +441,19 @@ the ending timestamp is excluded, except when start and end are equal. Empty ran
 Responses contain at most 100 values per node, or the smaller requested `NumValuesPerNode`. Continue with the returned
 token and unchanged request parameters in the same session; release unused tokens with `releaseContinuationPoints=true`.
 
-History is read-only. Modified, processed/aggregate, at-time and event history, and `HistoryUpdate`, are not implemented.
+History is read-only. Modified, processed/aggregate, at-time history, and `HistoryUpdate`, are not implemented.
+
+### Historical events
+
+The object `s=HistorianEvents` in the same folder is an event notifier with `SubscribeToEvents` and `HistoryRead`.
+It starts with 1,001 `BaseEventType` events spaced ten seconds apart, ending at startup time. Simulation reports a new
+event every ten seconds to subscribers of the notifier, and retains the newest 2,000 events in memory. Each event has
+`SourceNode` and `SourceName` of the notifier, `Severity` 500, and the `Message` `Historian event <n>`, where `<n>`
+increases by one per event. Restarting the server resets history.
+
+Use `HistoryRead` with `ReadEventDetails` and an `EventFilter` with at least one select clause. Where clauses are
+supported. Time ranges, direction, counts, `Good_NoData`, page size (at most 100 events), and continuation points work
+as for raw data reads.
 
 ## Other features
 - Node with special characters in name and NodeId
@@ -965,7 +977,8 @@ Options:
       --gn, --guidnodes=VALUE
                              number of nodes with deterministic GUID IDs.
                                Default: 1
-      --hn, --historian     enable one historical-access node (Int32).
+      --hn, --historian     enable one historical-access node (Int32) and one
+                               historical event notifier.
                                Default: disabled
       --nd, --nodips         do not generate dip data.
                                Default: False
