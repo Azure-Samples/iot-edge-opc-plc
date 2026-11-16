@@ -289,7 +289,7 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
         try
         {
             var nodeSet = NodeSetXmlCache.Read(NodeSetXmlRelativePath);
-            nodeSet.Import(context, predefinedNodes);
+            NamespaceMetadataImport.Import(nodeSet, context, predefinedNodes);
         }
         catch (Exception ex)
         {

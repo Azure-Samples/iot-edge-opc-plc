@@ -234,7 +234,7 @@ public partial class Boiler2PluginNodes(TimeService timeService, ILogger logger)
 
         var predefinedNodes = new NodeStateCollection();
         using var stream = File.OpenRead(xmlPath);
-        Opc.Ua.Export.UANodeSet.Read(stream).Import(context, predefinedNodes, stateFactory: null);
+        NamespaceMetadataImport.Import(Opc.Ua.Export.UANodeSet.Read(stream), context, predefinedNodes);
         Opc.Ua.Export.UANodeSet.LinkParentChildRelationships(
             context, predefinedNodes, new Opc.Ua.Export.NodeSetImportLinkOptions());
         return predefinedNodes;

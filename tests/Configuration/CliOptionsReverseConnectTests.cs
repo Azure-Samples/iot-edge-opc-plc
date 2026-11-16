@@ -27,7 +27,6 @@ public class CliOptionsReverseConnectTests
         config.OpcUa.ReverseConnectInterval.Should().Be(15_000);
         config.OpcUa.ReverseConnectTimeout.Should().Be(30_000);
         config.OpcUa.ReverseConnectRejectTimeout.Should().Be(60_000);
-        config.OpcUa.ReverseConnectMaxSessionCount.Should().Be(0);
     }
 
     [Test]
@@ -115,7 +114,7 @@ public class CliOptionsReverseConnectTests
     {
         // Arrange
         var config = new OpcPlcConfiguration();
-        var args = new[] { "--rci=1000", "--rctm=2000", "--rcrt=3000", "--rcms=4" };
+        var args = new[] { "--rci=1000", "--rctm=2000", "--rcrt=3000" };
 
         // Act
         _ = CliOptions.InitConfiguration(args, config, NoPluginNodes);
@@ -124,13 +123,11 @@ public class CliOptionsReverseConnectTests
         config.OpcUa.ReverseConnectInterval.Should().Be(1000);
         config.OpcUa.ReverseConnectTimeout.Should().Be(2000);
         config.OpcUa.ReverseConnectRejectTimeout.Should().Be(3000);
-        config.OpcUa.ReverseConnectMaxSessionCount.Should().Be(4);
     }
 
     [TestCase("--rci=0")]
     [TestCase("--rctm=0")]
     [TestCase("--rcrt=0")]
-    [TestCase("--rcms=-1")]
     public void Parse_ReverseConnectTimings_OutOfRange_Throws(string arg)
     {
         // Arrange
@@ -142,5 +139,17 @@ public class CliOptionsReverseConnectTests
 
         // Assert
         act.Should().Throw<Mono.Options.OptionException>();
+    }
+
+    [TestCase("--rcms=4")]
+    [TestCase("--reverseconnectmaxsessioncount=0")]
+    public void Parse_RemovedReverseConnectLimit_IsReportedAsInvalidArgument(string arg)
+    {
+        var config = new OpcPlcConfiguration();
+
+        var (_, extraArgs) = CliOptions.InitConfiguration([arg], config, NoPluginNodes);
+
+        extraArgs.Should().ContainSingle().Which.Should().Be(arg);
+        CliOptions.GetUsageHelp(config.ProgramName).Should().NotContain("reverseconnectmaxsessioncount");
     }
 }

@@ -1177,9 +1177,10 @@ public class ReferenceNodeModelTests
             calls.Results[1].OutputArguments[0].GetString().Should().Be("Output");
             calls.Results[2].OutputArguments[0].GetFloat().Should().Be(3.5f);
 
-            using var subscription = new Opc.Ua.Client.Subscription(session.DefaultSubscription)
+            using var subscription = new Opc.Ua.Client.Subscription(fixture.Server.CurrentInstance.Telemetry)
             {
-                PublishingInterval = 100
+                PublishingInterval = 100,
+                PublishingEnabled = true
             };
             session.AddSubscription(subscription);
             try

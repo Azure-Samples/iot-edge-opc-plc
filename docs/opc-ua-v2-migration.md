@@ -1,6 +1,6 @@
 # OPC UA 2.0 migration
 
-Status as of **2026-10-20**: OPC PLC **2.16.0-preview.6** uses exact **2.0.1** SDK packages.
+Status as of **2026-11-11**: OPC PLC uses exact **2.0.2** SDK packages.
 Debug and Release builds use the same public SDK packages, including the model generator.
 The PLC's Debug configuration and debugger image remain available, but SDK binaries are Release-built.
 Test clients now use native runtime type loading and managed
@@ -10,6 +10,85 @@ Debug configuration described here. Recorded main-integration Release and
 Debug suites each passed **908 tests, 0 failed, 0 skipped**; the earlier 903-test results predate main
 integration. A hosted run passed Linux build/tests and image validation for the published
 head. Review fixes described below are local follow-up changes, not covered by that hosted run.
+
+### Official SDK 2.0.2 adoption
+
+All seven central SDK pins and the standalone sample client use stable `2.0.2`, following the
+[upstream 2.0.x migration guidance](https://github.com/OPCFoundation/UA-.NETStandard/tree/master/docs/migrate/2.0.x).
+
+- Hosted node managers are constructed through `IAsyncNodeManagerFactory` registrations passed to
+  `MasterNodeManager`. Factory namespace declarations retain the existing registration order,
+  including DI at namespace index 2 and PLC application nodes at index 3.
+- Runtime lifecycle tests use `LifecycleChange` / `ApplyAsync` and await retirement after removal.
+- Source-generated logging uses the public `Logger` property without a duplicate backing field.
+  The application logging builder enables the SDK's classified-data redaction pipeline.
+- Classic-subscription regression tests construct subscriptions with an explicit telemetry context
+  instead of the obsolete `ISession.DefaultSubscription` template and explicitly enable publishing;
+  they continue testing the classic API.
+- Alarm source updates use a domain lock separate from manager-handle lookup. SDK event delivery can
+  await permission lookup on another thread, so sharing those locks deadlocks subscribed simulations.
+  The existing authenticated and anonymous server-event responsiveness tests cover this regression.
+- Generated DI support placeholders and WoT asset endpoints now preserve missing declared values as
+  null Variants. Equivalence tests require those nulls instead of the former empty ByteString and
+  typed-null String exceptions; the obsolete exception-helper tests are removed.
+- Certificate-startup logging assertions use the SDK event name, not a pooled log-state object's
+  formatted text after the log call has returned.
+- **Intentional CLI change:** `--rcms` / `--reverseconnectmaxsessioncount` and
+  `OpcApplicationConfiguration.ReverseConnectMaxSessionCount` are removed. SDK 2.0.2 ignores its obsolete
+  per-client limit. Reverse-connect URLs and timing options remain supported; `--msec` /
+  `--maxsessioncount` continues to cap total server sessions.
+- NodeSet2 imports type their `NamespaceMetadataType` objects as `NamespaceMetadataState`, with each
+  property in its generated slot (`NamespaceMetadataImport`). The SDK's namespace metadata publisher
+  and registry only recognize typed metadata; a generic import made them add a second, empty object
+  under `Server/Namespaces` for DI, IA, Machinery, Pumps, WoT-Con and Boiler, so clients could read a
+  null `NamespaceVersion`. NodeIds and values are unchanged; this behavior already existed with 2.0.1.
+  The PLC's own namespaces (the application namespace and every `http://microsoft.com/Opc/OpcPlc/` URI)
+  have no NodeSet metadata, so `PlcServer.PublishNamespaceMetadataAsync` fills their empty
+  `NamespaceVersion` and `NamespacePublicationDate` with the PLC version and commit date after the SDK
+  publishes them; NodeSet-provided values such as Boiler's `1.00` are kept. User-supplied `--nodeset`
+  files keep the generic import, and the SDK's own Diagnostics namespace keeps the SDK's values.
+- The upstream migration analyzer (2.0.2, all 26 rules) reports no actionable findings for the
+  application, tests or standalone sample. Its single `UA0021` hit flags a property name whose type is
+  already the new `ICertificateValidatorEx`. The test project's informational `MODELGEN012` comes from
+  `Opc.Ua.Gds.dll` declaring the GDS model twice (once without a version, via its Onboarding model);
+  the generator keeps the versioned producer, so generated code is unaffected.
+
+Release and Debug solution builds pass with zero warnings and errors. Audited restores use this
+machine's configured NuGet proxy because direct `api.nuget.org` TLS negotiation fails; no persistent
+feed settings or warning policy were changed:
+
+```powershell
+dotnet restore opcplc.sln --source https://packagefeedproxy.microsoft.io/nuget/v3/index.json `
+  -p:Configuration=Release -p:NuGetAudit=true -p:NuGetAuditMode=all
+dotnet build opcplc.sln -c Release --no-restore
+dotnet restore opcplc.sln --source https://packagefeedproxy.microsoft.io/nuget/v3/index.json `
+  -p:Configuration=Debug -p:NuGetAudit=true -p:NuGetAuditMode=all
+dotnet build opcplc.sln -c Debug --no-restore
+```
+
+Validation results:
+
+- `dotnet test tests\opc-plc-tests.csproj -c Release --no-build --no-restore --blame-hang-timeout 3m`:
+  **1,143 passed, 0 failed, 2 skipped** after merging `preview` and adding the namespace-metadata
+  fixes (previously 1,117 before the merge). The skips are the existing SDK Directory pending-key layout
+  check on FlatDirectory and KubernetesSecret stores, where that layout does not apply. On a heavily
+  loaded machine use `--blame-hang-timeout 10m`: `BoilerTests` fires 1-second timers thousands of
+  times, and each tick of the working-set node queries process information, so a 3-minute
+  inactivity window can elapse without a real hang.
+- The `NamespaceMetadataTests` NodeSet cases fail without the typed import (each NodeSet namespace has two
+  metadata objects), and the PLC namespace cases fail without the version override (null version); all
+  pass with the fixes (13 cases, in both Release and Debug). In Debug, the NodeSet cases plus
+  generated-model equivalence, Pumps, WoT-Con, Boiler2 and stacklight coverage passed **359 of 359**.
+- Final follow-up changes to alarm teardown and the lock-isolation regression case were verified
+  with **284 passed, 0 failed, 0 skipped** in each of Release and Debug, covering generated-model
+  equivalence, classic subscriptions, alarm locking, fault injection, reverse-connect CLI and
+  hosted certificate startup.
+- The standalone sample consumer passed **8 tests** against the exact locally built Release
+  package using an isolated package cache. The initial proxy-only restore failed with `NU1102`
+  because the proxy advertised only SDK `2.0.1`, even with HTTP caching disabled. Adding the official
+  `https://www.nuget.org/api/v2/` source to the temporary consumer configuration resolved `2.0.2`;
+  an explicit proxy `auditSources` entry kept dependency auditing enabled. No repository or
+  machine-wide NuGet configuration was changed.
 
 ### Official SDK 2.0.1 adoption
 
@@ -176,7 +255,7 @@ symbol packages are excluded, and duplicate-version or authentication failures a
 
 Use the .NET 10 SDK and run commands from the repository root. Nerdbank.GitVersioning needs full Git
 history. [Directory.Packages.props](../Directory.Packages.props) pins all seven direct OPC runtime
-and analyzer packages; the validated dependency graphs contain only preview-6 OPC packages.
+and analyzer packages; the validated dependency graphs contain only `2.0.2` OPC packages.
 
 The ordinary Release packages are public on nuget.org and need no GitHub Packages token.
 Both Release and Debug container restores enable `NuGetAudit=true` and `NuGetAuditMode=all`

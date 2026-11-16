@@ -44,7 +44,7 @@ public sealed class MachineryNodeManager : AsyncCustomNodeManager
         cancellationToken.ThrowIfCancellationRequested();
         var predefinedNodes = new NodeStateCollection();
         var nodeSet = NodeSetXmlCache.Read(NodeSetXmlRelativePath);
-        nodeSet.Import(context, predefinedNodes);
+        NamespaceMetadataImport.Import(nodeSet, context, predefinedNodes);
 
         cancellationToken.ThrowIfCancellationRequested();
         return ValueTask.FromResult(predefinedNodes);

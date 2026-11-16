@@ -244,8 +244,7 @@ public partial class GeneratedModelEquivalenceTests
                 var retainedEndpoint = (BaseVariableState)template.FindChild(context, endpointName);
                 if (retainedEndpoint.Value.IsNull)
                 {
-                    IsApprovedEndpointDefault(context, retainedEndpoint.NodeId, endpoint.DataType, endpoint.ValueRank,
-                        EncodeValue(endpoint.Value, context)).Should().BeTrue("only the approved typed-null String is allowed");
+                    endpoint.Value.IsNull.Should().BeTrue("the retained endpoint has no declared default");
                 }
             }
             if (template is BaseVariableState templateVariable && templateVariable.Value.IsNull)
@@ -315,39 +314,6 @@ public partial class GeneratedModelEquivalenceTests
             .Select(reference => reference.Value).Should().Equal("i=80");
     }
 
-    [TestCase("Identity")]
-    [TestCase("Namespace")]
-    [TestCase("DataType")]
-    [TestCase("Rank")]
-    [TestCase("EmptyString")]
-    [TestCase("NonemptyString")]
-    [TestCase("NullVariant")]
-    public void AssetEndpointDefault_RejectsUnapprovedChanges(string change)
-    {
-        var context = CreateModelContext();
-        NodeId id = NodeId.Create(169, OpcPlc.Namespaces.WotCon, context.NamespaceUris);
-        NodeId dataType = Opc.Ua.DataTypeIds.String;
-        int rank = ValueRanks.Scalar;
-        byte[] encoded = [12, 255, 255, 255, 255];
-        IsApprovedEndpointDefault(context, id, dataType, rank, encoded).Should().BeTrue();
-        switch (change)
-        {
-            case "Identity": id = NodeId.Create(122, OpcPlc.Namespaces.WotCon, context.NamespaceUris); break;
-            case "Namespace": id = new NodeId(169); break;
-            case "DataType": dataType = Opc.Ua.DataTypeIds.ByteString; break;
-            case "Rank": rank = ValueRanks.OneDimension; break;
-            case "EmptyString": encoded = [12, 0, 0, 0, 0]; break;
-            case "NonemptyString": encoded = [12, 1, 0, 0, 0, 65]; break;
-            case "NullVariant": encoded = [0]; break;
-            default: throw new ArgumentOutOfRangeException(nameof(change));
-        }
-        IsApprovedEndpointDefault(context, id, dataType, rank, encoded).Should().BeFalse(change);
-    }
-
-    private static bool IsApprovedEndpointDefault(SystemContext context, NodeId declarationId, NodeId dataType,
-        int rank, byte[] encoded) => declarationId == NodeId.Create(169, OpcPlc.Namespaces.WotCon, context.NamespaceUris) &&
-        dataType == Opc.Ua.DataTypeIds.String && rank == ValueRanks.Scalar && encoded is [12, 255, 255, 255, 255];
-
     [Test]
     public void NestedPlaceholderDeclarations_MatchApprovedTemplates()
     {
@@ -365,48 +331,6 @@ public partial class GeneratedModelEquivalenceTests
                 .Where(reference => reference.Attribute("ReferenceType")?.Value == "HasModellingRule")
                 .Select(reference => reference.Value).Should().Equal("i=11510");
         }
-    }
-
-    [TestCase("Identity")]
-    [TestCase("Namespace")]
-    [TestCase("DataType")]
-    [TestCase("Rank")]
-    [TestCase("Nonempty")]
-    [TestCase("TypedNull")]
-    [TestCase("NullVariant")]
-    public void SupportPlaceholderDefault_RejectsUnapprovedChanges(string change)
-    {
-        var context = CreateModelContext();
-        NodeId id = NodeId.Create(15056, OpcPlc.Namespaces.DI, context.NamespaceUris);
-        NodeId dataType = new(30);
-        int rank = ValueRanks.Scalar;
-        byte[] encoded = [15, 0, 0, 0, 0];
-        IsApprovedSupportDefault(context, id, dataType, rank, encoded).Should().BeTrue();
-        switch (change)
-        {
-            case "Identity": id = NodeId.Create(6017, OpcPlc.Namespaces.DI, context.NamespaceUris); break;
-            case "Namespace": id = new NodeId(15056); break;
-            case "DataType": dataType = new NodeId(15); break;
-            case "Rank": rank = ValueRanks.OneDimension; break;
-            case "Nonempty": encoded = [15, 1, 0, 0, 0, 1]; break;
-            case "TypedNull": encoded = [15, 255, 255, 255, 255]; break;
-            case "NullVariant": encoded = [0]; break;
-            default: throw new ArgumentOutOfRangeException(nameof(change));
-        }
-        IsApprovedSupportDefault(context, id, dataType, rank, encoded).Should().BeFalse(change);
-    }
-
-    private static bool IsApprovedSupportDefault(SystemContext context, NodeId declarationId, NodeId dataType,
-        int rank, byte[] encoded)
-    {
-        if (context.NamespaceUris.GetString(declarationId.NamespaceIndex) != OpcPlc.Namespaces.DI ||
-            !declarationId.TryGetValue(out uint identifier))
-        {
-            return false;
-        }
-        var approved = ApprovedNestedPlaceholders.SingleOrDefault(item => item.Id == identifier);
-        return approved.Type is not null && approved.DataType is 15 or 30 &&
-            dataType == new NodeId(approved.DataType) && rank == ValueRanks.Scalar && encoded is [15, 0, 0, 0, 0];
     }
 
     [TestCase(typeof(Opc.Ua.DI.TopologyElementState), "ParameterSet", "<ParameterIdentifier>")]
@@ -484,15 +408,7 @@ public partial class GeneratedModelEquivalenceTests
             expectedParent.AddChild(expectedChild);
             if (((BaseVariableState)template).Value.IsNull)
             {
-                if (approved.DataType is 15 or 30)
-                {
-                    IsApprovedSupportDefault(context, template.NodeId, child.DataType, child.ValueRank,
-                        EncodeValue(child.Value, context)).Should().BeTrue("only the approved empty ByteString default is allowed");
-                }
-                else
-                {
-                    child.Value.IsNull.Should().BeTrue();
-                }
+                child.Value.IsNull.Should().BeTrue("the retained placeholder has no declared default");
             }
         }
         var children = new List<BaseInstanceState>();

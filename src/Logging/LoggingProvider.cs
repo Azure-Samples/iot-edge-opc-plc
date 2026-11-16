@@ -6,6 +6,7 @@
 namespace OpcPlc.Logging;
 
 using Microsoft.Extensions.Logging;
+using Opc.Ua;
 
 /// <summary>
 /// Provides utility for creating logger factory.
@@ -19,6 +20,7 @@ public static class LoggingProvider
     {
         var loggerFactory = LoggerFactory.Create(builder =>
         {
+            builder.EnableOpcUaRedaction();
             builder.AddConsole(options => options.FormatterName = nameof(SyslogFormatter))
             .SetMinimumLevel(level)
             .AddConsoleFormatter<

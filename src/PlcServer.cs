@@ -155,6 +155,46 @@ public partial class PlcServer : ReverseConnectServer
         await OpenDeferredListenersAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Describes the PLC's own namespaces with the PLC version and commit date. They are built in code or from
+    /// NodeSets without metadata, so the SDK otherwise publishes them with an empty version.
+    /// </summary>
+    protected override async ValueTask PublishNamespaceMetadataAsync(
+        IServerInternal server, CancellationToken cancellationToken = default)
+    {
+        await base.PublishNamespaceMetadataAsync(server, cancellationToken).ConfigureAwait(false);
+
+        IConfigurationNodeManager configuration = server.ConfigurationNodeManager;
+        if (configuration is null)
+        {
+            return;
+        }
+
+        string version = ThisAssembly.AssemblyInformationalVersion.Split('+')[0];
+        var publicationDate = DateTimeUtc.From(ThisAssembly.GitCommitDate);
+        string[] namespaceUris = server.NamespaceUris.ToArray();
+        for (int ii = 1; ii < namespaceUris.Length; ii++)
+        {
+            // ns=1 is the server's application namespace; the others share the PLC namespace root.
+            if (ii != 1 && !namespaceUris[ii].StartsWith(Namespaces.OpcPlcApplications, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            NamespaceMetadataState metadata = await configuration
+                .GetNamespaceMetadataStateAsync(namespaceUris[ii], cancellationToken).ConfigureAwait(false);
+            if (metadata?.NamespaceVersion is not null && string.IsNullOrEmpty(metadata.NamespaceVersion.Value))
+            {
+                metadata.NamespaceVersion.Value = version;
+            }
+
+            if (metadata?.NamespacePublicationDate is not null && metadata.NamespacePublicationDate.Value.IsNull)
+            {
+                metadata.NamespacePublicationDate.Value = publicationDate;
+            }
+        }
+    }
+
     private async ValueTask OpenDeferredListenersAsync(CancellationToken cancellationToken)
     {
         DeferredListener[] pending;
@@ -684,45 +724,39 @@ public partial class PlcServer : ReverseConnectServer
         IServerInternal server, ApplicationConfiguration configuration, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var nodeManagers = new List<IAsyncNodeManager>();
+        var factories = new List<IAsyncNodeManagerFactory>();
 
         // IMPORTANT: Namespace indices are assigned in the order node managers are added here.
         // Do NOT reorder these registrations without understanding the impact on the namespace indices.
         // ns=0 / ns=1: Built-in OPC UA + server.
 
         // ns=2: DI node manager.
-        var diNodeManager = new DiNodeManager(server, configuration);
-        nodeManagers.Add(diNodeManager);
+        factories.Add(new NodeManagerFactory([Namespaces.DI],
+            (s, c) => new DiNodeManager(s, c)));
 
         // ns=3: OpcPlcApplications namespace owned by PlcNodeManager. PlcNodeManager hosts this
         // namespace and registers the plugin nodes; the plugins (e.g. FastUInt1).
-        PlcNodeManager = new PlcNodeManager(
-            server,
-            Config,
-            appConfig: configuration,
-            TimeService,
-            PlcSimulation,
-            _pluginNodes,
-            _logger);
-
-        nodeManagers.Add(PlcNodeManager);
+        factories.Add(new NodeManagerFactory(
+            [Namespaces.OpcPlcApplications, Namespaces.OpcPlcBoiler, Namespaces.OpcPlcBoilerInstance],
+            (s, c) => PlcNodeManager = new PlcNodeManager(
+                s, Config, c, TimeService, PlcSimulation, _pluginNodes, _logger)));
 
         if (PlcSimulation.AddSimpleEventsSimulation)
         {
-            SimpleEventsNodeManager = new SimpleEventsNodeManager(server, configuration, _logger);
-            nodeManagers.Add(SimpleEventsNodeManager);
+            factories.Add(new NodeManagerFactory([Namespaces.OpcPlcSimpleEvents],
+                (s, c) => SimpleEventsNodeManager = new SimpleEventsNodeManager(s, c, _logger)));
         }
 
         if (PlcSimulation.AddAlarmSimulation)
         {
-            AlarmNodeManager = new AlarmConditionServerNodeManager(server, configuration, _logger, server.Telemetry);
-            nodeManagers.Add(AlarmNodeManager);
+            factories.Add(new NodeManagerFactory([Namespaces.OpcPlcAlarmsInstance],
+                (s, c) => AlarmNodeManager = new AlarmConditionServerNodeManager(s, c, _logger, s.Telemetry)));
         }
 
         if (PlcSimulation.AddReferenceTestSimulation)
         {
-            SimulationNodeManager = new ReferenceNodeManager(server, configuration, _logger, server.Telemetry);
-            nodeManagers.Add(SimulationNodeManager);
+            factories.Add(new NodeManagerFactory([Namespaces.OpcPlcReferenceTest],
+                (s, c) => SimulationNodeManager = new ReferenceNodeManager(s, c, _logger, s.Telemetry)));
         }
 
         if (PlcSimulation.DeterministicAlarmSimulationFile != null)
@@ -741,16 +775,17 @@ public partial class PlcServer : ReverseConnectServer
                 throw new InvalidOperationException(errorMessage);
             }
 
-            DeterministicAlarmsNodeManager = new DeterministicAlarmsNodeManager(server, configuration, TimeService, scriptFileName, _logger);
-            nodeManagers.Add(DeterministicAlarmsNodeManager);
+            factories.Add(new NodeManagerFactory([Namespaces.OpcPlcDeterministicAlarmsInstance],
+                (s, c) => DeterministicAlarmsNodeManager =
+                    new DeterministicAlarmsNodeManager(s, c, TimeService, scriptFileName, _logger)));
         }
 
         // IA node manager, depends on DI and includes Stacklight types.
         var stacklightEnabled = _pluginNodes.OfType<PluginNodes.StacklightPluginNodes>().FirstOrDefault()?.IsEnabled == true;
         if (stacklightEnabled)
         {
-            var iaNodeManager = new IaNodeManager(server, configuration);
-            nodeManagers.Add(iaNodeManager);
+            factories.Add(new NodeManagerFactory([Namespaces.IA],
+                (s, c) => new IaNodeManager(s, c)));
         }
 
         // Pumps node manager, depends on DI and Machinery and includes Pump types.
@@ -758,23 +793,37 @@ public partial class PlcServer : ReverseConnectServer
         if (pumpsEnabled)
         {
             // Machinery is a required model of the Pumps companion spec, so load it first.
-            var machineryNodeManager = new CompanionSpecs.Machinery.MachineryNodeManager(server, configuration);
-            nodeManagers.Add(machineryNodeManager);
-
-            var pumpNodeManager = new PumpNodeManager(server, configuration);
-            nodeManagers.Add(pumpNodeManager);
+            factories.Add(new NodeManagerFactory([Namespaces.Machinery],
+                (s, c) => new CompanionSpecs.Machinery.MachineryNodeManager(s, c)));
+            factories.Add(new NodeManagerFactory([Namespaces.Pumps],
+                (s, c) => new PumpNodeManager(s, c)));
         }
 
         // WoT-Con node manager for Web of Things connectivity and asset management.
         if (PlcSimulation.AddWotConSimulation)
         {
-            var wotConNodeManager = new CompanionSpecs.WotCon.WotConNodeManager(server, configuration, TimeService, _logger);
-            nodeManagers.Add(wotConNodeManager);
+            factories.Add(new NodeManagerFactory([Namespaces.WotCon],
+                (s, c) => new CompanionSpecs.WotCon.WotConNodeManager(s, c, TimeService, _logger)));
         }
 
         var masterNodeManager = new MasterNodeManager(server, configuration, dynamicNamespaceUri: null,
-            additionalManagers: nodeManagers, additionalSyncManagers: null);
+            initialFactories: factories.ToArrayOf());
         return ValueTask.FromResult<IMasterNodeManager>(masterNodeManager);
+    }
+
+    private sealed class NodeManagerFactory(
+        ArrayOf<string> namespaceUris,
+        Func<IServerInternal, ApplicationConfiguration, IAsyncNodeManager> create) : IAsyncNodeManagerFactory
+    {
+        public ArrayOf<string> NamespacesUris { get; } = namespaceUris;
+
+        public ValueTask<IAsyncNodeManager> CreateAsync(
+            IServerInternal server, ApplicationConfiguration configuration,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(create(server, configuration));
+        }
     }
 
     /// <summary>
