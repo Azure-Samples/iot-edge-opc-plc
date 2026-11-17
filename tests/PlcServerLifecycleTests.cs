@@ -10,7 +10,10 @@ using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Security.Certificates;
+using OpcPlc.Helpers;
 using System;
+using System.Collections.Concurrent;
+using System.Diagnostics.Metrics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -107,6 +110,75 @@ public class PlcServerLifecycleTests
         }
         fixture.Ready.Should().BeFalse();
         AssertPortReleased(port);
+    }
+
+    [Test]
+    public async Task Publish_CancelledBySessionClose_IsNotCountedAsErrorAsync()
+    {
+        var publishErrors = new ConcurrentQueue<int>();
+        using var meterListener = new MeterListener
+        {
+            InstrumentPublished = (instrument, listener) =>
+            {
+                if (instrument.Meter.Name == MetricsHelper.Meter.Name && instrument.Name == "opc_plc_total_errors")
+                {
+                    listener.EnableMeasurementEvents(instrument);
+                }
+            }
+        };
+        meterListener.SetMeasurementEventCallback<int>((_, measurement, tags, _) =>
+        {
+            foreach (var tag in tags)
+            {
+                if (tag.Key == "operation" && Equals(tag.Value, "Publish"))
+                {
+                    publishErrors.Enqueue(measurement);
+                }
+            }
+        });
+        meterListener.Start();
+        bool metricsEnabled = MetricsHelper.IsEnabled;
+
+        var fixture = new PlcSimulatorFixture(["--str=false"]);
+        await fixture.StartAsync().ConfigureAwait(false);
+        try
+        {
+            // PlcServer resets the flag from the OTLP configuration during startup.
+            MetricsHelper.IsEnabled = true;
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var session = await fixture.CreateSessionAsync("PublishCancel", cancellationToken: deadline.Token)
+                .ConfigureAwait(false);
+            using var subscription = new Subscription(fixture.Server.CurrentInstance.Telemetry)
+            {
+                PublishingInterval = 100,
+                KeepAliveCount = 1000,
+                PublishingEnabled = true,
+            };
+            session.AddSubscription(subscription);
+            await subscription.CreateAsync(deadline.Token).ConfigureAwait(false);
+            var item = new MonitoredItem(subscription.DefaultItem)
+            {
+                StartNodeId = NodeId.Create("FastUInt1", OpcPlc.Namespaces.OpcPlcApplications, session.NamespaceUris),
+                AttributeId = Attributes.Value,
+            };
+            var notified = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            item.Notification += (_, _) => notified.TrySetResult();
+            subscription.AddItem(item);
+            await subscription.ApplyChangesAsync(deadline.Token).ConfigureAwait(false);
+            await notified.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
+
+            // Let the client re-park its Publish requests on the server before closing the session.
+            await Task.Delay(TimeSpan.FromSeconds(1), deadline.Token).ConfigureAwait(false);
+            await session.CloseAsync(deadline.Token).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(2), deadline.Token).ConfigureAwait(false);
+
+            publishErrors.Should().BeEmpty("Publish requests cancelled by a session close are not server errors");
+        }
+        finally
+        {
+            MetricsHelper.IsEnabled = metricsEnabled;
+            await fixture.StopAsync().WaitAsync(TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+        }
     }
 
     [Test]

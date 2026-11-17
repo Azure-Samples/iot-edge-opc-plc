@@ -625,6 +625,12 @@ public partial class PlcServer : ReverseConnectServer
 
             return new PublishResponse { ResponseHeader = new ResponseHeader { ServiceResult = StatusCodes.BadTimeout } };
         }
+        catch (OperationCanceledException)
+        {
+            // Parked Publish requests are cancelled when the client cancels them or closes its session.
+            LogCancelled(nameof(Publish));
+            throw;
+        }
         catch (Exception ex)
         {
             MetricsHelper.RecordTotalErrors(nameof(Publish));
@@ -1342,6 +1348,11 @@ public partial class PlcServer : ReverseConnectServer
         Level = LogLevel.Error,
         Message = "{Function} error")]
     partial void LogError(string function, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "{Function} cancelled")]
+    partial void LogCancelled(string function);
 
     [LoggerMessage(
         Level = LogLevel.Debug,

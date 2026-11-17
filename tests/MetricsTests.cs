@@ -51,6 +51,13 @@ internal class MetricsTests : SimulatorTestsBase
         MetricsHelper.IsEnabled = true;
     }
 
+    [OneTimeTearDown]
+    public void DisposeMeterListener()
+    {
+        // The listener is process-wide; leaving it running breaks later fixtures that record metrics.
+        _meterListener.Dispose();
+    }
+
     [Test]
     public void TestAddSessionCount()
     {
