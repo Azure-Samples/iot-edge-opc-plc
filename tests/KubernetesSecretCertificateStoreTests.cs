@@ -291,6 +291,61 @@ public class KubernetesSecretCertificateStoreTests
         certificateWithPrivateKey.HasPrivateKey.Should().BeTrue();
     }
 
+    [Test]
+    public async Task Store_DeleteAsync_RemovesPemCrtEntryAndCompanionKey()
+    {
+        var client = new InMemoryKubernetesSecretStoreClient();
+        using var store = new KubernetesSecretCertificateStore(new Mock<ILogger>().Object, client, "opcplc-tests");
+        using var seeded = CreateSelfSignedCertificateWithPrivateKey("seeded-peer");
+        using var other = CreateSelfSignedCertificate("other-peer");
+        using var rsa = seeded.GetRSAPrivateKey();
+        client.SetSecret("opcplc-tests", "pki-trusted", new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            ["client.crt"] = Encoding.UTF8.GetBytes(seeded.ExportCertificatePem()),
+            ["client.key"] = Encoding.UTF8.GetBytes(rsa.ExportPkcs8PrivateKeyPem()),
+            [other.Thumbprint + ".der"] = other.Export(X509ContentType.Cert),
+        });
+        store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\trusted", noPrivateKeys: false);
+
+        (await store.DeleteAsync(seeded.Thumbprint, CancellationToken.None).ConfigureAwait(false)).Should().BeTrue();
+
+        client.GetSecret("opcplc-tests", "pki-trusted").Keys.Should().BeEquivalentTo([other.Thumbprint + ".der"]);
+        using var remaining = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+        remaining.Select(certificate => certificate.Thumbprint).Should().BeEquivalentTo([other.Thumbprint]);
+        (await store.DeleteAsync(seeded.Thumbprint, CancellationToken.None).ConfigureAwait(false)).Should().BeFalse();
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Store_DeleteAsync_RewritesPemBundleWithoutDeletedCertificate(bool deleteLeaf)
+    {
+        var client = new InMemoryKubernetesSecretStoreClient();
+        using var store = new KubernetesSecretCertificateStore(new Mock<ILogger>().Object, client, "opcplc-tests");
+        using var leaf = CreateSelfSignedCertificateWithPrivateKey("bundle-leaf");
+        using var second = CreateSelfSignedCertificate("bundle-second");
+        using var rsa = leaf.GetRSAPrivateKey();
+        client.SetSecret("opcplc-tests", "pki-own", new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            ["chain.crt"] = Encoding.UTF8.GetBytes(leaf.ExportCertificatePem() + "\n" + second.ExportCertificatePem()),
+            ["chain.key"] = Encoding.UTF8.GetBytes(rsa.ExportPkcs8PrivateKeyPem()),
+        });
+        store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\own", noPrivateKeys: false);
+        var (deleted, kept) = deleteLeaf ? (leaf, second) : (second, leaf);
+
+        (await store.DeleteAsync(deleted.Thumbprint, CancellationToken.None).ConfigureAwait(false)).Should().BeTrue();
+
+        using var remaining = await store.EnumerateAsync(CancellationToken.None).ConfigureAwait(false);
+        remaining.Select(certificate => certificate.Thumbprint).Should().BeEquivalentTo([kept.Thumbprint]);
+        client.GetSecret("opcplc-tests", "pki-own").ContainsKey("chain.key").Should().Be(!deleteLeaf,
+            "the companion key belongs to the leaf certificate");
+        if (!deleteLeaf)
+        {
+            using var withKey = await store.LoadPrivateKeyAsync(leaf.Thumbprint, leaf.Subject, string.Empty,
+                CancellationToken.None).ConfigureAwait(false);
+            withKey.HasPrivateKey.Should().BeTrue();
+        }
+    }
+
     private static X509Certificate2 CreateSelfSignedCertificate(string subjectName)
     {
         using var rsa = RSA.Create(2048);

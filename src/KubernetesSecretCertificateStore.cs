@@ -152,8 +152,78 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         {
             bool removedCertificate = secretData.Remove(GetCertificateEntryKey(thumbprint));
             bool removedPrivateKey = secretData.Remove(GetPrivateKeyEntryKey(thumbprint));
-            return removedCertificate || removedPrivateKey;
+            bool removedOtherEntries = RemoveMatchingCertificateEntries(secretData, thumbprint);
+            return removedCertificate || removedPrivateKey || removedOtherEntries;
         }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Removes the certificate from entries that are not keyed by its thumbprint, such as PEM
+    /// <c>*.crt</c> entries seeded by deployments, which <see cref="EnumerateAsync"/> also returns.
+    /// </summary>
+    private bool RemoveMatchingCertificateEntries(Dictionary<string, byte[]> secretData, string thumbprint)
+    {
+        bool removed = false;
+        foreach (string entryKey in secretData.Keys.Where(IsCertificateEntryKey).ToList())
+        {
+            CertificateCollection certificates;
+            try
+            {
+                certificates = LoadCertificates(entryKey, secretData[entryKey]);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Skipping unreadable certificate entry {EntryKey} in Kubernetes secret {SecretName}",
+                    entryKey, _secretName);
+                continue;
+            }
+
+            using (certificates)
+            {
+                bool leafRemoved = false;
+                var remaining = new List<Certificate>();
+                for (int index = 0; index < certificates.Count; index++)
+                {
+                    if (string.Equals(certificates[index].Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
+                    {
+                        leafRemoved |= index == 0;
+                    }
+                    else
+                    {
+                        remaining.Add(certificates[index]);
+                    }
+                }
+
+                if (remaining.Count == certificates.Count)
+                {
+                    continue;
+                }
+
+                if (remaining.Count == 0)
+                {
+                    secretData.Remove(entryKey);
+                }
+                else
+                {
+                    // Keep the other certificates of a PEM bundle.
+                    secretData[entryKey] = Encoding.ASCII.GetBytes(string.Concat(remaining.Select(certificate =>
+                        PemEncoding.WriteString("CERTIFICATE", certificate.RawData) + "\n")));
+                }
+
+                // A companion private key belongs to the first certificate of the entry.
+                if (remaining.Count == 0 || leafRemoved)
+                {
+                    string baseName = GetBaseName(entryKey);
+                    secretData.Remove(baseName + PfxExtension);
+                    secretData.Remove(baseName + PemExtension);
+                    secretData.Remove(baseName + KeyExtension);
+                }
+
+                removed = true;
+            }
+        }
+
+        return removed;
     }
 
     public async Task<CertificateCollection> EnumerateAsync(CancellationToken ct = default)
