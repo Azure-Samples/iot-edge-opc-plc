@@ -230,6 +230,7 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     {
         var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
         var certificates = new CertificateCollection();
+        var thumbprints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var certificateEntry in secretData.Where(pair => IsCertificateEntryKey(pair.Key)))
         {
@@ -238,7 +239,11 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
                 using var loadedCertificates = LoadCertificates(certificateEntry.Key, certificateEntry.Value);
                 foreach (var certificate in loadedCertificates)
                 {
-                    certificates.Add(certificate);
+                    // SDK TrustList reconciliation expects one certificate per thumbprint, not per Secret entry.
+                    if (thumbprints.Add(certificate.Thumbprint))
+                    {
+                        certificates.Add(certificate);
+                    }
                 }
             }
             catch (Exception ex)

@@ -2,15 +2,18 @@ namespace OpcPlc.Tests.Configuration;
 
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Security.Certificates;
+using Opc.Ua.Server;
 using OpcPlc.Configuration;
 using OpcPlc.Certs;
 using OpcPlc.Helpers;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -343,6 +346,92 @@ public class KubernetesSecretCertificateStoreTests
             using var withKey = await store.LoadPrivateKeyAsync(leaf.Thumbprint, leaf.Subject, string.Empty,
                 CancellationToken.None).ConfigureAwait(false);
             withKey.HasPrivateKey.Should().BeTrue();
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Store_TrustListApply_WithDuplicatesPreservesRequestedCertificatesAsync(bool keepCertificate)
+    {
+        var clientFactory = new InMemoryKubernetesSecretStoreClientFactory();
+        using Certificate certificate = DefaultCertificateFactory.Instance.CreateApplicationCertificate(
+            "urn:opcplc:duplicate-peer", "duplicate-peer", "CN=duplicate-peer", ["localhost"]).CreateForRSA();
+        clientFactory.Client.SetSecret("opcplc-tests", "pki-trusted", new Dictionary<string, byte[]>
+        {
+            ["client.crt"] = Encoding.ASCII.GetBytes(PemEncoding.WriteString("CERTIFICATE", certificate.RawData))
+        });
+        using var store = new KubernetesSecretCertificateStore(
+            NullLogger.Instance, clientFactory.Client, "opcplc-tests");
+        store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\trusted");
+        await store.AddAsync(certificate).ConfigureAwait(false);
+
+        ITelemetryContext telemetry = DefaultTelemetry.Create(_ => { });
+        using var manager = new CertificateManager(telemetry,
+            [new KubernetesSecretCertificateStoreType(NullLoggerFactory.Instance, clientFactory, "opcplc-tests")]);
+        var context = new SessionSystemContext(telemetry)
+        {
+            SessionId = new NodeId(Guid.NewGuid(), 1),
+            NamespaceUris = new NamespaceTable(),
+            ServerUris = new StringTable(),
+            EncodeableFactory = EncodeableFactory.Create()
+        };
+        var node = new TrustListState(null) { NodeId = new NodeId("DuplicateTrustList", 1) };
+        node.CreateOrReplaceOpen(context, node);
+        node.CreateOrReplaceClose(context, node);
+        node.CreateOrReplaceRead(context, node);
+        node.CreateOrReplaceWrite(context, node);
+        node.CreateOrReplaceOpenCount(context, node);
+        node.CreateOrReplaceOpenWithMasks(context, node);
+        node.CreateOrReplaceCloseAndUpdate(context, node);
+        node.CreateOrReplaceAddCertificate(context, node);
+        node.CreateOrReplaceRemoveCertificate(context, node);
+        node.CreateOrReplaceLastUpdateTime(context, node);
+        var coordinator = new PushConfigurationTransactionCoordinator(telemetry);
+        using var trustList = new TrustList(node,
+            new CertificateStoreIdentifier(store.StorePath, store.StoreType),
+            new CertificateStoreIdentifier("KubernetesSecret:pki-issuer", store.StoreType),
+            (_, _) => { }, (_, _) => { }, telemetry, coordinator, 0, 1024 * 1024, manager);
+        try
+        {
+            var desired = new TrustListDataType
+            {
+                SpecifiedLists = (uint)TrustListMasks.All,
+                TrustedCertificates = keepCertificate ? [ByteString.From(certificate.RawData)] : []
+            };
+            using var stream = new MemoryStream();
+            using (var encoder = new BinaryEncoder(stream,
+                new ServiceMessageContext(telemetry, context.EncodeableFactory)
+                {
+                    NamespaceUris = context.NamespaceUris,
+                    ServerUris = context.ServerUris
+                }, true))
+            {
+                encoder.WriteEncodeable(null, desired);
+            }
+            var opened = await node.Open.OnCallAsync(context, node.Open, node.NodeId,
+                (byte)(OpenFileMode.Write | OpenFileMode.EraseExisting), CancellationToken.None).ConfigureAwait(false);
+            ServiceResult.IsGood(opened.ServiceResult).Should().BeTrue();
+            var written = await node.Write.OnCallAsync(context, node.Write, node.NodeId, opened.FileHandle,
+                ByteString.From(stream.ToArray()), CancellationToken.None).ConfigureAwait(false);
+            ServiceResult.IsGood(written.ServiceResult).Should().BeTrue();
+            var staged = await node.CloseAndUpdate.OnCallAsync(context, node.CloseAndUpdate, node.NodeId,
+                opened.FileHandle, CancellationToken.None).ConfigureAwait(false);
+            ServiceResult.IsGood(staged.ServiceResult).Should().BeTrue();
+            staged.ApplyChangesRequired.Should().BeTrue();
+
+            var applied = await coordinator.ApplyChangesAsync(context.SessionId.Value).ConfigureAwait(false);
+            ServiceResult.IsGood(applied).Should().BeTrue(applied?.ToString());
+            using var remaining = await store.EnumerateAsync().ConfigureAwait(false);
+            remaining.Select(value => value.Thumbprint).Should().BeEquivalentTo(
+                keepCertificate ? new[] { certificate.Thumbprint } : Array.Empty<string>());
+            if (!keepCertificate)
+            {
+                clientFactory.Client.GetSecret("opcplc-tests", "pki-trusted").Should().BeEmpty();
+            }
+        }
+        finally
+        {
+            coordinator.Reset();
         }
     }
 

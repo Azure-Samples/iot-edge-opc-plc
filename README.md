@@ -532,6 +532,10 @@ X.509 certificates:
 * Running as Linux Docker container using an X509Store for the application certificate, you need to use the Docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
 * When running in kubernetes context with certificates mounted as files, use option `--at FlatDirectory`. This enables the OPC UA server to consume both public key and private key certificates directly from the /app/pki/own/ path without expecting the `certs` and `private` subdirectories. Furthermore, certificates of type .crt and .key are accepted.
 * When running in kubernetes context and you want the certificate stores persisted as Kubernetes Secrets, use `--at KubernetesSecret`. Each configured store path is sanitized into its own secret name, for example `pki/own` becomes `pki-own` and `pki/trusted` becomes `pki-trusted`. Secret entries stay flat and are differentiated by file extension: certificates use `.der` or PEM-based `.crt`, private keys can use `.pfx` and, for the application certificate store, PEM-based `.pem` or `.key`, and CRLs use `.crl`. Use `--ksns <namespace>` to pin the namespace, or let the server auto-detect it in-cluster.
+  Certificate enumeration returns each thumbprint once, even when it appears under several Secret keys.
+  Deleting a certificate removes all its copies, including deployment-seeded PEM entries.
+  PEM bundles retain their other certificates; companion private-key entries are removed when the first certificate
+  is deleted, or when the certificate entry becomes empty.
 
 GDS push service support:
 
