@@ -6,11 +6,17 @@
 namespace OpcPlc.Tests;
 
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Security.Certificates;
+using OpcPlc.Configuration;
+using OpcPlc.Helpers;
 using System;
+using System.Collections.Concurrent;
+using System.Diagnostics.Metrics;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -107,6 +113,111 @@ public class PlcServerLifecycleTests
         }
         fixture.Ready.Should().BeFalse();
         AssertPortReleased(port);
+    }
+
+    [Test]
+    public async Task Publish_CancelledBySessionClose_IsNotCountedAsErrorAsync()
+    {
+        var publishErrors = new ConcurrentQueue<int>();
+        using var meterListener = new MeterListener
+        {
+            InstrumentPublished = (instrument, listener) =>
+            {
+                if (instrument.Meter.Name == MetricsHelper.Meter.Name && instrument.Name == "opc_plc_total_errors")
+                {
+                    listener.EnableMeasurementEvents(instrument);
+                }
+            }
+        };
+        meterListener.SetMeasurementEventCallback<int>((_, measurement, tags, _) =>
+        {
+            foreach (var tag in tags)
+            {
+                if (tag.Key == "operation" && Equals(tag.Value, "Publish"))
+                {
+                    publishErrors.Enqueue(measurement);
+                }
+            }
+        });
+        meterListener.Start();
+        bool metricsEnabled = MetricsHelper.IsEnabled;
+
+        using var logs = new PublishLogCapture();
+        using var loggerFactory = LoggerFactory.Create(builder =>
+            builder.AddProvider(logs).SetMinimumLevel(LogLevel.Debug));
+        using var telemetry = new OpcTelemetryContext(loggerFactory, "PublishTests", "test");
+        var config = new OpcPlcConfiguration();
+        config.OpcUa.ServerPort = (ushort)FreePort();
+        config.OpcUa.Hostname = "localhost";
+        config.OpcUa.AutoAcceptCerts = true;
+        string pkiRoot = Path.Combine(Path.GetTempPath(), "opcplc-publish-" + Guid.NewGuid().ToString("N"));
+        config.OpcUa.OpcOwnCertStorePath = Path.Combine(pkiRoot, "own");
+        config.OpcUa.OpcTrustedCertStorePath = Path.Combine(pkiRoot, "trusted");
+        config.OpcUa.OpcIssuerCertStorePath = Path.Combine(pkiRoot, "issuer");
+        config.OpcUa.OpcRejectedCertStorePath = Path.Combine(pkiRoot, "rejected");
+        config.OpcUa.OpcTrustedUserCertStorePath = Path.Combine(pkiRoot, "trusted-user");
+        config.OpcUa.OpcUserIssuerCertStorePath = Path.Combine(pkiRoot, "issuer-user");
+        var appConfig = await new OpcUaAppConfigFactory(config, logs, loggerFactory, telemetry)
+            .ConfigureAsync().ConfigureAwait(false);
+        using var certificateManager = (CertificateManager)appConfig.CertificateManager;
+        appConfig.ClientConfiguration = new ClientConfiguration();
+        using var server = new PlcServer(config, new PlcSimulation([]) { AddReferenceTestSimulation = false },
+            new TimeService(), [], logs, telemetry);
+        try
+        {
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await server.StartAsync(appConfig, deadline.Token).ConfigureAwait(false);
+            MetricsHelper.IsEnabled = true;
+            var endpoint = server.GetEndpoints()[0];
+            using var session = await ManagedSession.CreateAsync(appConfig,
+                new ConfiguredEndpoint(null, endpoint, EndpointConfiguration.Create(appConfig)),
+                sessionFactory: new DefaultSessionFactory(telemetry), identity: new UserIdentity(),
+                telemetry: telemetry, sessionName: "PublishCancel", checkDomain: false,
+                updateBeforeConnect: false, ct: deadline.Token).ConfigureAwait(false);
+            session.PublishRequestCancelDelayOnCloseSession = 0;
+            Func<Task> noSubscription = async () =>
+                await session.PublishAsync(null, [], deadline.Token).ConfigureAwait(false);
+            await noSubscription.Should().ThrowAsync<ServiceResultException>()
+                .Where(exception => exception.StatusCode == StatusCodes.BadNoSubscription).ConfigureAwait(false);
+            publishErrors.Should().Equal([1], "genuine Publish failures must still be counted");
+            publishErrors.Clear();
+
+            using var subscription = new Subscription(telemetry)
+            {
+                PublishingInterval = 100,
+                KeepAliveCount = 1000,
+                PublishingEnabled = true,
+            };
+            session.AddSubscription(subscription);
+            await subscription.CreateAsync(deadline.Token).ConfigureAwait(false);
+
+            var serverSession = server.CurrentInstance.SessionManager.GetSessions()
+                .Should().ContainSingle(candidate => candidate.Id == session.SessionId).Subject;
+            while (serverSession.ReadDiagnostics(diagnostics => diagnostics.CurrentPublishRequestsInQueue) == 0)
+            {
+                await Task.Delay(20, deadline.Token).ConfigureAwait(false);
+            }
+            await session.CloseAsync(deadline.Token).ConfigureAwait(false);
+            await logs.CancellationLogged.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
+            while (serverSession.ReadDiagnostics(diagnostics => diagnostics.CurrentPublishRequestsInQueue) != 0)
+            {
+                await Task.Delay(20, deadline.Token).ConfigureAwait(false);
+            }
+
+            logs.Messages.Should().Contain(entry => entry.Level == LogLevel.Debug &&
+                entry.Message == "Publish cancelled" && entry.Exception == null);
+            logs.Messages.Should().NotContain(entry => entry.Level >= LogLevel.Error);
+            publishErrors.Should().BeEmpty("Publish requests cancelled by a session close are not server errors");
+        }
+        finally
+        {
+            MetricsHelper.IsEnabled = metricsEnabled;
+            await server.StopAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+            if (Directory.Exists(pkiRoot))
+            {
+                Directory.Delete(pkiRoot, recursive: true);
+            }
+        }
     }
 
     [Test]
@@ -240,6 +351,31 @@ public class PlcServerLifecycleTests
         using var listener = new TcpListener(IPAddress.Any, port);
         listener.Server.ExclusiveAddressUse = true;
         listener.Start();
+    }
+
+    private sealed class PublishLogCapture : ILoggerProvider, ILogger
+    {
+        public ConcurrentQueue<(LogLevel Level, string Message, Exception Exception)> Messages { get; } = new();
+        public TaskCompletionSource CancellationLogged { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public ILogger CreateLogger(string categoryName) => this;
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Dispose() { }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception,
+            Func<TState, Exception, string> formatter)
+        {
+            string message = formatter(state, exception);
+            if (message.StartsWith("Publish ", StringComparison.Ordinal))
+            {
+                Messages.Enqueue((logLevel, message, exception));
+                if (message == "Publish cancelled" || exception is OperationCanceledException)
+                {
+                    CancellationLogged.TrySetResult();
+                }
+            }
+        }
     }
 
     private sealed class FailingSimulationTimeService : TimeService
