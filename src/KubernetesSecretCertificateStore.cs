@@ -7,6 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -28,6 +29,8 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     private const string KeyExtension = ".key";
     private const string PfxExtension = ".pfx";
     private const string CrlExtension = ".crl";
+    // PEMReader.ImportPublicKeysFromPEM examines at most this many certificate blocks.
+    private const int SdkPemReaderBlockLimit = 99;
     private static readonly ConditionalWeakTable<IKubernetesSecretStoreClient,
         ConcurrentDictionary<(string Namespace, string Secret), SemaphoreSlim>> MutationGates = new();
 
@@ -148,18 +151,242 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(thumbprint);
 
-        return await UpdateSecretDataAsync(secretData =>
+        return await UpdateSecretDataAsync(secretData => RemoveMatchingCertificateEntries(secretData, thumbprint), ct)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Removes every copy of a certificate and the private keys proven to belong only to it. All entries are scanned
+    /// before anything changes, so a removal that cannot be done safely leaves the Secret untouched. Like the SDK
+    /// directory store, deletion is not reversible: a rollback re-adds the certificate as a canonical entry.
+    /// </summary>
+    private bool RemoveMatchingCertificateEntries(Dictionary<string, byte[]> secretData, string thumbprint)
+    {
+        var thumbprints = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { thumbprint };
+        var scan = new DeletionScan();
+        var removals = new List<(string EntryKey, byte[] Remaining)>();
+        foreach (string entryKey in secretData.Keys.Where(IsCertificateEntryKey).ToList())
         {
-            bool removedCertificate = secretData.Remove(GetCertificateEntryKey(thumbprint));
-            bool removedPrivateKey = secretData.Remove(GetPrivateKeyEntryKey(thumbprint));
-            return removedCertificate || removedPrivateKey;
-        }, ct).ConfigureAwait(false);
+            switch (RemoveCertificates(entryKey, secretData[entryKey], thumbprints, scan, out byte[] remaining))
+            {
+                case CertificateRemoval.Refused:
+                    _logger.LogWarning("Not deleting certificate {Thumbprint} from Kubernetes secret {SecretName}: " +
+                        "removing it from entry {EntryKey} would change how its remaining PEM content is read",
+                        thumbprint, _secretName, entryKey);
+                    return false;
+                case CertificateRemoval.Removed:
+                    removals.Add((entryKey, remaining));
+                    break;
+            }
+        }
+
+        foreach ((string entryKey, byte[] remaining) in removals)
+        {
+            if (remaining is null)
+            {
+                secretData.Remove(entryKey);
+            }
+            else
+            {
+                secretData[entryKey] = remaining;
+            }
+        }
+
+        var modifiedBaseNames = removals.Select(removal => GetBaseName(removal.EntryKey))
+            .ToHashSet(StringComparer.Ordinal);
+        string canonicalKey = GetPrivateKeyEntryKey(thumbprint);
+        bool removed = removals.Count > 0;
+        foreach (string entryKey in secretData.Keys.Where(key => key == canonicalKey ||
+            (IsCompanionKeyEntryKey(key) && modifiedBaseNames.Contains(GetBaseName(key)))).ToList())
+        {
+            byte[] keyData = secretData[entryKey];
+            if (keyData.Length > 0 && CanDeletePrivateKey(entryKey, keyData, thumbprint, scan))
+            {
+                secretData.Remove(entryKey);
+                removed = true;
+            }
+        }
+        return removed;
+    }
+    /// <summary>
+    /// Removes the certificates with the given thumbprints from one entry, keeping every other byte of PEM content.
+    /// </summary>
+    private static CertificateRemoval RemoveCertificates(string entryKey, byte[] data, IReadOnlySet<string> thumbprints,
+        DeletionScan scan, out byte[] remaining)
+    {
+        remaining = data;
+        string baseName = GetBaseName(entryKey);
+        if (!IsPemCertificateEntryKey(entryKey))
+        {
+            if (Classify(data, thumbprints, baseName, scan, skipEmptyNames: false) != CertificateKind.Match)
+            {
+                return CertificateRemoval.NotFound;
+            }
+            remaining = null;
+            return CertificateRemoval.Removed;
+        }
+
+        var blocks = FindPemCertificateBlocks(data);
+        var kept = new List<byte[]>(blocks.Count);
+        using var output = new MemoryStream(data.Length);
+        int copied = 0;
+        foreach (PemCertificateBlock block in blocks)
+        {
+            if (Classify(block.Der, thumbprints, baseName, scan, skipEmptyNames: true) == CertificateKind.Match)
+            {
+                output.Write(data, copied, block.Start - copied);
+                copied = block.End;
+            }
+            else
+            {
+                kept.Add(block.Der);
+            }
+        }
+        if (copied == 0)
+        {
+            return CertificateRemoval.NotFound;
+        }
+        output.Write(data, copied, data.Length - copied);
+        byte[] result = output.ToArray();
+
+        // Joining the text around a removed block, or bringing blocks beyond the reader's limit into view, must not
+        // make a certificate readable that was not before; otherwise a certificate never enumerated becomes trusted.
+        if (!FindPemCertificateBlocks(result).Select(block => block.Der)
+            .ToHashSet(ByteArrayComparer.Instance).SetEquals(kept))
+        {
+            return CertificateRemoval.Refused;
+        }
+        remaining = string.IsNullOrWhiteSpace(Encoding.UTF8.GetString(result)) ? null : result;
+        return CertificateRemoval.Removed;
+    }
+
+    private static CertificateKind Classify(byte[] der, IReadOnlySet<string> thumbprints, string baseName,
+        DeletionScan scan, bool skipEmptyNames)
+    {
+        Certificate certificate;
+        try
+        {
+            certificate = der is null ? null : new Certificate(der);
+        }
+        catch (CryptographicException)
+        {
+            certificate = null;
+        }
+        if (certificate is null)
+        {
+            scan?.UnreadableBaseNames.Add(baseName);
+            return CertificateKind.Unreadable;
+        }
+
+        using (certificate)
+        {
+            // Mirrors the PEM reader, which never returns these certificates.
+            if (skipEmptyNames && DistinguishedNameUtils.HasEmptyDistinguishedName(certificate))
+            {
+                return CertificateKind.Hidden;
+            }
+            string publicKey = Convert.ToHexString(certificate.PublicKey.ExportSubjectPublicKeyInfo());
+            if (thumbprints.Contains(certificate.Thumbprint))
+            {
+                scan?.SetRemoved(certificate.RawData, publicKey);
+                return CertificateKind.Match;
+            }
+            scan?.AddSurvivor(baseName, publicKey);
+            return CertificateKind.Survivor;
+        }
+    }
+
+    private bool CanDeletePrivateKey(string entryKey, byte[] data, string thumbprint, DeletionScan scan)
+    {
+        string baseName = GetBaseName(entryKey);
+        try
+        {
+            if (entryKey.EndsWith(PfxExtension, StringComparison.OrdinalIgnoreCase))
+            {
+                // A PFX carries its own certificate and LoadPrivateKeyAsync returns that certificate, so a PFX whose
+                // private keys all belong to the deleted certificate is removed even when a survivor shares its key.
+                if (TryReadPfxIdentities(data, out List<string> identities))
+                {
+                    return identities.Count > 0 && identities.All(candidate =>
+                        string.Equals(candidate, thumbprint, StringComparison.OrdinalIgnoreCase));
+                }
+                // AddAsync writes <THUMBPRINT>.pfx, so the name proves ownership when a password protects the content.
+                if (string.Equals(entryKey, GetPrivateKeyEntryKey(thumbprint), StringComparison.Ordinal))
+                {
+                    return true;
+                }
+                _logger.LogWarning("Retaining private key entry {EntryKey} in Kubernetes secret {SecretName} " +
+                    "because ownership could not be established", entryKey, _secretName);
+                return false;
+            }
+
+            if (scan.UnreadableBaseNames.Contains(baseName))
+            {
+                _logger.LogWarning("Retaining private key entry {EntryKey} in Kubernetes secret {SecretName} " +
+                    "because an unreadable certificate may still need it", entryKey, _secretName);
+                return false;
+            }
+            // A PEM key pairs with whichever certificate its entry holds, so a survivor using it keeps it.
+            if (scan.RemovedRawData is null || scan.HasSurvivor(baseName, scan.RemovedPublicKey))
+            {
+                return false;
+            }
+            string pem = Encoding.UTF8.GetString(data);
+            if (!PemEncoding.TryFind(pem, out PemFields fields) ||
+                !string.IsNullOrWhiteSpace(pem[..fields.Location.Start]) ||
+                !string.IsNullOrWhiteSpace(pem[fields.Location.End..]))
+            {
+                _logger.LogWarning("Retaining private key entry {EntryKey} in Kubernetes secret {SecretName} " +
+                    "because it contains unrecognized or additional content", entryKey, _secretName);
+                return false;
+            }
+            using var withKey = X509Certificate2.CreateFromPem(
+                PemEncoding.WriteString("CERTIFICATE", scan.RemovedRawData), pem);
+            return withKey.HasPrivateKey;
+        }
+        catch (Exception ex) when (ex is CryptographicException or ArgumentException)
+        {
+            _logger.LogWarning(ex, "Retaining private key entry {EntryKey} in Kubernetes secret {SecretName} " +
+                "because ownership could not be established", entryKey, _secretName);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// The thumbprints of the certificates a PFX provides a private key for; public chain certificates do not count.
+    /// A PFX without private keys is identified by all of its certificates.
+    /// </summary>
+    private static bool TryReadPfxIdentities(byte[] data, out List<string> thumbprints)
+    {
+        foreach (string password in new[] { null, string.Empty })
+        {
+            try
+            {
+                var certificates = X509CertificateLoader.LoadPkcs12Collection(data, password,
+                    X509KeyStorageFlags.EphemeralKeySet);
+                var withKeys = certificates.Where(certificate => certificate.HasPrivateKey).ToList();
+                thumbprints = (withKeys.Count > 0 ? withKeys : certificates.ToList())
+                    .Select(certificate => certificate.Thumbprint).ToList();
+                foreach (var certificate in certificates)
+                {
+                    certificate.Dispose();
+                }
+                return true;
+            }
+            catch (CryptographicException)
+            {
+                // Password protected or malformed; ownership falls back to the entry name.
+            }
+        }
+        thumbprints = null;
+        return false;
     }
 
     public async Task<CertificateCollection> EnumerateAsync(CancellationToken ct = default)
     {
         var secretData = await LoadSecretDataAsync(ct).ConfigureAwait(false);
         var certificates = new CertificateCollection();
+        var thumbprints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var certificateEntry in secretData.Where(pair => IsCertificateEntryKey(pair.Key)))
         {
@@ -168,7 +395,11 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
                 using var loadedCertificates = LoadCertificates(certificateEntry.Key, certificateEntry.Value);
                 foreach (var certificate in loadedCertificates)
                 {
-                    certificates.Add(certificate);
+                    // SDK TrustList reconciliation expects one certificate per thumbprint, not per Secret entry.
+                    if (thumbprints.Add(certificate.Thumbprint))
+                    {
+                        certificates.Add(certificate);
+                    }
                 }
             }
             catch (Exception ex)
@@ -418,6 +649,11 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
 
     private static bool IsPemCertificateEntryKey(string key) => key.EndsWith(CrtExtension, StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsCompanionKeyEntryKey(string key) =>
+        key.EndsWith(PfxExtension, StringComparison.OrdinalIgnoreCase) ||
+        key.EndsWith(PemExtension, StringComparison.OrdinalIgnoreCase) ||
+        key.EndsWith(KeyExtension, StringComparison.OrdinalIgnoreCase);
+
     private static bool IsPrivateKeyEntryKey(string key) => key.EndsWith(PfxExtension, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsCrlEntryKey(string key) => key.EndsWith(CrlExtension, StringComparison.OrdinalIgnoreCase);
@@ -519,6 +755,40 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         throw new ArgumentException($"Unsupported certificate entry key '{entryKey}'.", nameof(entryKey));
     }
 
+    /// <summary>
+    /// Locates the certificate blocks <see cref="PEMReader.ImportPublicKeysFromPEM(ReadOnlySpan{byte})"/> examines,
+    /// so deletion only edits what is enumerated: the END label is searched from the end of the previous block,
+    /// scanning stops when it precedes the next BEGIN label or is missing, and at most 99 blocks are examined.
+    /// </summary>
+    private static List<PemCertificateBlock> FindPemCertificateBlocks(byte[] data)
+    {
+        ReadOnlySpan<byte> beginLabel = "-----BEGIN CERTIFICATE-----"u8;
+        ReadOnlySpan<byte> endLabel = "-----END CERTIFICATE-----"u8;
+        var blocks = new List<PemCertificateBlock>();
+        int offset = 0;
+        while (blocks.Count < SdkPemReaderBlockLimit)
+        {
+            ReadOnlySpan<byte> remaining = data.AsSpan(offset);
+            int begin = remaining.IndexOf(beginLabel);
+            if (begin < 0)
+            {
+                break;
+            }
+            int end = remaining.IndexOf(endLabel);
+            int contentStart = begin + beginLabel.Length;
+            if (end < 0 || end <= contentStart)
+            {
+                break;
+            }
+            string content = Encoding.UTF8.GetString(remaining[contentStart..end]);
+            byte[] decoded = new byte[content.Length];
+            byte[] der = Convert.TryFromBase64Chars(content, decoded, out int written) ? decoded[..written] : null;
+            blocks.Add(new PemCertificateBlock(offset + begin, offset + end + endLabel.Length, der));
+            offset += end + endLabel.Length;
+        }
+        return blocks;
+    }
+
     private static Certificate CreateCertificateFromPem(byte[] certificateBytes, byte[] privateKeyBytes)
     {
         return Certificate.From(X509Certificate2.CreateFromPem(
@@ -551,5 +821,66 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         }
 
         return false;
+    }
+
+    private enum CertificateRemoval
+    {
+        NotFound,
+        Removed,
+        Refused,
+    }
+
+    private enum CertificateKind
+    {
+        Match,
+        Survivor,
+        Unreadable,
+        Hidden,
+    }
+
+    /// <summary>
+    /// A certificate block located in PEM text; <see cref="Der"/> is null when its base64 is invalid.
+    /// </summary>
+    private readonly record struct PemCertificateBlock(int Start, int End, byte[] Der);
+
+    /// <summary>
+    /// What a deletion learned about the certificate entries while scanning them.
+    /// </summary>
+    private sealed class DeletionScan
+    {
+        private readonly Dictionary<string, HashSet<string>> _survivors = new(StringComparer.Ordinal);
+
+        public HashSet<string> UnreadableBaseNames { get; } = new(StringComparer.Ordinal);
+
+        public byte[] RemovedRawData { get; private set; }
+
+        public string RemovedPublicKey { get; private set; }
+
+        public void SetRemoved(byte[] rawData, string publicKey)
+        {
+            RemovedRawData ??= rawData;
+            RemovedPublicKey ??= publicKey;
+        }
+
+        public void AddSurvivor(string baseName, string publicKey)
+        {
+            if (!_survivors.TryGetValue(baseName, out HashSet<string> publicKeys))
+            {
+                _survivors[baseName] = publicKeys = new HashSet<string>(StringComparer.Ordinal);
+            }
+            publicKeys.Add(publicKey);
+        }
+
+        public bool HasSurvivor(string baseName, string publicKey)
+            => _survivors.TryGetValue(baseName, out HashSet<string> publicKeys) && publicKeys.Contains(publicKey);
+    }
+
+    private sealed class ByteArrayComparer : IEqualityComparer<byte[]>
+    {
+        public static ByteArrayComparer Instance { get; } = new();
+
+        public bool Equals(byte[] x, byte[] y) => x is null ? y is null : y is not null && x.AsSpan().SequenceEqual(y);
+
+        public int GetHashCode(byte[] obj) => obj?.Length ?? 0;
     }
 }

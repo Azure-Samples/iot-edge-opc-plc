@@ -98,18 +98,21 @@ public sealed class KubernetesSecretStoreClient : IKubernetesSecretStoreClient, 
     private const string ManagedByLabelName = "app.kubernetes.io/managed-by";
     private const string ManagedByLabelValue = "opcplc";
 
-    private readonly Kubernetes _client;
+    private readonly IKubernetes _client;
     private readonly ILogger _logger;
 
     public KubernetesSecretStoreClient(string kubeConfigFilePath, ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-        var kubernetesClientConfiguration = string.IsNullOrWhiteSpace(kubeConfigFilePath)
+        _client = new Kubernetes(string.IsNullOrWhiteSpace(kubeConfigFilePath)
             ? KubernetesClientConfiguration.BuildDefaultConfig()
-            : KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeConfigFilePath);
+            : KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeConfigFilePath));
+    }
 
-        _client = new Kubernetes(kubernetesClientConfiguration);
+    public KubernetesSecretStoreClient(ILogger logger, IKubernetes client)
+    {
+        _client = client ?? throw new ArgumentNullException(nameof(client));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<IReadOnlyDictionary<string, byte[]>> ReadAsync(string namespaceName, string secretName, CancellationToken ct = default)
@@ -157,6 +160,18 @@ public sealed class KubernetesSecretStoreClient : IKubernetesSecretStoreClient, 
             return;
         }
 
+        if (secret.Type == "kubernetes.io/tls")
+        {
+            // Secret type is immutable and the API requires both keys, even when their material is deleted.
+            bool addedCertificate = secretData.TryAdd("tls.crt", []);
+            bool addedPrivateKey = secretData.TryAdd("tls.key", []);
+            if (addedCertificate || addedPrivateKey)
+            {
+                _logger.LogInformation(
+                    "Keeping empty required TLS entries in Kubernetes secret {Namespace}/{SecretName}",
+                    namespaceName, secretName);
+            }
+        }
         secret.Data = secretData;
         await _client.CoreV1.ReplaceNamespacedSecretAsync(secret, secretName, namespaceName, cancellationToken: ct).ConfigureAwait(false);
     }
