@@ -24,7 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 [TestFixture]
-public class KubernetesSecretCertificateStoreTests
+public partial class KubernetesSecretCertificateStoreTests
 {
     [Test]
     public async Task PendingKey_ConcurrentCertificateWritesPreserveEveryEntryAsync()
@@ -554,73 +554,19 @@ public class KubernetesSecretCertificateStoreTests
         store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\trusted");
         await store.AddAsync(certificate).ConfigureAwait(false);
 
-        ITelemetryContext telemetry = DefaultTelemetry.Create(_ => { });
-        using var manager = new CertificateManager(telemetry,
-            [new KubernetesSecretCertificateStoreType(NullLoggerFactory.Instance, clientFactory, "opcplc-tests")]);
-        var context = new SessionSystemContext(telemetry)
+        var applied = await ApplyTrustListAsync(clientFactory.Client, store.StorePath, new TrustListDataType
         {
-            SessionId = new NodeId(Guid.NewGuid(), 1),
-            NamespaceUris = new NamespaceTable(),
-            ServerUris = new StringTable(),
-            EncodeableFactory = EncodeableFactory.Create()
-        };
-        var node = new TrustListState(null) { NodeId = new NodeId("DuplicateTrustList", 1) };
-        node.CreateOrReplaceOpen(context, node);
-        node.CreateOrReplaceClose(context, node);
-        node.CreateOrReplaceRead(context, node);
-        node.CreateOrReplaceWrite(context, node);
-        node.CreateOrReplaceOpenCount(context, node);
-        node.CreateOrReplaceOpenWithMasks(context, node);
-        node.CreateOrReplaceCloseAndUpdate(context, node);
-        node.CreateOrReplaceAddCertificate(context, node);
-        node.CreateOrReplaceRemoveCertificate(context, node);
-        node.CreateOrReplaceLastUpdateTime(context, node);
-        var coordinator = new PushConfigurationTransactionCoordinator(telemetry);
-        using var trustList = new TrustList(node,
-            new CertificateStoreIdentifier(store.StorePath, store.StoreType),
-            new CertificateStoreIdentifier("KubernetesSecret:pki-issuer", store.StoreType),
-            (_, _) => { }, (_, _) => { }, telemetry, coordinator, 0, 1024 * 1024, manager);
-        try
-        {
-            var desired = new TrustListDataType
-            {
-                SpecifiedLists = (uint)TrustListMasks.All,
-                TrustedCertificates = keepCertificate ? [ByteString.From(certificate.RawData)] : []
-            };
-            using var stream = new MemoryStream();
-            using (var encoder = new BinaryEncoder(stream,
-                new ServiceMessageContext(telemetry, context.EncodeableFactory)
-                {
-                    NamespaceUris = context.NamespaceUris,
-                    ServerUris = context.ServerUris
-                }, true))
-            {
-                encoder.WriteEncodeable(null, desired);
-            }
-            var opened = await node.Open.OnCallAsync(context, node.Open, node.NodeId,
-                (byte)(OpenFileMode.Write | OpenFileMode.EraseExisting), CancellationToken.None).ConfigureAwait(false);
-            ServiceResult.IsGood(opened.ServiceResult).Should().BeTrue();
-            var written = await node.Write.OnCallAsync(context, node.Write, node.NodeId, opened.FileHandle,
-                ByteString.From(stream.ToArray()), CancellationToken.None).ConfigureAwait(false);
-            ServiceResult.IsGood(written.ServiceResult).Should().BeTrue();
-            var staged = await node.CloseAndUpdate.OnCallAsync(context, node.CloseAndUpdate, node.NodeId,
-                opened.FileHandle, CancellationToken.None).ConfigureAwait(false);
-            ServiceResult.IsGood(staged.ServiceResult).Should().BeTrue();
-            staged.ApplyChangesRequired.Should().BeTrue();
+            SpecifiedLists = (uint)TrustListMasks.All,
+            TrustedCertificates = keepCertificate ? [ByteString.From(certificate.RawData)] : []
+        }).ConfigureAwait(false);
 
-            var applied = await coordinator.ApplyChangesAsync(context.SessionId.Value).ConfigureAwait(false);
-            ServiceResult.IsGood(applied).Should().BeTrue(applied?.ToString());
-            using var remaining = await store.EnumerateAsync().ConfigureAwait(false);
-            remaining.Select(value => value.Thumbprint).Should().BeEquivalentTo(
-                keepCertificate ? new[] { certificate.Thumbprint } : Array.Empty<string>());
-            if (!keepCertificate)
-            {
-                clientFactory.Client.GetSecret("opcplc-tests", "pki-trusted").Should().BeEmpty();
-            }
-        }
-        finally
+        ServiceResult.IsGood(applied).Should().BeTrue(applied?.ToString());
+        using var remaining = await store.EnumerateAsync().ConfigureAwait(false);
+        remaining.Select(value => value.Thumbprint).Should().BeEquivalentTo(
+            keepCertificate ? new[] { certificate.Thumbprint } : Array.Empty<string>());
+        if (!keepCertificate)
         {
-            coordinator.Reset();
+            clientFactory.Client.GetSecret("opcplc-tests", "pki-trusted").Should().BeEmpty();
         }
     }
 

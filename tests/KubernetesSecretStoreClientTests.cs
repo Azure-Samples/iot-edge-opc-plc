@@ -89,6 +89,48 @@ public class KubernetesSecretStoreClientTests
         certificates.Count.Should().Be(keepOtherCertificate ? 1 : 0);
     }
 
+    [Test]
+    public async Task Store_AddAsync_RestoresTlsSecretDeletedBeforeRollback()
+    {
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=tls-rollback", key, HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+        using var certificate = request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        var original = new Dictionary<string, byte[]>
+        {
+            ["tls.crt"] = Encoding.UTF8.GetBytes(certificate.ExportCertificatePem()),
+            ["tls.key"] = Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem())
+        };
+        var secret = new V1Secret
+        {
+            ApiVersion = "v1",
+            Kind = "Secret",
+            Metadata = new V1ObjectMeta
+            {
+                Name = "tls-store", NamespaceProperty = "opcplc-tests", ResourceVersion = "1"
+            },
+            Type = "kubernetes.io/tls",
+            Data = new Dictionary<string, byte[]>(original)
+        };
+        using var handler = new ValidatingSecretHandler(secret);
+        using var kubernetes = new Kubernetes(new KubernetesClientConfiguration { Host = "http://localhost" }, handler);
+        using var client = new KubernetesSecretStoreClient(NullLogger.Instance, kubernetes);
+        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests");
+        store.Open("KubernetesSecret:tls-store");
+        (await store.DeleteAsync(certificate.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
+        handler.Secret.Data["tls.key"].Should().BeEmpty();
+
+        // The SDK rolls a failed ApplyChanges back by re-adding the enumerated public certificate.
+        using (var publicCertificate = Opc.Ua.Security.Certificates.Certificate.FromRawData(certificate.RawData))
+        {
+            await store.AddAsync(publicCertificate).ConfigureAwait(false);
+        }
+
+        handler.Secret.Type.Should().Be("kubernetes.io/tls");
+        handler.Secret.Data.Should().BeEquivalentTo(original);
+    }
+
     private sealed class ValidatingSecretHandler(V1Secret secret) : DelegatingHandler
     {
         public V1Secret Secret { get; private set; } = secret;
