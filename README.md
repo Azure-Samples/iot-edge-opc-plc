@@ -538,13 +538,12 @@ X.509 certificates:
   PEM deletion removes only matching certificate blocks, preserving other content (including inline keys and
   unrecognized blocks); a deletion that would change how the remaining content is read is refused.
   Companion `.pfx`, `.pem`, and `.key` entries (extension case is ignored) are removed only when they belong to
-  the deleted certificate. A `.pfx` is judged by the certificate it contains; a password-protected one is removed
-  only if it is the store's own `<THUMBPRINT>.pfx`. A `.pem` or `.key` key is kept while a surviving certificate
-  with the same entry basename uses it. Unreadable or encrypted material is otherwise preserved; warnings identify
+  the deleted certificate. A `.pfx` is judged by the certificates it holds private keys for, ignoring chain
+  certificates; a password-protected one is removed only if it is the store's own `<THUMBPRINT>.pfx`. A `.pem` or
+  `.key` key is kept while a surviving certificate with the same entry basename uses it. Unreadable or encrypted material is otherwise preserved; warnings identify
   entries requiring manual cleanup.
-  Deleted entries are kept in memory for 5 minutes and then cleared. If a certificate is added back in that time, as
-  when a failed GDS push is rolled back, its original entries and keys are restored unless they changed since the
-  deletion.
+  As with the SDK directory store, deletion is permanent: when a failed GDS push is rolled back, the deleted
+  certificate is added back as `<THUMBPRINT>.der`, but deleted seeded entries and private keys are not restored.
   For Secrets of type `kubernetes.io/tls`, deleted `tls.crt` or `tls.key` entries are retained as empty values
   because Kubernetes requires both keys and does not allow changing the Secret type. Secret identity and metadata
   are preserved. Empty values do not provide a usable TLS identity; use an `Opaque` Secret for general certificate stores.

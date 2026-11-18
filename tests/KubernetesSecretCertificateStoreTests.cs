@@ -423,8 +423,10 @@ public partial class KubernetesSecretCertificateStoreTests
         using var key = RSA.Create(2048);
         var request = new CertificateRequest("CN=shared-key", key, HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
-        using var removed = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
-        using var survivor = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(2));
+        using var removed = request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        using var survivor = request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(2));
         byte[] keyData = Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem());
         client.SetSecret("opcplc-tests", "pki-own", new Dictionary<string, byte[]>
         {

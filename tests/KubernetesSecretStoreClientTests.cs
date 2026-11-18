@@ -5,9 +5,11 @@ using k8s;
 using k8s.Models;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
+using Opc.Ua.Security.Certificates;
 using OpcPlc.Certs;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -28,11 +30,13 @@ public class KubernetesSecretStoreClientTests
     {
         using var key = RSA.Create(2048);
         var request = new CertificateRequest("CN=tls-test", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-        using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        using var certificate = request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
         using var otherKey = RSA.Create(2048);
         var otherRequest = new CertificateRequest("CN=tls-other", sharedKey ? key : otherKey, HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
-        using var other = otherRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(2));
+        using var other = otherRequest.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(2));
         var secret = new V1Secret
         {
             ApiVersion = "v1",
@@ -90,7 +94,7 @@ public class KubernetesSecretStoreClientTests
     }
 
     [Test]
-    public async Task Store_AddAsync_RestoresTlsSecretDeletedBeforeRollback()
+    public async Task Store_AddAsync_KeepsTlsSecretValidAfterDeletionRollback()
     {
         using var key = RSA.Create(2048);
         var request = new CertificateRequest("CN=tls-rollback", key, HashAlgorithmName.SHA256,
@@ -128,7 +132,11 @@ public class KubernetesSecretStoreClientTests
         }
 
         handler.Secret.Type.Should().Be("kubernetes.io/tls");
-        handler.Secret.Data.Should().BeEquivalentTo(original);
+        handler.Secret.Data["tls.crt"].Should().BeEmpty();
+        handler.Secret.Data["tls.key"].Should().BeEmpty();
+        handler.Secret.Data.Should().ContainKey(certificate.Thumbprint + ".der");
+        using CertificateCollection trusted = await store.EnumerateAsync().ConfigureAwait(false);
+        trusted.Select(candidate => candidate.Thumbprint).Should().Equal(certificate.Thumbprint);
     }
 
     private sealed class ValidatingSecretHandler(V1Secret secret) : DelegatingHandler

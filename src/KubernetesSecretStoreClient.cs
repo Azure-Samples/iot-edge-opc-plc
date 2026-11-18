@@ -167,7 +167,8 @@ public sealed class KubernetesSecretStoreClient : IKubernetesSecretStoreClient, 
             bool addedPrivateKey = secretData.TryAdd("tls.key", []);
             if (addedCertificate || addedPrivateKey)
             {
-                _logger.LogInformation("Keeping empty required TLS entries in Kubernetes secret {Namespace}/{SecretName}",
+                _logger.LogInformation(
+                    "Keeping empty required TLS entries in Kubernetes secret {Namespace}/{SecretName}",
                     namespaceName, secretName);
             }
         }

@@ -29,11 +29,8 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     private const string KeyExtension = ".key";
     private const string PfxExtension = ".pfx";
     private const string CrlExtension = ".crl";
-    private static readonly TimeSpan DeletionJournalLifetime = TimeSpan.FromMinutes(5);
     private static readonly ConditionalWeakTable<IKubernetesSecretStoreClient,
         ConcurrentDictionary<(string Namespace, string Secret), SemaphoreSlim>> MutationGates = new();
-    private static readonly ConditionalWeakTable<IKubernetesSecretStoreClient,
-        ConcurrentDictionary<(string Namespace, string Secret), DeletionJournal>> DeletionJournals = new();
 
     private readonly IKubernetesSecretStoreClient _client;
     private readonly string _defaultNamespace;
@@ -75,11 +72,6 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     /// <inheritdoc/>
     public bool NoPrivateKeys => _noPrivateKeys;
 
-    /// <summary>
-    /// Clock for expiring deletion journal records; replaceable in tests.
-    /// </summary>
-    internal TimeProvider TimeProvider { get; init; } = TimeProvider.System;
-
     public void Dispose()
     {
     }
@@ -113,23 +105,17 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     {
         ArgumentNullException.ThrowIfNull(certificate);
 
-        var committed = new List<Action>();
         await UpdateSecretDataAsync(secretData =>
         {
-            (bool restoredCertificate, bool restoredKey) =
-                RestoreDeletedEntries(secretData, certificate.Thumbprint, committed);
-            if (!restoredCertificate)
-            {
-                secretData[GetCertificateEntryKey(certificate.Thumbprint)] = certificate.Export(X509ContentType.Cert);
-            }
-            if (!_noPrivateKeys && certificate.HasPrivateKey && !restoredKey)
+            secretData[GetCertificateEntryKey(certificate.Thumbprint)] = certificate.Export(X509ContentType.Cert);
+            if (!_noPrivateKeys && certificate.HasPrivateKey)
             {
                 secretData[GetPrivateKeyEntryKey(certificate.Thumbprint)] = certificate.Export(
                     X509ContentType.Pkcs12,
                     password is null ? string.Empty : new string(password));
             }
             return true;
-        }, committed, ct).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
     }
 
     public async Task AddRejectedAsync(CertificateCollection certificates, int maxCertificates, CancellationToken ct = default)
@@ -163,30 +149,23 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(thumbprint);
 
-        var committed = new List<Action>();
-        return await UpdateSecretDataAsync(
-            secretData => RemoveMatchingCertificateEntries(secretData, thumbprint, committed), committed, ct)
+        return await UpdateSecretDataAsync(secretData => RemoveMatchingCertificateEntries(secretData, thumbprint), ct)
             .ConfigureAwait(false);
     }
 
     /// <summary>
     /// Removes every copy of a certificate and the private keys proven to belong only to it. All entries are scanned
-    /// before anything changes, so a removal that cannot be done safely leaves the Secret untouched.
+    /// before anything changes, so a removal that cannot be done safely leaves the Secret untouched. Like the SDK
+    /// directory store, deletion is not reversible: a rollback re-adds the certificate as a canonical entry.
     /// </summary>
-    private bool RemoveMatchingCertificateEntries(
-        Dictionary<string, byte[]> secretData, string thumbprint, List<Action> committed)
+    private bool RemoveMatchingCertificateEntries(Dictionary<string, byte[]> secretData, string thumbprint)
     {
-        DeletionJournal journal = GetDeletionJournal();
-        DateTimeOffset now = TimeProvider.GetUtcNow();
-        journal.Prune(now);
-        DateTimeOffset expiresAt = now + DeletionJournalLifetime;
         var thumbprints = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { thumbprint };
         var scan = new DeletionScan();
-        var removals = new List<(string EntryKey, byte[] Original, byte[] Remaining)>();
+        var removals = new List<(string EntryKey, byte[] Remaining)>();
         foreach (string entryKey in secretData.Keys.Where(IsCertificateEntryKey).ToList())
         {
-            byte[] original = secretData[entryKey];
-            switch (RemoveCertificates(entryKey, original, thumbprints, scan, out byte[] remaining))
+            switch (RemoveCertificates(entryKey, secretData[entryKey], thumbprints, scan, out byte[] remaining))
             {
                 case CertificateRemoval.Refused:
                     _logger.LogWarning("Not deleting certificate {Thumbprint} from Kubernetes secret {SecretName}: " +
@@ -194,12 +173,12 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
                         thumbprint, _secretName, entryKey);
                     return false;
                 case CertificateRemoval.Removed:
-                    removals.Add((entryKey, original, remaining));
+                    removals.Add((entryKey, remaining));
                     break;
             }
         }
 
-        foreach ((string entryKey, byte[] original, byte[] remaining) in removals)
+        foreach ((string entryKey, byte[] remaining) in removals)
         {
             if (remaining is null)
             {
@@ -209,19 +188,6 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             {
                 secretData[entryKey] = remaining;
             }
-            DeletedCertificateEntry record = journal.GetCertificateEntry(entryKey);
-            bool extend = record is not null && record.Matches(entryKey, original);
-            committed.Add(() =>
-            {
-                if (extend)
-                {
-                    journal.Extend(record, thumbprint, expiresAt);
-                }
-                else
-                {
-                    journal.SetCertificateEntry(entryKey, new DeletedCertificateEntry(original, thumbprint, expiresAt));
-                }
-            });
         }
 
         var modifiedBaseNames = removals.Select(removal => GetBaseName(removal.EntryKey))
@@ -235,74 +201,11 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             if (keyData.Length > 0 && CanDeletePrivateKey(entryKey, keyData, thumbprint, scan))
             {
                 secretData.Remove(entryKey);
-                committed.Add(() => journal.SetKeyEntry(entryKey, new DeletedKeyEntry(thumbprint, keyData, expiresAt)));
                 removed = true;
             }
         }
         return removed;
     }
-
-    /// <summary>
-    /// Restores the Secret entries a recent deletion removed for this certificate, as long as nothing changed them
-    /// since. The SDK rolls failed configuration updates back by re-adding the deleted certificates, so this keeps a
-    /// failed update from leaving seeded entries rewritten or their private keys deleted.
-    /// </summary>
-    private (bool RestoredCertificate, bool RestoredKey) RestoreDeletedEntries(
-        Dictionary<string, byte[]> secretData, string thumbprint, List<Action> committed)
-    {
-        DeletionJournal journal = GetDeletionJournal();
-        journal.Prune(TimeProvider.GetUtcNow());
-        var certificateEntries = journal.GetCertificateEntriesRemoving(thumbprint);
-        var keyEntries = journal.GetKeyEntriesOwnedBy(thumbprint);
-        if (certificateEntries.Count == 0 && keyEntries.Count == 0)
-        {
-            return (false, false);
-        }
-
-        var restored = new Dictionary<string, byte[]>(StringComparer.Ordinal);
-        foreach ((string entryKey, DeletedCertificateEntry record) in certificateEntries)
-        {
-            byte[] current = secretData.GetValueOrDefault(entryKey);
-            if (!record.Matches(entryKey, current) || !record.TryRestore(entryKey, thumbprint, out byte[] content))
-            {
-                _logger.LogWarning("Not restoring deleted certificate {Thumbprint} into entry {EntryKey} of " +
-                    "Kubernetes secret {SecretName} because the entry changed since the deletion",
-                    thumbprint, entryKey, _secretName);
-                journal.Forget(thumbprint);
-                return (false, false);
-            }
-            restored[entryKey] = content;
-        }
-
-        bool restoredKey = false;
-        foreach ((string entryKey, DeletedKeyEntry record) in keyEntries)
-        {
-            if (secretData.TryGetValue(entryKey, out byte[] current) && current.Length > 0)
-            {
-                continue;
-            }
-            restored[entryKey] = record.Data.ToArray();
-            restoredKey = true;
-        }
-
-        foreach ((string entryKey, byte[] content) in restored)
-        {
-            secretData[entryKey] = content;
-        }
-        committed.Add(() =>
-        {
-            foreach ((string entryKey, DeletedCertificateEntry record) in certificateEntries)
-            {
-                journal.MarkRestored(entryKey, record, thumbprint);
-            }
-            foreach ((string entryKey, _) in keyEntries)
-            {
-                journal.RemoveKeyEntry(entryKey);
-            }
-        });
-        return (certificateEntries.Count > 0, restoredKey);
-    }
-
     /// <summary>
     /// Removes the certificates with the given thumbprints from one entry, keeping every other byte of PEM content.
     /// </summary>
@@ -398,11 +301,11 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         {
             if (entryKey.EndsWith(PfxExtension, StringComparison.OrdinalIgnoreCase))
             {
-                // A PFX carries its own certificate and LoadPrivateKeyAsync returns that certificate, so a PFX that
-                // holds the deleted certificate is removed even when a surviving certificate shares its key.
-                if (TryReadPfxThumbprints(data, out List<string> pfxThumbprints))
+                // A PFX carries its own certificate and LoadPrivateKeyAsync returns that certificate, so a PFX whose
+                // private keys all belong to the deleted certificate is removed even when a survivor shares its key.
+                if (TryReadPfxIdentities(data, out List<string> identities))
                 {
-                    return pfxThumbprints.Count > 0 && pfxThumbprints.All(candidate =>
+                    return identities.Count > 0 && identities.All(candidate =>
                         string.Equals(candidate, thumbprint, StringComparison.OrdinalIgnoreCase));
                 }
                 // AddAsync writes <THUMBPRINT>.pfx, so the name proves ownership when a password protects the content.
@@ -447,7 +350,11 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         }
     }
 
-    private static bool TryReadPfxThumbprints(byte[] data, out List<string> thumbprints)
+    /// <summary>
+    /// The thumbprints of the certificates a PFX provides a private key for; public chain certificates do not count.
+    /// A PFX without private keys is identified by all of its certificates.
+    /// </summary>
+    private static bool TryReadPfxIdentities(byte[] data, out List<string> thumbprints)
     {
         foreach (string password in new[] { null, string.Empty })
         {
@@ -455,7 +362,9 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             {
                 var certificates = X509CertificateLoader.LoadPkcs12Collection(data, password,
                     X509KeyStorageFlags.EphemeralKeySet);
-                thumbprints = certificates.Select(certificate => certificate.Thumbprint).ToList();
+                var withKeys = certificates.Where(certificate => certificate.HasPrivateKey).ToList();
+                thumbprints = (withKeys.Count > 0 ? withKeys : certificates.ToList())
+                    .Select(certificate => certificate.Thumbprint).ToList();
                 foreach (var certificate in certificates)
                 {
                     certificate.Dispose();
@@ -764,19 +673,13 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
 
     private static string GetPendingKeyEntry(string scope) => PendingKeyEntryPrefix + scope;
 
-    private Task<bool> UpdateSecretDataAsync(Func<Dictionary<string, byte[]>, bool> update, CancellationToken ct)
-        => UpdateSecretDataAsync(update, committed: null, ct);
-
-    /// <summary>
-    /// Applies an update under the Secret's mutation gate and then runs <paramref name="committed"/>, still under the
-    /// gate, only if the updated data was written.
-    /// </summary>
     private async Task<bool> UpdateSecretDataAsync(
-        Func<Dictionary<string, byte[]>, bool> update, List<Action> committed, CancellationToken ct)
+        Func<Dictionary<string, byte[]>, bool> update, CancellationToken ct)
     {
         EnsureOpen();
         // Stores opened for the same Secret share a client and must not overwrite each other's mutations.
-        SemaphoreSlim gate = GetMutationGate();
+        SemaphoreSlim gate = MutationGates.GetOrCreateValue(_client)
+            .GetOrAdd((_defaultNamespace, _secretName), _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
@@ -785,7 +688,6 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             if (changed)
             {
                 await SaveSecretDataAsync(secretData, ct).ConfigureAwait(false);
-                committed?.ForEach(action => action());
             }
             return changed;
         }
@@ -794,19 +696,6 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             gate.Release();
         }
     }
-
-    private SemaphoreSlim GetMutationGate()
-        => MutationGates.GetOrCreateValue(_client)
-            .GetOrAdd((_defaultNamespace, _secretName), _ => new SemaphoreSlim(1, 1));
-
-    private DeletionJournal GetDeletionJournal()
-        => DeletionJournals.GetOrCreateValue(_client)
-            .GetOrAdd((_defaultNamespace, _secretName), _ => new DeletionJournal(GetMutationGate(), TimeProvider));
-
-    /// <summary>
-    /// The number of deleted entries currently kept for rollback; for tests.
-    /// </summary>
-    internal int DeletionJournalCount => GetDeletionJournal().Count;
 
     private async Task SaveSecretDataAsync(Dictionary<string, byte[]> secretData, CancellationToken ct)
     {
@@ -1019,238 +908,6 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             => _survivors.TryGetValue(baseName, out HashSet<string> publicKeys) && publicKeys.Contains(publicKey);
     }
 
-    /// <summary>
-    /// Entries removed by recent deletions from one Secret, kept so that a rollback can restore them. Records may hold
-    /// private keys, so they are cleared once restored, replaced or expired, and a timer enforces
-    /// <see cref="DeletionJournalLifetime"/> even when the Secret is not changed again. Records are only read and
-    /// cleared under the Secret's mutation gate.
-    /// </summary>
-    private sealed class DeletionJournal(SemaphoreSlim gate, TimeProvider timeProvider)
-    {
-        private readonly Lock _lock = new();
-        private readonly Dictionary<string, DeletedCertificateEntry> _certificates = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, DeletedKeyEntry> _keys = new(StringComparer.Ordinal);
-        private ITimer _sweep;
-
-        public int Count
-        {
-            get
-            {
-                lock (_lock)
-                {
-                    return _certificates.Count + _keys.Count;
-                }
-            }
-        }
-
-        public void Prune(DateTimeOffset now)
-        {
-            lock (_lock)
-            {
-                foreach ((string entryKey, DeletedCertificateEntry entry) in _certificates
-                    .Where(pair => pair.Value.ExpiresAt <= now).ToList())
-                {
-                    _certificates.Remove(entryKey);
-                    entry.Clear();
-                }
-                foreach ((string entryKey, DeletedKeyEntry entry) in _keys
-                    .Where(pair => pair.Value.ExpiresAt <= now).ToList())
-                {
-                    _keys.Remove(entryKey);
-                    entry.Clear();
-                }
-            }
-        }
-
-        public DeletedCertificateEntry GetCertificateEntry(string entryKey)
-        {
-            lock (_lock)
-            {
-                return _certificates.GetValueOrDefault(entryKey);
-            }
-        }
-
-        public void SetCertificateEntry(string entryKey, DeletedCertificateEntry entry)
-        {
-            lock (_lock)
-            {
-                if (_certificates.Remove(entryKey, out DeletedCertificateEntry replaced) && replaced != entry)
-                {
-                    replaced.Clear();
-                }
-                _certificates[entryKey] = entry;
-                ScheduleSweepLocked(entry.ExpiresAt);
-            }
-        }
-
-        public void Extend(DeletedCertificateEntry entry, string thumbprint, DateTimeOffset expiresAt)
-        {
-            lock (_lock)
-            {
-                entry.Removed.Add(thumbprint);
-                entry.ExpiresAt = expiresAt;
-                ScheduleSweepLocked(expiresAt);
-            }
-        }
-
-        public void MarkRestored(string entryKey, DeletedCertificateEntry entry, string thumbprint)
-        {
-            lock (_lock)
-            {
-                entry.Removed.Remove(thumbprint);
-                if (entry.Removed.Count == 0 && _certificates.GetValueOrDefault(entryKey) == entry)
-                {
-                    _certificates.Remove(entryKey);
-                    entry.Clear();
-                }
-            }
-        }
-
-        public void SetKeyEntry(string entryKey, DeletedKeyEntry entry)
-        {
-            lock (_lock)
-            {
-                if (_keys.Remove(entryKey, out DeletedKeyEntry replaced) && replaced != entry)
-                {
-                    replaced.Clear();
-                }
-                _keys[entryKey] = entry;
-                ScheduleSweepLocked(entry.ExpiresAt);
-            }
-        }
-
-        public void RemoveKeyEntry(string entryKey)
-        {
-            lock (_lock)
-            {
-                if (_keys.Remove(entryKey, out DeletedKeyEntry entry))
-                {
-                    entry.Clear();
-                }
-            }
-        }
-
-        public List<(string EntryKey, DeletedCertificateEntry Entry)> GetCertificateEntriesRemoving(string thumbprint)
-        {
-            lock (_lock)
-            {
-                return _certificates.Where(pair => pair.Value.Removed.Contains(thumbprint))
-                    .Select(pair => (pair.Key, pair.Value)).ToList();
-            }
-        }
-
-        public List<(string EntryKey, DeletedKeyEntry Entry)> GetKeyEntriesOwnedBy(string thumbprint)
-        {
-            lock (_lock)
-            {
-                return _keys.Where(pair => string.Equals(pair.Value.Thumbprint, thumbprint,
-                    StringComparison.OrdinalIgnoreCase)).Select(pair => (pair.Key, pair.Value)).ToList();
-            }
-        }
-
-        public void Forget(string thumbprint)
-        {
-            lock (_lock)
-            {
-                foreach ((string entryKey, DeletedCertificateEntry entry) in _certificates
-                    .Where(pair => pair.Value.Removed.Contains(thumbprint)).ToList())
-                {
-                    _certificates.Remove(entryKey);
-                    entry.Clear();
-                }
-                foreach ((string entryKey, DeletedKeyEntry entry) in _keys.Where(pair => string.Equals(
-                    pair.Value.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase)).ToList())
-                {
-                    _keys.Remove(entryKey);
-                    entry.Clear();
-                }
-            }
-        }
-
-        private void ScheduleSweepLocked(DateTimeOffset dueAt)
-        {
-            // Later records expire after earlier ones, and a running sweep reschedules itself for what remains.
-            if (_sweep is not null)
-            {
-                return;
-            }
-            TimeSpan delay = dueAt - timeProvider.GetUtcNow();
-            _sweep = timeProvider.CreateTimer(_ => _ = SweepAsync(), null,
-                delay > TimeSpan.Zero ? delay : TimeSpan.Zero, Timeout.InfiniteTimeSpan);
-        }
-
-        private async Task SweepAsync()
-        {
-            await gate.WaitAsync().ConfigureAwait(false);
-            try
-            {
-                lock (_lock)
-                {
-                    _sweep?.Dispose();
-                    _sweep = null;
-                }
-                Prune(timeProvider.GetUtcNow());
-                lock (_lock)
-                {
-                    DateTimeOffset? next = _certificates.Values.Select(entry => (DateTimeOffset?)entry.ExpiresAt)
-                        .Concat(_keys.Values.Select(entry => (DateTimeOffset?)entry.ExpiresAt)).Min();
-                    if (next is not null)
-                    {
-                        ScheduleSweepLocked(next.Value);
-                    }
-                }
-            }
-            finally
-            {
-                gate.Release();
-            }
-        }
-    }
-
-    /// <summary>
-    /// A certificate entry's content before the deletions of the certificates in <see cref="Removed"/>.
-    /// </summary>
-    private sealed class DeletedCertificateEntry(byte[] original, string thumbprint, DateTimeOffset expiresAt)
-    {
-        public byte[] Original { get; } = original;
-
-        public HashSet<string> Removed { get; } = new(StringComparer.OrdinalIgnoreCase) { thumbprint };
-
-        public DateTimeOffset ExpiresAt { get; set; } = expiresAt;
-
-        /// <summary>
-        /// Whether the entry holds exactly the original content without the removed certificates; an absent entry
-        /// or the empty placeholder kept for TLS Secrets stands for content that was removed entirely.
-        /// </summary>
-        public bool Matches(string entryKey, byte[] current)
-            => RemoveCertificates(entryKey, Original, Removed, scan: null, out byte[] expected)
-                    == CertificateRemoval.Removed
-                && (expected ?? []).AsSpan().SequenceEqual(current ?? []);
-
-        /// <summary>
-        /// A copy of the original content without the other removed certificates, so only the re-added one returns.
-        /// </summary>
-        public bool TryRestore(string entryKey, string thumbprint, out byte[] content)
-        {
-            var others = new HashSet<string>(Removed, StringComparer.OrdinalIgnoreCase);
-            others.Remove(thumbprint);
-            if (others.Count == 0)
-            {
-                content = Original.ToArray();
-                return true;
-            }
-            return RemoveCertificates(entryKey, Original, others, scan: null, out content) == CertificateRemoval.Removed
-                && content is not null;
-        }
-
-        // PEM entries can hold inline private keys.
-        public void Clear() => CryptographicOperations.ZeroMemory(Original);
-    }
-
-    private sealed record DeletedKeyEntry(string Thumbprint, byte[] Data, DateTimeOffset ExpiresAt)
-    {
-        public void Clear() => CryptographicOperations.ZeroMemory(Data);
-    }
     private sealed class ByteArrayComparer : IEqualityComparer<byte[]>
     {
         public static ByteArrayComparer Instance { get; } = new();

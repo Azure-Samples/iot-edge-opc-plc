@@ -182,22 +182,55 @@ public partial class KubernetesSecretCertificateStoreTests
         survivor.Should().BeNull("a PFX holding the deleted certificate must not be offered for a surviving one");
     }
 
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task Store_DeleteAsync_JudgesPfxByItsPrivateKeyCertificates(bool deletedCertificateHasTheKey)
+    {
+        using var issuer = CreateSelfSignedCertificate("issuer");
+        using var deleted = CreateSelfSignedCertificateWithPrivateKey("deleted");
+        using var unrelated = CreateSelfSignedCertificateWithPrivateKey("unrelated");
+        using var publicDeleted = X509CertificateLoader.LoadCertificate(deleted.RawData);
+        // Only the certificate carrying the private key identifies the container; chain certificates do not.
+        var container = deletedCertificateHasTheKey
+            ? new X509Certificate2Collection { deleted, issuer }
+            : new X509Certificate2Collection { unrelated, publicDeleted };
+        string certificateEntry = deletedCertificateHasTheKey ? deleted.Thumbprint + ".der" : "client.crt";
+        string pfxEntry = deletedCertificateHasTheKey ? deleted.Thumbprint + ".pfx" : "client.pfx";
+        var client = new InMemoryKubernetesSecretStoreClient();
+        client.SetSecret("opcplc-tests", "pki-own", new Dictionary<string, byte[]>
+        {
+            [certificateEntry] = deletedCertificateHasTheKey
+                ? deleted.RawData
+                : Encoding.UTF8.GetBytes(deleted.ExportCertificatePem()),
+            [pfxEntry] = container.Export(X509ContentType.Pkcs12)
+        });
+        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests");
+        store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\own", noPrivateKeys: false);
+
+        (await store.DeleteAsync(deleted.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
+
+        client.GetSecret("opcplc-tests", "pki-own").ContainsKey(pfxEntry).Should().Be(!deletedCertificateHasTheKey,
+            "a container is removed only when every private key in it belongs to the deleted certificate");
+        using var deletedIdentity = await store.LoadPrivateKeyAsync(deleted.Thumbprint, null, null)
+            .ConfigureAwait(false);
+        deletedIdentity.Should().BeNull();
+    }
+
     [Test]
-    public async Task Store_TrustListApply_RollbackRestoresDeletedSecretDataExactly()
+    public async Task Store_TrustListApply_RollbackAfterDeletionRestoresTrust()
     {
         using var removed = CreateSelfSignedCertificateWithPrivateKey("removed");
         using var kept = CreateSelfSignedCertificate("kept");
         using var rejected = CreateSelfSignedCertificate("rejected-by-storage");
         using var key = removed.GetRSAPrivateKey();
-        var original = new Dictionary<string, byte[]>
+        var storage = new InMemoryKubernetesSecretStoreClient();
+        storage.SetSecret("opcplc-tests", "pki-trusted", new Dictionary<string, byte[]>
         {
             ["tls.crt"] = Encoding.UTF8.GetBytes(removed.ExportCertificatePem()),
             ["tls.key"] = Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem()),
             ["peers.crt"] = Encoding.UTF8.GetBytes("# peers\r\n" + removed.ExportCertificatePem() + "\n" +
                 kept.ExportCertificatePem() + "\n")
-        };
-        var storage = new InMemoryKubernetesSecretStoreClient();
-        storage.SetSecret("opcplc-tests", "pki-trusted", original);
+        });
         // Adding the new certificate fails after the SDK already deleted the removed one, forcing a rollback.
         var client = new FailingWriteClient(storage, data => data.ContainsKey(rejected.Thumbprint + ".der"));
 
@@ -210,133 +243,14 @@ public partial class KubernetesSecretCertificateStoreTests
             }).ConfigureAwait(false);
 
         ServiceResult.IsBad(applied).Should().BeTrue();
-        storage.GetSecret("opcplc-tests", "pki-trusted").Should().BeEquivalentTo(original,
-            "a failed ApplyChanges must leave the Secret exactly as it was, including the deleted private key");
-    }
-
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task Store_AddAsync_RestoresOnlyTheReaddedCertificate(bool readdInDeletionOrder)
-    {
-        using var first = CreateSelfSignedCertificateWithPrivateKey("first");
-        using var second = CreateSelfSignedCertificate("second");
-        using var third = CreateSelfSignedCertificate("third");
-        using var key = first.GetRSAPrivateKey();
-        string firstPem = first.ExportCertificatePem();
-        string secondPem = second.ExportCertificatePem();
-        string bundle = "# head\n" + firstPem + "\n" + secondPem + "\n" + third.ExportCertificatePem() + "\n# tail\n";
-        var original = new Dictionary<string, byte[]>
-        {
-            ["peers.crt"] = Encoding.UTF8.GetBytes(bundle),
-            ["peers.key"] = Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem())
-        };
-        var client = new InMemoryKubernetesSecretStoreClient();
-        client.SetSecret("opcplc-tests", "pki-trusted", original);
-        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests");
+        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, storage, "opcplc-tests");
         store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\trusted");
-        (await store.DeleteAsync(first.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
-        (await store.DeleteAsync(second.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
-        client.GetSecret("opcplc-tests", "pki-trusted").Keys.Should().BeEquivalentTo(["peers.crt"]);
-
-        var (readdedFirst, readdedLater) = readdInDeletionOrder ? (first, second) : (second, first);
-        using (Certificate publicCertificate = Certificate.FromRawData(readdedFirst.RawData))
-        {
-            await store.AddAsync(publicCertificate).ConfigureAwait(false);
-        }
-
-        var partial = client.GetSecret("opcplc-tests", "pki-trusted");
-        partial["peers.crt"].Should().Equal(Encoding.UTF8.GetBytes(
-            bundle.Replace(readdInDeletionOrder ? secondPem : firstPem, string.Empty, StringComparison.Ordinal)),
-            "only the re-added certificate is restored");
-        partial.ContainsKey("peers.key").Should().Be(readdInDeletionOrder);
-        partial.Keys.Should().NotContain(entryKey => entryKey.EndsWith(".der", StringComparison.Ordinal));
-
-        using (Certificate publicCertificate = Certificate.FromRawData(readdedLater.RawData))
-        {
-            await store.AddAsync(publicCertificate).ConfigureAwait(false);
-        }
-
-        client.GetSecret("opcplc-tests", "pki-trusted").Should().BeEquivalentTo(original);
+        using CertificateCollection trusted = await store.EnumerateAsync().ConfigureAwait(false);
+        trusted.Select(certificate => certificate.Thumbprint).Should()
+            .BeEquivalentTo([removed.Thumbprint, kept.Thumbprint], "the SDK rollback re-adds the deleted certificate");
+        storage.GetSecret("opcplc-tests", "pki-trusted").Should().ContainKey(removed.Thumbprint + ".der")
+            .And.NotContainKey(rejected.Thumbprint + ".der");
     }
-
-    [TestCase("expired")]
-    [TestCase("changed-externally")]
-    public async Task Store_AddAsync_AddsCanonicalEntryWhenRestoreIsUnsafe(string scenario)
-    {
-        using var removed = CreateSelfSignedCertificateWithPrivateKey("removed");
-        using var kept = CreateSelfSignedCertificate("kept");
-        using var added = CreateSelfSignedCertificate("added-externally");
-        using var key = removed.GetRSAPrivateKey();
-        var client = new InMemoryKubernetesSecretStoreClient();
-        client.SetSecret("opcplc-tests", "pki-trusted", new Dictionary<string, byte[]>
-        {
-            ["peers.crt"] = Encoding.UTF8.GetBytes(removed.ExportCertificatePem() + "\n" + kept.ExportCertificatePem()),
-            ["peers.key"] = Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem())
-        });
-        var time = new ManualTimeProvider();
-        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests")
-        {
-            TimeProvider = time
-        };
-        store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\trusted");
-        (await store.DeleteAsync(removed.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
-        var afterDelete = client.GetSecret("opcplc-tests", "pki-trusted");
-        if (scenario == "expired")
-        {
-            time.UtcNow += TimeSpan.FromMinutes(6);
-        }
-        else
-        {
-            afterDelete["peers.crt"] =
-                [.. afterDelete["peers.crt"], .. Encoding.UTF8.GetBytes(added.ExportCertificatePem())];
-            client.SetSecret("opcplc-tests", "pki-trusted", afterDelete);
-        }
-        var expected = afterDelete.ToDictionary(pair => pair.Key, pair => pair.Value.ToArray());
-        expected[removed.Thumbprint + ".der"] = removed.RawData;
-
-        using (Certificate publicCertificate = Certificate.FromRawData(removed.RawData))
-        {
-            await store.AddAsync(publicCertificate).ConfigureAwait(false);
-        }
-
-        client.GetSecret("opcplc-tests", "pki-trusted").Should().BeEquivalentTo(expected,
-            "an expired or outdated record must not overwrite the entry or bring back the deleted key");
-    }
-
-    [Test]
-    public async Task Store_DeleteAsync_ClearsDeletedEntriesWhenTheyExpireWithoutFurtherStoreCalls()
-    {
-        using var removed = CreateSelfSignedCertificateWithPrivateKey("removed");
-        using var kept = CreateSelfSignedCertificate("kept");
-        using var key = removed.GetRSAPrivateKey();
-        var client = new InMemoryKubernetesSecretStoreClient();
-        client.SetSecret("opcplc-tests", "pki-trusted", new Dictionary<string, byte[]>
-        {
-            ["peers.crt"] = Encoding.UTF8.GetBytes(removed.ExportCertificatePem() + "\n" + kept.ExportCertificatePem()),
-            ["peers.key"] = Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem())
-        });
-        var time = new ManualTimeProvider();
-        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests")
-        {
-            TimeProvider = time
-        };
-        store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\trusted");
-        (await store.DeleteAsync(removed.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
-        store.DeletionJournalCount.Should().Be(2, "the deleted certificate entry and its key are kept for rollback");
-        var sweep = time.Timers.Should().ContainSingle().Subject;
-        sweep.DueTime.Should().Be(TimeSpan.FromMinutes(5));
-
-        time.UtcNow += TimeSpan.FromMinutes(5);
-        sweep.Callback(sweep.State);
-
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        while (store.DeletionJournalCount != 0)
-        {
-            await Task.Delay(10, deadline.Token).ConfigureAwait(false);
-        }
-        time.Timers.Should().ContainSingle("nothing is left to sweep");
-    }
-
     private static async Task<ServiceResult> ApplyTrustListAsync(
         IKubernetesSecretStoreClient client, string storePath, TrustListDataType desired)
     {
@@ -405,32 +319,6 @@ public partial class KubernetesSecretCertificateStoreTests
         var request = new CertificateRequest(new X500DistinguishedName(string.Empty), rsa, HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
         return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
-    }
-
-    private sealed class ManualTimeProvider : TimeProvider
-    {
-        public DateTimeOffset UtcNow { get; set; } = DateTimeOffset.UtcNow;
-
-        public List<(TimerCallback Callback, object State, TimeSpan DueTime)> Timers { get; } = [];
-
-        public override DateTimeOffset GetUtcNow() => UtcNow;
-
-        public override ITimer CreateTimer(TimerCallback callback, object state, TimeSpan dueTime, TimeSpan period)
-        {
-            Timers.Add((callback, state, dueTime));
-            return new ManualTimer();
-        }
-
-        private sealed class ManualTimer : ITimer
-        {
-            public bool Change(TimeSpan dueTime, TimeSpan period) => true;
-
-            public void Dispose()
-            {
-            }
-
-            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-        }
     }
 
     private sealed class FailingWriteClient(
