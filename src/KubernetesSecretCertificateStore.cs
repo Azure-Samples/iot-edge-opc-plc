@@ -159,9 +159,11 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     private bool RemoveMatchingCertificateEntries(Dictionary<string, byte[]> secretData, string thumbprint)
     {
         bool removed = false;
-        bool unreadableCertificate = false;
         using var removedCertificates = new CertificateCollection();
-        var survivingKeys = new HashSet<string>(StringComparer.Ordinal);
+        // LoadPrivateKeyAsync pairs a key entry only with certificate entries sharing its basename, so survivors
+        // and unreadable certificates only protect key entries with the same basename.
+        var survivingKeys = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        var unreadableBaseNames = new HashSet<string>(StringComparer.Ordinal);
         var companionKeys = new HashSet<string>(StringComparer.Ordinal) { GetPrivateKeyEntryKey(thumbprint) };
         foreach (string entryKey in secretData.Keys.Where(IsCertificateEntryKey).ToList())
         {
@@ -170,7 +172,7 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             if (IsPemCertificateEntryKey(entryKey))
             {
                 remaining = RemoveMatchingPemBlocks(entryKey, original, thumbprint, removedCertificates,
-                    survivingKeys, ref unreadableCertificate);
+                    survivingKeys, unreadableBaseNames);
                 if (ReferenceEquals(original, remaining))
                 {
                     continue;
@@ -179,7 +181,7 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             else
             {
                 if (!MatchCertificateForDeletion(entryKey, original, thumbprint, removedCertificates,
-                    survivingKeys, ref unreadableCertificate))
+                    survivingKeys, unreadableBaseNames))
                 {
                     continue;
                 }
@@ -207,13 +209,15 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             {
                 continue;
             }
-            if (unreadableCertificate)
+            string baseName = GetBaseName(entryKey);
+            if (unreadableBaseNames.Contains(baseName))
             {
                 _logger.LogWarning("Retaining private key entry {EntryKey} in Kubernetes secret {SecretName} " +
                     "because an unreadable certificate may still need it", entryKey, _secretName);
                 continue;
             }
-            if (CanDeletePrivateKey(entryKey, keyData, thumbprint, removedCertificates.FirstOrDefault(), survivingKeys))
+            HashSet<string> survivors = survivingKeys.GetValueOrDefault(baseName) ?? [];
+            if (CanDeletePrivateKey(entryKey, keyData, thumbprint, removedCertificates.FirstOrDefault(), survivors))
             {
                 removed |= secretData.Remove(entryKey);
             }
@@ -222,7 +226,8 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     }
 
     private byte[] RemoveMatchingPemBlocks(string entryKey, byte[] original, string thumbprint,
-        CertificateCollection removedCertificates, HashSet<string> survivingKeys, ref bool unreadableCertificate)
+        CertificateCollection removedCertificates, Dictionary<string, HashSet<string>> survivingKeys,
+        HashSet<string> unreadableBaseNames)
     {
         using var remaining = new MemoryStream();
         int offset = 0;
@@ -238,7 +243,7 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
             {
                 byte[] der = Convert.FromBase64String(Encoding.ASCII.GetString(pem[fields.Base64Data]));
                 if (MatchCertificateForDeletion(entryKey, der, thumbprint, removedCertificates,
-                    survivingKeys, ref unreadableCertificate))
+                    survivingKeys, unreadableBaseNames))
                 {
                     remaining.Write(original.AsSpan(copiedThrough, offset + start - copiedThrough));
                     copiedThrough = offset + end;
@@ -249,7 +254,7 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         malformedBlock |= original.AsSpan(offset).IndexOf("-----BEGIN CERTIFICATE-----"u8) >= 0;
         if (malformedBlock)
         {
-            unreadableCertificate = true;
+            unreadableBaseNames.Add(GetBaseName(entryKey));
             _logger.LogWarning("Preserving malformed PEM content in certificate entry {EntryKey} " +
                 "in Kubernetes secret {SecretName}", entryKey, _secretName);
         }
@@ -262,7 +267,8 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     }
 
     private bool MatchCertificateForDeletion(string entryKey, ReadOnlySpan<byte> data, string thumbprint,
-        CertificateCollection removedCertificates, HashSet<string> survivingKeys, ref bool unreadableCertificate)
+        CertificateCollection removedCertificates, Dictionary<string, HashSet<string>> survivingKeys,
+        HashSet<string> unreadableBaseNames)
     {
         try
         {
@@ -275,11 +281,16 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
                 }
                 return true;
             }
-            survivingKeys.Add(Convert.ToHexString(certificate.PublicKey.ExportSubjectPublicKeyInfo()));
+            string baseName = GetBaseName(entryKey);
+            if (!survivingKeys.TryGetValue(baseName, out HashSet<string> keys))
+            {
+                survivingKeys[baseName] = keys = new HashSet<string>(StringComparer.Ordinal);
+            }
+            keys.Add(Convert.ToHexString(certificate.PublicKey.ExportSubjectPublicKeyInfo()));
         }
         catch (CryptographicException ex)
         {
-            unreadableCertificate = true;
+            unreadableBaseNames.Add(GetBaseName(entryKey));
             _logger.LogWarning(ex, "Preserving unreadable certificate in entry {EntryKey} " +
                 "in Kubernetes secret {SecretName}", entryKey, _secretName);
         }
@@ -289,6 +300,13 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     private bool CanDeletePrivateKey(string entryKey, byte[] data, string thumbprint, Certificate removedCertificate,
         HashSet<string> survivingKeys)
     {
+        // AddAsync writes <THUMBPRINT>.pfx for that certificate, so its name proves ownership even when the
+        // container is password protected.
+        if (survivingKeys.Count == 0 &&
+            string.Equals(entryKey, GetPrivateKeyEntryKey(thumbprint), StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
         try
         {
             if (entryKey.EndsWith(PfxExtension, StringComparison.OrdinalIgnoreCase))

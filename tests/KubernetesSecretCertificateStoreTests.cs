@@ -489,6 +489,55 @@ public class KubernetesSecretCertificateStoreTests
         client.GetSecret("opcplc-tests", "pki-own")["client.key"].Should().Equal(keyData);
     }
 
+    [TestCase("renewed-with-same-key")]
+    [TestCase("password-protected")]
+    [TestCase("unrelated-unreadable-entry")]
+    public async Task Store_DeleteAsync_RemovesCanonicalPrivateKey(string scenario)
+    {
+        var client = new InMemoryKubernetesSecretStoreClient();
+        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests");
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=canonical", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        using Certificate removed = Certificate.From(
+            request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1)));
+        using Certificate renewed = Certificate.From(
+            request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(2)));
+        string password = scenario == "password-protected" ? "store-password" : null;
+        store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\own", noPrivateKeys: false);
+        await store.AddAsync(removed, password?.ToCharArray()).ConfigureAwait(false);
+        if (scenario == "renewed-with-same-key")
+        {
+            await store.AddAsync(renewed).ConfigureAwait(false);
+        }
+        byte[] unreadable = Encoding.UTF8.GetBytes(PemEncoding.WriteString("CERTIFICATE", [1, 2, 3]));
+        if (scenario == "unrelated-unreadable-entry")
+        {
+            var data = client.GetSecret("opcplc-tests", "pki-own");
+            data["seeded.crt"] = unreadable;
+            client.SetSecret("opcplc-tests", "pki-own", data);
+        }
+
+        (await store.DeleteAsync(removed.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
+
+        var secret = client.GetSecret("opcplc-tests", "pki-own");
+        secret.Should().NotContainKey(removed.Thumbprint + ".der")
+            .And.NotContainKey(removed.Thumbprint + ".pfx", "the deleted certificate's private key must not linger");
+        using var orphan = await store.LoadPrivateKeyAsync(removed.Thumbprint, removed.Subject, password)
+            .ConfigureAwait(false);
+        orphan.Should().BeNull();
+        if (scenario == "renewed-with-same-key")
+        {
+            secret.Should().ContainKey(renewed.Thumbprint + ".der").And.ContainKey(renewed.Thumbprint + ".pfx");
+            using var survivor = await store.LoadPrivateKeyAsync(renewed.Thumbprint, renewed.Subject, null)
+                .ConfigureAwait(false);
+            survivor.HasPrivateKey.Should().BeTrue();
+        }
+        if (scenario == "unrelated-unreadable-entry")
+        {
+            secret["seeded.crt"].Should().Equal(unreadable);
+        }
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public async Task Store_TrustListApply_WithDuplicatesPreservesRequestedCertificatesAsync(bool keepCertificate)

@@ -536,8 +536,9 @@ X.509 certificates:
   Deleting a certificate removes all its copies, including deployment-seeded PEM entries.
   PEM deletion removes only matching certificate blocks, preserving other content (including inline keys and
   unrecognized blocks). Companion `.pfx`, `.pem`, and `.key` entries are removed only when ownership is verified
-  and no surviving certificate needs the key. Unreadable or encrypted material without a known password is
-  preserved; warnings identify entries requiring manual cleanup.
+  and no surviving certificate with the same entry basename needs the key. The store's own `<THUMBPRINT>.pfx`
+  entries are owned by name, so they are removed even when password protected. Unreadable or encrypted material
+  without a known password is otherwise preserved; warnings identify entries requiring manual cleanup.
   For Secrets of type `kubernetes.io/tls`, deleted `tls.crt` or `tls.key` entries are retained as empty values
   because Kubernetes requires both keys and does not allow changing the Secret type. Secret identity and metadata
   are preserved. Empty values do not provide a usable TLS identity; use an `Opaque` Secret for general certificate stores.
