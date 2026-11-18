@@ -294,8 +294,10 @@ public class KubernetesSecretCertificateStoreTests
         certificateWithPrivateKey.HasPrivateKey.Should().BeTrue();
     }
 
-    [Test]
-    public async Task Store_DeleteAsync_RemovesPemCrtEntryAndCompanionKey()
+    [TestCase(".key")]
+    [TestCase(".pem")]
+    [TestCase(".pfx")]
+    public async Task Store_DeleteAsync_RemovesPemCrtEntryAndCompanionKey(string keyExtension)
     {
         var client = new InMemoryKubernetesSecretStoreClient();
         using var store = new KubernetesSecretCertificateStore(new Mock<ILogger>().Object, client, "opcplc-tests");
@@ -305,7 +307,8 @@ public class KubernetesSecretCertificateStoreTests
         client.SetSecret("opcplc-tests", "pki-trusted", new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             ["client.crt"] = Encoding.UTF8.GetBytes(seeded.ExportCertificatePem()),
-            ["client.key"] = Encoding.UTF8.GetBytes(rsa.ExportPkcs8PrivateKeyPem()),
+            ["client" + keyExtension] = keyExtension == ".pfx" ? seeded.Export(X509ContentType.Pkcs12)
+                : Encoding.UTF8.GetBytes(rsa.ExportPkcs8PrivateKeyPem()),
             [other.Thumbprint + ".der"] = other.Export(X509ContentType.Cert),
         });
         store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\trusted", noPrivateKeys: false);
@@ -347,6 +350,143 @@ public class KubernetesSecretCertificateStoreTests
                 CancellationToken.None).ConfigureAwait(false);
             withKey.HasPrivateKey.Should().BeTrue();
         }
+    }
+
+    [TestCase(0)]
+    [TestCase(1)]
+    [TestCase(100)]
+    public async Task Store_DeleteAsync_PreservesOtherPemContentByteForByte(int survivorCount)
+    {
+        var client = new InMemoryKubernetesSecretStoreClient();
+        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests");
+        using var removed = CreateSelfSignedCertificate("removed");
+        using var survivor = CreateSelfSignedCertificateWithPrivateKey("survivor");
+        using var key = survivor.GetRSAPrivateKey();
+        string prefix = "# deployment metadata\r\n" + key.ExportPkcs8PrivateKeyPem() + "\r\n";
+        string suffix = "\r\n" + string.Concat(Enumerable.Repeat(survivor.ExportCertificatePem() + "\r\n",
+            survivorCount)) + "-----BEGIN CERTIFICATE-----\r\nnot-base64\r\n-----END CERTIFICATE-----\r\n";
+        byte[] expected = Encoding.UTF8.GetBytes(prefix + suffix);
+        client.SetSecret("opcplc-tests", "pki-own", new Dictionary<string, byte[]>
+        {
+            ["bundle.crt"] = Encoding.UTF8.GetBytes(prefix + removed.ExportCertificatePem() + suffix)
+        });
+        store.Open("KubernetesSecret:pki-own", noPrivateKeys: false);
+
+        (await store.DeleteAsync(removed.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
+
+        client.GetSecret("opcplc-tests", "pki-own")["bundle.crt"].Should().Equal(expected);
+        (await store.DeleteAsync(removed.Thumbprint).ConfigureAwait(false)).Should().BeFalse();
+    }
+
+    [TestCase(".pfx", false)]
+    [TestCase(".pfx", true)]
+    [TestCase(".pem", true)]
+    [TestCase(".key", true)]
+    public async Task Store_DeleteAsync_PreservesSurvivorCompanionKey(string keyExtension, bool separateEntry)
+    {
+        var client = new InMemoryKubernetesSecretStoreClient();
+        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests");
+        using var removed = CreateSelfSignedCertificate("removed");
+        using var survivor = CreateSelfSignedCertificateWithPrivateKey("survivor");
+        using var key = survivor.GetRSAPrivateKey();
+        byte[] keyData = keyExtension == ".pfx"
+            ? survivor.Export(X509ContentType.Pkcs12)
+            : Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem());
+        var data = new Dictionary<string, byte[]>
+        {
+            ["chain.crt"] = Encoding.UTF8.GetBytes(separateEntry ? survivor.ExportCertificatePem()
+                : removed.ExportCertificatePem() + "\n" + survivor.ExportCertificatePem()),
+            ["chain" + keyExtension] = keyData
+        };
+        if (separateEntry)
+        {
+            data["chain.der"] = removed.Export(X509ContentType.Cert);
+        }
+        client.SetSecret("opcplc-tests", "pki-own", data);
+        store.Open("KubernetesSecret:pki-own", noPrivateKeys: false);
+
+        (await store.DeleteAsync(removed.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
+
+        client.GetSecret("opcplc-tests", "pki-own")["chain" + keyExtension].Should().Equal(keyData);
+        using var withKey = await store.LoadPrivateKeyAsync(survivor.Thumbprint, survivor.Subject, string.Empty)
+            .ConfigureAwait(false);
+        withKey.Should().NotBeNull();
+        withKey.Thumbprint.Should().Be(survivor.Thumbprint);
+        withKey.HasPrivateKey.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Store_DeleteAsync_PreservesKeySharedByRenewedCertificate()
+    {
+        var client = new InMemoryKubernetesSecretStoreClient();
+        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests");
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=shared-key", key, HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+        using var removed = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        using var survivor = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(2));
+        byte[] keyData = Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem());
+        client.SetSecret("opcplc-tests", "pki-own", new Dictionary<string, byte[]>
+        {
+            ["chain.der"] = removed.Export(X509ContentType.Cert),
+            ["chain.crt"] = Encoding.UTF8.GetBytes(survivor.ExportCertificatePem()),
+            ["chain.key"] = keyData
+        });
+        store.Open("KubernetesSecret:pki-own", noPrivateKeys: false);
+
+        (await store.DeleteAsync(removed.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
+
+        client.GetSecret("opcplc-tests", "pki-own")["chain.key"].Should().Equal(keyData);
+        using var withKey = await store.LoadPrivateKeyAsync(survivor.Thumbprint, survivor.Subject, string.Empty)
+            .ConfigureAwait(false);
+        withKey.HasPrivateKey.Should().BeTrue();
+    }
+
+    [TestCase(".pem")]
+    [TestCase(".pfx")]
+    public async Task Store_DeleteAsync_PreservesCompanionWhenOwnershipIsUnknown(string keyExtension)
+    {
+        var client = new InMemoryKubernetesSecretStoreClient();
+        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests");
+        using var removed = CreateSelfSignedCertificateWithPrivateKey("removed");
+        using var key = removed.GetRSAPrivateKey();
+        byte[] keyData = keyExtension == ".pfx"
+            ? removed.Export(X509ContentType.Pkcs12, "test-password")
+            : Encoding.UTF8.GetBytes(key.ExportEncryptedPkcs8PrivateKeyPem("test-password",
+                new PbeParameters(PbeEncryptionAlgorithm.Aes256Cbc, HashAlgorithmName.SHA256, 1000)));
+        client.SetSecret("opcplc-tests", "pki-own", new Dictionary<string, byte[]>
+        {
+            ["client.crt"] = Encoding.UTF8.GetBytes(removed.ExportCertificatePem()),
+            ["client" + keyExtension] = keyData
+        });
+        store.Open("KubernetesSecret:pki-own", noPrivateKeys: false);
+
+        (await store.DeleteAsync(removed.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
+
+        client.GetSecret("opcplc-tests", "pki-own")["client" + keyExtension].Should().Equal(keyData);
+    }
+
+    [Test]
+    public async Task Store_DeleteAsync_PreservesUnreadableCertificateAndItsPossibleKey()
+    {
+        var client = new InMemoryKubernetesSecretStoreClient();
+        using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests");
+        using var removed = CreateSelfSignedCertificateWithPrivateKey("removed");
+        using var key = removed.GetRSAPrivateKey();
+        string unreadable = PemEncoding.WriteString("CERTIFICATE", [1, 2, 3]);
+        byte[] keyData = Encoding.UTF8.GetBytes(key.ExportPkcs8PrivateKeyPem());
+        client.SetSecret("opcplc-tests", "pki-own", new Dictionary<string, byte[]>
+        {
+            ["client.crt"] = Encoding.UTF8.GetBytes(removed.ExportCertificatePem() + "\n" + unreadable),
+            ["client.key"] = keyData
+        });
+        store.Open("KubernetesSecret:pki-own", noPrivateKeys: false);
+
+        (await store.DeleteAsync(removed.Thumbprint).ConfigureAwait(false)).Should().BeTrue();
+
+        client.GetSecret("opcplc-tests", "pki-own")["client.crt"]
+            .Should().Equal(Encoding.UTF8.GetBytes("\n" + unreadable));
+        client.GetSecret("opcplc-tests", "pki-own")["client.key"].Should().Equal(keyData);
     }
 
     [TestCase(false)]

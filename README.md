@@ -534,8 +534,13 @@ X.509 certificates:
 * When running in kubernetes context and you want the certificate stores persisted as Kubernetes Secrets, use `--at KubernetesSecret`. Each configured store path is sanitized into its own secret name, for example `pki/own` becomes `pki-own` and `pki/trusted` becomes `pki-trusted`. Secret entries stay flat and are differentiated by file extension: certificates use `.der` or PEM-based `.crt`, private keys can use `.pfx` and, for the application certificate store, PEM-based `.pem` or `.key`, and CRLs use `.crl`. Use `--ksns <namespace>` to pin the namespace, or let the server auto-detect it in-cluster.
   Certificate enumeration returns each thumbprint once, even when it appears under several Secret keys.
   Deleting a certificate removes all its copies, including deployment-seeded PEM entries.
-  PEM bundles retain their other certificates; companion private-key entries are removed when the first certificate
-  is deleted, or when the certificate entry becomes empty.
+  PEM deletion removes only matching certificate blocks, preserving other content (including inline keys and
+  unrecognized blocks). Companion `.pfx`, `.pem`, and `.key` entries are removed only when ownership is verified
+  and no surviving certificate needs the key. Unreadable or encrypted material without a known password is
+  preserved; warnings identify entries requiring manual cleanup.
+  For Secrets of type `kubernetes.io/tls`, deleted `tls.crt` or `tls.key` entries are retained as empty values
+  because Kubernetes requires both keys and does not allow changing the Secret type. Secret identity and metadata
+  are preserved. Empty values do not provide a usable TLS identity; use an `Opaque` Secret for general certificate stores.
 
 GDS push service support:
 

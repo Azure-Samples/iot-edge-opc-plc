@@ -7,6 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -148,82 +149,190 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(thumbprint);
 
-        return await UpdateSecretDataAsync(secretData =>
-        {
-            bool removedCertificate = secretData.Remove(GetCertificateEntryKey(thumbprint));
-            bool removedPrivateKey = secretData.Remove(GetPrivateKeyEntryKey(thumbprint));
-            bool removedOtherEntries = RemoveMatchingCertificateEntries(secretData, thumbprint);
-            return removedCertificate || removedPrivateKey || removedOtherEntries;
-        }, ct).ConfigureAwait(false);
+        return await UpdateSecretDataAsync(secretData => RemoveMatchingCertificateEntries(secretData, thumbprint), ct)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Removes the certificate from entries that are not keyed by its thumbprint, such as PEM
-    /// <c>*.crt</c> entries seeded by deployments, which <see cref="EnumerateAsync"/> also returns.
+    /// Removes matching certificates without reconstructing bundles from the SDK's potentially partial PEM import.
     /// </summary>
     private bool RemoveMatchingCertificateEntries(Dictionary<string, byte[]> secretData, string thumbprint)
     {
         bool removed = false;
+        bool unreadableCertificate = false;
+        using var removedCertificates = new CertificateCollection();
+        var survivingKeys = new HashSet<string>(StringComparer.Ordinal);
+        var companionKeys = new HashSet<string>(StringComparer.Ordinal) { GetPrivateKeyEntryKey(thumbprint) };
         foreach (string entryKey in secretData.Keys.Where(IsCertificateEntryKey).ToList())
         {
-            CertificateCollection certificates;
-            try
+            byte[] original = secretData[entryKey];
+            byte[] remaining;
+            if (IsPemCertificateEntryKey(entryKey))
             {
-                certificates = LoadCertificates(entryKey, secretData[entryKey]);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "Skipping unreadable certificate entry {EntryKey} in Kubernetes secret {SecretName}",
-                    entryKey, _secretName);
-                continue;
-            }
-
-            using (certificates)
-            {
-                bool leafRemoved = false;
-                var remaining = new List<Certificate>();
-                for (int index = 0; index < certificates.Count; index++)
-                {
-                    if (string.Equals(certificates[index].Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
-                    {
-                        leafRemoved |= index == 0;
-                    }
-                    else
-                    {
-                        remaining.Add(certificates[index]);
-                    }
-                }
-
-                if (remaining.Count == certificates.Count)
+                remaining = RemoveMatchingPemBlocks(entryKey, original, thumbprint, removedCertificates,
+                    survivingKeys, ref unreadableCertificate);
+                if (ReferenceEquals(original, remaining))
                 {
                     continue;
                 }
-
-                if (remaining.Count == 0)
-                {
-                    secretData.Remove(entryKey);
-                }
-                else
-                {
-                    // Keep the other certificates of a PEM bundle.
-                    secretData[entryKey] = Encoding.ASCII.GetBytes(string.Concat(remaining.Select(certificate =>
-                        PemEncoding.WriteString("CERTIFICATE", certificate.RawData) + "\n")));
-                }
-
-                // A companion private key belongs to the first certificate of the entry.
-                if (remaining.Count == 0 || leafRemoved)
-                {
-                    string baseName = GetBaseName(entryKey);
-                    secretData.Remove(baseName + PfxExtension);
-                    secretData.Remove(baseName + PemExtension);
-                    secretData.Remove(baseName + KeyExtension);
-                }
-
-                removed = true;
             }
+            else
+            {
+                if (!MatchCertificateForDeletion(entryKey, original, thumbprint, removedCertificates,
+                    survivingKeys, ref unreadableCertificate))
+                {
+                    continue;
+                }
+                remaining = [];
+            }
+
+            if (remaining.Length == 0 || string.IsNullOrWhiteSpace(Encoding.UTF8.GetString(remaining)))
+            {
+                secretData.Remove(entryKey);
+            }
+            else
+            {
+                secretData[entryKey] = remaining;
+            }
+            string baseName = GetBaseName(entryKey);
+            companionKeys.Add(baseName + PfxExtension);
+            companionKeys.Add(baseName + PemExtension);
+            companionKeys.Add(baseName + KeyExtension);
+            removed = true;
         }
 
+        foreach (string entryKey in companionKeys)
+        {
+            if (!secretData.TryGetValue(entryKey, out byte[] keyData))
+            {
+                continue;
+            }
+            if (unreadableCertificate)
+            {
+                _logger.LogWarning("Retaining private key entry {EntryKey} in Kubernetes secret {SecretName} " +
+                    "because an unreadable certificate may still need it", entryKey, _secretName);
+                continue;
+            }
+            if (CanDeletePrivateKey(entryKey, keyData, thumbprint, removedCertificates.FirstOrDefault(), survivingKeys))
+            {
+                removed |= secretData.Remove(entryKey);
+            }
+        }
         return removed;
+    }
+
+    private byte[] RemoveMatchingPemBlocks(string entryKey, byte[] original, string thumbprint,
+        CertificateCollection removedCertificates, HashSet<string> survivingKeys, ref bool unreadableCertificate)
+    {
+        using var remaining = new MemoryStream();
+        int offset = 0;
+        int copiedThrough = 0;
+        bool malformedBlock = false;
+        while (PemEncoding.TryFindUtf8(original.AsSpan(offset), out PemFields fields))
+        {
+            var pem = original.AsSpan(offset);
+            int start = fields.Location.Start.GetOffset(pem.Length);
+            int end = fields.Location.End.GetOffset(pem.Length);
+            malformedBlock |= pem[..start].IndexOf("-----BEGIN CERTIFICATE-----"u8) >= 0;
+            if (pem[fields.Label].SequenceEqual("CERTIFICATE"u8))
+            {
+                byte[] der = Convert.FromBase64String(Encoding.ASCII.GetString(pem[fields.Base64Data]));
+                if (MatchCertificateForDeletion(entryKey, der, thumbprint, removedCertificates,
+                    survivingKeys, ref unreadableCertificate))
+                {
+                    remaining.Write(original.AsSpan(copiedThrough, offset + start - copiedThrough));
+                    copiedThrough = offset + end;
+                }
+            }
+            offset += end;
+        }
+        malformedBlock |= original.AsSpan(offset).IndexOf("-----BEGIN CERTIFICATE-----"u8) >= 0;
+        if (malformedBlock)
+        {
+            unreadableCertificate = true;
+            _logger.LogWarning("Preserving malformed PEM content in certificate entry {EntryKey} " +
+                "in Kubernetes secret {SecretName}", entryKey, _secretName);
+        }
+        if (copiedThrough == 0)
+        {
+            return original;
+        }
+        remaining.Write(original.AsSpan(copiedThrough));
+        return remaining.ToArray();
+    }
+
+    private bool MatchCertificateForDeletion(string entryKey, ReadOnlySpan<byte> data, string thumbprint,
+        CertificateCollection removedCertificates, HashSet<string> survivingKeys, ref bool unreadableCertificate)
+    {
+        try
+        {
+            using var certificate = new Certificate(data);
+            if (string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
+            {
+                if (removedCertificates.Count == 0)
+                {
+                    removedCertificates.Add(certificate);
+                }
+                return true;
+            }
+            survivingKeys.Add(Convert.ToHexString(certificate.PublicKey.ExportSubjectPublicKeyInfo()));
+        }
+        catch (CryptographicException ex)
+        {
+            unreadableCertificate = true;
+            _logger.LogWarning(ex, "Preserving unreadable certificate in entry {EntryKey} " +
+                "in Kubernetes secret {SecretName}", entryKey, _secretName);
+        }
+        return false;
+    }
+
+    private bool CanDeletePrivateKey(string entryKey, byte[] data, string thumbprint, Certificate removedCertificate,
+        HashSet<string> survivingKeys)
+    {
+        try
+        {
+            if (entryKey.EndsWith(PfxExtension, StringComparison.OrdinalIgnoreCase))
+            {
+                var certificates = X509CertificateLoader.LoadPkcs12Collection(data, null,
+                    X509KeyStorageFlags.EphemeralKeySet);
+                try
+                {
+                    return certificates.Count > 0 && certificates.All(certificate =>
+                        string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase) &&
+                        !survivingKeys.Contains(Convert.ToHexString(certificate.PublicKey.ExportSubjectPublicKeyInfo())));
+                }
+                finally
+                {
+                    foreach (var certificate in certificates)
+                    {
+                        certificate.Dispose();
+                    }
+                }
+            }
+            if (removedCertificate is null ||
+                survivingKeys.Contains(Convert.ToHexString(removedCertificate.PublicKey.ExportSubjectPublicKeyInfo())))
+            {
+                return false;
+            }
+            string pem = Encoding.UTF8.GetString(data);
+            if (!PemEncoding.TryFind(pem, out PemFields fields) ||
+                !string.IsNullOrWhiteSpace(pem[..fields.Location.Start]) ||
+                !string.IsNullOrWhiteSpace(pem[fields.Location.End..]))
+            {
+                _logger.LogWarning("Retaining private key entry {EntryKey} in Kubernetes secret {SecretName} " +
+                    "because it contains unrecognized or additional content", entryKey, _secretName);
+                return false;
+            }
+            using var withKey = X509Certificate2.CreateFromPem(
+                PemEncoding.WriteString("CERTIFICATE", removedCertificate.RawData), pem);
+            return withKey.HasPrivateKey;
+        }
+        catch (Exception ex) when (ex is CryptographicException or ArgumentException)
+        {
+            _logger.LogWarning(ex, "Retaining private key entry {EntryKey} in Kubernetes secret {SecretName} " +
+                "because ownership could not be established", entryKey, _secretName);
+            return false;
+        }
     }
 
     public async Task<CertificateCollection> EnumerateAsync(CancellationToken ct = default)
@@ -588,6 +697,11 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
 
         if (entryKey.EndsWith(CrtExtension, StringComparison.OrdinalIgnoreCase))
         {
+            // TLS Secrets retain an empty tls.crt value after deletion to satisfy Kubernetes validation.
+            if (certificateBytes.Length == 0)
+            {
+                return new CertificateCollection();
+            }
             return CertificateCollection.From(PEMReader.ImportPublicKeysFromPEM(certificateBytes));
         }
 
