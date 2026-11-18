@@ -532,16 +532,16 @@ X.509 certificates:
 * Running as Linux Docker container using an X509Store for the application certificate, you need to use the Docker run option `-v x509certstores:/root/.dotnet/corefx/cryptography/x509stores` and the application option `--at X509Store`
 * When running in kubernetes context with certificates mounted as files, use option `--at FlatDirectory`. This enables the OPC UA server to consume both public key and private key certificates directly from the /app/pki/own/ path without expecting the `certs` and `private` subdirectories. Furthermore, certificates of type .crt and .key are accepted.
 * When running in kubernetes context and you want the certificate stores persisted as Kubernetes Secrets, use `--at KubernetesSecret`. Each configured store path is sanitized into its own secret name, for example `pki/own` becomes `pki-own` and `pki/trusted` becomes `pki-trusted`. Secret entries stay flat and are differentiated by file extension: certificates use `.der` or PEM-based `.crt`, private keys can use `.pfx` and, for the application certificate store, PEM-based `.pem` or `.key`, and CRLs use `.crl`. Use `--ksns <namespace>` to pin the namespace, or let the server auto-detect it in-cluster.
-  Certificate enumeration returns each thumbprint once, even when it appears under several Secret keys, and reads
-  every certificate block of a PEM entry (the OPC UA SDK reader stops after 99) using the SDK reader's rules.
+  Certificate enumeration returns each thumbprint once, even when it appears under several Secret keys. PEM entries
+  are read by the OPC UA SDK reader, which examines at most 99 certificate blocks per entry.
   Deleting a certificate removes all its copies, including deployment-seeded PEM entries.
   PEM deletion removes only matching certificate blocks, preserving other content (including inline keys and
   unrecognized blocks); a deletion that would change how the remaining content is read is refused.
   Companion `.pfx`, `.pem`, and `.key` entries (extension case is ignored) are removed only when they belong to
   the deleted certificate. A `.pfx` is judged by the certificates it holds private keys for, ignoring chain
   certificates; a password-protected one is removed only if it is the store's own `<THUMBPRINT>.pfx`. A `.pem` or
-  `.key` key is kept while a surviving certificate with the same entry basename uses it. Unreadable or encrypted material is otherwise preserved; warnings identify
-  entries requiring manual cleanup.
+  `.key` key is kept while a surviving certificate with the same entry basename uses it. Unreadable or encrypted
+  material is otherwise preserved; warnings identify entries requiring manual cleanup.
   As with the SDK directory store, deletion is permanent: when a failed GDS push is rolled back, the deleted
   certificate is added back as `<THUMBPRINT>.der`, but deleted seeded entries and private keys are not restored.
   For Secrets of type `kubernetes.io/tls`, deleted `tls.crt` or `tls.key` entries are retained as empty values

@@ -29,6 +29,8 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
     private const string KeyExtension = ".key";
     private const string PfxExtension = ".pfx";
     private const string CrlExtension = ".crl";
+    // PEMReader.ImportPublicKeysFromPEM examines at most this many certificate blocks.
+    private const int SdkPemReaderBlockLimit = 99;
     private static readonly ConditionalWeakTable<IKubernetesSecretStoreClient,
         ConcurrentDictionary<(string Namespace, string Secret), SemaphoreSlim>> MutationGates = new();
 
@@ -247,10 +249,10 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         output.Write(data, copied, data.Length - copied);
         byte[] result = output.ToArray();
 
-        // Joining the text around a removed block must not form, merge or split other blocks; otherwise a
-        // certificate the reader never saw could become trusted.
+        // Joining the text around a removed block, or bringing blocks beyond the reader's limit into view, must not
+        // make a certificate readable that was not before; otherwise a certificate never enumerated becomes trusted.
         if (!FindPemCertificateBlocks(result).Select(block => block.Der)
-            .SequenceEqual(kept, ByteArrayComparer.Instance))
+            .ToHashSet(ByteArrayComparer.Instance).SetEquals(kept))
         {
             return CertificateRemoval.Refused;
         }
@@ -747,51 +749,16 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
 
         if (entryKey.EndsWith(CrtExtension, StringComparison.OrdinalIgnoreCase))
         {
-            return LoadPemCertificates(certificateBytes);
+            return CertificateCollection.From(PEMReader.ImportPublicKeysFromPEM(certificateBytes));
         }
 
         throw new ArgumentException($"Unsupported certificate entry key '{entryKey}'.", nameof(entryKey));
     }
 
     /// <summary>
-    /// Reads certificates like <see cref="PEMReader.ImportPublicKeysFromPEM(ReadOnlySpan{byte})"/>, including
-    /// skipping blocks with invalid base64 or an empty name and rejecting the entry on an unreadable certificate,
-    /// but without its 99-block limit. Deletion uses the same block scan, so it removes exactly what is enumerated.
-    /// </summary>
-    private static CertificateCollection LoadPemCertificates(byte[] data)
-    {
-        var certificates = new X509Certificate2Collection();
-        try
-        {
-            foreach (PemCertificateBlock block in FindPemCertificateBlocks(data))
-            {
-                if (block.Der is null)
-                {
-                    continue;
-                }
-                X509Certificate2 certificate = X509CertificateLoader.LoadCertificate(block.Der);
-                if (DistinguishedNameUtils.HasEmptyDistinguishedName(certificate))
-                {
-                    certificate.Dispose();
-                    continue;
-                }
-                certificates.Add(certificate);
-            }
-        }
-        catch
-        {
-            foreach (X509Certificate2 certificate in certificates)
-            {
-                certificate.Dispose();
-            }
-            throw;
-        }
-        return CertificateCollection.From(certificates);
-    }
-
-    /// <summary>
-    /// Locates certificate blocks the way the SDK PEM reader does: the END label is searched from the end of the
-    /// previous block, and scanning stops when it precedes the next BEGIN label or is missing.
+    /// Locates the certificate blocks <see cref="PEMReader.ImportPublicKeysFromPEM(ReadOnlySpan{byte})"/> examines,
+    /// so deletion only edits what is enumerated: the END label is searched from the end of the previous block,
+    /// scanning stops when it precedes the next BEGIN label or is missing, and at most 99 blocks are examined.
     /// </summary>
     private static List<PemCertificateBlock> FindPemCertificateBlocks(byte[] data)
     {
@@ -799,7 +766,7 @@ public sealed class KubernetesSecretCertificateStore : ICertificateStore
         ReadOnlySpan<byte> endLabel = "-----END CERTIFICATE-----"u8;
         var blocks = new List<PemCertificateBlock>();
         int offset = 0;
-        while (true)
+        while (blocks.Count < SdkPemReaderBlockLimit)
         {
             ReadOnlySpan<byte> remaining = data.AsSpan(offset);
             int begin = remaining.IndexOf(beginLabel);

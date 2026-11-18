@@ -56,36 +56,37 @@ public partial class KubernetesSecretCertificateStoreTests
         }
     }
 
-    [Test]
-    public async Task Store_TrustListApply_RemovesCertificatesBeyondSdkPemReaderLimit()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Store_EnumerateAsync_IgnoresBlocksBeyondSdkPemReaderLimit(bool unreadableAfterLimit)
     {
         using var repeated = CreateSelfSignedCertificate("repeated");
         using var hidden = CreateSelfSignedCertificate("after-limit");
+        // A base64-valid block that is not a certificate makes the SDK reader reject an entry if it reaches it.
+        string afterLimit = unreadableAfterLimit
+            ? "-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n"
+            : hidden.ExportCertificatePem() + "\n";
+        byte[] bundle = Encoding.UTF8.GetBytes(
+            string.Concat(Enumerable.Repeat(repeated.ExportCertificatePem() + "\n", 99)) + afterLimit);
         var client = new InMemoryKubernetesSecretStoreClient();
-        client.SetSecret("opcplc-tests", "pki-trusted", new Dictionary<string, byte[]>
-        {
-            ["peers.crt"] = Encoding.UTF8.GetBytes(
-                string.Concat(Enumerable.Repeat(repeated.ExportCertificatePem() + "\n", 99)) +
-                hidden.ExportCertificatePem() + "\n")
-        });
+        client.SetSecret("opcplc-tests", "pki-trusted", new Dictionary<string, byte[]> { ["peers.crt"] = bundle });
         using var store = new KubernetesSecretCertificateStore(NullLogger.Instance, client, "opcplc-tests");
         store.Open(KubernetesSecretCertificateStore.StoreTypePrefix + @"pki\trusted");
+
         using (CertificateCollection before = await store.EnumerateAsync().ConfigureAwait(false))
         {
-            before.Select(certificate => certificate.Thumbprint).Should()
-                .BeEquivalentTo([repeated.Thumbprint, hidden.Thumbprint]);
+            before.Select(certificate => certificate.Thumbprint).Should().Equal(repeated.Thumbprint);
         }
 
+        // Removing the 99 visible blocks would bring the block after the limit into view, so nothing is changed.
         var applied = await ApplyTrustListAsync(client, store.StorePath, new TrustListDataType
         {
             SpecifiedLists = (uint)TrustListMasks.All,
             TrustedCertificates = []
         }).ConfigureAwait(false);
 
-        ServiceResult.IsGood(applied).Should().BeTrue(applied?.ToString());
-        using CertificateCollection after = await store.EnumerateAsync().ConfigureAwait(false);
-        after.Should().BeEmpty("an empty TrustList must not leave a previously unenumerated certificate trusted");
-        client.GetSecret("opcplc-tests", "pki-trusted").Should().BeEmpty();
+        ServiceResult.IsBad(applied).Should().BeTrue();
+        client.GetSecret("opcplc-tests", "pki-trusted")["peers.crt"].Should().Equal(bundle);
     }
 
     [Test]
