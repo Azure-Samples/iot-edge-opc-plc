@@ -94,9 +94,8 @@ public partial class WotConTests
         (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(reformatted);
     }
 
-    [TestCase(1)]
-    [TestCase(9)]
-    public async Task WoTFile_ReadOnlyHandle_RejectsWriteAndCloseAndUpdate(byte mode)
+    [Test]
+    public async Task WoTFile_ReadOnlyHandle_RejectsWriteAndCloseAndUpdate()
     {
         var (_, fileId) = await CreateAssetAndResolveFileAsync(
             "ReadOnlyTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
@@ -104,13 +103,13 @@ public partial class WotConTests
         await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
         var (_, outputs) = await CallAsync(
             fileId, new NodeId(Methods.FileType_Open, 0),
-            [new Variant(mode)]).ConfigureAwait(false);
+            [new Variant((byte)1)]).ConfigureAwait(false);
         uint handle = Convert.ToUInt32(outputs[0].Value);
         var (positionStatus, positionOutputs) = await CallAsync(
             fileId, new NodeId(Methods.FileType_GetPosition, 0),
             [new Variant(handle)]).ConfigureAwait(false);
         StatusCode.IsGood(positionStatus).Should().BeTrue();
-        positionOutputs[0].Value.Should().Be(mode == 9 ? (ulong)Encoding.UTF8.GetByteCount(td) : 0ul);
+        positionOutputs[0].Value.Should().Be(0ul);
         var (setPositionStatus, _) = await CallAsync(
             fileId, new NodeId(Methods.FileType_SetPosition, 0),
             [new Variant(handle), new Variant(0ul)]).ConfigureAwait(false);
@@ -165,10 +164,19 @@ public partial class WotConTests
         (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(secondTd);
     }
 
+    // OPC 10100-1 §6.3.10 allows only Read (1) and Write + EraseExisting (6).
     [TestCase(0)]
+    [TestCase(2)]
+    [TestCase(3)]
     [TestCase(4)]
     [TestCase(5)]
+    [TestCase(7)]
     [TestCase(8)]
+    [TestCase(9)]
+    [TestCase(10)]
+    [TestCase(11)]
+    [TestCase(14)]
+    [TestCase(15)]
     [TestCase(16)]
     public async Task WoTFile_InvalidOpenMode_ReturnsBadInvalidArgument(byte mode)
     {
@@ -178,46 +186,6 @@ public partial class WotConTests
             fileId, new NodeId(Methods.FileType_Open, 0),
             [new Variant(mode)]).ConfigureAwait(false);
         status.Code.Should().Be(StatusCodes.BadInvalidArgument);
-    }
-
-    [TestCase(3)]
-    [TestCase(7)]
-    [TestCase(11)]
-    [TestCase(15)]
-    public async Task WoTFile_ReadWriteModes_RespectEraseAndAppend(byte mode)
-    {
-        var (_, fileId) = await CreateAssetAndResolveFileAsync(
-            "ReadWriteTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
-        const string td = """{"title":"ReadWrite"}""";
-        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
-        var (openStatus, outputs) = await CallAsync(
-            fileId, new NodeId(Methods.FileType_Open, 0),
-            [new Variant(mode)]).ConfigureAwait(false);
-        StatusCode.IsGood(openStatus).Should().BeTrue();
-        uint handle = Convert.ToUInt32(outputs[0].Value);
-        var (positionStatus, positionOutputs) = await CallAsync(
-            fileId, new NodeId(Methods.FileType_GetPosition, 0),
-            [new Variant(handle)]).ConfigureAwait(false);
-        StatusCode.IsGood(positionStatus).Should().BeTrue();
-        positionOutputs[0].Value.Should().Be(mode == 11 ? (ulong)Encoding.UTF8.GetByteCount(td) : 0ul);
-
-        var (readStatus, readOutputs) = await CallAsync(
-            fileId, new NodeId(Methods.FileType_Read, 0),
-            [new Variant(handle), new Variant(1024)]).ConfigureAwait(false);
-        StatusCode.IsGood(readStatus).Should().BeTrue();
-        Encoding.UTF8.GetString((byte[])readOutputs[0].Value).Should().Be(mode == 3 ? td : string.Empty);
-
-        bool erased = mode == 7 || mode == 15;
-        string suffix = erased ? td : " ";
-        var (writeStatus, _) = await CallAsync(
-            fileId, new NodeId(Methods.FileType_Write, 0),
-            [new Variant(handle), new Variant(Encoding.UTF8.GetBytes(suffix))]).ConfigureAwait(false);
-        StatusCode.IsGood(writeStatus).Should().BeTrue();
-        var (updateStatus, _) = await CallAsync(
-            fileId, WotConNodeId(FileCloseAndUpdateTypeMethodId),
-            [new Variant(handle)]).ConfigureAwait(false);
-        StatusCode.IsGood(updateStatus).Should().BeTrue();
-        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(erased ? td : td + " ");
     }
 
     [Test]

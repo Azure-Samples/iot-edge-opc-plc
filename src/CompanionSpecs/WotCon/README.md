@@ -171,7 +171,8 @@ work.
   at position zero. Repeated `Read` calls advance the handle position and return an
   empty byte string at EOF. An asset without an uploaded TD reads as empty.
   Handles enforce their Read / Write modes; `CloseAndUpdate` requires Write.
-  EraseExisting starts an empty upload, while Append starts at the end of the stored TD.
+  Per §6.3.10 only Read and Write + EraseExisting are accepted; other modes
+  (including Append and Read + Write) return `Bad_InvalidArgument`.
 - **NodeSet-importer workaround for `Argument` arrays.** The SDK's NodeSet
   importer (1.5.378) drops `InputArguments` / `OutputArguments` from
   `MethodState`s when they're declared via `HasProperty` on the type side.

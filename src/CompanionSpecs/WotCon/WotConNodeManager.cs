@@ -922,15 +922,12 @@ public partial class WotConNodeManager : CustomNodeManager2
         try
         {
             var mode = (FileOpenMode)Convert.ToByte(inputArguments[0]);
-            const FileOpenMode knownBits =
-                FileOpenMode.Read | FileOpenMode.Write | FileOpenMode.EraseExisting | FileOpenMode.Append;
-            bool eraseExisting = mode.HasFlag(FileOpenMode.EraseExisting);
-            bool append = mode.HasFlag(FileOpenMode.Append);
-            if ((mode & ~knownBits) != 0
-                || (mode & (FileOpenMode.Read | FileOpenMode.Write)) == 0
-                || (eraseExisting && !mode.HasFlag(FileOpenMode.Write)))
+            // OPC 10100-1 §6.3.10: WoTAssetFileType supports Write + EraseExisting (mandatory) and
+            // Read (optional); "other modes are not allowed".
+            if (mode != FileOpenMode.Read && mode != (FileOpenMode.Write | FileOpenMode.EraseExisting))
             {
-                return new ServiceResult(StatusCodes.BadInvalidArgument, "Invalid file open mode.");
+                return new ServiceResult(StatusCodes.BadInvalidArgument,
+                    "Invalid file open mode; WoTAssetFileType supports only Read or Write + EraseExisting.");
             }
 
             uint handle;
@@ -941,19 +938,16 @@ public partial class WotConNodeManager : CustomNodeManager2
                 // until CloseAndUpdate publishes a new TD.
                 var stream = new MemoryStream();
 
-                // Pre-fill the buffer with a copy of the stored TD, so the client can read it back
-                // and so Write/Append continue from the existing content. With EraseExisting
-                // the buffer starts empty and the old TD is replaced on commit.
-                // The copy is a snapshot: later uploads on other handles do not change it.
-                if (!eraseExisting && asset.ThingDescription != null)
+                // Read handles get a copy of the stored TD so the client can read it back. The copy
+                // is a snapshot: later uploads on other handles do not change it. Write handles
+                // always use EraseExisting, so they start empty and replace the TD on commit.
+                if (mode == FileOpenMode.Read && asset.ThingDescription != null)
                 {
                     byte[] stored = Encoding.UTF8.GetBytes(asset.ThingDescription);
                     stream.Write(stored, 0, stored.Length);
+                    stream.Position = 0;
                 }
 
-                // Writing the TD moved the position to the end. Append keeps it there;
-                // otherwise reset to the start so reads begin at byte 0 and writes overwrite.
-                stream.Position = append ? stream.Length : 0;
                 handle = asset.NextFileHandle++;
                 asset.FileHandles[handle] = (mode, stream);
                 openCount = asset.FileHandles.Count;
