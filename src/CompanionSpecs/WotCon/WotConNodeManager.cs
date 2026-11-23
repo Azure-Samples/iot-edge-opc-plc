@@ -1291,7 +1291,10 @@ public partial class WotConNodeManager : CustomNodeManager2
                         asset.AssetEndpoint = string.IsNullOrWhiteSpace(parsed.Base) ? null : parsed.Base;
                         MaterializeAssetEndpoint(SystemContext, asset);
                         MaterializeAssetProperties(SystemContext, asset, parsed);
+
+                        // Test-only: lets tests throw here, after properties are rebuilt but before actions.
                         MaterializationFaultInjector?.Invoke(asset.Name);
+
                         MaterializeAssetActions(SystemContext, asset, parsed);
                     }
                 }
