@@ -612,12 +612,12 @@ public partial class WotConNodeManager : CustomNodeManager2
                 // Close any open file handles for this asset so MemoryStreams don't leak.
                 lock (asset.FileLock)
                 {
-                    foreach (var stream in asset.FileBuffers.Values)
+                    foreach (var file in asset.FileHandles.Values)
                     {
-                        stream.Dispose();
+                        file.Buffer.Dispose();
                     }
 
-                    asset.FileBuffers.Clear();
+                    asset.FileHandles.Clear();
                 }
 
                 // Remove the forward Organizes ref from WoTAssetConnectionManagement so the asset
@@ -908,17 +908,55 @@ public partial class WotConNodeManager : CustomNodeManager2
         }
     }
 
-    private ServiceResult OnPerAssetFileOpen(WotAsset asset, FileState fileNode, IList<object> inputArguments, IList<object> outputArguments)
+    private ServiceResult OnPerAssetFileOpen(
+        WotAsset asset,
+        FileState fileNode,
+        IList<object> inputArguments,
+        IList<object> outputArguments)
     {
+        if (inputArguments.Count < 1)
+        {
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
         try
         {
+            var mode = (FileOpenMode)Convert.ToByte(inputArguments[0]);
+            const FileOpenMode knownBits =
+                FileOpenMode.Read | FileOpenMode.Write | FileOpenMode.EraseExisting | FileOpenMode.Append;
+            bool eraseExisting = mode.HasFlag(FileOpenMode.EraseExisting);
+            bool append = mode.HasFlag(FileOpenMode.Append);
+            if ((mode & ~knownBits) != 0
+                || (mode & (FileOpenMode.Read | FileOpenMode.Write)) == 0
+                || (eraseExisting && !mode.HasFlag(FileOpenMode.Write)))
+            {
+                return new ServiceResult(StatusCodes.BadInvalidArgument, "Invalid file open mode.");
+            }
+
             uint handle;
             int openCount;
             lock (asset.FileLock)
             {
+                // Each handle gets its own private buffer. Nothing is shared between handles
+                // until CloseAndUpdate publishes a new TD.
+                var stream = new MemoryStream();
+
+                // Pre-fill the buffer with a copy of the stored TD, so the client can read it back
+                // and so Write/Append continue from the existing content. With EraseExisting
+                // the buffer starts empty and the old TD is replaced on commit.
+                // The copy is a snapshot: later uploads on other handles do not change it.
+                if (!eraseExisting && asset.ThingDescription != null)
+                {
+                    byte[] stored = Encoding.UTF8.GetBytes(asset.ThingDescription);
+                    stream.Write(stored, 0, stored.Length);
+                }
+
+                // Writing the TD moved the position to the end. Append keeps it there;
+                // otherwise reset to the start so reads begin at byte 0 and writes overwrite.
+                stream.Position = append ? stream.Length : 0;
                 handle = asset.NextFileHandle++;
-                asset.FileBuffers[handle] = new MemoryStream();
-                openCount = asset.FileBuffers.Count;
+                asset.FileHandles[handle] = (mode, stream);
+                openCount = asset.FileHandles.Count;
             }
 
             outputArguments[0] = handle;
@@ -955,15 +993,21 @@ public partial class WotConNodeManager : CustomNodeManager2
             long totalLength;
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
+                if (!asset.FileHandles.TryGetValue(handle, out var file))
                 {
                     return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
                 }
 
+                if (!file.Mode.HasFlag(FileOpenMode.Write))
+                {
+                    return new ServiceResult(StatusCodes.BadInvalidState, "FileHandle is not open for writing.");
+                }
+
+                var stream = file.Buffer;
                 // Enforce the limit advertised on MaxByteStringLength so clients can trust
                 // the property instead of being able to grow the in-memory buffer unbounded.
                 uint maxBytes = fileNode.MaxByteStringLength?.Value ?? 0;
-                if (maxBytes > 0 && stream.Length + data.LongLength > maxBytes)
+                if (maxBytes > 0 && Math.Max(stream.Length, stream.Position + data.LongLength) > maxBytes)
                 {
                     return new ServiceResult(StatusCodes.BadRequestTooLarge,
                         $"Write would exceed MaxByteStringLength ({maxBytes} bytes).");
@@ -1003,11 +1047,17 @@ public partial class WotConNodeManager : CustomNodeManager2
             byte[] result;
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
+                if (!asset.FileHandles.TryGetValue(handle, out var file))
                 {
                     return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
                 }
 
+                if (!file.Mode.HasFlag(FileOpenMode.Read))
+                {
+                    return new ServiceResult(StatusCodes.BadInvalidState, "FileHandle is not open for reading.");
+                }
+
+                var stream = file.Buffer;
                 var buffer = new byte[Math.Max(0, length)];
                 int read = length > 0 ? stream.Read(buffer, 0, length) : 0;
                 result = new byte[read];
@@ -1063,12 +1113,12 @@ public partial class WotConNodeManager : CustomNodeManager2
             ulong position;
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
+                if (!asset.FileHandles.TryGetValue(handle, out var file))
                 {
                     return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
                 }
 
-                position = (ulong)stream.Position;
+                position = (ulong)file.Buffer.Position;
             }
 
             outputArguments[0] = position;
@@ -1094,12 +1144,12 @@ public partial class WotConNodeManager : CustomNodeManager2
             ulong position = Convert.ToUInt64(inputArguments[1]);
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
+                if (!asset.FileHandles.TryGetValue(handle, out var file))
                 {
                     return new ServiceResult(StatusCodes.BadInvalidArgument, "Unknown file handle");
                 }
 
-                stream.Position = (long)position;
+                file.Buffer.Position = (long)position;
             }
 
             return ServiceResult.Good;
@@ -1126,25 +1176,40 @@ public partial class WotConNodeManager : CustomNodeManager2
             // can't observe the buffer between ToArray and Dispose.
             byte[] payload = null;
             bool handleKnown = false;
+            bool openedForWrite = false;
             int openCount;
             lock (asset.FileLock)
             {
-                if (asset.FileBuffers.TryGetValue(handle, out var stream))
+                if (asset.FileHandles.TryGetValue(handle, out var file))
                 {
                     handleKnown = true;
-                    payload = stream.ToArray();
-                    stream.Dispose();
-                    asset.FileBuffers.Remove(handle);
+                    openedForWrite = file.Mode.HasFlag(FileOpenMode.Write);
+
+                    // A read-only handle stays open; the client still has to Close it.
+                    if (openedForWrite)
+                    {
+                        payload = file.Buffer.ToArray();
+                        file.Buffer.Dispose();
+                        asset.FileHandles.Remove(handle);
+                    }
                 }
 
-                openCount = asset.FileBuffers.Count;
+                openCount = asset.FileHandles.Count;
             }
 
-            // §6.3.10.2: an unknown / not-open-for-writing handle must surface as
+            // §6.3.10.2: an unknown handle, or one not opened for writing, must surface as
             // Bad_InvalidState — bail before mutating any per-asset state.
             if (!handleKnown)
             {
-                _logger?.LogWarning("[WotCon] {Asset}.CloseAndUpdate received unknown handle={Handle}", asset.Name, handle);
+                _logger?.LogWarning(
+                    "[WotCon] {Asset}.CloseAndUpdate handle={Handle} is unknown", asset.Name, handle);
+                return new ServiceResult(StatusCodes.BadInvalidState, "FileHandle is unknown.");
+            }
+
+            if (!openedForWrite)
+            {
+                _logger?.LogWarning(
+                    "[WotCon] {Asset}.CloseAndUpdate handle={Handle} is not open for writing", asset.Name, handle);
                 return new ServiceResult(StatusCodes.BadInvalidState, "FileHandle is not open for writing.");
             }
 
@@ -1154,16 +1219,6 @@ public partial class WotConNodeManager : CustomNodeManager2
                 fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, openCount);
             }
 
-            if (fileNode.LastModifiedTime != null)
-            {
-                fileNode.LastModifiedTime.Value = DateTime.UtcNow;
-            }
-
-            // Per OPC 10100-1 §6.3.2 + §6.3.8 the upload finalization is the trigger to
-            // materialize the asset's information model from the Thing Description. For now
-            // (plan item 1) we only decode + parse + persist; Variable/Method materialization
-            // lands with plan items 2 and 3.
-            //
             // TODO: validate against the WoT-Con TD JSON Schema (Annex A.2). The lightweight
             // "well-formed JSON + non-empty title" gate below is sufficient for mock-mode
             // round-trips today.
@@ -1211,12 +1266,6 @@ public partial class WotConNodeManager : CustomNodeManager2
                 return bindingResult;
             }
 
-            // Persist both the raw JSON (for diagnostics / re-export) and the parsed form
-            // (for later materialization). Re-uploads overwrite both.
-            asset.ThingDescription = json;
-            asset.ParsedThingDescription = parsed;
-            asset.AssetEndpoint = string.IsNullOrWhiteSpace(parsed.Base) ? null : parsed.Base;
-
             // Per OPC 10100-1 §6.3.2 + §6.3.8 + §6.3.9: a successful TD upload materializes
             // the asset's information model. Today: WoT Properties → OPC UA Variables and WoT
             // Actions → OPC UA Methods under the asset.
@@ -1233,16 +1282,54 @@ public partial class WotConNodeManager : CustomNodeManager2
                     return new ServiceResult(StatusCodes.BadObjectDeleted, "Asset was deleted before the upload could be materialized.");
                 }
 
+                bool unchanged = false;
+                if (asset.ThingDescription != null)
+                {
+                    using var previousDocument = JsonDocument.Parse(asset.ThingDescription);
+                    using var uploadedDocument = JsonDocument.Parse(json);
+                    unchanged = JsonElement.DeepEquals(previousDocument.RootElement, uploadedDocument.RootElement);
+                }
+
                 try
                 {
-                    MaterializeAssetEndpoint(SystemContext, asset);
-                    MaterializeAssetProperties(SystemContext, asset, parsed);
-                    MaterializeAssetActions(SystemContext, asset, parsed);
+                    if (!unchanged)
+                    {
+                        asset.AssetEndpoint = string.IsNullOrWhiteSpace(parsed.Base) ? null : parsed.Base;
+                        MaterializeAssetEndpoint(SystemContext, asset);
+                        MaterializeAssetProperties(SystemContext, asset, parsed);
+                        MaterializeAssetActions(SystemContext, asset, parsed);
+                    }
+                    else
+                    {
+                        _logger?.LogInformation(
+                            "[WotCon] {Asset}.CloseAndUpdate handle={Handle} TD is unchanged; keeping existing nodes",
+                            asset.Name, handle);
+                    }
                 }
                 catch (Exception ex)
                 {
                     _logger?.LogError(ex, "[WotCon] {Asset}.CloseAndUpdate materialization failed", asset.Name);
                     return new ServiceResult(StatusCodes.BadInternalError, "Failed to materialize Thing Description.");
+                }
+
+                // Publish only successfully applied TDs; Open(Read) snapshots this state under FileLock.
+                lock (asset.FileLock)
+                {
+                    asset.ThingDescription = json;
+                    asset.ParsedThingDescription = parsed;
+                    fileNode.Size.Value = (ulong)payload.Length;
+                    if (!unchanged && fileNode.LastModifiedTime != null)
+                    {
+                        fileNode.LastModifiedTime.Value = DateTime.UtcNow;
+                    }
+                }
+
+                if (unchanged)
+                {
+                    _logger?.LogInformation(
+                        "[WotCon] {Asset}.CloseAndUpdate handle={Handle}: unchanged TD; preserving materialized nodes",
+                        asset.Name, handle);
+                    return ServiceResult.Good;
                 }
             }
 
@@ -1270,13 +1357,13 @@ public partial class WotConNodeManager : CustomNodeManager2
     {
         lock (asset.FileLock)
         {
-            if (asset.FileBuffers.TryGetValue(handle, out var stream))
+            if (asset.FileHandles.TryGetValue(handle, out var file))
             {
-                stream.Dispose();
-                asset.FileBuffers.Remove(handle);
+                file.Buffer.Dispose();
+                asset.FileHandles.Remove(handle);
             }
 
-            return asset.FileBuffers.Count;
+            return asset.FileHandles.Count;
         }
     }
 

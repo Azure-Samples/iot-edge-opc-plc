@@ -57,9 +57,9 @@ internal sealed class WotAsset
     public Dictionary<NodeId, NodeId> FileMethodMap { get; } = new();
 
     /// <summary>
-    /// Active upload buffers keyed by file handle returned from Open.
+    /// Open modes and buffers keyed by file handle returned from Open.
     /// </summary>
-    public Dictionary<uint, MemoryStream> FileBuffers { get; } = new();
+    public Dictionary<uint, (FileOpenMode Mode, MemoryStream Buffer)> FileHandles { get; } = new();
 
     public object FileLock { get; } = new();
 

@@ -17,11 +17,161 @@ using System.Threading.Tasks;
 public partial class WotConTests
 {
     [Test]
+    public async Task WoTFile_Read_ReturnsLastSuccessfulUpload()
+    {
+        var (_, fileId) = await CreateAssetAndResolveFileAsync(
+            "ReadTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().BeEmpty();
+
+        const string firstTd = "{\"title\":\"Readback \u00e9\",\"properties\":{\"temperature\":{\"type\":\"number\"}}}";
+        await UploadAndFinalizeTdAsync(fileId, firstTd).ConfigureAwait(false);
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(firstTd);
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(firstTd, "each read starts at position zero");
+
+        uint handle = await OpenWriteAsync(fileId, Encoding.UTF8.GetBytes("{ invalid")).ConfigureAwait(false);
+        var (status, _) = await CallAsync(
+            fileId, WotConNodeId(FileCloseAndUpdateTypeMethodId),
+            [new Variant(handle)]).ConfigureAwait(false);
+        status.Code.Should().Be(StatusCodes.BadDecodingError);
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(firstTd);
+
+        const string secondTd = """{"title":"Updated readback"}""";
+        await UploadAndFinalizeTdAsync(fileId, secondTd).ConfigureAwait(false);
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(secondTd);
+    }
+
+    [TestCase(1)]
+    [TestCase(9)]
+    public async Task WoTFile_ReadOnlyHandle_RejectsWriteAndCloseAndUpdate(byte mode)
+    {
+        var (_, fileId) = await CreateAssetAndResolveFileAsync(
+            "ReadOnlyTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        const string td = """{"title":"ReadOnly"}""";
+        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
+        var (_, outputs) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Open, 0),
+            [new Variant(mode)]).ConfigureAwait(false);
+        uint handle = Convert.ToUInt32(outputs[0].Value);
+        var (positionStatus, positionOutputs) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_GetPosition, 0),
+            [new Variant(handle)]).ConfigureAwait(false);
+        StatusCode.IsGood(positionStatus).Should().BeTrue();
+        positionOutputs[0].Value.Should().Be(mode == 9 ? (ulong)Encoding.UTF8.GetByteCount(td) : 0ul);
+        var (setPositionStatus, _) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_SetPosition, 0),
+            [new Variant(handle), new Variant(0ul)]).ConfigureAwait(false);
+        StatusCode.IsGood(setPositionStatus).Should().BeTrue();
+
+        var (writeStatus, _) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Write, 0),
+            [new Variant(handle), new Variant(Encoding.UTF8.GetBytes("""{"title":"Wrong"}"""))])
+            .ConfigureAwait(false);
+        writeStatus.Code.Should().Be(StatusCodes.BadInvalidState);
+
+        var (updateStatus, _) = await CallAsync(
+            fileId, WotConNodeId(FileCloseAndUpdateTypeMethodId),
+            [new Variant(handle)]).ConfigureAwait(false);
+        updateStatus.Code.Should().Be(StatusCodes.BadInvalidState);
+
+        var (readStatus, readOutputs) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Read, 0),
+            [new Variant(handle), new Variant(1024)]).ConfigureAwait(false);
+        StatusCode.IsGood(readStatus).Should().BeTrue("a rejected update must leave the read handle open");
+        Encoding.UTF8.GetString((byte[])readOutputs[0].Value).Should().Be(td);
+        var (closeStatus, _) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Close, 0),
+            [new Variant(handle)]).ConfigureAwait(false);
+        StatusCode.IsGood(closeStatus).Should().BeTrue();
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(td);
+    }
+
+    [Test]
+    public async Task WoTFile_ReadHandle_KeepsSnapshotAcrossUpdates()
+    {
+        var (_, fileId) = await CreateAssetAndResolveFileAsync(
+            "SnapshotTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        const string firstTd = """{"title":"Snapshot"}""";
+        await UploadAndFinalizeTdAsync(fileId, firstTd).ConfigureAwait(false);
+        var (_, outputs) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Open, 0),
+            [new Variant((byte)1)]).ConfigureAwait(false);
+        uint handle = Convert.ToUInt32(outputs[0].Value);
+
+        const string secondTd = """{"title":"Replacement"}""";
+        await UploadAndFinalizeTdAsync(fileId, secondTd).ConfigureAwait(false);
+        var (readStatus, readOutputs) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Read, 0),
+            [new Variant(handle), new Variant(1024)]).ConfigureAwait(false);
+        StatusCode.IsGood(readStatus).Should().BeTrue();
+        Encoding.UTF8.GetString((byte[])readOutputs[0].Value).Should().Be(firstTd);
+        var (closeStatus, _) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Close, 0),
+            [new Variant(handle)]).ConfigureAwait(false);
+        StatusCode.IsGood(closeStatus).Should().BeTrue();
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(secondTd);
+    }
+
+    [TestCase(0)]
+    [TestCase(4)]
+    [TestCase(5)]
+    [TestCase(8)]
+    [TestCase(16)]
+    public async Task WoTFile_InvalidOpenMode_ReturnsBadInvalidArgument(byte mode)
+    {
+        var (_, fileId) = await CreateAssetAndResolveFileAsync(
+            "InvalidModeTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        var (status, _) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Open, 0),
+            [new Variant(mode)]).ConfigureAwait(false);
+        status.Code.Should().Be(StatusCodes.BadInvalidArgument);
+    }
+
+    [TestCase(3)]
+    [TestCase(7)]
+    [TestCase(11)]
+    [TestCase(15)]
+    public async Task WoTFile_ReadWriteModes_RespectEraseAndAppend(byte mode)
+    {
+        var (_, fileId) = await CreateAssetAndResolveFileAsync(
+            "ReadWriteTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        const string td = """{"title":"ReadWrite"}""";
+        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
+        var (openStatus, outputs) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Open, 0),
+            [new Variant(mode)]).ConfigureAwait(false);
+        StatusCode.IsGood(openStatus).Should().BeTrue();
+        uint handle = Convert.ToUInt32(outputs[0].Value);
+        var (positionStatus, positionOutputs) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_GetPosition, 0),
+            [new Variant(handle)]).ConfigureAwait(false);
+        StatusCode.IsGood(positionStatus).Should().BeTrue();
+        positionOutputs[0].Value.Should().Be(mode == 11 ? (ulong)Encoding.UTF8.GetByteCount(td) : 0ul);
+
+        var (readStatus, readOutputs) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Read, 0),
+            [new Variant(handle), new Variant(1024)]).ConfigureAwait(false);
+        StatusCode.IsGood(readStatus).Should().BeTrue();
+        Encoding.UTF8.GetString((byte[])readOutputs[0].Value).Should().Be(mode == 3 ? td : string.Empty);
+
+        bool erased = mode == 7 || mode == 15;
+        string suffix = erased ? td : " ";
+        var (writeStatus, _) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Write, 0),
+            [new Variant(handle), new Variant(Encoding.UTF8.GetBytes(suffix))]).ConfigureAwait(false);
+        StatusCode.IsGood(writeStatus).Should().BeTrue();
+        var (updateStatus, _) = await CallAsync(
+            fileId, WotConNodeId(FileCloseAndUpdateTypeMethodId),
+            [new Variant(handle)]).ConfigureAwait(false);
+        StatusCode.IsGood(updateStatus).Should().BeTrue();
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(erased ? td : td + " ");
+    }
+
+    [Test]
     public async Task WoTFile_RoundTrip_OpenWriteCloseAndUpdate_Succeeds()
     {
         var (_, fileId) = await CreateAssetAndResolveFileAsync("RoundTripAsset_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
 
-        // Open (mode=6 = read+write+erase, conventional for File API uploads).
+        // Open (mode=6 = write+erase, conventional for File API uploads).
         var (openStatus, openOutputs) = await CallAsync(
             objectId: fileId,
             methodId: new NodeId(Methods.FileType_Open, 0),

@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,6 +17,83 @@ using System.Threading.Tasks;
 /// </summary>
 public partial class WotConTests
 {
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task CloseAndUpdate_UnchangedTd_PreservesNodeIdsAndValues(bool reformat)
+    {
+        var (assetId, fileId) = await CreateAssetAndResolveFileAsync(
+            "UnchangedTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        const string td = """
+            {
+              "title": "Unchanged",
+              "base": "http://unchanged.invalid/",
+              "properties": { "setpoint": { "type": "number", "observable": false } },
+              "actions": { "reset": {} }
+            }
+            """;
+        const string reformattedTd = """
+            {
+              "actions": { "reset": {} },
+              "properties": { "setpoint": { "observable": false, "type": "number" } },
+              "base": "http://unchanged.invalid/",
+              "title": "Unchanged"
+            }
+            """;
+        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
+        var properties = await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false);
+        var propertyId = ToNodeId(properties.Single(r => r.BrowseName.Name == "setpoint").NodeId);
+        var actions = await BrowseAssetMethodChildrenAsync(assetId).ConfigureAwait(false);
+        var actionId = ToNodeId(actions.Single(r => r.BrowseName.Name == "reset").NodeId);
+        var endpointId = await ResolveChildByBrowseNameAsync(
+            assetId, "AssetEndpoint", isProperty: true).ConfigureAwait(false);
+        var writeStatus = await WriteValueAsync(propertyId, 42.5).ConfigureAwait(false);
+        StatusCode.IsGood(writeStatus).Should().BeTrue();
+
+        string uploadedTd = reformat ? reformattedTd : td;
+        await UploadAndFinalizeTdAsync(fileId, uploadedTd).ConfigureAwait(false);
+
+        var updatedProperties = await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false);
+        ToNodeId(updatedProperties.Single(r => r.BrowseName.Name == "setpoint").NodeId).Should().Be(propertyId);
+        var updatedActions = await BrowseAssetMethodChildrenAsync(assetId).ConfigureAwait(false);
+        ToNodeId(updatedActions.Single(r => r.BrowseName.Name == "reset").NodeId).Should().Be(actionId);
+        (await ResolveChildByBrowseNameAsync(assetId, "AssetEndpoint", isProperty: true).ConfigureAwait(false))
+            .Should().Be(endpointId);
+        var value = await ReadDataValueAsync(propertyId).ConfigureAwait(false);
+        StatusCode.IsGood(value.StatusCode).Should().BeTrue();
+        value.Value.Should().Be(42.5, "unchanged uploads must not reset an existing variable");
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(uploadedTd);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task CloseAndUpdate_ChangedForms_ReplacesNodes(bool reorder)
+    {
+        var (assetId, fileId) = await CreateAssetAndResolveFileAsync(
+            "ChangedFormsTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        const string td = """
+            {
+              "title": "Forms",
+              "properties": {
+                "setpoint": { "type": "number", "forms": [{"href":"first"},{"href":"second"}] }
+              }
+            }
+            """;
+        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
+        var properties = await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false);
+        var previousId = ToNodeId(properties.Single(r => r.BrowseName.Name == "setpoint").NodeId);
+        string updatedTd = reorder
+            ? td.Replace("""[{"href":"first"},{"href":"second"}]""", """[{"href":"second"},{"href":"first"}]""")
+            : td.Replace("second", "changed");
+
+        await UploadAndFinalizeTdAsync(fileId, updatedTd).ConfigureAwait(false);
+
+        var updatedProperties = await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false);
+        ToNodeId(updatedProperties.Single(r => r.BrowseName.Name == "setpoint").NodeId).Should().NotBe(previousId);
+        var previousValue = await ReadDataValueAsync(previousId).ConfigureAwait(false);
+        previousValue.StatusCode.Code.Should().Be(StatusCodes.BadNodeIdUnknown);
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(updatedTd);
+    }
+
     [Test]
     public async Task CloseAndUpdate_MalformedJsonPayload_ReturnsBadDecodingError()
     {

@@ -167,6 +167,11 @@ work.
   `CreateAsset` mints a fresh `FileState` as a `HasComponent` child of the
   asset, so concurrent uploads to different assets don't share a file handle
   table. The previous singleton-`WoTFile` design was retired.
+- **TD read-back.** `Open(Read)` snapshots the last successfully applied TD as UTF-8
+  at position zero. Repeated `Read` calls advance the handle position and return an
+  empty byte string at EOF. An asset without an uploaded TD reads as empty.
+  Handles enforce their Read / Write modes; `CloseAndUpdate` requires Write.
+  EraseExisting starts an empty upload, while Append starts at the end of the stored TD.
 - **NodeSet-importer workaround for `Argument` arrays.** The SDK's NodeSet
   importer (1.5.378) drops `InputArguments` / `OutputArguments` from
   `MethodState`s when they're declared via `HasProperty` on the type side.
@@ -179,10 +184,13 @@ work.
   over-engineering ahead of a real consumer. Binding compatibility is
   additionally checked against `WotConBindings.KnownBindings` /
   `SupportedBindings`.
-- **Re-upload semantics.** `CloseAndUpdate` on an existing asset drops the
-  previous generation of materialized property / action / endpoint nodes via
-  `DeleteNode` before creating the new generation. The asset's visible
-  address space always reflects the most recently uploaded TD.
+- **Re-upload semantics.** `CloseAndUpdate` compares the full JSON document with
+  the successfully applied TD. Equal documents (ignoring whitespace and object-member
+  ordering) preserve property / action / endpoint NodeIds and existing values.
+  Array order and changes to any TD member remain significant. A changed TD drops
+  the previous materialized nodes via `DeleteNode` before creating a new generation,
+  so clients must rediscover its NodeIds. Read-back returns the latest accepted JSON.
+  Rejected uploads do not replace the stored TD.
 - **Strict duplicate-name policy on `CreateAsset`.** Per §6.3.2, the second
   call with the same `AssetName` returns `Bad_BrowseNameDuplicated`
   (`0x806B0000`). Clients that want re-create semantics call `DeleteAsset`
