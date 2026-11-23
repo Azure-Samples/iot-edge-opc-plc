@@ -1299,12 +1299,6 @@ public partial class WotConNodeManager : CustomNodeManager2
                         MaterializeAssetProperties(SystemContext, asset, parsed);
                         MaterializeAssetActions(SystemContext, asset, parsed);
                     }
-                    else
-                    {
-                        _logger?.LogInformation(
-                            "[WotCon] {Asset}.CloseAndUpdate handle={Handle} TD is unchanged; keeping existing nodes",
-                            asset.Name, handle);
-                    }
                 }
                 catch (Exception ex)
                 {
