@@ -1363,14 +1363,6 @@ public partial class WotConNodeManager : CustomNodeManager2
     }
 
     /// <summary>
-    /// Materializes the optional <c>AssetEndpoint</c> Property on the asset object per
-    /// OPC 10100-1 §6.3.8 when the TD carries a top-level <c>base</c>. Shape mirrors
-    /// <c>IWoTAssetType.AssetEndpoint</c> (i=122): String, scalar, HasProperty reference,
-    /// PropertyType type definition. On re-upload, the previous generation is dropped
-    /// first; when the new TD omits <c>base</c>, no Property is re-created so the asset
-    /// simply does not contribute to <see cref="OnDiscoverAssets"/>.
-    /// </summary>
-    /// <summary>
     /// Test-only hook invoked mid-materialization with the asset name; throwing from it simulates
     /// a partial materialization failure.
     /// </summary>
@@ -1416,6 +1408,14 @@ public partial class WotConNodeManager : CustomNodeManager2
         }
     }
 
+    /// <summary>
+    /// Materializes the optional <c>AssetEndpoint</c> Property on the asset object per
+    /// OPC 10100-1 §6.3.8 when the TD carries a top-level <c>base</c>. Shape mirrors
+    /// <c>IWoTAssetType.AssetEndpoint</c> (i=122): String, scalar, HasProperty reference,
+    /// PropertyType type definition. On re-upload, the previous generation is dropped
+    /// first; when the new TD omits <c>base</c>, no Property is re-created so the asset
+    /// simply does not contribute to <see cref="OnDiscoverAssets"/>.
+    /// </summary>
     private void MaterializeAssetEndpoint(ISystemContext context, WotAsset asset)
     {
         var assetNode = FindPredefinedNode<BaseObjectState>(asset.AssetId);
