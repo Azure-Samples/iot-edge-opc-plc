@@ -40,6 +40,60 @@ public partial class WotConTests
         (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(secondTd);
     }
 
+    [Test]
+    public async Task WoTFile_Size_TracksCommittedTdOnly()
+    {
+        var (_, fileId) = await CreateAssetAndResolveFileAsync(
+            "SizeTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        const string td = """{"title":"Size","properties":{"temperature":{"type":"number"}}}""";
+        ulong expectedSize = (ulong)Encoding.UTF8.GetByteCount(td);
+        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
+        (await ReadFilePropertyAsync<ulong>(fileId, BrowseNames.Size).ConfigureAwait(false)).Should().Be(expectedSize);
+
+        uint rejected = await OpenWriteAsync(fileId, Encoding.UTF8.GetBytes("{ invalid")).ConfigureAwait(false);
+        (await ReadFilePropertyAsync<ulong>(fileId, BrowseNames.Size).ConfigureAwait(false))
+            .Should().Be(expectedSize, "a staged write must not change Size");
+        var (rejectedStatus, _) = await CallAsync(
+            fileId, WotConNodeId(FileCloseAndUpdateTypeMethodId),
+            [new Variant(rejected)]).ConfigureAwait(false);
+        rejectedStatus.Code.Should().Be(StatusCodes.BadDecodingError);
+        (await ReadFilePropertyAsync<ulong>(fileId, BrowseNames.Size).ConfigureAwait(false))
+            .Should().Be(expectedSize, "a rejected upload must not change Size");
+
+        uint abandoned = await OpenWriteAsync(fileId, Encoding.UTF8.GetBytes("{}")).ConfigureAwait(false);
+        var (closeStatus, _) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Close, 0),
+            [new Variant(abandoned)]).ConfigureAwait(false);
+        StatusCode.IsGood(closeStatus).Should().BeTrue();
+        (await ReadFilePropertyAsync<ulong>(fileId, BrowseNames.Size).ConfigureAwait(false))
+            .Should().Be(expectedSize, "an abandoned upload must not change Size");
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(td);
+    }
+
+    [Test]
+    public async Task WoTFile_LastModifiedTime_ChangesOnlyWhenBytesChange()
+    {
+        var (_, fileId) = await CreateAssetAndResolveFileAsync(
+            "ModifiedTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        const string td = """{"title":"Modified","properties":{"temperature":{"type":"number"}}}""";
+        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
+        DateTime initial = await ReadFilePropertyAsync<DateTime>(fileId, BrowseNames.LastModifiedTime)
+            .ConfigureAwait(false);
+
+        await Task.Delay(20).ConfigureAwait(false);
+        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
+        (await ReadFilePropertyAsync<DateTime>(fileId, BrowseNames.LastModifiedTime).ConfigureAwait(false))
+            .Should().Be(initial, "identical bytes are not a modification");
+
+        const string reformatted = """{ "title": "Modified", "properties": { "temperature": { "type": "number" } } }""";
+        await UploadAndFinalizeTdAsync(fileId, reformatted).ConfigureAwait(false);
+        (await ReadFilePropertyAsync<DateTime>(fileId, BrowseNames.LastModifiedTime).ConfigureAwait(false))
+            .Should().BeAfter(initial, "read-back bytes changed even though the TD is semantically equal");
+        (await ReadFilePropertyAsync<ulong>(fileId, BrowseNames.Size).ConfigureAwait(false))
+            .Should().Be((ulong)Encoding.UTF8.GetByteCount(reformatted));
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(reformatted);
+    }
+
     [TestCase(1)]
     [TestCase(9)]
     public async Task WoTFile_ReadOnlyHandle_RejectsWriteAndCloseAndUpdate(byte mode)

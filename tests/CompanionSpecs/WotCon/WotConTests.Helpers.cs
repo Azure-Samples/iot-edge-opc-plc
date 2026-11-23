@@ -64,6 +64,41 @@ public partial class WotConTests
     }
 
     /// <summary>
+    /// Reads the value of a standard FileType property (e.g. Size, LastModifiedTime) of the WoTFile.
+    /// </summary>
+    private async Task<T> ReadFilePropertyAsync<T>(NodeId fileId, string browseName)
+    {
+        var browsePath = new BrowsePath
+        {
+            StartingNode = fileId,
+            RelativePath = new RelativePath
+            {
+                Elements =
+                {
+                    new RelativePathElement
+                    {
+                        ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                        IsInverse = false,
+                        IncludeSubtypes = true,
+                        TargetName = new QualifiedName(browseName, 0),
+                    },
+                },
+            },
+        };
+        var translate = await Session.TranslateBrowsePathsToNodeIdsAsync(
+            null, new BrowsePathCollection { browsePath }, CancellationToken.None).ConfigureAwait(false);
+        translate.Results[0].Targets.Should().ContainSingle();
+        var propertyId = ExpandedNodeId.ToNodeId(translate.Results[0].Targets[0].TargetId, Session.NamespaceUris);
+
+        var resp = await Session.ReadAsync(
+            null, 0, TimestampsToReturn.Neither,
+            new ReadValueIdCollection { new ReadValueId { NodeId = propertyId, AttributeId = Attributes.Value } },
+            CancellationToken.None).ConfigureAwait(false);
+        StatusCode.IsGood(resp.Results[0].StatusCode).Should().BeTrue();
+        return (T)resp.Results[0].Value;
+    }
+
+    /// <summary>
     /// Browses the forward HasComponent Variable children of an asset — the materialized
     /// TD properties.
     /// </summary>

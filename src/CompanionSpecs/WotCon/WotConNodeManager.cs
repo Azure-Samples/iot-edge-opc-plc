@@ -1017,7 +1017,7 @@ public partial class WotConNodeManager : CustomNodeManager2
                 totalLength = stream.Length;
             }
 
-            fileNode.Size.Value = (ulong)totalLength;
+            // Size reflects the committed TD only; it is published by CloseAndUpdate on acceptance.
             _logger?.LogInformation("[WotCon] {Asset}.Write handle={Handle} wrote {Bytes} bytes (total {Total})",
                 asset.Name, handle, data.Length, totalLength);
             return ServiceResult.Good;
@@ -1307,12 +1307,14 @@ public partial class WotConNodeManager : CustomNodeManager2
                 }
 
                 // Publish only successfully applied TDs; Open(Read) snapshots this state under FileLock.
+                // Node reuse uses semantic equality, but file metadata tracks the raw bytes clients read back.
+                bool contentChanged = !string.Equals(asset.ThingDescription, json, StringComparison.Ordinal);
                 lock (asset.FileLock)
                 {
                     asset.ThingDescription = json;
                     asset.ParsedThingDescription = parsed;
                     fileNode.Size.Value = (ulong)payload.Length;
-                    if (!unchanged && fileNode.LastModifiedTime != null)
+                    if (contentChanged && fileNode.LastModifiedTime != null)
                     {
                         fileNode.LastModifiedTime.Value = DateTime.UtcNow;
                     }
