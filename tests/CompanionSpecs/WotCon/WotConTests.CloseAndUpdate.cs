@@ -17,6 +17,45 @@ using System.Threading.Tasks;
 /// </summary>
 public partial class WotConTests
 {
+    [Test]
+    public async Task CloseAndUpdate_MaterializationFailure_LeavesAssetEmptyAndRetryRebuilds()
+    {
+        string assetName = "FailedTd_" + Guid.NewGuid().ToString("N")[..8];
+        var (assetId, fileId) = await CreateAssetAndResolveFileAsync(assetName).ConfigureAwait(false);
+        const string tdA = """{"title":"A","base":"http://a.invalid/","properties":{"temperature":{"type":"number"}},"actions":{"reset":{}}}""";
+        const string tdB = """{"title":"B","properties":{"pressure":{"type":"number"}},"actions":{"stop":{}}}""";
+        await UploadAndFinalizeTdAsync(fileId, tdA).ConfigureAwait(false);
+
+        OpcPlc.CompanionSpecs.WotCon.WotConNodeManager.MaterializationFaultInjector = name =>
+        {
+            if (name == assetName)
+            {
+                throw new InvalidOperationException("injected materialization failure");
+            }
+        };
+        try
+        {
+            uint handle = await OpenWriteAsync(fileId, Encoding.UTF8.GetBytes(tdB)).ConfigureAwait(false);
+            var (status, _) = await CallAsync(
+                fileId, WotConNodeId(FileCloseAndUpdateTypeMethodId),
+                [new Variant(handle)]).ConfigureAwait(false);
+            status.Code.Should().Be(StatusCodes.BadInternalError);
+        }
+        finally
+        {
+            OpcPlc.CompanionSpecs.WotCon.WotConNodeManager.MaterializationFaultInjector = null;
+        }
+
+        (await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false))
+            .Select(r => r.BrowseName.Name).Should().NotContain(["temperature", "pressure"]);
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().BeEmpty();
+        (await ReadFilePropertyAsync<ulong>(fileId, BrowseNames.Size).ConfigureAwait(false)).Should().Be(0UL);
+
+        await UploadAndFinalizeTdAsync(fileId, tdA).ConfigureAwait(false);
+        (await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false))
+            .Select(r => r.BrowseName.Name).Should().Contain("temperature").And.NotContain("pressure");
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(tdA);
+    }
     [TestCase(false)]
     [TestCase(true)]
     public async Task CloseAndUpdate_UnchangedTd_PreservesNodeIdsAndValues(bool reformat)

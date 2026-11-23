@@ -1297,12 +1297,17 @@ public partial class WotConNodeManager : CustomNodeManager2
                         asset.AssetEndpoint = string.IsNullOrWhiteSpace(parsed.Base) ? null : parsed.Base;
                         MaterializeAssetEndpoint(SystemContext, asset);
                         MaterializeAssetProperties(SystemContext, asset, parsed);
+                        MaterializationFaultInjector?.Invoke(asset.Name);
                         MaterializeAssetActions(SystemContext, asset, parsed);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogError(ex, "[WotCon] {Asset}.CloseAndUpdate materialization failed", asset.Name);
+                    // The previous generation may already be partly replaced, so neither TD describes the
+                    // address space. Fail closed: leave the asset empty so the next upload always rebuilds.
+                    _logger?.LogError(ex,
+                        "[WotCon] {Asset}.CloseAndUpdate materialization failed; clearing asset content", asset.Name);
+                    ClearAssetContent(asset, fileNode);
                     return new ServiceResult(StatusCodes.BadInternalError, "Failed to materialize Thing Description.");
                 }
 
@@ -1371,6 +1376,52 @@ public partial class WotConNodeManager : CustomNodeManager2
     /// first; when the new TD omits <c>base</c>, no Property is re-created so the asset
     /// simply does not contribute to <see cref="OnDiscoverAssets"/>.
     /// </summary>
+    /// <summary>
+    /// Test-only hook invoked mid-materialization with the asset name; throwing from it simulates
+    /// a partial materialization failure.
+    /// </summary>
+    internal static Action<string> MaterializationFaultInjector { get; set; }
+
+    /// <summary>
+    /// Removes all TD-derived nodes and the stored TD, leaving the asset as if no TD had been uploaded.
+    /// Caller must hold <see cref="WotAsset.LifecycleLock"/>.
+    /// </summary>
+    private void ClearAssetContent(WotAsset asset, FileState fileNode)
+    {
+        foreach (var nodeId in asset.MaterializedPropertyNodeIds.Values)
+        {
+            DeleteNode(SystemContext, nodeId);
+        }
+
+        asset.MaterializedPropertyNodeIds.Clear();
+
+        foreach (var nodeId in asset.MaterializedActionNodeIds.Values)
+        {
+            DeleteNode(SystemContext, nodeId);
+        }
+
+        asset.MaterializedActionNodeIds.Clear();
+
+        if (asset.AssetEndpointNodeId != null)
+        {
+            DeleteNode(SystemContext, asset.AssetEndpointNodeId);
+            asset.AssetEndpointNodeId = null;
+        }
+
+        asset.AssetEndpoint = null;
+
+        lock (asset.FileLock)
+        {
+            asset.ThingDescription = null;
+            asset.ParsedThingDescription = null;
+            fileNode.Size.Value = 0UL;
+            if (fileNode.LastModifiedTime != null)
+            {
+                fileNode.LastModifiedTime.Value = DateTime.UtcNow;
+            }
+        }
+    }
+
     private void MaterializeAssetEndpoint(ISystemContext context, WotAsset asset)
     {
         var assetNode = FindPredefinedNode<BaseObjectState>(asset.AssetId);

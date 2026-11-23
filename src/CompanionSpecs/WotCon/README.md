@@ -190,7 +190,9 @@ work.
   Array order and changes to any TD member remain significant. A changed TD drops
   the previous materialized nodes via `DeleteNode` before creating a new generation,
   so clients must rediscover its NodeIds. Read-back returns the latest accepted JSON.
-  Rejected uploads do not replace the stored TD.
+  Rejected uploads do not replace the stored TD. If materialization itself fails
+  partway (`Bad_InternalError`), the asset is cleared (no TD nodes, empty stored TD)
+  so the next upload always rebuilds from scratch.
 - **Strict duplicate-name policy on `CreateAsset`.** Per §6.3.2, the second
   call with the same `AssetName` returns `Bad_BrowseNameDuplicated`
   (`0x806B0000`). Clients that want re-create semantics call `DeleteAsset`
