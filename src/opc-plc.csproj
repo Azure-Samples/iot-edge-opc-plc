@@ -36,6 +36,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="opc-plc-tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="KubernetesClient" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Mono.Options" />

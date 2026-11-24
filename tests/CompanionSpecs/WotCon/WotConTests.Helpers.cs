@@ -3,6 +3,7 @@ namespace OpcPlc.Tests.CompanionSpecs.WotCon;
 using FluentAssertions;
 using Opc.Ua;
 using System;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,6 +27,75 @@ public partial class WotConTests
             methodId: WotConNodeId(FileCloseAndUpdateTypeMethodId),
             arguments: new VariantCollection { new Variant(handle) }).ConfigureAwait(false);
         StatusCode.IsGood(closeStatus).Should().BeTrue("CloseAndUpdate should succeed, got {0}", closeStatus);
+    }
+
+    private async Task<string> ReadStoredTdAsync(NodeId fileId)
+    {
+        var (openStatus, outputs) = await CallAsync(
+            fileId, new NodeId(Methods.FileType_Open, 0),
+            [new Variant((byte)1)]).ConfigureAwait(false);
+        StatusCode.IsGood(openStatus).Should().BeTrue();
+        uint handle = Convert.ToUInt32(outputs[0].Value);
+        using var buffer = new MemoryStream();
+        try
+        {
+            while (true)
+            {
+                var (readStatus, readOutputs) = await CallAsync(
+                    fileId, new NodeId(Methods.FileType_Read, 0),
+                    [new Variant(handle), new Variant(7)]).ConfigureAwait(false);
+                StatusCode.IsGood(readStatus).Should().BeTrue();
+                byte[] chunk = (byte[])readOutputs[0].Value;
+                if (chunk.Length == 0)
+                {
+                    return Encoding.UTF8.GetString(buffer.ToArray());
+                }
+
+                buffer.Write(chunk, 0, chunk.Length);
+            }
+        }
+        finally
+        {
+            var (closeStatus, _) = await CallAsync(
+                fileId, new NodeId(Methods.FileType_Close, 0),
+                [new Variant(handle)]).ConfigureAwait(false);
+            StatusCode.IsGood(closeStatus).Should().BeTrue();
+        }
+    }
+
+    /// <summary>
+    /// Reads the value of a standard FileType property (e.g. Size, LastModifiedTime) of the WoTFile.
+    /// </summary>
+    private async Task<T> ReadFilePropertyAsync<T>(NodeId fileId, string browseName)
+    {
+        var browsePath = new BrowsePath
+        {
+            StartingNode = fileId,
+            RelativePath = new RelativePath
+            {
+                Elements =
+                {
+                    new RelativePathElement
+                    {
+                        ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                        IsInverse = false,
+                        IncludeSubtypes = true,
+                        TargetName = new QualifiedName(browseName, 0),
+                    },
+                },
+            },
+        };
+        var translate = await Session.TranslateBrowsePathsToNodeIdsAsync(
+            null, new BrowsePathCollection { browsePath }, CancellationToken.None).ConfigureAwait(false);
+        translate.Results[0].Targets.Should().ContainSingle();
+        var propertyId = ExpandedNodeId.ToNodeId(translate.Results[0].Targets[0].TargetId, Session.NamespaceUris);
+
+        var resp = await Session.ReadAsync(
+            null, 0, TimestampsToReturn.Neither,
+            new ReadValueIdCollection { new ReadValueId { NodeId = propertyId, AttributeId = Attributes.Value } },
+            CancellationToken.None).ConfigureAwait(false);
+        StatusCode.IsGood(resp.Results[0].StatusCode).Should().BeTrue();
+        return (T)resp.Results[0].Value;
     }
 
     /// <summary>
@@ -67,7 +137,7 @@ public partial class WotConTests
     }
 
     /// <summary>
-    /// Opens the asset's WoTFile for read+write+erase, writes the payload, and returns
+    /// Opens the asset's WoTFile for write+erase, writes the payload, and returns
     /// the file handle so the caller can drive CloseAndUpdate next.
     /// </summary>
     private async Task<uint> OpenWriteAsync(NodeId fileId, byte[] payload)
