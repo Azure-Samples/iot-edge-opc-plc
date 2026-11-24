@@ -56,6 +56,41 @@ public partial class WotConTests
             .Select(r => r.BrowseName.Name).Should().Contain("temperature").And.NotContain("pressure");
         (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(tdA);
     }
+
+    [Test]
+    public async Task CloseAndUpdate_MaterializationFailureOnEmptyAsset_KeepsLastModifiedTime()
+    {
+        string assetName = "FailedEmpty_" + Guid.NewGuid().ToString("N")[..8];
+        var (_, fileId) = await CreateAssetAndResolveFileAsync(assetName).ConfigureAwait(false);
+        DateTimeUtc initial = await ReadFilePropertyAsync<DateTimeUtc>(fileId, BrowseNames.LastModifiedTime)
+            .ConfigureAwait(false);
+
+        OpcPlc.CompanionSpecs.WotCon.WotConNodeManager.MaterializationFaultInjector = name =>
+        {
+            if (name == assetName)
+            {
+                throw new InvalidOperationException("injected materialization failure");
+            }
+        };
+        try
+        {
+            await Task.Delay(20).ConfigureAwait(false);
+            uint handle = await OpenWriteAsync(fileId, Encoding.UTF8.GetBytes(
+                """{"title":"A","properties":{"temperature":{"type":"number"}}}""")).ConfigureAwait(false);
+            var (status, _) = await CallAsync(
+                fileId, WotConNodeId(FileCloseAndUpdateTypeMethodId),
+                [new Variant(handle)]).ConfigureAwait(false);
+            status.Should().Be(StatusCodes.BadInternalError);
+        }
+        finally
+        {
+            OpcPlc.CompanionSpecs.WotCon.WotConNodeManager.MaterializationFaultInjector = null;
+        }
+
+        (await ReadFilePropertyAsync<DateTimeUtc>(fileId, BrowseNames.LastModifiedTime).ConfigureAwait(false))
+            .Should().Be(initial, "the stored TD was empty before and after the failed upload");
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public async Task CloseAndUpdate_UnchangedTd_PreservesNodeIdsAndValues(bool reformat)

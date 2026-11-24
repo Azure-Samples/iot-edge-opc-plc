@@ -1552,10 +1552,11 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
 
         lock (asset.FileLock)
         {
+            bool hadStoredTd = asset.ThingDescription is not null;
             asset.ThingDescription = null;
             asset.ParsedThingDescription = null;
             fileNode.Size.Value = 0UL;
-            if (fileNode.LastModifiedTime != null)
+            if (hadStoredTd && fileNode.LastModifiedTime != null)
             {
                 fileNode.LastModifiedTime.Value = DateTime.UtcNow;
             }
