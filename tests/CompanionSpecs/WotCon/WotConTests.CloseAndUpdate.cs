@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using Opc.Ua;
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,6 +17,157 @@ using System.Threading.Tasks;
 /// </summary>
 public partial class WotConTests
 {
+    [Test]
+    public async Task CloseAndUpdate_MaterializationFailure_LeavesAssetEmptyAndRetryRebuilds()
+    {
+        string assetName = "FailedTd_" + Guid.NewGuid().ToString("N")[..8];
+        var (assetId, fileId) = await CreateAssetAndResolveFileAsync(assetName).ConfigureAwait(false);
+        const string tdA = """{"title":"A","base":"http://a.invalid/","properties":{"temperature":{"type":"number"}},"actions":{"reset":{}}}""";
+        const string tdB = """{"title":"B","properties":{"pressure":{"type":"number"}},"actions":{"stop":{}}}""";
+        await UploadAndFinalizeTdAsync(fileId, tdA).ConfigureAwait(false);
+
+        OpcPlc.CompanionSpecs.WotCon.WotConNodeManager.MaterializationFaultInjector = name =>
+        {
+            if (name == assetName)
+            {
+                throw new InvalidOperationException("injected materialization failure");
+            }
+        };
+        try
+        {
+            uint handle = await OpenWriteAsync(fileId, Encoding.UTF8.GetBytes(tdB)).ConfigureAwait(false);
+            var (status, _) = await CallAsync(
+                fileId, WotConNodeId(FileCloseAndUpdateTypeMethodId),
+                [new Variant(handle)]).ConfigureAwait(false);
+            status.Should().Be(StatusCodes.BadInternalError);
+        }
+        finally
+        {
+            OpcPlc.CompanionSpecs.WotCon.WotConNodeManager.MaterializationFaultInjector = null;
+        }
+
+        (await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false))
+            .Select(r => r.BrowseName.Name).Should().NotContain(["temperature", "pressure"]);
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().BeEmpty();
+        (await ReadFilePropertyAsync<ulong>(fileId, BrowseNames.Size).ConfigureAwait(false)).Should().Be(0UL);
+
+        await UploadAndFinalizeTdAsync(fileId, tdA).ConfigureAwait(false);
+        (await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false))
+            .Select(r => r.BrowseName.Name).Should().Contain("temperature").And.NotContain("pressure");
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(tdA);
+    }
+
+    [Test]
+    public async Task CloseAndUpdate_MaterializationFailureOnEmptyAsset_KeepsLastModifiedTime()
+    {
+        string assetName = "FailedEmpty_" + Guid.NewGuid().ToString("N")[..8];
+        var (_, fileId) = await CreateAssetAndResolveFileAsync(assetName).ConfigureAwait(false);
+        DateTimeUtc initial = await ReadFilePropertyAsync<DateTimeUtc>(fileId, BrowseNames.LastModifiedTime)
+            .ConfigureAwait(false);
+
+        OpcPlc.CompanionSpecs.WotCon.WotConNodeManager.MaterializationFaultInjector = name =>
+        {
+            if (name == assetName)
+            {
+                throw new InvalidOperationException("injected materialization failure");
+            }
+        };
+        try
+        {
+            await Task.Delay(20).ConfigureAwait(false);
+            uint handle = await OpenWriteAsync(fileId, Encoding.UTF8.GetBytes(
+                """{"title":"A","properties":{"temperature":{"type":"number"}}}""")).ConfigureAwait(false);
+            var (status, _) = await CallAsync(
+                fileId, WotConNodeId(FileCloseAndUpdateTypeMethodId),
+                [new Variant(handle)]).ConfigureAwait(false);
+            status.Should().Be(StatusCodes.BadInternalError);
+        }
+        finally
+        {
+            OpcPlc.CompanionSpecs.WotCon.WotConNodeManager.MaterializationFaultInjector = null;
+        }
+
+        (await ReadFilePropertyAsync<DateTimeUtc>(fileId, BrowseNames.LastModifiedTime).ConfigureAwait(false))
+            .Should().Be(initial, "the stored TD was empty before and after the failed upload");
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task CloseAndUpdate_UnchangedTd_PreservesNodeIdsAndValues(bool reformat)
+    {
+        var (assetId, fileId) = await CreateAssetAndResolveFileAsync(
+            "UnchangedTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        const string td = """
+            {
+              "title": "Unchanged",
+              "base": "http://unchanged.invalid/",
+              "properties": { "setpoint": { "type": "number", "observable": false } },
+              "actions": { "reset": {} }
+            }
+            """;
+        const string reformattedTd = """
+            {
+              "actions": { "reset": {} },
+              "properties": { "setpoint": { "observable": false, "type": "number" } },
+              "base": "http://unchanged.invalid/",
+              "title": "Unchanged"
+            }
+            """;
+        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
+        var properties = await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false);
+        var propertyId = ToNodeId(properties.Single(r => r.BrowseName.Name == "setpoint").NodeId);
+        var actions = await BrowseAssetMethodChildrenAsync(assetId).ConfigureAwait(false);
+        var actionId = ToNodeId(actions.Single(r => r.BrowseName.Name == "reset").NodeId);
+        var endpointId = await ResolveChildByBrowseNameAsync(
+            assetId, "AssetEndpoint", isProperty: true).ConfigureAwait(false);
+        var writeStatus = await WriteValueAsync(propertyId, 42.5).ConfigureAwait(false);
+        StatusCode.IsGood(writeStatus).Should().BeTrue();
+
+        string uploadedTd = reformat ? reformattedTd : td;
+        await UploadAndFinalizeTdAsync(fileId, uploadedTd).ConfigureAwait(false);
+
+        var updatedProperties = await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false);
+        ToNodeId(updatedProperties.Single(r => r.BrowseName.Name == "setpoint").NodeId).Should().Be(propertyId);
+        var updatedActions = await BrowseAssetMethodChildrenAsync(assetId).ConfigureAwait(false);
+        ToNodeId(updatedActions.Single(r => r.BrowseName.Name == "reset").NodeId).Should().Be(actionId);
+        (await ResolveChildByBrowseNameAsync(assetId, "AssetEndpoint", isProperty: true).ConfigureAwait(false))
+            .Should().Be(endpointId);
+        var value = await ReadDataValueAsync(propertyId).ConfigureAwait(false);
+        StatusCode.IsGood(value.StatusCode).Should().BeTrue();
+        value.WrappedValue.AsBoxedObject(Variant.BoxingBehavior.Legacy).Should().Be(42.5, "unchanged uploads must not reset an existing variable");
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(uploadedTd);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task CloseAndUpdate_ChangedForms_ReplacesNodes(bool reorder)
+    {
+        var (assetId, fileId) = await CreateAssetAndResolveFileAsync(
+            "ChangedFormsTd_" + Guid.NewGuid().ToString("N")[..8]).ConfigureAwait(false);
+        const string td = """
+            {
+              "title": "Forms",
+              "properties": {
+                "setpoint": { "type": "number", "forms": [{"href":"first"},{"href":"second"}] }
+              }
+            }
+            """;
+        await UploadAndFinalizeTdAsync(fileId, td).ConfigureAwait(false);
+        var properties = await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false);
+        var previousId = ToNodeId(properties.Single(r => r.BrowseName.Name == "setpoint").NodeId);
+        string updatedTd = reorder
+            ? td.Replace("""[{"href":"first"},{"href":"second"}]""", """[{"href":"second"},{"href":"first"}]""")
+            : td.Replace("second", "changed");
+
+        await UploadAndFinalizeTdAsync(fileId, updatedTd).ConfigureAwait(false);
+
+        var updatedProperties = await BrowseAssetVariableChildrenAsync(assetId).ConfigureAwait(false);
+        ToNodeId(updatedProperties.Single(r => r.BrowseName.Name == "setpoint").NodeId).Should().NotBe(previousId);
+        var previousValue = await ReadDataValueAsync(previousId).ConfigureAwait(false);
+        previousValue.StatusCode.Should().Be(StatusCodes.BadNodeIdUnknown);
+        (await ReadStoredTdAsync(fileId).ConfigureAwait(false)).Should().Be(updatedTd);
+    }
+
     [Test]
     public async Task CloseAndUpdate_MalformedJsonPayload_ReturnsBadDecodingError()
     {

@@ -194,15 +194,15 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
             lock (asset.FileLock)
             {
                 asset.IsDeleted = true;
-                foreach (MemoryStream stream in asset.FileBuffers.Values)
+                foreach (var file in asset.FileHandles.Values)
                 {
-                    stream.Dispose();
+                    file.Buffer.Dispose();
                 }
-                asset.FileBuffers.Clear();
-                var file = FindPredefinedNode<FileState>(asset.FileNodeId);
-                if (file?.OpenCount is not null)
+                asset.FileHandles.Clear();
+                var fileNode = FindPredefinedNode<FileState>(asset.FileNodeId);
+                if (fileNode?.OpenCount is not null)
                 {
-                    file.OpenCount.Value = 0;
+                    fileNode.OpenCount.Value = 0;
                 }
             }
         }
@@ -699,16 +699,16 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
                 lock (asset.FileLock)
                 {
                     asset.IsDeleted = true;
-                    foreach (var stream in asset.FileBuffers.Values)
+                    foreach (var file in asset.FileHandles.Values)
                     {
-                        stream.Dispose();
+                        file.Buffer.Dispose();
                     }
 
-                    asset.FileBuffers.Clear();
-                    var file = FindPredefinedNode<FileState>(asset.FileNodeId);
-                    if (file?.OpenCount is not null)
+                    asset.FileHandles.Clear();
+                    var fileNode = FindPredefinedNode<FileState>(asset.FileNodeId);
+                    if (fileNode?.OpenCount is not null)
                     {
-                        file.OpenCount.Value = 0;
+                        fileNode.OpenCount.Value = 0;
                     }
                 }
 
@@ -1029,10 +1029,28 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
         }
     }
 
-    private ServiceResult OnPerAssetFileOpen(WotAsset asset, FileState fileNode, ArrayOf<Variant> inputArguments, List<Variant> outputArguments)
+    private ServiceResult OnPerAssetFileOpen(
+        WotAsset asset,
+        FileState fileNode,
+        ArrayOf<Variant> inputArguments,
+        List<Variant> outputArguments)
     {
+        if (inputArguments.Count < 1)
+        {
+            return new ServiceResult(StatusCodes.BadArgumentsMissing);
+        }
+
         try
         {
+            var mode = (FileOpenMode)(byte)inputArguments[0];
+            // OPC 10100-1 §6.3.10: WoTAssetFileType supports Write + EraseExisting (mandatory) and
+            // Read (optional); "other modes are not allowed".
+            if (mode != FileOpenMode.Read && mode != (FileOpenMode.Write | FileOpenMode.EraseExisting))
+            {
+                return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}",
+                    "Invalid file open mode; WoTAssetFileType supports only Read or Write + EraseExisting.");
+            }
+
             uint handle;
             int openCount;
             lock (asset.FileLock)
@@ -1041,9 +1059,24 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
                 {
                     return StatusCodes.BadObjectDeleted;
                 }
+
+                // Each handle gets its own private buffer. Nothing is shared between handles
+                // until CloseAndUpdate publishes a new TD.
+                var stream = new MemoryStream();
+
+                // Read handles get a copy of the stored TD so the client can read it back. The copy
+                // is a snapshot: later uploads on other handles do not change it. Write handles
+                // always use EraseExisting, so they start empty and replace the TD on commit.
+                if (mode == FileOpenMode.Read && asset.ThingDescription != null)
+                {
+                    byte[] stored = Encoding.UTF8.GetBytes(asset.ThingDescription);
+                    stream.Write(stored, 0, stored.Length);
+                    stream.Position = 0;
+                }
+
                 handle = asset.NextFileHandle++;
-                asset.FileBuffers[handle] = new MemoryStream();
-                openCount = asset.FileBuffers.Count;
+                asset.FileHandles[handle] = (mode, stream);
+                openCount = asset.FileHandles.Count;
             }
 
             outputArguments[0] = handle;
@@ -1080,15 +1113,21 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
             long totalLength;
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
+                if (!asset.FileHandles.TryGetValue(handle, out var file))
                 {
                     return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "Unknown file handle");
                 }
 
+                if (!file.Mode.HasFlag(FileOpenMode.Write))
+                {
+                    return ServiceResult.Create(StatusCodes.BadInvalidState, "{0}", "FileHandle is not open for writing.");
+                }
+
+                var stream = file.Buffer;
                 // Enforce the limit advertised on MaxByteStringLength so clients can trust
                 // the property instead of being able to grow the in-memory buffer unbounded.
                 uint maxBytes = fileNode.MaxByteStringLength?.Value ?? 0;
-                if (maxBytes > 0 && stream.Length + data.Span.Length > maxBytes)
+                if (maxBytes > 0 && Math.Max(stream.Length, stream.Position + data.Span.Length) > maxBytes)
                 {
                     return ServiceResult.Create(StatusCodes.BadRequestTooLarge, "{0}",
                         $"Write would exceed MaxByteStringLength ({maxBytes} bytes).");
@@ -1098,7 +1137,7 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
                 totalLength = stream.Length;
             }
 
-            fileNode.Size.Value = (ulong)totalLength;
+            // Size reflects the committed TD only; it is published by CloseAndUpdate on acceptance.
             _logger?.LogInformation("[WotCon] {Asset}.Write handle={Handle} wrote {Bytes} bytes (total {Total})",
                 asset.Name, handle, data.Span.Length, totalLength);
             return ServiceResult.Good;
@@ -1128,11 +1167,17 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
             byte[] result;
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
+                if (!asset.FileHandles.TryGetValue(handle, out var file))
                 {
                     return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "Unknown file handle");
                 }
 
+                if (!file.Mode.HasFlag(FileOpenMode.Read))
+                {
+                    return ServiceResult.Create(StatusCodes.BadInvalidState, "{0}", "FileHandle is not open for reading.");
+                }
+
+                var stream = file.Buffer;
                 var buffer = new byte[Math.Max(0, length)];
                 int read = length > 0 ? stream.Read(buffer, 0, length) : 0;
                 result = new byte[read];
@@ -1188,12 +1233,12 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
             ulong position;
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
+                if (!asset.FileHandles.TryGetValue(handle, out var file))
                 {
                     return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "Unknown file handle");
                 }
 
-                position = (ulong)stream.Position;
+                position = (ulong)file.Buffer.Position;
             }
 
             outputArguments[0] = position;
@@ -1219,12 +1264,12 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
             ulong position = (ulong)inputArguments[1];
             lock (asset.FileLock)
             {
-                if (!asset.FileBuffers.TryGetValue(handle, out var stream))
+                if (!asset.FileHandles.TryGetValue(handle, out var file))
                 {
                     return ServiceResult.Create(StatusCodes.BadInvalidArgument, "{0}", "Unknown file handle");
                 }
 
-                stream.Position = (long)position;
+                file.Buffer.Position = (long)position;
             }
 
             return ServiceResult.Good;
@@ -1260,6 +1305,7 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
             // can't observe the buffer between ToArray and Dispose.
             byte[] payload = null;
             bool handleKnown = false;
+            bool openedForWrite = false;
             int openCount;
             lock (asset.FileLock)
             {
@@ -1267,22 +1313,36 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
                 {
                     return StatusCodes.BadObjectDeleted;
                 }
-                if (asset.FileBuffers.TryGetValue(handle, out var stream))
+                if (asset.FileHandles.TryGetValue(handle, out var file))
                 {
                     handleKnown = true;
-                    payload = stream.ToArray();
-                    stream.Dispose();
-                    asset.FileBuffers.Remove(handle);
+                    openedForWrite = file.Mode.HasFlag(FileOpenMode.Write);
+
+                    // A read-only handle stays open; the client still has to Close it.
+                    if (openedForWrite)
+                    {
+                        payload = file.Buffer.ToArray();
+                        file.Buffer.Dispose();
+                        asset.FileHandles.Remove(handle);
+                    }
                 }
 
-                openCount = asset.FileBuffers.Count;
+                openCount = asset.FileHandles.Count;
             }
 
-            // §6.3.10.2: an unknown / not-open-for-writing handle must surface as
+            // §6.3.10.2: an unknown handle, or one not opened for writing, must surface as
             // Bad_InvalidState — bail before mutating any per-asset state.
             if (!handleKnown)
             {
-                _logger?.LogWarning("[WotCon] {Asset}.CloseAndUpdate received unknown handle={Handle}", asset.Name, handle);
+                _logger?.LogWarning(
+                    "[WotCon] {Asset}.CloseAndUpdate handle={Handle} is unknown", asset.Name, handle);
+                return ServiceResult.Create(StatusCodes.BadInvalidState, "{0}", "FileHandle is unknown.");
+            }
+
+            if (!openedForWrite)
+            {
+                _logger?.LogWarning(
+                    "[WotCon] {Asset}.CloseAndUpdate handle={Handle} is not open for writing", asset.Name, handle);
                 return ServiceResult.Create(StatusCodes.BadInvalidState, "{0}", "FileHandle is not open for writing.");
             }
 
@@ -1292,16 +1352,6 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
                 fileNode.OpenCount.Value = (ushort)Math.Min(ushort.MaxValue, openCount);
             }
 
-            if (fileNode.LastModifiedTime != null)
-            {
-                fileNode.LastModifiedTime.Value = DateTime.UtcNow;
-            }
-
-            // Per OPC 10100-1 §6.3.2 + §6.3.8 the upload finalization is the trigger to
-            // materialize the asset's information model from the Thing Description. For now
-            // (plan item 1) we only decode + parse + persist; Variable/Method materialization
-            // lands with plan items 2 and 3.
-            //
             // TODO: validate against the WoT-Con TD JSON Schema (Annex A.2). The lightweight
             // "well-formed JSON + non-empty title" gate below is sufficient for mock-mode
             // round-trips today.
@@ -1349,9 +1399,6 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
                 return bindingResult;
             }
 
-            // Persist both the raw JSON (for diagnostics / re-export) and the parsed form
-            // (for later materialization). Re-uploads overwrite both.
-
             // Per OPC 10100-1 §6.3.2 + §6.3.8 + §6.3.9: a successful TD upload materializes
             // the asset's information model. Today: WoT Properties → OPC UA Variables and WoT
             // Actions → OPC UA Methods under the asset.
@@ -1369,21 +1416,60 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
                     return ServiceResult.Create(StatusCodes.BadObjectDeleted, "{0}", "Asset was deleted before the upload could be materialized.");
                 }
 
+                bool unchanged = false;
+                if (asset.ThingDescription != null)
+                {
+                    using var previousDocument = JsonDocument.Parse(asset.ThingDescription);
+                    using var uploadedDocument = JsonDocument.Parse(json);
+                    unchanged = JsonElement.DeepEquals(previousDocument.RootElement, uploadedDocument.RootElement);
+                }
+
                 try
                 {
-                    asset.ThingDescription = json;
-                    asset.ParsedThingDescription = parsed;
-                    asset.AssetEndpoint = string.IsNullOrWhiteSpace(parsed.Base) ? null : parsed.Base;
-                    await MaterializeAssetEndpointAsync(SystemContext, asset, cancellationToken).ConfigureAwait(false);
-                    await MaterializeAssetPropertiesAsync(SystemContext, asset, parsed, cancellationToken)
-                        .ConfigureAwait(false);
-                    await MaterializeAssetActionsAsync(SystemContext, asset, parsed, cancellationToken)
-                        .ConfigureAwait(false);
+                    if (!unchanged)
+                    {
+                        asset.AssetEndpoint = string.IsNullOrWhiteSpace(parsed.Base) ? null : parsed.Base;
+                        await MaterializeAssetEndpointAsync(SystemContext, asset, cancellationToken).ConfigureAwait(false);
+                        await MaterializeAssetPropertiesAsync(SystemContext, asset, parsed, cancellationToken)
+                            .ConfigureAwait(false);
+
+                        // Test-only: lets tests throw here, after properties are rebuilt but before actions.
+                        MaterializationFaultInjector?.Invoke(asset.Name);
+
+                        await MaterializeAssetActionsAsync(SystemContext, asset, parsed, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogError(ex, "[WotCon] {Asset}.CloseAndUpdate materialization failed", asset.Name);
+                    // The previous generation may already be partly replaced, so neither TD describes the
+                    // address space. Fail closed: leave the asset empty so the next upload always rebuilds.
+                    _logger?.LogError(ex,
+                        "[WotCon] {Asset}.CloseAndUpdate materialization failed; clearing asset content", asset.Name);
+                    await ClearAssetContentAsync(asset, fileNode, cancellationToken).ConfigureAwait(false);
                     return ServiceResult.Create(StatusCodes.BadInternalError, "{0}", "Failed to materialize Thing Description.");
+                }
+
+                // Publish only successfully applied TDs; Open(Read) snapshots this state under FileLock.
+                // Node reuse uses semantic equality, but file metadata tracks the raw bytes clients read back.
+                bool contentChanged = !string.Equals(asset.ThingDescription, json, StringComparison.Ordinal);
+                lock (asset.FileLock)
+                {
+                    asset.ThingDescription = json;
+                    asset.ParsedThingDescription = parsed;
+                    fileNode.Size.Value = (ulong)payload.Length;
+                    if (contentChanged && fileNode.LastModifiedTime != null)
+                    {
+                        fileNode.LastModifiedTime.Value = DateTime.UtcNow;
+                    }
+                }
+
+                if (unchanged)
+                {
+                    _logger?.LogInformation(
+                        "[WotCon] {Asset}.CloseAndUpdate handle={Handle}: unchanged TD; preserving materialized nodes",
+                        asset.Name, handle);
+                    return ServiceResult.Good;
                 }
             }
             finally
@@ -1419,13 +1505,61 @@ public partial class WotConNodeManager : AsyncCustomNodeManager
     {
         lock (asset.FileLock)
         {
-            if (asset.FileBuffers.TryGetValue(handle, out var stream))
+            if (asset.FileHandles.TryGetValue(handle, out var file))
             {
-                stream.Dispose();
-                asset.FileBuffers.Remove(handle);
+                file.Buffer.Dispose();
+                asset.FileHandles.Remove(handle);
             }
 
-            return asset.FileBuffers.Count;
+            return asset.FileHandles.Count;
+        }
+    }
+
+    /// <summary>
+    /// Test-only hook invoked mid-materialization with the asset name; throwing from it simulates
+    /// a partial materialization failure.
+    /// </summary>
+    internal static Action<string> MaterializationFaultInjector { get; set; }
+
+    /// <summary>
+    /// Removes all TD-derived nodes and the stored TD, leaving the asset as if no TD had been uploaded.
+    /// Caller must hold <see cref="WotAsset.LifecycleGate"/>.
+    /// </summary>
+    private async ValueTask ClearAssetContentAsync(
+        WotAsset asset, FileState fileNode, CancellationToken cancellationToken)
+    {
+        foreach (var nodeId in asset.MaterializedPropertyNodeIds.Values)
+        {
+            await DeleteNodeAsync(SystemContext, nodeId, cancellationToken).ConfigureAwait(false);
+        }
+
+        asset.MaterializedPropertyNodeIds.Clear();
+
+        foreach (var nodeId in asset.MaterializedActionNodeIds.Values)
+        {
+            await DeleteNodeAsync(SystemContext, nodeId, cancellationToken).ConfigureAwait(false);
+        }
+
+        asset.MaterializedActionNodeIds.Clear();
+
+        if (!asset.AssetEndpointNodeId.IsNull)
+        {
+            await DeleteNodeAsync(SystemContext, asset.AssetEndpointNodeId, cancellationToken).ConfigureAwait(false);
+            asset.AssetEndpointNodeId = NodeId.Null;
+        }
+
+        asset.AssetEndpoint = null;
+
+        lock (asset.FileLock)
+        {
+            bool hadStoredTd = asset.ThingDescription is not null;
+            asset.ThingDescription = null;
+            asset.ParsedThingDescription = null;
+            fileNode.Size.Value = 0UL;
+            if (hadStoredTd && fileNode.LastModifiedTime != null)
+            {
+                fileNode.LastModifiedTime.Value = DateTime.UtcNow;
+            }
         }
     }
 
