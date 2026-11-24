@@ -78,21 +78,33 @@ public class WotConMigrationTests
         var (_, file) = await fixture.CreateAssetAsync("File").ConfigureAwait(false);
         uint handle = await fixture.OpenAsync(file).ConfigureAwait(false);
         file.OpenCount.Value.Should().Be(1);
-        ByteString payload = (ByteString)Encoding.UTF8.GetBytes("payload");
+        ByteString payload = (ByteString)Encoding.UTF8.GetBytes("""{"title":"File"}""");
         var write = await fixture.CallAsync(file, file.Write, new Variant(handle), new Variant(payload))
             .ConfigureAwait(false);
         ServiceResult.IsGood(write.Status).Should().BeTrue();
-        file.Size.Value.Should().Be(7);
+        file.Size.Value.Should().Be(0, "Size is published only when CloseAndUpdate accepts the TD");
         var position = await fixture.CallAsync(file, file.GetPosition, new Variant(handle)).ConfigureAwait(false);
-        position.Outputs[0].GetUInt64().Should().Be(7);
+        position.Outputs[0].GetUInt64().Should().Be((ulong)payload.Length);
         var seek = await fixture.CallAsync(file, file.SetPosition, new Variant(handle), new Variant(0UL))
             .ConfigureAwait(false);
         ServiceResult.IsGood(seek.Status).Should().BeTrue();
-        var read = await fixture.CallAsync(file, file.Read, new Variant(handle), new Variant(20)).ConfigureAwait(false);
+        var writeHandleRead = await fixture.CallAsync(file, file.Read, new Variant(handle), new Variant(20))
+            .ConfigureAwait(false);
+        writeHandleRead.Status.StatusCode.Should().Be((StatusCode)StatusCodes.BadInvalidState);
+        var commit = await fixture.CallAsync(file, fixture.Child<MethodState>(file, "CloseAndUpdate"),
+            new Variant(handle)).ConfigureAwait(false);
+        ServiceResult.IsGood(commit.Status).Should().BeTrue("{0}", commit.Status);
+        file.Size.Value.Should().Be((ulong)payload.Length);
+        file.OpenCount.Value.Should().Be(0);
+
+        uint readHandle = await fixture.OpenAsync(file, FileOpenMode.Read).ConfigureAwait(false);
+        file.OpenCount.Value.Should().Be(1);
+        var read = await fixture.CallAsync(file, file.Read, new Variant(readHandle), new Variant(100))
+            .ConfigureAwait(false);
         ServiceResult.IsGood(read.Status).Should().BeTrue();
         read.Outputs[0].TypeInfo.BuiltInType.Should().Be(BuiltInType.ByteString);
         read.Outputs[0].GetByteString().Should().Be(payload);
-        var close = await fixture.CallAsync(file, file.Close, new Variant(handle)).ConfigureAwait(false);
+        var close = await fixture.CallAsync(file, file.Close, new Variant(readHandle)).ConfigureAwait(false);
         ServiceResult.IsGood(close.Status).Should().BeTrue();
         file.OpenCount.Value.Should().Be(0);
     }
@@ -246,10 +258,14 @@ public class WotConMigrationTests
         var write = await fixture.CallAsync(first, first.Write, new Variant(handle),
             new Variant((ByteString)new byte[] { 1, 2, 3 })).ConfigureAwait(false);
         ServiceResult.IsGood(write.Status).Should().BeTrue();
-        first.Size.Value.Should().Be(3);
-        second.Size.Value.Should().Be(0);
+        first.OpenCount.Value.Should().Be(1);
         second.OpenCount.Value.Should().Be(0);
         await fixture.CallAsync(first, first.Close, new Variant(handle)).ConfigureAwait(false);
+        byte[] td = Encoding.UTF8.GetBytes("""{"title":"First"}""");
+        ServiceResult upload = await fixture.UploadAsync(first, td).ConfigureAwait(false);
+        ServiceResult.IsGood(upload).Should().BeTrue("{0}", upload);
+        first.Size.Value.Should().Be((ulong)td.Length);
+        second.Size.Value.Should().Be(0);
     }
 
     [Test]
@@ -319,7 +335,7 @@ public class WotConMigrationTests
         {
             ObjectId = file.NodeId,
             MethodId = new NodeId(Methods.FileType_Open),
-            InputArguments = [new Variant((byte)2)]
+            InputArguments = [new Variant((byte)(FileOpenMode.Write | FileOpenMode.EraseExisting))]
         };
         using var context = new OperationContext(new RequestHeader(), null, RequestType.Call, default,
             new UserIdentity(new AnonymousIdentityTokenHandler(new AnonymousIdentityToken())));
@@ -489,7 +505,8 @@ public class WotConMigrationTests
         ServiceResult.IsGood(created.Status).Should().BeTrue();
         fixture.Find<NodeState>(created.Outputs[0].GetNodeId()).Should().BeNull();
         file.OpenCount.Value.Should().Be(0);
-        var staleOpen = await fixture.CallAsync(file, file.Open, new Variant((byte)2)).ConfigureAwait(false);
+        var staleOpen = await fixture.CallAsync(file, file.Open,
+            new Variant((byte)(FileOpenMode.Write | FileOpenMode.EraseExisting))).ConfigureAwait(false);
         staleOpen.Status.StatusCode.Should().Be((StatusCode)StatusCodes.BadObjectDeleted);
         fixture.Tick();
         fixture.Logger.Errors.Should().BeEmpty();
@@ -745,10 +762,11 @@ public class WotConMigrationTests
             return (asset, Child<FileState>(asset, "WoTFile"));
         }
 
-        public async Task<uint> OpenAsync(FileState file)
+        public async Task<uint> OpenAsync(FileState file,
+            FileOpenMode mode = FileOpenMode.Write | FileOpenMode.EraseExisting)
         {
-            var result = await CallAsync(file, file.Open, new Variant((byte)2)).ConfigureAwait(false);
-            ServiceResult.IsGood(result.Status).Should().BeTrue();
+            var result = await CallAsync(file, file.Open, new Variant((byte)mode)).ConfigureAwait(false);
+            ServiceResult.IsGood(result.Status).Should().BeTrue("Open: {0}", result.Status);
             return result.Outputs[0].GetUInt32();
         }
 
